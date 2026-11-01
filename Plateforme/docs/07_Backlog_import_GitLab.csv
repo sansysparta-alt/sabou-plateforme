@@ -1,0 +1,771 @@
+﻿title,description
+[US-001] Un dépôt monorepo avec intégration continue,"En tant qu’équipe, je veux un dépôt monorepo avec intégration continue, afin que chaque changement soit vérifié automatiquement.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné une demande de fusion, quand elle est poussée, alors le lint, les tests et la compilation de chaque application s’exécutent.
+- [ ] Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 3"
+[US-002] Lancer tout l’environnement local en une commande,"En tant que développeur, je veux lancer tout l’environnement local en une commande, afin de travailler dans les conditions de production.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné un poste neuf, quand je lance la commande de démarrage, alors PostgreSQL 17 + PostGIS, Keycloak, Valkey et SeaweedFS démarrent et leurs contrôles de santé sont verts.
+- [ ] Étant donné l’environnement démarré, quand j’ouvre l’API, alors elle répond et lit la base.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 5"
+[US-003] Exécuter et corriger les scripts SQL v2 sous forme de migrations versionnées,"En tant qu’équipe, je veux exécuter et corriger les scripts SQL v2 sous forme de migrations versionnées, afin de partir d’une base fiable.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné une base vide, quand les migrations s’exécutent avec arrêt sur erreur, alors elles réussissent sans erreur.
+- [ ] Étant donné les cas interdits de 03_queries.sql (langue non autorisée, traitement incomplet, acteur hors zone), quand les tests automatiques les exécutent, alors chacun est refusé par la base.
+- [ ] Étant donné une migration déjà appliquée, quand on la modifie, alors l’outil de migration le détecte et échoue.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 5"
+[US-004] Un prototype de synchronisation hors réseau (Flutter + PowerSync),"En tant qu’équipe, je veux un prototype de synchronisation hors réseau (Flutter + PowerSync), afin de valider ou remplacer ce choix technique.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-74
+
+**Critères d’acceptation**
+- [ ] Étant donné un téléphone sans réseau, quand un agent saisit un dossier avec pièces et voix, alors tout est conservé sur le téléphone.
+- [ ] Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
+- [ ] Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
+- [ ] Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 8"
+[US-005] Un prototype de chaîne audio,"En tant qu’équipe, je veux un prototype de chaîne audio, afin de garantir une voix claire et légère sur téléphone d’entrée de gamme.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-73
+
+**Critères d’acceptation**
+- [ ] Étant donné un Android d’entrée de gamme, quand on enregistre 90 s dans un lieu bruyant, alors le fichier traité (RNNoise, normalisation, Opus 24 kbit/s) pèse au plus 300 Ko et reste compréhensible.
+- [ ] Étant donné une connexion 3G simulée, quand on lance la lecture, alors elle démarre en moins de 3 s.
+- [ ] Une décision écrite est ajoutée à 05_Choix_Techniques.md.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 5"
+[US-006] Un prototype de QR signé vérifiable hors ligne,"En tant qu’équipe, je veux un prototype de QR signé vérifiable hors ligne, afin de valider le format CBOR/COSE/Base45 et Ed25519.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-06
+
+**Critères d’acceptation**
+- [ ] Étant donné un QR généré et signé, quand un téléphone sans réseau le scanne, alors le verdict « authentique » s’affiche.
+- [ ] Étant donné un QR dont une donnée est modifiée, quand il est scanné, alors le verdict « falsifié » (rouge) s’affiche.
+- [ ] Une décision écrite est ajoutée à 05_Choix_Techniques.md.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 5"
+[US-007] Un environnement de recette déployé automatiquement,"En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 2 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 2"
+[US-010] Me connecter avec un double facteur obligatoire,"En tant qu’administrateur, je veux me connecter avec un double facteur obligatoire, afin que mon compte ne puisse pas être usurpé.
+
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné un administrateur sans double facteur, quand il se connecte, alors il doit l’activer avant d’accéder à l’application.
+- [ ] Étant donné un praticien ou un citoyen, quand il se connecte, alors le double facteur est proposé mais pas imposé.
+- [ ] Étant donné 5 échecs de connexion, quand une 6e tentative arrive, alors le compte est bloqué temporairement et l’événement est journalisé.
+
+/label ~""E01"" ~""Must"" ~""S1""
+/weight 5"
+[US-011] Ne voir que les données de ma zone,"En tant qu’admin préfectoral ou régional, je veux ne voir que les données de ma zone, afin de respecter le moindre privilège.
+
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné l’admin préfectoral de Labé, quand il liste les praticiens, alors seuls ceux de Labé apparaissent, même par appel direct à l’API.
+- [ ] Étant donné l’admin régional de Kankan, quand il liste les dossiers, alors seuls ceux des préfectures de sa région apparaissent.
+- [ ] Étant donné une requête SQL sans contexte de zone, quand elle s’exécute sous le rôle applicatif, alors elle ne renvoie aucune ligne (RLS).
+
+/label ~""E01"" ~""Must"" ~""S1""
+/weight 5"
+"[US-012] Créer ou inviter un compte et lui attribuer rôle, zone et langues de travail","En tant que DG, je veux créer ou inviter un compte et lui attribuer rôle, zone et langues de travail, afin d’organiser les équipes.
+
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné une invitation envoyée, quand la personne l’accepte, alors son compte a exactement le rôle, la zone et les langues attribués.
+- [ ] Étant donné un rôle régional sans région, quand la DG enregistre, alors l’enregistrement est refusé.
+
+/label ~""E01"" ~""Must"" ~""S1""
+/weight 3"
+[US-013] Suspendre un compte en un clic,"En tant que DG, je veux suspendre un compte en un clic, afin de couper immédiatement un accès.
+
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 2 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné un compte connecté, quand la DG le suspend, alors ses sessions sont révoquées dans la minute et toute nouvelle connexion est refusée.
+- [ ] La suspension est inscrite au journal d’audit.
+
+/label ~""E01"" ~""Must"" ~""S1""
+/weight 2"
+[US-014] Créer un compte gratuit avec mon numéro de téléphone,"En tant que citoyen, je veux créer un compte gratuit avec mon numéro de téléphone, afin de témoigner et de demander une plante.
+
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-10
+
+**Critères d’acceptation**
+- [ ] Étant donné un numéro valide, quand je m’inscris, alors je reçois un code par SMS et mon compte est créé après saisie du code.
+- [ ] Étant donné un numéro déjà inscrit, quand je m’inscris, alors on me propose de me connecter.
+
+/label ~""E01"" ~""Must"" ~""S1""
+/weight 3"
+"[US-020] Gérer les langues (texte, voix) et les territoires","En tant que DG, je veux gérer les langues (texte, voix) et les territoires, afin de paramétrer la plateforme sans code.
+
+**Epic** : E02 Référentiels · **Sprint** : S1 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné l’anglais (langue sans voix), quand on enregistre une voix en anglais, alors c’est refusé.
+- [ ] Étant donné Conakry, quand on consulte sa région naturelle, alors c’est la Basse Guinée (soussou par défaut).
+- [ ] Étant donné une nouvelle langue nationale ajoutée, quand on l’active, alors elle est utilisable sans modification du code.
+
+/label ~""E02"" ~""Must"" ~""S1""
+/weight 3"
+[US-021] Gérer la liste des 8 spécialités,"En tant que DG, je veux gérer la liste des 8 spécialités, afin de classer les praticiens.
+
+**Epic** : E02 Référentiels · **Sprint** : S1 · **Priorité** : Should · **Points** : 2 · **Cas** : UC-65
+
+**Critères d’acceptation**
+- [ ] Étant donné la liste initiale, quand on l’affiche, alors les 8 spécialités du cahier des charges v1.3 sont présentes, en français et en anglais.
+
+/label ~""E02"" ~""Should"" ~""S1""
+/weight 2"
+"[US-030] Un journal de toutes les décisions et connexions, non modifiable","En tant qu’auditeur, je veux un journal de toutes les décisions et connexions, non modifiable, afin d’assurer la traçabilité.
+
+**Epic** : E03 Audit et notifications · **Sprint** : S1 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné une décision de workflow, quand elle est prise, alors une ligne d’audit (qui, quoi, quand, IP) est écrite dans la même transaction.
+- [ ] Étant donné une tentative de modification ou de suppression du journal, quand elle s’exécute, alors elle est refusée.
+
+/label ~""E03"" ~""Must"" ~""S1""
+/weight 3"
+[US-031] Être notifié par SMS à chaque étape de mon dossier,"En tant que praticien, je veux être notifié par SMS à chaque étape de mon dossier, afin de suivre ma certification.
+
+**Epic** : E03 Audit et notifications · **Sprint** : S2 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-72
+
+**Critères d’acceptation**
+- [ ] Étant donné une transition validée, quand la transaction est confirmée, alors un SMS part dans les 5 minutes.
+- [ ] Étant donné une transition annulée (erreur), quand la transaction échoue, alors aucun SMS ne part.
+- [ ] Étant donné un échec d’envoi, quand le service SMS répond en erreur, alors 3 nouvelles tentatives ont lieu puis l’échec est visible.
+
+/label ~""E03"" ~""Must"" ~""S2""
+/weight 5"
+[US-040] Soumettre mon dossier de certification,"En tant que praticien, je veux soumettre mon dossier de certification, afin d’entrer dans le workflow.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S2 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-20
+
+**Critères d’acceptation**
+- [ ] Étant donné un dossier complet (identité, pièces, photo), quand je le soumets, alors il passe à l’étape 2 et je reçois un accusé de réception.
+- [ ] Étant donné une pièce obligatoire manquante, quand je soumets, alors la soumission est bloquée avec la liste des pièces manquantes.
+- [ ] Étant donné un rejet définitif datant de moins de 12 mois, quand j’ouvre un dossier, alors c’est refusé.
+
+/label ~""E04"" ~""Must"" ~""S2""
+/weight 5"
+[US-041] Planifier et réaliser les visites terrain,"En tant qu’admin préfectoral, je veux planifier et réaliser les visites terrain, afin de vérifier les praticiens.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S2 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-30
+
+**Critères d’acceptation**
+- [ ] Étant donné une visite planifiée, quand la veille arrive, alors un rappel part au praticien.
+- [ ] Étant donné une visite réalisée, quand je l’enregistre, alors un compte rendu signé est obligatoire.
+
+/label ~""E04"" ~""Must"" ~""S2""
+/weight 5"
+[US-042] Valider ou rejeter un dossier à l’étape 2,"En tant qu’admin préfectoral, je veux valider ou rejeter un dossier à l’étape 2, afin de faire avancer la certification.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S2 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-31
+
+**Critères d’acceptation**
+- [ ] Étant donné une visite réalisée avec compte rendu, quand je valide, alors le dossier passe à l’étape 3.
+- [ ] Étant donné un dossier initial sans visite réalisée, quand je valide, alors c’est refusé.
+- [ ] Étant donné un rejet, quand je ne saisis pas de motif, alors c’est refusé ; avec motif, le dossier revient à l’étape 1.
+- [ ] Étant donné un dossier d’une autre préfecture, quand je tente de décider, alors c’est refusé.
+
+/label ~""E04"" ~""Must"" ~""S2""
+/weight 5"
+[US-043] Consolider un dossier à l’étape 3,"En tant qu’admin régional, je veux consolider un dossier à l’étape 3, afin de le transmettre au Comité.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S2 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-40
+
+**Critères d’acceptation**
+- [ ] Étant donné un dossier de ma région à l’étape 3, quand je valide, alors il passe à l’étape 4 ; quand je rejette avec motif, il revient à l’étape 2.
+
+/label ~""E04"" ~""Must"" ~""S2""
+/weight 3"
+[US-044] Expertiser un dossier à l’étape 4,"En tant que membre du Comité, je veux expertiser un dossier à l’étape 4, afin de garantir la non-toxicité.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S2 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-50
+
+**Critères d’acceptation**
+- [ ] Étant donné un dossier à l’étape 4, quand je valide, alors il passe à l’étape 5 ; quand je rejette avec motif, il revient à l’étape 3.
+
+/label ~""E04"" ~""Must"" ~""S2""
+/weight 3"
+[US-045] Approuver un dossier et émettre un certificat signé,"En tant que DG, je veux approuver un dossier et émettre un certificat signé, afin de certifier le praticien.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-60
+
+**Critères d’acceptation**
+- [ ] Étant donné un dossier à l’étape 5, quand j’approuve, alors un certificat de 12 mois est créé avec empreinte SHA3-256, signature Ed25519 et QR.
+- [ ] La clé privée n’est jamais lue par l’application : la signature est faite par le coffre (Vault/OpenBao).
+- [ ] Étant donné un renouvellement, quand le nouveau certificat est émis, alors l’ancien passe à « expiré ».
+
+/label ~""E04"" ~""Must"" ~""S3""
+/weight 8"
+[US-046] Publier le praticien à l’étape 6,"En tant que système, je veux publier le praticien à l’étape 6, afin qu’il apparaisse dans l’annuaire.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-70
+
+**Critères d’acceptation**
+- [ ] Étant donné un certificat actif, quand la publication s’exécute, alors le praticien passe « certifié » et ses traitements expertisés joints au dossier passent « certifiés ».
+
+/label ~""E04"" ~""Must"" ~""S3""
+/weight 3"
+[US-047] Prononcer un rejet définitif,"En tant que DG, je veux prononcer un rejet définitif, afin d’écarter un praticien frauduleux ou dangereux.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-61
+
+**Critères d’acceptation**
+- [ ] Étant donné un autre rôle que la DG, quand il tente un rejet définitif, alors c’est refusé.
+- [ ] Étant donné un rejet définitif motivé, quand il est prononcé, alors le praticien passe « rejeté », son certificat est révoqué et il est informé de son recours de 30 jours.
+
+/label ~""E04"" ~""Must"" ~""S3""
+/weight 3"
+[US-048] L’entonnoir des 6 étapes et les dossiers bloqués,"En tant que DG, je veux l’entonnoir des 6 étapes et les dossiers bloqués, afin de piloter les délais.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-67
+
+**Critères d’acceptation**
+- [ ] Étant donné des dossiers en cours, quand j’ouvre l’écran, alors je vois le nombre par étape, le délai moyen par étape et les dossiers sans décision depuis plus de 15 jours.
+
+/label ~""E04"" ~""Should"" ~""S3""
+/weight 3"
+[US-049] Expirer les certificats et relancer les praticiens 60 jours avant,"En tant que système, je veux expirer les certificats et relancer les praticiens 60 jours avant, afin de tenir les statuts à jour.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-71
+
+**Critères d’acceptation**
+- [ ] Étant donné un certificat arrivé à échéance, quand la tâche quotidienne s’exécute, alors il passe « expiré » et le praticien sort de l’annuaire public.
+- [ ] Étant donné un certificat à 60 jours de l’échéance, quand la tâche s’exécute, alors le praticien reçoit une invitation à renouveler.
+
+/label ~""E04"" ~""Must"" ~""S3""
+/weight 3"
+[US-050] Créer et modifier une fiche plante avec ses images,"En tant que DG ou Comité, je veux créer et modifier une fiche plante avec ses images, afin d’alimenter le Dictionnaire.
+
+**Epic** : E05 Dictionnaire Impérial · **Sprint** : S4 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-05
+
+**Critères d’acceptation**
+- [ ] Nom scientifique unique, famille, nom français (obligatoire) et anglais.
+- [ ] Une seule photo principale ; texte alternatif obligatoire.
+
+/label ~""E05"" ~""Must"" ~""S4""
+/weight 5"
+[US-051] Valider une fiche plante,"En tant que membre du Comité, je veux valider une fiche plante, afin qu’elle puisse entrer dans un traitement certifié.
+
+**Epic** : E05 Dictionnaire Impérial · **Sprint** : S4 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-52
+
+**Critères d’acceptation**
+- [ ] Une plante « en revue » ne peut pas entrer dans un traitement certifié.
+- [ ] La validation enregistre le valideur et la date.
+
+/label ~""E05"" ~""Must"" ~""S4""
+/weight 3"
+[US-052] Gérer les fiches maladies,"En tant que DG ou Comité, je veux gérer les fiches maladies, afin de permettre la recherche.
+
+**Epic** : E05 Dictionnaire Impérial · **Sprint** : S4 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-05
+
+**Critères d’acceptation**
+- [ ] Nom français unique, nom anglais, dénominations, symptômes.
+- [ ] Les dénominations sont trouvées par la recherche sans accents.
+
+/label ~""E05"" ~""Must"" ~""S4""
+/weight 3"
+[US-053] Saisir les noms locaux d’une plante (transcription + voix),"En tant que référent linguistique, je veux saisir les noms locaux d’une plante (transcription + voix), afin qu’on la retrouve par son nom local.
+
+**Epic** : E05 Dictionnaire Impérial · **Sprint** : S4 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-12
+
+**Critères d’acceptation**
+- [ ] Plusieurs noms par langue, un seul principal.
+- [ ] La transcription n’apparaît jamais sur les fiches publiques ; elle sert à la recherche.
+
+/label ~""E05"" ~""Must"" ~""S4""
+/weight 3"
+[US-070] Traiter chaque voix déposée,"En tant que système, je veux traiter chaque voix déposée, afin d’obtenir un son clair et léger.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S4 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-73
+
+**Critères d’acceptation**
+- [ ] Réduction du bruit, normalisation du volume, Opus 24 kbit/s + secours AAC.
+- [ ] Durée, taille et empreinte calculées automatiquement.
+
+/label ~""E07"" ~""Must"" ~""S4""
+/weight 5"
+"[US-071] Gérer la voix des noms de plantes et de maladies par langue, avec ses statuts","En tant qu’admin, je veux gérer la voix des noms de plantes et de maladies par langue, avec ses statuts, afin de publier des noms écoutables.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S4 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-33, UC-41
+
+**Critères d’acceptation**
+- [ ] Statuts Brouillon → Traduit → Validé → Publié par langue.
+- [ ] Publication impossible sans consentement ; le valideur n’est jamais celui qui a enregistré.
+
+/label ~""E07"" ~""Must"" ~""S4""
+/weight 5"
+[US-060] Créer un traitement depuis le Studio web,"En tant que praticien, je veux créer un traitement depuis le Studio web, afin de préparer sa certification.
+
+**Epic** : E06 Traitements et circuit · **Sprint** : S5 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-21
+
+**Critères d’acceptation**
+- [ ] Maladie, 1 à n plantes ordonnées avec partie utilisée, cycle (durée, prises, pause).
+- [ ] 4 sections obligatoires + conservation facultative, texte français (et anglais facultatif).
+- [ ] Consentement et niveau de visibilité obligatoires avant soumission.
+
+/label ~""E06"" ~""Must"" ~""S5""
+/weight 8"
+"[US-061] Faire avancer un traitement (soumettre, transmettre, expertiser, certifier, rejeter)","En tant qu’acteur du circuit, je veux faire avancer un traitement (soumettre, transmettre, expertiser, certifier, rejeter), afin qu’il soit publié.
+
+**Epic** : E06 Traitements et circuit · **Sprint** : S5 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-22, UC-42, UC-51, UC-62
+
+**Critères d’acceptation**
+- [ ] Seul le rôle prévu, dans sa zone, peut faire chaque transition.
+- [ ] Un rejet exige un motif et renvoie à l’étape précédente.
+- [ ] Chaque transition est historisée et notifiée.
+
+/label ~""E06"" ~""Must"" ~""S5""
+/weight 5"
+[US-062] Que la certification d’un traitement soit bloquée s’il est incomplet,"En tant que DG, je veux que la certification d’un traitement soit bloquée s’il est incomplet, afin de ne publier que des traitements sûrs.
+
+**Epic** : E06 Traitements et circuit · **Sprint** : S5 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-62
+
+**Critères d’acceptation**
+- [ ] Refus si une plante n’est pas validée, si une section obligatoire manque ou si le praticien n’a pas de certificat actif.
+- [ ] Refus au-delà de 3 traitements certifiés en formule gratuite (après les 30 jours de grâce).
+
+/label ~""E06"" ~""Must"" ~""S5""
+/weight 3"
+[US-063] Indiquer les contre-indications structurées,"En tant que praticien, je veux indiquer les contre-indications structurées, afin qu’elles s’affichent en alerte.
+
+**Epic** : E06 Traitements et circuit · **Sprint** : S5 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-21
+
+**Critères d’acceptation**
+- [ ] Liste paramétrable (grossesse, allaitement, enfant de moins de 5 ans…).
+- [ ] Affichage en alerte sur la page traitement.
+
+/label ~""E06"" ~""Should"" ~""S5""
+/weight 3"
+[US-064] Annoter un traitement ou une plante,"En tant que membre du Comité, je veux annoter un traitement ou une plante, afin de motiver mes avis.
+
+**Epic** : E06 Traitements et circuit · **Sprint** : S5 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-51
+
+**Critères d’acceptation**
+- [ ] Annotation datée avec avis (favorable, réserve, défavorable).
+- [ ] Historique consultable par la DG.
+
+/label ~""E06"" ~""Should"" ~""S5""
+/weight 3"
+[US-072] Valider les voix de ma langue dans l’atelier linguistique,"En tant qu’admin régional, je veux valider les voix de ma langue dans l’atelier linguistique, afin de garantir leur qualité.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S6 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-41
+
+**Critères d’acceptation**
+- [ ] Écoute de la voix et lecture du texte français côte à côte.
+- [ ] Validation ou renvoi motivé ; seules les voix de ma langue et de ma région apparaissent.
+
+/label ~""E07"" ~""Must"" ~""S6""
+/weight 5"
+[US-073] Contrôler la voix des effets indésirables dans chaque langue,"En tant que membre du Comité, je veux contrôler la voix des effets indésirables dans chaque langue, afin d’autoriser sa publication.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S6 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-53
+
+**Critères d’acceptation**
+- [ ] Sans ce contrôle, la voix des effets indésirables ne peut pas être publiée.
+
+/label ~""E07"" ~""Must"" ~""S6""
+/weight 3"
+[US-074] Suivre la couverture vocale par langue et publier les voix validées,"En tant que DG, je veux suivre la couverture vocale par langue et publier les voix validées, afin de piloter les traductions.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S6 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-63
+
+**Critères d’acceptation**
+- [ ] Pourcentage de sections publiées par langue et retards par région.
+- [ ] Publication groupée des voix validées.
+
+/label ~""E07"" ~""Should"" ~""S6""
+/weight 3"
+[US-075] Résumer une recette en français et enregistrer la voix locale,"En tant qu’admin préfectoral, je veux résumer une recette en français et enregistrer la voix locale, afin de l’envoyer au régional.
+
+**Epic** : E07 Voix et gouvernance linguistique · **Sprint** : S6 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-33
+
+**Critères d’acceptation**
+- [ ] Texte français par section, voix locale par section.
+- [ ] Envoi à l’admin régional de la langue.
+
+/label ~""E07"" ~""Must"" ~""S6""
+/weight 3"
+[US-100] Traiter les signalements de danger et d’effets indésirables,"En tant que membre du Comité, je veux traiter les signalements de danger et d’effets indésirables, afin de protéger les patients.
+
+**Epic** : E10 Sécurité sanitaire, litiges, alertes · **Sprint** : S6 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-08, UC-54
+
+**Critères d’acceptation**
+- [ ] Signalements graves en tête de file, délai cible 24 h.
+- [ ] Décision motivée : aucune action, révision, suspension ou retrait ; la suspension retire le traitement du site immédiatement.
+
+/label ~""E10"" ~""Must"" ~""S6""
+/weight 5"
+[US-080] Une application mobile qui fonctionne sans réseau,"En tant que praticien ou agent, je veux une application mobile qui fonctionne sans réseau, afin de travailler partout.
+
+**Epic** : E08 Application mobile de terrain · **Sprint** : S7 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-74
+
+**Critères d’acceptation**
+- [ ] Connexion, puis usage complet hors réseau des écrans prévus.
+- [ ] Synchronisation automatique au retour du réseau, règle de conflit R-DON-04.
+
+/label ~""E08"" ~""Must"" ~""S7""
+/weight 8"
+[US-081] Enregistrer ma recette au Studio mobile,"En tant que praticien, je veux enregistrer ma recette au Studio mobile, afin de la préserver dans ma langue.
+
+**Epic** : E08 Application mobile de terrain · **Sprint** : S7 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-21
+
+**Critères d’acceptation**
+- [ ] Un enregistrement par champ, réécoute, ré-enregistrement, alerte de bruit.
+- [ ] Consentement enregistré ; brouillon conservé hors réseau ; soumission au retour du réseau.
+
+/label ~""E08"" ~""Must"" ~""S7""
+/weight 8"
+[US-082] Numériser une recette orale et créer un dossier praticien sur le terrain,"En tant qu’admin préfectoral, je veux numériser une recette orale et créer un dossier praticien sur le terrain, afin d’enregistrer les savoirs hors réseau.
+
+**Epic** : E08 Application mobile de terrain · **Sprint** : S8 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-32, UC-35
+
+**Critères d’acceptation**
+- [ ] Saisie assistée, voix par champ dans la langue du praticien, rattachement au praticien.
+- [ ] Création d’un dossier avec identité, spécialité, localité, pièces et photo.
+
+/label ~""E08"" ~""Must"" ~""S8""
+/weight 5"
+[US-083] Gérer mon agenda de visites et déposer le compte rendu signé depuis le téléphone,"En tant qu’admin préfectoral, je veux gérer mon agenda de visites et déposer le compte rendu signé depuis le téléphone, afin de valider sur place.
+
+**Epic** : E08 Application mobile de terrain · **Sprint** : S8 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-30
+
+**Critères d’acceptation**
+- [ ] Agenda des visites, itinéraire, photo du compte rendu signé ajoutée au dossier.
+
+/label ~""E08"" ~""Must"" ~""S8""
+/weight 3"
+[US-101] Arbitrer les litiges,"En tant qu’admin régional, je veux arbitrer les litiges, afin de rendre des décisions motivées.
+
+**Epic** : E10 Sécurité sanitaire, litiges, alertes · **Sprint** : S8 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-43
+
+**Critères d’acceptation**
+- [ ] Pièces et échanges, décision motivée notifiée.
+- [ ] Le recours de 30 jours après un rejet définitif passe par un litige.
+
+/label ~""E10"" ~""Should"" ~""S8""
+/weight 3"
+[US-102] Traiter les alertes territoriales,"En tant qu’admin régional, je veux traiter les alertes territoriales, afin de réagir vite.
+
+**Epic** : E10 Sécurité sanitaire, litiges, alertes · **Sprint** : S8 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-44
+
+**Critères d’acceptation**
+- [ ] Alertes : hausse de pathologie, désert thérapeutique, dossier bloqué.
+- [ ] Accusé de réception et relance.
+
+/label ~""E10"" ~""Should"" ~""S8""
+/weight 3"
+[US-090] Un tableau de bord adapté à mon profil,"En tant qu’administrateur, je veux un tableau de bord adapté à mon profil, afin de piloter mon périmètre.
+
+**Epic** : E09 Tableaux de bord et rapports · **Sprint** : S9 · **Priorité** : Should · **Points** : 5 · **Cas** : UC-67
+
+**Critères d’acceptation**
+- [ ] Indicateurs du cahier des charges pour chaque profil (§6.2 à 6.6).
+- [ ] Données limitées à la zone du compte.
+
+/label ~""E09"" ~""Should"" ~""S9""
+/weight 5"
+[US-091] Générer des rapports PDF et XLSX,"En tant qu’administrateur, je veux générer des rapports PDF et XLSX, afin de rendre compte.
+
+**Epic** : E09 Tableaux de bord et rapports · **Sprint** : S9 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-36, UC-67
+
+**Critères d’acceptation**
+- [ ] Rapport mensuel préfectoral prérempli, envoi au régional.
+- [ ] Historique des exports.
+
+/label ~""E09"" ~""Should"" ~""S9""
+/weight 3"
+[US-110] Un site installable dans ma langue,"En tant que visiteur, je veux un site installable dans ma langue, afin de l’utiliser facilement sur mon téléphone.
+
+**Epic** : E11 Site public · **Sprint** : S10 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-03
+
+**Critères d’acceptation**
+- [ ] La langue de la région est proposée à la première visite et mémorisée.
+- [ ] Interface en français et en anglais ; site installable (PWA).
+
+/label ~""E11"" ~""Must"" ~""S10""
+/weight 5"
+[US-111] Rechercher une maladie,"En tant que visiteur, je veux rechercher une maladie, afin de trouver ses traitements certifiés.
+
+**Epic** : E11 Site public · **Sprint** : S10 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-01
+
+**Critères d’acceptation**
+- [ ] Recherche sans accents ni fautes, par nom français, anglais ou dénomination.
+- [ ] Carte par traitement : photos, noms français et voix des plantes, cycle, note.
+- [ ] Repli sur la voix française avec « traduction en cours ».
+
+/label ~""E11"" ~""Must"" ~""S10""
+/weight 8"
+[US-117] Lire les pages institutionnelles,"En tant que visiteur, je veux lire les pages institutionnelles, afin de comprendre SABOU.
+
+**Epic** : E11 Site public · **Sprint** : S10 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-09
+
+**Critères d’acceptation**
+- [ ] À propos, Concept, Devenir partenaire (formulaire), Mentions légales.
+
+/label ~""E11"" ~""Should"" ~""S10""
+/weight 3"
+[US-130] Piloter les menus et sliders du site,"En tant que DG, je veux piloter les menus et sliders du site, afin de le modifier sans technicien.
+
+**Epic** : E13 Pilotage du site · **Sprint** : S10 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-64
+
+**Critères d’acceptation**
+- [ ] 7 entrées visibles au plus dans le header.
+- [ ] Aperçu avant publication, publication immédiate, historique des publications.
+
+/label ~""E13"" ~""Must"" ~""S10""
+/weight 5"
+[US-112] Écouter une page traitement,"En tant que visiteur, je veux écouter une page traitement, afin de comprendre le traitement dans ma langue.
+
+**Epic** : E11 Site public · **Sprint** : S11 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-02
+
+**Critères d’acceptation**
+- [ ] Sections dans l’ordre, lecteur par section, vitesse réglable, transcription française.
+- [ ] Contre-indications en alerte ; mention « SABOU informe, ne prescrit pas ».
+
+/label ~""E11"" ~""Must"" ~""S11""
+/weight 8"
+[US-113] Télécharger un traitement pour l’écouter sans réseau,"En tant que visiteur, je veux télécharger un traitement pour l’écouter sans réseau, afin de le réécouter chez moi.
+
+**Epic** : E11 Site public · **Sprint** : S11 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-07
+
+**Critères d’acceptation**
+- [ ] Après téléchargement, la page et ses voix fonctionnent en mode avion.
+
+/label ~""E11"" ~""Must"" ~""S11""
+/weight 5"
+[US-114] Consulter l’annuaire des praticiens certifiés,"En tant que visiteur, je veux consulter l’annuaire des praticiens certifiés, afin d’en trouver un près de chez moi.
+
+**Epic** : E11 Site public · **Sprint** : S11 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-04
+
+**Critères d’acceptation**
+- [ ] Seuls les praticiens certifiés avec certificat actif apparaissent.
+- [ ] Filtres région, spécialité, statut, langue ; 12 cartes par page.
+
+/label ~""E11"" ~""Must"" ~""S11""
+/weight 5"
+[US-115] Consulter le Dictionnaire,"En tant que visiteur, je veux consulter le Dictionnaire, afin de connaître une plante ou une maladie.
+
+**Epic** : E11 Site public · **Sprint** : S12 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-05
+
+**Critères d’acceptation**
+- [ ] Fiche plante : nom scientifique en italique, nom français, voix du nom dans chaque langue.
+- [ ] Aucun texte en langue nationale affiché.
+
+/label ~""E11"" ~""Must"" ~""S12""
+/weight 5"
+[US-116] Vérifier un certificat par numéro ou QR,"En tant que visiteur, je veux vérifier un certificat par numéro ou QR, afin de savoir si un praticien est authentique.
+
+**Epic** : E11 Site public · **Sprint** : S12 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-06
+
+**Critères d’acceptation**
+- [ ] Verdict vert, ambre ou rouge en moins de 5 s.
+- [ ] Vérification de la signature hors ligne avec la clé publique en cache.
+
+/label ~""E11"" ~""Must"" ~""S12""
+/weight 5"
+[US-120] Témoigner sur un traitement,"En tant que citoyen, je veux témoigner sur un traitement, afin de partager mon expérience.
+
+**Epic** : E12 Communauté · **Sprint** : S12 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-11, UC-24, UC-34
+
+**Critères d’acceptation**
+- [ ] Un témoignage par traitement ; modification → nouvelle modération ; retrait possible.
+- [ ] Modération par le préfectoral de la zone ou la DG ; réponse du praticien modérée.
+- [ ] Prénom et initiale seulement ; notes recalculées.
+
+/label ~""E12"" ~""Must"" ~""S12""
+/weight 8"
+[US-121] Demander une plante par son nom local,"En tant que citoyen, je veux demander une plante par son nom local, afin de l’obtenir d’un praticien de ma localité.
+
+**Epic** : E12 Communauté · **Sprint** : S13 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-12, UC-23
+
+**Critères d’acceptation**
+- [ ] Nom dit (voix) ou écrit ; propositions de plantes à écouter.
+- [ ] Envoi au praticien le plus proche ; suivi Reçue → À envoyer → Envoyée.
+
+/label ~""E12"" ~""Must"" ~""S13""
+/weight 8"
+[US-122] Participer au forum,"En tant que citoyen, je veux participer au forum, afin d’échanger avec la communauté.
+
+**Epic** : E12 Communauté · **Sprint** : S13 · **Priorité** : Should · **Points** : 5 · **Cas** : UC-13
+
+**Critères d’acceptation**
+- [ ] Discussions par catégorie et par zone ; modération selon la zone.
+- [ ] Signalement traité sous 48 h ; questions de toxicité routées vers le Comité.
+
+/label ~""E12"" ~""Should"" ~""S13""
+/weight 5"
+[US-118] Des pages rapides et accessibles,"En tant que visiteur sur réseau faible, je veux des pages rapides et accessibles, afin d’utiliser le site partout.
+
+**Epic** : E11 Site public · **Sprint** : S13 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Pages principales affichées en moins de 3 s en 3G simulée.
+- [ ] Contraste AA, focus visible, cibles de 40 px, textes alternatifs.
+
+/label ~""E11"" ~""Must"" ~""S13""
+/weight 5"
+[US-140] Payer par Orange Money ou MTN MoMo,"En tant que praticien, je veux payer par Orange Money ou MTN MoMo, afin de souscrire GOLD ou d’acheter.
+
+**Epic** : E14 Services (paiements, boutique, formation) · **Sprint** : S14 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-76
+
+**Critères d’acceptation**
+- [ ] Paiement initié, confirmé par l’opérateur, tracé (référence, statut).
+- [ ] Un paiement échoué ne donne aucun droit ; remboursement possible.
+
+/label ~""E14"" ~""Must"" ~""S14""
+/weight 8"
+[US-141] Souscrire et renouveler GOLD,"En tant que praticien, je veux souscrire et renouveler GOLD, afin de publier plus de 3 traitements.
+
+**Epic** : E14 Services (paiements, boutique, formation) · **Sprint** : S14 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-26
+
+**Critères d’acceptation**
+- [ ] Formules Gratuit, GOLD, Institution ; délai de grâce de 30 jours.
+- [ ] À l’expiration : traitements déjà certifiés maintenus, boutique suspendue.
+
+/label ~""E14"" ~""Must"" ~""S14""
+/weight 5"
+[US-153] Renouveler mon certificat,"En tant que praticien, je veux renouveler mon certificat, afin de rester certifié.
+
+**Epic** : E04 Certification et certificat · **Sprint** : S14 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-28
+
+**Critères d’acceptation**
+- [ ] Dossier de renouvellement ouvert 60 jours avant l’échéance, 6 étapes au contenu proportionné.
+- [ ] Visite requise seulement selon les critères de R-QR-07 (dont tirage au sort de 20 %).
+
+/label ~""E04"" ~""Must"" ~""S14""
+/weight 3"
+[US-142] Vendre des produits validés,"En tant que praticien GOLD, je veux vendre des produits validés, afin de compléter mes revenus.
+
+**Epic** : E14 Services (paiements, boutique, formation) · **Sprint** : S15 · **Priorité** : Should · **Points** : 5 · **Cas** : UC-27
+
+**Critères d’acceptation**
+- [ ] Validation scientifique avant publication ; stock et rupture.
+- [ ] Commission SABOU de 10 % calculée sur chaque commande.
+
+/label ~""E14"" ~""Should"" ~""S15""
+/weight 5"
+[US-143] Suivre des modules de formation,"En tant que praticien, je veux suivre des modules de formation, afin d’obtenir des attestations.
+
+**Epic** : E14 Services (paiements, boutique, formation) · **Sprint** : S15 · **Priorité** : Could · **Points** : 3 · **Cas** : UC-29
+
+**Critères d’acceptation**
+- [ ] 3 modules du cahier des charges ; attestation numérotée.
+
+/label ~""E14"" ~""Could"" ~""S15""
+/weight 3"
+[US-152] Exporter les registres et le Dictionnaire,"En tant qu’administrateur, je veux exporter les registres et le Dictionnaire, afin de partager les données.
+
+**Epic** : E15 Interopérabilité (API, DHIS2, exports) · **Sprint** : S15 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-67
+
+**Critères d’acceptation**
+- [ ] CSV pour les registres, JSON pour le Dictionnaire, limités à ma zone.
+
+/label ~""E15"" ~""Should"" ~""S15""
+/weight 3"
+[US-150] Une API documentée et sécurisée,"En tant que partenaire, je veux une API documentée et sécurisée, afin de consommer les indicateurs anonymisés.
+
+**Epic** : E15 Interopérabilité (API, DHIS2, exports) · **Sprint** : S16 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-66, UC-75
+
+**Critères d’acceptation**
+- [ ] OAuth2 identifiants client, quota par partenaire, 100 requêtes/min/IP.
+- [ ] Aucune donnée nominative ; documentation OpenAPI publiée.
+
+/label ~""E15"" ~""Must"" ~""S16""
+/weight 5"
+[US-151] Recevoir les indicateurs de SABOU dans DHIS2,"En tant que ministère, je veux recevoir les indicateurs de SABOU dans DHIS2, afin de les intégrer au système national.
+
+**Epic** : E15 Interopérabilité (API, DHIS2, exports) · **Sprint** : S16 · **Priorité** : Should · **Points** : 5 · **Cas** : UC-75
+
+**Critères d’acceptation**
+- [ ] Format et indicateurs conformes à l’accord obtenu au prototype 3.5.
+- [ ] Envoi planifié et journalisé.
+
+/label ~""E15"" ~""Should"" ~""S16""
+/weight 5"
+[US-160] Des tests de charge,"En tant qu’équipe, je veux des tests de charge, afin de garantir la tenue au pic national.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S17 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Scénario de pic validé avec k6, temps de réponse et taux d’erreur sous les seuils fixés.
+
+/label ~""E16"" ~""Must"" ~""S17""
+/weight 5"
+[US-161] Un audit de sécurité externe,"En tant que DG, je veux un audit de sécurité externe, afin de mettre en production sans faille critique.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S17 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Rapport d’audit sans vulnérabilité critique restante.
+
+/label ~""E16"" ~""Must"" ~""S17""
+/weight 5"
+[US-162] Une production souveraine redondante,"En tant que DG, je veux une production souveraine redondante, afin d’atteindre 99,9 %.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S17 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] 3 serveurs, base en haute disponibilité, sauvegardes hors site, restauration testée.
+
+/label ~""E16"" ~""Must"" ~""S17""
+/weight 3"
+[US-163] Former les administrateurs et fournir les guides par profil,"En tant que DG, je veux former les administrateurs et fournir les guides par profil, afin qu’ils soient autonomes.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S18 · **Priorité** : Must · **Points** : 5 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Sessions de formation réalisées ; un guide par profil publié.
+
+/label ~""E16"" ~""Must"" ~""S18""
+/weight 5"
+"[US-164] Un pilote en Haute Guinée (Kankan, malinké)","En tant que DG, je veux un pilote en Haute Guinée (Kankan, malinké), afin de valider la plateforme sur le terrain.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S18 · **Priorité** : Must · **Points** : 8 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Tous les critères de recette du cahier des charges §11.3 sont passés.
+- [ ] Retours du pilote traités ou planifiés.
+
+/label ~""E16"" ~""Must"" ~""S18""
+/weight 8"
+[US-165] Un plan de généralisation aux trois autres régions,"En tant que DG, je veux un plan de généralisation aux trois autres régions, afin d’étendre SABOU.
+
+**Epic** : E16 Recette et déploiement · **Sprint** : S18 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Calendrier, référents linguistiques et formations prévus par région.
+
+/label ~""E16"" ~""Must"" ~""S18""
+/weight 3"

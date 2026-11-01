@@ -1,0 +1,23 @@
+# Fichiers temporaires Office
+~$*
+*.tmp
+
+# Secrets / environnement
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Dépendances et builds (futur dev)
+node_modules/
+vendor/
+dist/
+build/
+*.log
