@@ -266,6 +266,18 @@
 
 /label ~""E04"" ~""Must"" ~""S3""
 /weight 3"
+[US-008] Basculer le dépôt et le pipeline sur le GitLab souverain,"En tant qu’équipe, je veux basculer le dépôt et le pipeline de GitHub vers le GitLab auto-hébergé, afin que le code et la chaîne de livraison soient souverains avant toute donnée réelle (E7).
+
+**Epic** : E00 Fondations techniques · **Sprint** : S3 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
+- [ ] Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- [ ] Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
+- [ ] Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
+
+/label ~""E00"" ~""Must"" ~""S3""
+/weight 3"
 [US-050] Créer et modifier une fiche plante avec ses images,"En tant que DG ou Comité, je veux créer et modifier une fiche plante avec ses images, afin d’alimenter le Dictionnaire.
 
 **Epic** : E05 Dictionnaire Impérial · **Sprint** : S4 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-05

@@ -1,6 +1,6 @@
 # SABOU — Backlog produit, sprints et Definition of Done
 
-Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scrum, sprints de **2 semaines**. Outil cible : **GitLab** (issues, epics, milestones = sprints), cohérent avec `05_Choix_Techniques.md` ; le fichier `07_Backlog_import_GitLab.csv` permet l’import direct des récits.
+Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scrum, sprints de **2 semaines**. Outil cible : **GitLab** (issues, epics, milestones = sprints), cohérent avec `05_Choix_Techniques.md` ; le fichier `07_Backlog_import_GitLab.csv` permet l’import direct des récits. En attendant l’hébergeur souverain, le dépôt est sur GitHub ; la bascule vers GitLab est le récit US-008 (voir la décision dans `05_Choix_Techniques.md` §2.11).
 
 **Critère de passage respecté** : chaque récit ci-dessous a des critères d’acceptation. **Question de contrôle** : chaque sprint a un objectif livrable et démontrable seul.
 
@@ -12,7 +12,7 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **77 récits**, **349 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **78 récits**, **352 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
 
@@ -23,7 +23,7 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007 | 33 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030 | 26 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049 | 20 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -44,7 +44,7 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 
 | Tâche | Échéance | Lien |
 |---|---|---|
-| Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-162 |
+| Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-008, US-162 |
 | Prototype 3.5 — contact DHIS2 au ministère, liste des indicateurs et format | Avant S14 | US-151 |
 | Atelier linguistique : un référent par langue, voix et transcriptions des noms | Avant S4 | US-053, US-071 |
 | Validation du dispositif de sécurité sanitaire par le ministère de la Santé | Avant S6 | US-100 |
@@ -55,7 +55,7 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 
 | Epic | Intitulé | Phase | Récits | Points |
 |---|---|---|---|---|
-| E00 | Fondations techniques | 1 | 7 | 33 |
+| E00 | Fondations techniques | 1 | 8 | 36 |
 | E01 | Identité et accès | 2 | 5 | 18 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
@@ -323,6 +323,17 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné un certificat arrivé à échéance, quand la tâche quotidienne s’exécute, alors il passe « expiré » et le praticien sort de l’annuaire public.
 - Étant donné un certificat à 60 jours de l’échéance, quand la tâche s’exécute, alors le praticien reçoit une invitation à renouveler.
+
+#### US-008 · Basculer le dépôt et le pipeline sur le GitLab souverain
+*Fondations techniques* · **Must** · 3 points · cas : —
+
+> En tant qu’équipe, je veux basculer le dépôt et le pipeline de GitHub vers le GitLab auto-hébergé, afin que le code et la chaîne de livraison soient souverains avant toute donnée réelle (E7).
+
+Critères d’acceptation :
+- Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
+- Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
+- Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
 
 ### Sprint 4 — Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application.
 
