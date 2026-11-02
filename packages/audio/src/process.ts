@@ -1,6 +1,7 @@
 // Traitement d'une voix enregistrée (UC-73, CdC §8, 05_Choix_Techniques §2.7), côté serveur :
 // réduction du bruit (RNNoise, filtre arnndn), normalisation du volume (EBU R128,
-// loudnorm), puis Opus mono 24 kbit/s dans un conteneur Ogg. Les métadonnées de l'appareil
+// loudnorm), puis Opus mono 24 kbit/s dans un conteneur WebM, index et durée en tête de
+// fichier : la lecture démarre dès les premiers octets, sans aller lire la fin du fichier. Les métadonnées de l'appareil
 // (nom du téléphone, date, position éventuelle) sont retirées.
 import { basename, dirname, join } from 'node:path';
 import { packageDir, runFfmpeg } from './ffmpeg.ts';
@@ -27,12 +28,17 @@ export interface ProcessOptions {
   bitrateKbps?: number;
 }
 
-/** Traite `input` et écrit la voix prête à publier dans `output` (.ogg). */
+/** Traite `input` et écrit la voix prête à publier dans `output` (.webm, ou .ogg). */
 export function processVoice(input: string, output: string, options: ProcessOptions = {}): void {
   const model = options.model ?? DEFAULT_MODEL;
   const strength = options.strength ?? DEFAULT_STRENGTH;
   if (!(strength >= 0 && strength <= 1))
     throw new Error('Force de réduction du bruit entre 0 et 1');
+  // WebM : index (Cues) en tête. Ogg : n'indique pas sa durée, le navigateur va lire la fin
+  // du fichier avant de jouer (mesuré : 5,3 s au lieu de moins de 3 s en 3G)
+  const container = output.endsWith('.webm')
+    ? ['-f', 'webm', '-cues_to_front', '1']
+    : ['-f', 'ogg'];
   runFfmpeg(
     [
       '-i',
@@ -52,8 +58,13 @@ export function processVoice(input: string, output: string, options: ProcessOpti
       'constrained',
       '-application',
       'voip',
+      // Trames de 60 ms (20 par défaut) : trois fois moins d'en-têtes de conteneur, sans effet
+      // sur la latence d'un fichier enregistré ; tient le WebM sous 300 Ko
+      '-frame_duration',
+      '60',
       '-map_metadata',
       '-1',
+      ...container,
       '-y',
       `/out/${basename(output)}`,
     ],

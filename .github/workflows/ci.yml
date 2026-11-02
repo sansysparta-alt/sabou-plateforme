@@ -34,6 +34,7 @@ jobs:
       - run: bash infra/ci/lint.sh
       - run: bash infra/ci/test.sh
       - run: bash infra/ci/build.sh
+      - run: bash infra/ci/audio-lecture.sh
 
   audit:
     name: Analyse des dépendances (Trivy)

@@ -28,3 +28,7 @@ build/
 coverage/
 next-env.d.ts
 *.tsbuildinfo
+
+# Rapports de Playwright
+test-results/
+playwright-report/

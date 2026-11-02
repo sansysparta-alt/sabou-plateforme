@@ -44,7 +44,7 @@ describe('Chaîne audio (US-005, UC-73)', () => {
     let processedStoi: number;
 
     beforeAll(() => {
-      output = join(work, 'voix-traitee.ogg');
+      output = join(work, 'voix-traitee.webm');
       processVoice(noisyInput, output);
       processedStoi = stoiAgainstClean(output);
     });
