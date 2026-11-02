@@ -1,0 +1,74 @@
+/* Couleurs du verdict (R-QR-05) : contraste d'au moins 4,5:1 avec le texte blanc (WCAG 2.2 AA) */
+.verdict {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  color: #fff;
+}
+
+.verdict[data-color='vert'] {
+  background: #1b6e3a;
+}
+
+.verdict[data-color='ambre'] {
+  background: #8a4b00;
+}
+
+.verdict[data-color='rouge'] {
+  background: #b3261e;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.details dd {
+  margin: 0;
+}
+
+.digest {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Cible tactile d'au moins 40 px (CdC §8) et focus visible */
+.button {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+.button:focus-visible {
+  outline: 3px solid #1b6e3a;
+  outline-offset: 2px;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 1rem;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

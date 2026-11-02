@@ -145,7 +145,7 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 | **Scripts Bash dans `infra/ci/`** | Exécutés tels quels par GitHub Actions, GitLab CI (US-008) et, en local, par Git Bash | Scripts Node : possibles, mais plus longs pour enchaîner des commandes |
 | **Semgrep, édition communautaire** (analyse du code, avant S2, récit US-007) | Outil libre, lancé par un script et une image épinglée : il tourne tel quel sur GitLab CI | CodeQL : payant sur un dépôt privé (GitHub Advanced Security) |
 | **axe (Playwright) + Lighthouse CI** (à partir de US-010) | Vérifient dans le pipeline WCAG 2.2 AA et les performances en 3G bridée, avec des seuils bloquants | Contrôles manuels : non reproductibles |
-| **Flutter hors de Turborepo** | Pas d'application mobile avant US-004 ; ensuite un job séparé, déclenché seulement par les changements dans `apps/mobile/`, pour économiser les minutes d'intégration continue | — |
+| **Flutter hors de Turborepo** | Pas d'application mobile avant US-005 (squelette Flutter, réestimation du 2 novembre 2026) ; ensuite un job séparé, déclenché seulement par les changements dans `apps/mobile/`, pour économiser les minutes d'intégration continue | — |
 
 **Version de Node : Node 26 LTS.**
 
@@ -195,6 +195,30 @@ Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil 
 | **Rôles** : migrations par `sabou_migrator` ; droits de `sabou_app` donnés par une migration (lecture, écriture, exécution ; journal d'audit en ajout seul) ; PostGIS et rôles créés par l'infrastructure | Moindre privilège dès le premier jour (00_Conception §6) | — |
 
 Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17. Ils ont été remplacés par ce paquet (décision du maître d'œuvre), avec deux corrections : un motif obligatoire ne peut plus être vide ou fait d'espaces, et l'exemple « rejet sans motif » visait un traitement déjà en brouillon, refusé pour une autre raison. Les scripts de l'intégration continue n'appellent pas Atlas directement : `pnpm test` lance les tests de la base.
+
+### 2.16 Prototype du QR signé (récit US-006, novembre 2026)
+
+**Décision « validé » ou « remplacé » : en attente du maître d'œuvre.** Le prototype confirme le format retenu au §2.9 ; les choix ci-dessous ont été tranchés en cours de récit.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Texte du QR : `SB1:` + Base45 (RFC 9285) d'un COSE_Sign1 (RFC 9052)**, algorithme EdDSA (Ed25519), identifiant de la clé dans l'en-tête protégé, en-tête non protégé vide | Le préfixe porte la version du format : un format futur changera de préfixe sans casser les anciens certificats. La signature couvre l'en-tête protégé et toute la charge utile, donc les données, l'empreinte et l'identifiant de la clé (R-QR-03, R-QR-04) | Compression zlib, comme le certificat sanitaire européen : la signature et l'empreinte (96 octets aléatoires) ne se compressent pas, le gain serait faible pour un décompresseur de plus dans le navigateur |
+| **Charge utile : table CBOR à clés entières** (version, numéro, praticien, dates d'émission et d'expiration, autorité) **+ empreinte SHA3-256** de ces données, encodées de façon déterministe (R-QR-02) | Compacte : 380 à 420 caractères, QR de version 12 (65 × 65 modules) en correction M, lisible par un téléphone d'entrée de gamme. L'empreinte recalculée est un second contrôle : avec la signature désactivée (contre-épreuve), un QR modifié reste rouge | — |
+| **Décodage strict** : encodages minimaux, pas de clé en double, UTF-8 valide, pas de longueur indéfinie, seule l'étiquette COSE_Sign1 admise, texte limité à 1 024 caractères | Une même donnée n'a qu'un encodage accepté ; un QR hostile est refusé avant tout calcul (ASVS V5) | — |
+| **Signature : `node:crypto`** (comme prévu au §2.9) ; **vérification : `@noble/curves` et `@noble/hashes`**, bibliothèques auditées, sans dépendance, identiques dans le navigateur et dans Node | WebCrypto ne connaît pas SHA-3 : il faut de toute façon une bibliothèque côté navigateur. Ed25519 vérifié selon les règles strictes de la RFC 8032, comme OpenSSL | WebCrypto Ed25519 : récent, absent des navigateurs Android anciens |
+| **CBOR : `cborg`** | Bibliothèque orientée stricte et déterministe, sans évaluation de code | `cbor-x` : plus rapide, mais moins strict au décodage |
+| **Clés publiques publiées en JWKS** (`/cles-certificats.json`), avec un indicateur de révocation par clé | Format standard (RFC 7517, 8037) ; une clé compromise rend rouges tous ses certificats, même hors ligne une fois la liste à jour (R-QR-04) | — |
+| **Vérification dans le site public**, page `/verifier` : lecture du QR par la caméra (**jsQR**), service worker limité à cette page | UC-06 est un cas du visiteur, qui n'a pas l'application des agents. Le service worker garde la page, son code et les clés : la vérification marche sans réseau, en moins d'une seconde dans le pipeline | Service worker Serwist : son intégration avec Turbopack n'est encore qu'un contournement (compilation du service worker avec esbuild au moment de servir la page). Le choix de Serwist pour le site entier est repris avec les récits hors ligne du site public (S11) |
+| **Clés de test éphémères**, créées en mémoire à chaque exécution, identifiant `test-…` ; seules les clés publiques sont écrites | Aucune clé privée n'existe sur disque ni dans le dépôt ; aucun coffre (Vault, OpenBao) pour le prototype, décision du maître d'œuvre | Clé de test dans `.env` : inutile, et une clé privée de moins à protéger |
+| **Tests de bout en bout Playwright** (Chromium, fausse caméra), lancés par `infra/ci/e2e.sh` | La page est chargée une fois, puis le serveur est arrêté et le réseau coupé : le verdict ne peut venir que du téléphone. Le délai du verdict est mesuré (R-QR-05 : moins de 5 s) | — |
+
+**Résultats mesurés** (pipeline, Chromium de bureau) : QR authentique vert, QR modifié rouge, QR signé par une autre clé rouge, QR expiré ambre, chacun sans réseau en moins d'une seconde. Code propre à la page : 73 Ko compressés (lecteur de QR et vérification), 248 Ko pour un premier chargement complet, gardés ensuite par le service worker. Sur téléphone d'entrée de gamme : essai manuel à faire (fiche d'essai de la demande de fusion).
+
+**Limites et suites.**
+- Révocation d'un certificat : connue en ligne seulement (UC-06 2a) ; le verdict hors ligne le dit.
+- Annonce du verdict à la voix (UC-06) et version anglaise de la page : avec le site public.
+- Base de données : `certificat.signature` stocke la signature COSE, qui couvre l'en-tête protégé et la charge utile (le commentaire de la colonne dit « signature de l'empreinte ») ; `cle_signature` devra porter l'identifiant de clé (`kid`) publié. Migration à faire avec le récit d'émission du certificat.
+- En production : clé privée dans le coffre (§2.9), identifiant de clé de la DG distinct du préfixe `test-`.
 
 ---
 

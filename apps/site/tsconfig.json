@@ -8,6 +8,8 @@
     "jsx": "react-jsx",
     "incremental": true,
     "noEmit": true,
+    // Scripts de e2e/ exécutés directement par Node (imports en .ts)
+    "allowImportingTsExtensions": true,
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

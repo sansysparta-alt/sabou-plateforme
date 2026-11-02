@@ -1,0 +1,36 @@
+{
+  "name": "@sabou/qr",
+  "version": "0.0.0",
+  "private": true,
+  "description": "QR signé des certificats : CBOR/COSE, Base45, Ed25519 et empreinte SHA3-256 (signature et vérification hors ligne)",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./sign": {
+      "types": "./dist/sign.d.ts",
+      "default": "./dist/sign.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit && tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "cborg": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4",
+    "vitest": "^5.0.5"
+  }
+}
