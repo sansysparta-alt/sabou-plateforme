@@ -82,6 +82,9 @@ Une seule session Claude à la fois sur ce projet : on n'ouvre pas en parallèle
 4. Claude envoie son compte rendu unique.
 5. Le maître d'œuvre relit les diffs, en suivant le guide de lecture. Tant que l'équipe ne compte qu'un seul développeur, cette relecture tient lieu de relecture par un autre développeur (Definition of Done).
 6. Le maître d'œuvre décide de la fusion dans `main`, uniquement si le pipeline est vert.
+7. Une fois la fusion faite et le pipeline de `main` vert, Claude supprime la branche du récit, en local et sur GitHub, puis met `main` à jour en local.
+
+Les autorisations de Claude Code (`.claude/settings.json`, versionné) traduisent ces règles : les commandes courantes du cycle passent sans demande, la fusion (`gh pr merge`) demande confirmation, l'envoi vers `main` et l'écrasement d'historique sont refusés. Claude ne modifie pas ce fichier lui-même : c'est le maître d'œuvre qui l'écrit.
 
 ## Git
 

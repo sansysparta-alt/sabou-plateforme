@@ -11,7 +11,8 @@
 .vscode/*
 !.vscode/extensions.json
 .idea/
-.claude/
+.claude/*
+!.claude/settings.json
 Thumbs.db
 desktop.ini
 .DS_Store
