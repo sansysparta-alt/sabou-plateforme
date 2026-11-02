@@ -40,12 +40,37 @@
   font-size: 0.9rem;
 }
 
-/* Cible tactile d'au moins 40 px (CdC §8) */
+/* Cible tactile d'au moins 40 px (CdC §8) ; flèche et soulignement : on voit qu'il se déplie */
 .technical summary {
   min-height: 44px;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.technical summary::-webkit-details-marker {
+  display: none;
+}
+
+.technical summary::before {
+  /* Flèche décorative : texte de remplacement vide, les lecteurs d'écran annoncent déjà « replié » ou « déplié » */
+  content: '▸' / '';
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+.technical[open] summary::before {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .technical summary::before {
+    transition: none;
+  }
 }
 
 .technical summary:focus-visible {
@@ -67,16 +92,54 @@
   font-size: 0.9rem;
 }
 
-/* Cible tactile d'au moins 40 px (CdC §8) et focus visible */
+/* Bouton principal : pleine largeur sur téléphone, cible de 48 px (CdC §8 : 40 px au moins),
+   contraste du texte 6,3:1, focus visible, état désactivé reconnaissable sans la couleur */
 .button {
-  min-height: 44px;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #1b6e3a;
+  border-radius: 0.5rem;
+  background: #1b6e3a;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .button:focus-visible {
   outline: 3px solid #1b6e3a;
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  border-color: #5f6368;
+  background: #fff;
+  color: #3c4043;
+  cursor: not-allowed;
+}
+
+/* Mise en page lisible sur un petit écran : marges de 16 px, police du téléphone */
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: #1f1f1f;
+}
+
+.page h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
 }
 
 .video {

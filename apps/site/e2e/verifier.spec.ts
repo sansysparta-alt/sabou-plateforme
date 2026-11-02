@@ -4,6 +4,7 @@
 // du code et des clés gardés par le service worker.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
 import { chromium, expect, test, type Browser, type Page } from '@playwright/test';
 import { E2E_DIR, startSite, type SampleCase } from './samples.ts';
 
@@ -13,6 +14,14 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 const MAX_VERDICT_MS = 5000;
 
 const cases: SampleCase[] = JSON.parse(readFileSync(join(E2E_DIR, 'cases.json'), 'utf8'));
+// WCAG 2.2 niveau AA (référence du projet), vérifié par axe sur chaque écran
+async function expectAccessible(page: Page): Promise<void> {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id} : ${v.help}`)).toEqual([]);
+}
+
 const opened = new Map<string, { browser: Browser; page: Page }>();
 let site: ReturnType<typeof startSite> | undefined;
 
@@ -49,6 +58,7 @@ test.beforeAll(async () => {
     await page.goto('/verifier');
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
     await expect(page.getByRole('button', { name: 'Scanner un QR code' })).toBeEnabled();
+    await expectAccessible(page);
     await context.setOffline(true);
     opened.set(sample.name, { browser, page });
   }
@@ -99,5 +109,13 @@ for (const sample of cases) {
     } else {
       await expect(verdict).toContainText('expiré le 31/10/2025');
     }
+    if (sample.color !== 'rouge') {
+      // Empreinte repliée par défaut, lisible une fois les détails ouverts
+      const digest = verdict.getByText(/^([0-9a-f]{4} ){15}[0-9a-f]{4}$/);
+      await expect(digest).toBeHidden();
+      await verdict.getByText('Détails techniques').click();
+      await expect(digest).toBeVisible();
+    }
+    await expectAccessible(page);
   });
 }
