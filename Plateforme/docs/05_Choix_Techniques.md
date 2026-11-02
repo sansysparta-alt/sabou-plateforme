@@ -241,6 +241,8 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 **Résultats mesurés** (pipeline) : 90 s traitées → **268 Ko**, 90,0 s, **STOI 0,836** (voix bruitée brute : 0,853 ; compressée sans traitement : 0,847). Lecture en 3G : **2,3 s** du clic au son, après 52 Ko reçus.
 
+**Essai sur téléphone (2 novembre 2026)** : REDMI Note 15 (2510DRA23G), Android 16, application Flutter de débogage, relais 3G du banc d'essai. Voix réelle de 66,6 s enregistrée sur le téléphone : **323 Ko envoyés en 14,2 s**, rendus en 189 Ko (mi-force) et 190 Ko (pleine force). Téléchargement mesuré au travers du même relais 3G : premier octet reçu en **1,5 s**, fichier complet en 5,2 s, pour les deux versions. Restent à faire par le maître d'œuvre : le temps de démarrage affiché par l'application et le choix entre mi-force et pleine force, qui se fait à l'écoute.
+
 **Application mobile (seconde partie du récit)**
 
 | Choix | Pourquoi | Écarté |
