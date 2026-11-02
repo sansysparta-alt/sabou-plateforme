@@ -1,0 +1,13 @@
+# Contexte de construction des images : seulement le code utile, jamais de secret
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+.git
+.env
+.env.*
+Plateforme
+.claude
+.vscode
+.github

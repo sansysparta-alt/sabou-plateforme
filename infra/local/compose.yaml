@@ -1,0 +1,125 @@
+# Environnement local SABOU : lancé par « pnpm env:up » (infra/local/up.mjs), jamais à la main.
+# Développement uniquement : la production tourne sur k3s (05_Choix_Techniques.md §2.11).
+# Images épinglées par empreinte sha256 (version en commentaire) ; ports ouverts sur
+# 127.0.0.1 seulement ; mots de passe lus dans .env, générés au hasard au premier lancement.
+name: sabou
+
+services:
+  postgres:
+    image: postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095 # 17-3.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: sabou
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --encoding=UTF8
+      SABOU_MIGRATOR_PASSWORD: ${SABOU_MIGRATOR_PASSWORD:?}
+      SABOU_APP_PASSWORD: ${SABOU_APP_PASSWORD:?}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Remplace le script de l'image, qui installerait aussi topology, tiger_geocoder et fuzzystrmatch
+      - ./postgres:/docker-entrypoint-initdb.d:ro
+    ports:
+      - 127.0.0.1:${POSTGRES_PORT:-5432}:5432
+    healthcheck:
+      # Prêt quand la base sabou répond et que PostGIS y est installé
+      test: [CMD-SHELL, 'psql -U postgres -d sabou -tAc "SELECT postgis_lib_version()" > /dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332 # 26.8.1
+    # Mode développement (HTTP, sans nom d'hôte imposé) ; la base reste PostgreSQL, comme en production
+    command: [start-dev]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      KC_HEALTH_ENABLED: 'true'
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:${KEYCLOAK_PORT:-8080}:8080
+    healthcheck:
+      # L'image n'a ni curl ni wget : requête HTTP écrite à la main sur le port de gestion
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  valkey:
+    image: valkey/valkey@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b # 9.1.3-alpine
+    command: [valkey-server, --requirepass, '${VALKEY_PASSWORD:?}', --appendonly, 'yes']
+    environment:
+      # Lu par valkey-cli : le mot de passe n'apparaît pas dans la commande du contrôle de santé
+      REDISCLI_AUTH: ${VALKEY_PASSWORD:?}
+    volumes:
+      - valkey-data:/data
+    ports:
+      - 127.0.0.1:${VALKEY_PORT:-6379}:6379
+    healthcheck:
+      test: [CMD-SHELL, 'valkey-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  seaweedfs:
+    image: chrislusf/seaweedfs@sha256:f7a49e3f3972ebed5be2ed4befa4a0c68eb7bdddba6e692d42729ceb545134b8 # 4.51
+    # Un seul nœud (maître, volume, filer, passerelle S3) : suffisant en développement
+    command: [server, -dir=/data, -s3, -s3.port=8333, -volume.max=0]
+    environment:
+      # Identité administrateur de la passerelle S3 : sans elle, l'accès anonyme serait ouvert
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?}
+    volumes:
+      - seaweedfs-data:/data
+    ports:
+      - 127.0.0.1:${S3_PORT:-8333}:8333
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1:8333/healthz']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    image: sabou-api:local
+    environment:
+      DATABASE_URL: postgres://sabou_app:${SABOU_APP_PASSWORD:?}@postgres:5432/sabou
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:${API_PORT:-4000}:3000
+    healthcheck:
+      # Vert seulement si l'API lit la base (GET /health/ready)
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health/ready').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      # Démarrage couvert par start_period ; ensuite, rouge après 3 échecs (15 s)
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  valkey-data:
+  seaweedfs-data:

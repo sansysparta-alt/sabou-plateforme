@@ -12,6 +12,9 @@
     "format:check": "prettier --check .",
     "test": "turbo run test",
     "build": "turbo run build",
+    "env:up": "node infra/local/up.mjs up",
+    "env:down": "node infra/local/up.mjs down",
+    "env:reset": "node infra/local/up.mjs reset",
     "ci:local": "node infra/ci/require-git-bash.mjs && bash infra/ci/all.sh"
   },
   "devDependencies": {

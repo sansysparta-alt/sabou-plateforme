@@ -9,3 +9,7 @@ bash infra/ci/test.sh
 bash infra/ci/build.sh
 bash infra/ci/audit.sh
 bash infra/ci/audit-selftest.sh
+bash infra/ci/env-check.sh
+bash infra/ci/env-check-selftest.sh
+bash infra/ci/audit-images.sh
+bash infra/ci/audit-images-selftest.sh
