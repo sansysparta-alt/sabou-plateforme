@@ -13,6 +13,11 @@ function formatDate(isoDate: string): string {
   return `${day}/${month}/${year}`;
 }
 
+/** Empreinte en blocs de 4 caractères, plus faciles à comparer à l'œil. */
+export function groupDigest(digest: string): string {
+  return digest.match(/.{1,4}/g)?.join(' ') ?? digest;
+}
+
 /** Verdict de R-QR-05 : la couleur n'est jamais la seule information (WCAG 1.4.1). */
 export default function VerdictView({ verdict }: { verdict: Verdict }) {
   if (verdict.color === 'rouge') {
@@ -42,13 +47,20 @@ export default function VerdictView({ verdict }: { verdict: Verdict }) {
         </dd>
         <dt>Autorité</dt>
         <dd>{certificate.authority}</dd>
-        <dt>Empreinte SHA-3</dt>
-        <dd className={styles.digest}>{verdict.digest}</dd>
       </dl>
       <p className={styles.note}>
         Signature vérifiée sur ce téléphone. Une éventuelle révocation du certificat ne se vérifie
         qu’en ligne.
       </p>
+      {/* Empreinte demandée par le CdC (§5.2) : utile pour comparer au certificat papier,
+          repliée pour ne pas encombrer le verdict */}
+      <details className={styles.technical}>
+        <summary>Détails techniques</summary>
+        <p>
+          Empreinte SHA-3 <span className={styles.visuallyHidden}>de 64 caractères</span> :
+        </p>
+        <p className={styles.digest}>{groupDigest(verdict.digest)}</p>
+      </details>
     </div>
   );
 }

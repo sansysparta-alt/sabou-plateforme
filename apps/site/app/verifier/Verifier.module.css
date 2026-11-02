@@ -35,9 +35,31 @@
   margin: 0;
 }
 
+.technical {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* Cible tactile d'au moins 40 px (CdC §8) */
+.technical summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.technical summary:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.technical p {
+  margin: 0.25rem 0 0;
+}
+
 .digest {
   font-family: monospace;
-  overflow-wrap: anywhere;
+  word-spacing: 0.25em;
 }
 
 .note {

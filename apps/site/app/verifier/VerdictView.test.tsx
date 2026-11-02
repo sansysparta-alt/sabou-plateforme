@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { Verdict } from '@sabou/qr';
-import VerdictView from './VerdictView';
+import VerdictView, { groupDigest } from './VerdictView';
 
 afterEach(cleanup);
 
@@ -14,12 +14,25 @@ const certificate = {
 };
 const valid = {
   certificate,
-  digest: 'ab'.repeat(32),
+  digest: '161b8c580ca7a313286550fb9707c228ac35c0d32954ecb13f881d1ca439806a',
   kid: 'test-01234567',
   revocationChecked: false,
 } as const;
 
 describe('VerdictView (R-QR-05)', () => {
+  it('empreinte SHA-3 repliée sous « Détails techniques », complète, en blocs de 4', () => {
+    const { container } = render(
+      <VerdictView verdict={{ color: 'vert', status: 'authentique', ...valid }} />,
+    );
+    const details = container.querySelector('details');
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector('summary')?.textContent).toBe('Détails techniques');
+    const grouped =
+      '161b 8c58 0ca7 a313 2865 50fb 9707 c228 ac35 c0d3 2954 ecb1 3f88 1d1c a439 806a';
+    expect(details?.textContent).toContain(grouped);
+    expect(groupDigest(valid.digest).replace(/ /g, '')).toBe(valid.digest);
+  });
+
   it('vert : authentique, avec la fiche du titulaire et l’empreinte SHA-3', () => {
     const { container } = render(
       <VerdictView verdict={{ color: 'vert', status: 'authentique', ...valid }} />,
@@ -28,7 +41,6 @@ describe('VerdictView (R-QR-05)', () => {
     expect(screen.getByText('✓ Vert : certificat authentique')).toBeTruthy();
     expect(screen.getByText('Mamadou Exemple')).toBeTruthy();
     expect(screen.getByText('02/11/2026 au 01/11/2027')).toBeTruthy();
-    expect(screen.getByText('ab'.repeat(32))).toBeTruthy();
     expect(screen.getByText(/révocation du certificat ne se vérifie qu’en ligne/)).toBeTruthy();
   });
 
