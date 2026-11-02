@@ -84,8 +84,13 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 > En tant qu’équipe, je veux un dépôt monorepo avec intégration continue, afin que chaque changement soit vérifié automatiquement.
 
 Critères d’acceptation :
-- Étant donné une demande de fusion, quand elle est poussée, alors le lint, les tests et la compilation de chaque application s’exécutent.
-- Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.
+- Étant donné une demande de fusion, quand elle est poussée, alors le lint, le formatage, les tests et la compilation de chaque application (`apps/api`, `apps/admin`, `apps/site`, `packages/types`) s’exécutent.
+- Étant donné une fusion sur `main`, quand elle est poussée, alors le même pipeline s’exécute.
+- Étant donné une dépendance avec une faille critique, quand l’analyse Trivy s’exécute, alors le pipeline échoue.
+- Chaque étape du pipeline est un script de `infra/ci/` exécutable en local ; le fichier GitHub Actions ne fait que les appeler. Les actions GitHub et Trivy sont épinglés par SHA.
+- ~~Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.~~ **Reporté à US-008** (décision du maître d’œuvre, novembre 2026) : un dépôt privé sur un compte GitHub gratuit n’autorise ni protection de branche ni règles de fusion. Jusqu’à US-008, le blocage se fait **par convention** : le maître d’œuvre ne fusionne une demande que si son pipeline est vert.
+
+Périmètre : les applications sont des squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-007).
 
 #### US-002 · Lancer tout l’environnement local en une commande
 *Fondations techniques* · **Must** · 5 points · cas : —
@@ -116,6 +121,7 @@ Critères d’acceptation :
 - Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
 - Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
 - Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
+- Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
 
 #### US-005 · Un prototype de chaîne audio
 *Fondations techniques* · **Must** · 5 points · cas : UC-73
@@ -333,6 +339,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
 - Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée (branche `main` protégée, pipeline réussi obligatoire). Critère reporté de US-001 ; il remplace la convention « on ne fusionne que si le pipeline est vert ».
 - Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
 - Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
 
@@ -832,7 +839,7 @@ Critères d’acceptation :
 |---|---|
 | Fonctionnel | Tous les critères d’acceptation sont vérifiés et démontrés au Product Owner |
 | Règles métier | Les règles R-xxx concernées sont couvertes par des tests automatiques ; les cas interdits sont testés |
-| Code | Relu et approuvé par un autre développeur ; lint et formatage sans erreur |
+| Code | Relu et approuvé par un autre développeur ; tant que l’équipe ne compte qu’un seul développeur, la relecture est faite par le maître d’œuvre. Lint et formatage sans erreur ; pipeline vert avant toute fusion |
 | Tests | Tests unitaires et d’intégration passés dans l’intégration continue (base PostgreSQL réelle pour les règles en base) ; test de bout en bout pour les parcours utilisateur |
 | Sécurité | Contrôle d’accès par rôle et par zone vérifié ; aucune donnée nominative exposée ; analyse des dépendances et des images sans faille critique |
 | Langues | Textes en français (et anglais si prévu), aucun texte en langue nationale ; repli sur la voix française vérifié |
