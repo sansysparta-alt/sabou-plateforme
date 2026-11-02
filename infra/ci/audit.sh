@@ -8,7 +8,8 @@ source "$(dirname "$0")/env.sh"
 
 # Image épinglée par empreinte (version 0.76.1), et non par étiquette
 TRIVY_IMAGE="aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c"
-TRIVY_ARGS=(fs --scanners vuln --severity CRITICAL --exit-code 1 --skip-dirs node_modules)
+# Dépendances de développement comprises : elles s'exécutent dans le pipeline et sur les postes
+TRIVY_ARGS=(fs --scanners vuln --include-dev-deps --severity CRITICAL --exit-code 1 --skip-dirs node_modules)
 
 if [[ -n "${TRIVY_BIN:-}" ]]; then
   # Poste sans Docker : binaire Trivy local, de la même version
