@@ -39,6 +39,7 @@ done
 grep -Eq 'aquasec/trivy@sha256:[0-9a-f]{64}"' infra/ci/trivy.sh || fail "trivy.sh : image Trivy non épinglée par empreinte"
 bash infra/ci/check-pins.sh >/dev/null || fail "images Docker non épinglées (détail ci-dessus)"
 grep -Eq "'arigaio/atlas@sha256:[0-9a-f]{64}'" packages/db/src/atlas.ts || fail "atlas.ts : image Atlas non épinglée par empreinte"
+grep -Eq "'jrottenberg/ffmpeg@sha256:[0-9a-f]{64}';" packages/audio/src/ffmpeg.ts || fail "ffmpeg.ts : image FFmpeg non épinglée par empreinte"
 
 # 6. Aucun script racine ne porte le nom d'une commande intégrée de pnpm : « pnpm <nom> »
 # lancerait la commande au lieu du script (cas de « pnpm pipeline » depuis pnpm 12).
