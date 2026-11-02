@@ -2,7 +2,8 @@
 # Contre-épreuves des garde-fous du pipeline local :
 # - check-repo.sh doit refuser un script racine nommé comme une commande intégrée de pnpm ;
 # - require-git-bash.mjs doit refuser un lancement Windows hors de Git Bash ;
-# - check-pins.sh doit refuser une image Docker épinglée par simple étiquette.
+# - check-pins.sh doit refuser une image Docker épinglée par simple étiquette ;
+# - check-repo.sh doit refuser un job Flutter qui ne filtre pas sur apps/mobile/ (US-005).
 source "$(dirname "$0")/env.sh"
 
 workdir="$(mktemp -d)"
@@ -69,5 +70,19 @@ printf 'FROM node@sha256:%s AS build
 FROM build
 ' "$(printf 'b%.0s' {1..64})" >"$workdir/pins/Dockerfile"
 bash infra/ci/check-pins.sh "$workdir/pins/compose.yaml" "$workdir/pins/Dockerfile" >/dev/null
+
+# 6. Job Flutter déclenché par tout changement (filtre « ** ») : doit être refusé (US-005)
+if [[ -d apps/mobile ]]; then
+  sed "s#      - 'apps/mobile/\*\*'#      - '**'#" .github/workflows/mobile.yml >"$workdir/mobile.yml"
+  if MOBILE_WORKFLOW="$workdir/mobile.yml" bash infra/ci/check-repo.sh package.json 2>"$workdir/err"; then
+    echo "ÉCHEC : un job Flutter déclenché par tout changement n'a pas été refusé." >&2
+    exit 1
+  fi
+  grep -q 'pull_request se déclenche aussi sur \*\*' "$workdir/err" || {
+    cat "$workdir/err" >&2
+    echo "ÉCHEC : check-repo.sh ne cite pas le filtre fautif du job Flutter." >&2
+    exit 1
+  }
+fi
 
 echo "Garde-fous du pipeline local : refusent ce qu'ils doivent refuser, acceptent le reste."

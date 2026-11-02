@@ -8,7 +8,8 @@
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "lecture": "playwright test"
+    "lecture": "playwright test",
+    "essai": "node scripts/essai-telephone.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

@@ -68,6 +68,39 @@ else
     "$(realpath "$root_manifest")")
 fi
 
+# 7. Le job Flutter ne tourne que si l'application mobile change (US-005) : le workflow
+# mobile.yml filtre ses déclencheurs (pull_request et push) sur apps/mobile/ et sur ses
+# propres fichiers de pipeline ; aucun autre workflow ne lance mobile.sh.
+# Usage alternatif : MOBILE_WORKFLOW=fichier (contre-épreuve).
+mobile_workflow="${MOBILE_WORKFLOW:-.github/workflows/mobile.yml}"
+if [[ -d apps/mobile ]]; then
+  if [[ ! -f "$mobile_workflow" ]]; then
+    fail "$mobile_workflow manquant : l'application mobile n'est pas compilée par le pipeline"
+  else
+    # Chemins de chaque bloc « paths: », par déclencheur
+    filters="$(awk '
+      /^  [a-z_]+:/ { trigger = $1; sub(":", "", trigger); in_paths = 0 }
+      /^    paths:/ { in_paths = 1; next }
+      in_paths && /^      - / { gsub(/[\x27"]/, "", $2); print trigger " " $2; next }
+      in_paths && !/^      - / { in_paths = 0 }' "$mobile_workflow")"
+    for trigger in pull_request push; do
+      grep -q "^$trigger apps/mobile/\*\*$" <<<"$filters" ||
+        fail "$mobile_workflow : $trigger ne filtre pas sur apps/mobile/**"
+    done
+    while read -r trigger path; do
+      [[ -z "$path" ]] && continue
+      case "$path" in
+        apps/mobile/\*\* | infra/ci/mobile.sh | .github/workflows/mobile.yml) ;;
+        *) fail "$mobile_workflow : $trigger se déclenche aussi sur $path" ;;
+      esac
+    done <<<"$filters"
+  fi
+  for workflow in .github/workflows/*.yml; do
+    [[ "$workflow" == "$mobile_workflow" ]] && continue
+    grep -q 'infra/ci/mobile.sh' "$workflow" && fail "$workflow lance mobile.sh sans filtre sur apps/mobile/"
+  done
+fi
+
 if ((errors > 0)); then
   echo "$errors règle(s) non respectée(s)." >&2
   exit 1
