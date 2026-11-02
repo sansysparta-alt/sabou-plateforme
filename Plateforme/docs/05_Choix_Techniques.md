@@ -34,7 +34,7 @@ Principe : chaque technologie est choisie **uniquement pour son adéquation aux 
 | **PostGIS** | Praticien certifié le plus proche, déserts thérapeutiques par préfecture, cartes (E9) | Calcul de distance dans l'application : imprécis et lent |
 | **PostgreSQL « nu »**, exploité par CloudNativePG (ou PostgreSQL managé d'un hébergeur souverain, s'il offre PostGIS, pg_trgm, unaccent, RLS et restauration à un instant donné) | Le schéma v2 est du PostgreSQL standard : il reste portable chez n'importe quel hébergeur | **Supabase** : son offre en ligne n'a pas de région en Afrique de l'Ouest (E7) ; la version auto-hébergée regroupe une dizaine de services sans haute disponibilité fournie (E7) ; son API générée expose directement le schéma, alors que l'API partenaires doit être versionnée et que les workflows doivent rester côté serveur ; son module d'authentification ne gère pas l'accès OAuth2 des partenaires (E8) |
 | **Recherche dans PostgreSQL** (pas de moteur séparé) | Le volume (quelques milliers de plantes et maladies, des dizaines de milliers de traitements) est largement à la portée de pg_trgm ; un composant de moins à opérer | Elasticsearch / Meilisearch : utiles à des millions de documents, ici surdimensionnés |
-| **Kysely** (SQL typé) + migrations SQL versionnées (**Atlas** ou dbmate) | Le schéma est « SQL d'abord » (triggers, fonctions, RLS) : on écrit le SQL, on garde le typage | ORM (Prisma, TypeORM) : masque le SQL, gère mal triggers, RLS et fonctions |
+| **Kysely** (SQL typé) + migrations SQL versionnées (**Atlas**, voir §2.15) | Le schéma est « SQL d'abord » (triggers, fonctions, RLS) : on écrit le SQL, on garde le typage | ORM (Prisma, TypeORM) : masque le SQL, gère mal triggers, RLS et fonctions |
 
 ### 2.2 Back-end (API)
 
@@ -182,6 +182,19 @@ Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil 
 | Faille | Image et fichier | Justification | Expire le |
 |---|---|---|---|
 | CVE-2025-68121 (Go, `crypto/tls`) | `postgis/postgis` 17-3.6, `usr/local/bin/gosu` | `gosu` ne fait que changer d'utilisateur au démarrage et n'ouvre aucune connexion TLS : faille non atteignable. Aucune image PostGIS corrigée en novembre 2026 | 1er février 2027 |
+
+### 2.15 Migrations de la base (décision de novembre 2026, récit US-003)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Atlas, édition communautaire** (Apache 2), image épinglée par empreinte | Migrations en SQL pur (le schéma est « SQL d'abord ») ; chaque migration dans sa transaction, arrêt à la première erreur ; empreintes des fichiers (`atlas.sum`) | **dbmate** : ne garde que le nom des migrations appliquées, sans empreinte, donc ne voit pas une migration modifiée (critère de US-003) |
+| **Contrôle des empreintes appliquées** (`packages/db/src/verify.ts`), avant chaque application | L'édition communautaire refuse une migration modifiée tant que `atlas.sum` n'est pas recalculé, mais l'accepte après `atlas migrate hash`. La base garde l'empreinte d'origine de chaque migration appliquée : on la compare au fichier, ce qui protège aussi la recette et la production | Contrôle seulement dans le pipeline (comparaison Git avec `main`) : ne protège pas une base déjà migrée |
+| **Paquet `packages/db`** : migrations, jeu d'exemple, requêtes d'exemple, tests | La base a son propre cycle (lint, tests, compilation) dans Turborepo ; l'API en dépendra pour ses types Kysely | Migrations dans `apps/api` : mêleraient le schéma et le code d'une seule application |
+| **Tests sur un vrai PostgreSQL avec Testcontainers** (même image et même script d'initialisation que l'environnement local) | Contraintes, déclencheurs et workflows ne se testent que sur la vraie base (§2.12) ; aucun serveur partagé | Base de test partagée : états qui se mélangent entre tests |
+| **Scripts en TypeScript exécutés directement par Node 26** (suppression des types) | Pas d'étape de compilation pour les commandes `db:*` | `tsx` ou `ts-node` : une dépendance de plus |
+| **Rôles** : migrations par `sabou_migrator` ; droits de `sabou_app` donnés par une migration (lecture, écriture, exécution ; journal d'audit en ajout seul) ; PostGIS et rôles créés par l'infrastructure | Moindre privilège dès le premier jour (00_Conception §6) | — |
+
+Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17. Ils ont été remplacés par ce paquet (décision du maître d'œuvre), avec deux corrections : un motif obligatoire ne peut plus être vide ou fait d'espaces, et l'exemple « rejet sans motif » visait un traitement déjà en brouillon, refusé pour une autre raison. Les scripts de l'intégration continue n'appellent pas Atlas directement : `pnpm test` lance les tests de la base.
 
 ---
 

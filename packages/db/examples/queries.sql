@@ -1,6 +1,8 @@
 -- =====================================================================
--- SABOU — Requêtes d'exemple — VERSION 2 (après 01_schema.sql et 02_seed.sql v2)
--- Non exécuté à ce stade (phase d'analyse).
+-- SABOU — Requêtes d'exemple (base migrée + seed/dev.sql)
+-- Exécutées par les tests (test/queries.test.ts) : chaque requête doit passer sans erreur.
+-- Les cas interdits, en commentaire « ERREUR attendue », sont prouvés un par un par
+-- test/forbidden.test.ts.
 -- =====================================================================
 SET search_path = sabou, public;
 
@@ -51,7 +53,9 @@ SELECT dossier_transition(1, 'rejete', 3, 'Justificatif de domicile manquant');
 SELECT recette_transition(3, 'expertisee', 4);
 SELECT recette_transition(3, 'certifiee', 1);
 -- Interdit : un rejet sans motif
--- SELECT recette_transition(5, 'brouillon', 16);                     -- ERREUR attendue
+-- (corrigé : l'exemple v2 visait REC-2045, déjà en brouillon, refusé pour une autre raison)
+-- SELECT recette_transition(3, 'suspendue', 4);                      -- ERREUR attendue
+-- SELECT recette_transition(3, 'suspendue', 4, '   ');               -- ERREUR attendue
 -- Suspension d'un traitement après un signalement grave (R-SAN-03)
 SELECT recette_transition(1, 'suspendue', 4, 'Signalement de vomissements en cours d''examen');
 SELECT recette_transition(1, 'certifiee', 4);                         -- levée de la suspension

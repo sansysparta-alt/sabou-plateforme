@@ -3,3 +3,10 @@ packages:
   - packages/*
 minimumReleaseAgeExclude:
   - globals@17.14.0
+# Scripts d'installation des dépendances : refusés sauf nécessité prouvée (chaîne logicielle).
+# Ceux-ci viennent de Testcontainers et ne servent à rien ici : module natif facultatif de
+# ssh2 (accès Docker distant par SSH, inutilisé) et contrôle de version de protobufjs.
+allowBuilds:
+  cpu-features: false
+  protobufjs: false
+  ssh2: false

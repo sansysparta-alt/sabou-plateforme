@@ -1,11 +1,11 @@
 -- =====================================================================
--- SABOU — Jeu de données d'exemple — VERSION 2 (base vide, 01_schema.sql v2 appliqué)
+-- SABOU — Jeu de données d'exemple (base migrée et vide) : pnpm db:seed, et les tests
+-- Données entièrement fictives. Jamais chargé en recette ni en production.
 -- Les identifiants IDENTITY démarrent à 1 : les clés étrangères ci-dessous en dépendent.
 -- Règle des langues : aucun texte en langue nationale ; les langues nationales sont des VOIX.
 -- Les transcriptions de noms locaux (plante_nom_local) servent uniquement à la recherche (R-LNG-13, à confirmer)
 -- et sont des exemples de maquette, à valider par les référents linguistiques.
 -- Les empreintes et signatures ci-dessous sont factices (calculées par l'application en production).
--- Réservé au développement. Non exécuté à ce stade (phase d'analyse).
 -- =====================================================================
 SET search_path = sabou, public;
 BEGIN;

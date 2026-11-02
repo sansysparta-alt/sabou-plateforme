@@ -1,7 +1,14 @@
 {
   "version": "0.2",
   "language": "fr,en",
-  "ignorePaths": ["pnpm-lock.yaml", "node_modules", "dist", ".next", "Plateforme/**/*.sql"],
+  "ignorePaths": [
+    "pnpm-lock.yaml",
+    "node_modules",
+    "dist",
+    ".next",
+    "packages/db/**/*.sql",
+    "atlas.sum"
+  ],
   "words": [
     "SABOU",
     "soussou",

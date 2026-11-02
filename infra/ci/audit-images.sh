@@ -3,15 +3,19 @@
 # l'environnement local. Le pipeline échoue sur toute faille CRITIQUE qui a un correctif
 # disponible ; les failles critiques sans correctif sont listées sans bloquer (décision du
 # maître d'œuvre, novembre 2026 : on ne peut pas corriger soi-même une image tierce).
-# Usage : audit-images.sh [image…], par défaut toutes les images de infra/local/compose.yaml,
-# qui doivent être présentes sur le poste (pnpm env:up les télécharge et construit l'API).
+# Usage : audit-images.sh [image…], par défaut toutes les images de infra/local/compose.yaml
+# et l'image d'Atlas (migrations). Elles doivent être présentes sur le poste : pnpm env:up
+# télécharge et construit celles de l'environnement, les tests de @sabou/db celle d'Atlas.
 source "$(dirname "$0")/env.sh"
 source infra/ci/trivy.sh
 
 if (($# > 0)); then
   images=("$@")
 else
-  mapfile -t images < <(awk '/^    image:/ { print $2 }' infra/local/compose.yaml)
+  mapfile -t images < <(
+    awk '/^    image:/ { print $2 }' infra/local/compose.yaml
+    grep -Eo "arigaio/atlas@sha256:[0-9a-f]{64}" packages/db/src/atlas.ts
+  )
 fi
 
 report="$(mktemp)"

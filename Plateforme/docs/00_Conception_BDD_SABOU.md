@@ -1,7 +1,7 @@
 # SABOU — Conception de la base de données (version 2, analyse)
 
 Référence : **cahier des charges v1.3** (`SABOU_Cahier_des_Charges_Vert_v1.3.docx`) et **`04_Regles_Metier.md`** (les numéros R-xxx renvoient aux règles).
-Statut : **modèle corrigé, au stade de l'analyse**. Les scripts `01_schema.sql` (tables, contraintes, triggers, workflows, recherche, vues), `02_seed.sql` (jeu d'exemple) et `03_queries.sql` (requêtes) sont en **version 2**, conformes à ce document. Ils **n'ont pas encore été exécutés** : à tester sur une base PostgreSQL 17 vide au démarrage du développement (depuis le dossier `database/` : `psql -v ON_ERROR_STOP=1 -f 01_schema.sql -f 02_seed.sql -f 03_queries.sql`). La version 1 complète est archivée hors de ce dossier, dans `_archives/conception_v1/`.
+Statut : **modèle corrigé, exécuté et testé** (récit US-003, novembre 2026). Les scripts v2, conformes à ce document, ont été exécutés sur PostgreSQL 17 puis remplacés par le paquet `packages/db` du dépôt : migrations versionnées Atlas (`migrations/`, schéma initial et droits du rôle de l'API), jeu d'exemple (`seed/dev.sql`) et requêtes d'exemple (`examples/queries.sql`), tous prouvés par des tests sur un vrai PostgreSQL. Seule correction de fond : un motif obligatoire ne peut plus être vide. La version 1 complète est archivée hors de ce dossier, dans `_archives/conception_v1/`.
 
 ---
 
