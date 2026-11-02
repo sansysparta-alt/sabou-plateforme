@@ -8,7 +8,8 @@
 !.env.example
 
 # IDE / OS
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
 .claude/
 Thumbs.db
@@ -21,3 +22,8 @@ vendor/
 dist/
 build/
 *.log
+.next/
+.turbo/
+coverage/
+next-env.d.ts
+*.tsbuildinfo
