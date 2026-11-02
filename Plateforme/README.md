@@ -19,11 +19,9 @@ Plateforme/
 │   ├── 06_Cas_Utilisation.md
 │   ├── 07_Backlog_Sprints.md
 │   └── 07_Backlog_import_GitLab.csv
-└── database/
-    ├── 01_schema.sql
-    ├── 02_seed.sql
-    └── 03_queries.sql
 ```
+
+Les scripts SQL v2 (`database/01_schema.sql`, `02_seed.sql`, `03_queries.sql`) ont été exécutés et corrigés au récit US-003, puis remplacés (décision du maître d'œuvre, novembre 2026) par le paquet [`packages/db`](../packages/db/README.md) du dépôt : migrations versionnées, jeu d'exemple et requêtes d'exemple, prouvés par des tests. L'historique Git conserve les fichiers d'origine.
 
 Les anciennes versions (cahier des charges et maquettes v1.2, conception v1) sont conservées hors de ce dossier : ne plus les utiliser.
 
@@ -34,9 +32,9 @@ Les anciennes versions (cahier des charges et maquettes v1.2, conception v1) son
 | 1 | `docs/cahier-des-charges/SABOU_Cahier_des_Charges_Vert_v1.3.docx` | **Cahier des charges officiel.** Il fait foi. L'annexe B liste les modifications par rapport à la v1.2 | À jour (v1.3) |
 | 2 | `docs/04_Regles_Metier.md` | Les règles numérotées (R-LNG-01…), leur origine et les 6 décisions tranchées | À jour |
 | 3 | `docs/00_Conception_BDD_SABOU.md` | Modèle de la base de données : entités, tables, diagramme, choix | À jour (v2) |
-| 4 | `database/01_schema.sql` | Création de la base : tables, contraintes, triggers, workflows, recherche, vues | À jour (v2), **jamais exécuté** |
-| 5 | `database/02_seed.sql` | Jeu de données d'exemple (développement uniquement) | À jour (v2), **jamais exécuté** |
-| 6 | `database/03_queries.sql` | Requêtes d'exemple : recherche, workflows, statistiques | À jour (v2), **jamais exécuté** |
+| 4 | `../packages/db/migrations/` | Création de la base : tables, contraintes, triggers, workflows, recherche, vues (migrations Atlas) | **Source de vérité** du schéma, testée (US-003) |
+| 5 | `../packages/db/seed/dev.sql` | Jeu de données d'exemple fictif (développement et tests uniquement) | Testé (US-003) |
+| 6 | `../packages/db/examples/queries.sql` | Requêtes d'exemple : recherche, workflows, statistiques, cas interdits | Testé (US-003) |
 | 7 | `docs/05_Choix_Techniques.md` | Technologies retenues, justification, alternatives écartées | **Validé** |
 | 8 | `docs/06_Cas_Utilisation.md` | 55 cas d'utilisation par acteur (7 détaillés), reliés aux règles | À jour |
 | 9 | `docs/07_Backlog_Sprints.md` (une version PDF existe, conservée hors de ce dossier) | Backlog priorisé (78 récits avec critères d'acceptation), 19 sprints, Definition of Ready et of Done | À jour |
@@ -53,8 +51,7 @@ Les anciennes versions (cahier des charges et maquettes v1.2, conception v1) son
 
 ## Points d'attention pour la suite
 
-1. **Scripts SQL** : à tester sur un PostgreSQL 17 vide au sprint 0, depuis le dossier `database/` :
-   `psql -v ON_ERROR_STOP=1 -f 01_schema.sql -f 02_seed.sql -f 03_queries.sql`
+1. **Base de données** : toute évolution du schéma passe par une nouvelle migration de `packages/db/migrations/` (jamais par la modification d'une migration appliquée).
 2. **Maquettes v1.3** : seuls les textes ont changé. Les noms locaux qui restent (« Kignè », « Dialambéré », « Kèmèkhoui ») sont des exemples de ce que dit ou tape un utilisateur dans le parcours « demande de plante ».
 3. **À confirmer avec le ministère de la Santé** : l'intégration DHIS2 et la validation du dispositif de sécurité sanitaire.
 

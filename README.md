@@ -9,6 +9,7 @@ apps/api        API (NestJS)
 apps/admin      application de gestion (React + Vite)
 apps/site       site public (Next.js)
 packages/types  types et schémas de validation partagés
+packages/db     base de données : migrations, jeu d'exemple, tests
 infra/ci        scripts du pipeline (appelés par GitHub Actions, puis GitLab CI)
 infra/local     environnement local (Docker Compose)
 Plateforme/     documents de référence (pas de code)
@@ -79,6 +80,7 @@ Le projet utilise **Node 26** et **pnpm 12** (versions fixées dans `.nvmrc` et 
 | `pnpm env:up`                       | Environnement local complet (voir ci-dessous)                  |
 | `pnpm env:down`                     | Arrêter l'environnement local, données conservées              |
 | `pnpm env:reset`                    | Arrêter l'environnement local et **effacer** ses données       |
+| `pnpm db:migrate` / `pnpm db:seed`  | Migrer la base locale / charger le jeu d'exemple fictif        |
 | `pnpm --filter @sabou/site dev`     | Site public sur http://localhost:3000                          |
 | `pnpm --filter @sabou/admin dev`    | Application de gestion sur http://localhost:5173               |
 

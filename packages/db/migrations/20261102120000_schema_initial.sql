@@ -1,9 +1,11 @@
 -- =====================================================================
--- SABOU — Yeleen Kènè : schéma PostgreSQL 17 — VERSION 2
+-- SABOU — Yeleen Kènè : schéma PostgreSQL 17 — migration initiale (schéma v2, US-003)
 -- Conforme au cahier des charges v1.3 et à 04_Regles_Metier.md (R-xxx).
 -- Règle des langues : texte en français (+ anglais) ; langues nationales en VOIX uniquement.
--- Exécution : psql -v ON_ERROR_STOP=1 -f 01_schema.sql
--- Non exécuté à ce stade (phase d'analyse) : à tester sur une base vide avant tout usage.
+-- Appliquée par Atlas (pnpm db:migrate), jamais à la main. Une migration appliquée ne se
+-- modifie plus : toute évolution passe par une nouvelle migration (packages/db/README.md).
+-- Corrections par rapport aux scripts v2 de Plateforme/database : un motif obligatoire ne
+-- peut plus être vide ni fait d'espaces (ck_motif_rejet, recette_transition).
 -- =====================================================================
 CREATE EXTENSION IF NOT EXISTS pg_trgm  WITH SCHEMA public;  -- recherche floue
 CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;  -- recherche sans accents
@@ -263,7 +265,7 @@ CREATE TABLE dossier_historique (
   motif          text,
   acteur_id      bigint NOT NULL REFERENCES utilisateur(id),
   decide_le      timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT ck_motif_rejet CHECK (decision NOT IN ('rejete','rejet_definitif') OR motif IS NOT NULL),
+  CONSTRAINT ck_motif_rejet CHECK (decision NOT IN ('rejete','rejet_definitif') OR COALESCE(btrim(motif), '') <> ''),
   CONSTRAINT ck_transition CHECK (
        (decision = 'soumis'          AND etape_depart = 1 AND etape_arrivee = 2)
     OR (decision = 'valide'          AND etape_depart BETWEEN 2 AND 5 AND etape_arrivee = etape_depart + 1)
@@ -1141,7 +1143,7 @@ BEGIN
   IF v_motif_requis IS NULL THEN
     RAISE EXCEPTION 'Transition % → % interdite pour l''acteur % sur le traitement %', v_rec.statut, p_vers, p_acteur, v_rec.code;
   END IF;
-  IF v_motif_requis AND p_motif IS NULL THEN
+  IF v_motif_requis AND COALESCE(btrim(p_motif), '') = '' THEN
     RAISE EXCEPTION 'Transition % → % : motif obligatoire', v_rec.statut, p_vers;
   END IF;
 
