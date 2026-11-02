@@ -2,6 +2,7 @@
 # Tout le pipeline en local, dans l'ordre de l'intégration continue
 source "$(dirname "$0")/env.sh"
 bash infra/ci/check-repo.sh
+bash infra/ci/check-repo-selftest.sh
 bash infra/ci/install.sh
 bash infra/ci/lint.sh
 bash infra/ci/test.sh

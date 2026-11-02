@@ -74,11 +74,13 @@ Le projet utilise **Node 26** et **pnpm 12** (versions fixées dans `.nvmrc` et 
 | `pnpm format:check` / `pnpm format` | Vérifier / corriger le formatage                               |
 | `pnpm test`                         | Tests de chaque application                                    |
 | `pnpm build`                        | Compilation de chaque application                              |
-| `pnpm pipeline`                     | Tout le pipeline, comme dans l'intégration continue (Git Bash) |
+| `pnpm ci:local`                     | Tout le pipeline, comme dans l'intégration continue (Git Bash) |
 | `pnpm --filter @sabou/site dev`     | Site public sur http://localhost:3000                          |
 | `pnpm --filter @sabou/admin dev`    | Application de gestion sur http://localhost:5173               |
 
-Sans Docker, l'analyse Trivy peut utiliser un binaire local de la même version (0.76.1, somme de contrôle vérifiée) : `TRIVY_BIN=/chemin/vers/trivy.exe pnpm pipeline`.
+`pnpm ci:local` se lance depuis un terminal **Git Bash** (dans VS Code : menu du terminal, profil « Git Bash »). Depuis PowerShell ou cmd, la commande `bash` désigne celle de WSL, qui ne voit ni Node ni pnpm : le pipeline s'arrête alors avec un message qui le dit. Le nom `pipeline` n'est pas utilisé, car `pnpm pipeline` est une commande intégrée de pnpm 12 ; `check-repo.sh` refuse tout script racine qui porterait le nom d'une commande intégrée.
+
+Sans Docker, l'analyse Trivy peut utiliser un binaire local de la même version (0.76.1, somme de contrôle vérifiée) : `TRIVY_BIN=/chemin/vers/trivy.exe pnpm ci:local`.
 
 ## Contribuer
 

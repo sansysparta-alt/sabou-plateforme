@@ -12,7 +12,7 @@
     "format:check": "prettier --check .",
     "test": "turbo run test",
     "build": "turbo run build",
-    "pipeline": "bash infra/ci/all.sh"
+    "ci:local": "node infra/ci/require-git-bash.mjs && bash infra/ci/all.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
