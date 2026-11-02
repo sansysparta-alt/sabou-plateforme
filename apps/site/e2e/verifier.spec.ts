@@ -5,14 +5,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, expect, test, type Browser, type Page } from '@playwright/test';
-import { GENERATED_DIR, startSite, type SampleCase } from './samples.ts';
+import { E2E_DIR, startSite, type SampleCase } from './samples.ts';
 
 const PORT = 3100;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 // R-QR-05 : réponse en moins de 5 secondes
 const MAX_VERDICT_MS = 5000;
 
-const cases: SampleCase[] = JSON.parse(readFileSync(join(GENERATED_DIR, 'cases.json'), 'utf8'));
+const cases: SampleCase[] = JSON.parse(readFileSync(join(E2E_DIR, 'cases.json'), 'utf8'));
 const opened = new Map<string, { browser: Browser; page: Page }>();
 let site: ReturnType<typeof startSite> | undefined;
 
@@ -32,7 +32,7 @@ async function waitForSite(): Promise<void> {
 
 test.beforeAll(async () => {
   test.setTimeout(120_000);
-  site = startSite(PORT, readFileSync(join(GENERATED_DIR, 'keys.json'), 'utf8'));
+  site = startSite(PORT, readFileSync(join(E2E_DIR, 'keys.json'), 'utf8'));
   await waitForSite();
 
   // Première visite en ligne, une par QR (la fausse caméra est fixée au lancement du navigateur)
@@ -41,7 +41,7 @@ test.beforeAll(async () => {
       args: [
         '--use-fake-ui-for-media-stream',
         '--use-fake-device-for-media-stream',
-        `--use-file-for-fake-video-capture=${join(GENERATED_DIR, `${sample.name}.y4m`)}`,
+        `--use-file-for-fake-video-capture=${join(E2E_DIR, `${sample.name}.y4m`)}`,
       ],
     });
     const context = await browser.newContext({ baseURL: BASE_URL, permissions: ['camera'] });

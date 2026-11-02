@@ -3,8 +3,9 @@
 // pour l'essai sur téléphone) et une vidéo Y4M (fausse caméra de Chromium pour Playwright).
 // Seules les clés publiques sont écrites, dans keys.json.
 //
-// Usage : node e2e/samples.ts           génère les fichiers dans e2e/.generated/
-//         node e2e/samples.ts --serve   génère puis lance le site avec ces clés (essai manuel)
+// Usage : node e2e/samples.ts           génère les QR des tests dans e2e/.generated/e2e/
+//         node e2e/samples.ts --serve   génère ceux de l'essai manuel dans e2e/.generated/demo/
+//                                       puis lance le site avec ces clés
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -16,7 +17,9 @@ import { generateTestSigningKey, signCertificateQr } from '@sabou/qr/sign';
 import QRCode from 'qrcode';
 
 const siteDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-export const GENERATED_DIR = join(siteDir, 'e2e', '.generated');
+// Deux dossiers : les tests automatiques ne doivent jamais écraser les QR d'un essai en cours
+export const E2E_DIR = join(siteDir, 'e2e', '.generated', 'e2e');
+export const DEMO_DIR = join(siteDir, 'e2e', '.generated', 'demo');
 
 export interface SampleCase {
   name: string;
@@ -64,7 +67,9 @@ function qrVideo(text: string): Buffer {
   return Buffer.concat([Buffer.from(header), Buffer.from('FRAME\n'), luma, chroma]);
 }
 
-export async function generateSamples(): Promise<{ cases: SampleCase[]; publicKeys: string }> {
+export async function generateSamples(
+  dir: string,
+): Promise<{ cases: SampleCase[]; publicKeys: string }> {
   const dgKey = generateTestSigningKey();
   const otherKey = generateTestSigningKey();
   const today = new Date();
@@ -106,14 +111,14 @@ export async function generateSamples(): Promise<{ cases: SampleCase[]; publicKe
     },
   ];
 
-  rmSync(GENERATED_DIR, { recursive: true, force: true });
-  mkdirSync(GENERATED_DIR, { recursive: true });
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
   const publicKeys = JSON.stringify([dgKey.publicJwk]);
-  writeFileSync(join(GENERATED_DIR, 'keys.json'), publicKeys);
-  writeFileSync(join(GENERATED_DIR, 'cases.json'), JSON.stringify(cases, null, 2));
+  writeFileSync(join(dir, 'keys.json'), publicKeys);
+  writeFileSync(join(dir, 'cases.json'), JSON.stringify(cases, null, 2));
   for (const sample of cases) {
-    writeFileSync(join(GENERATED_DIR, `${sample.name}.y4m`), qrVideo(sample.text));
-    await QRCode.toFile(join(GENERATED_DIR, `${sample.name}.png`), sample.text, {
+    writeFileSync(join(dir, `${sample.name}.y4m`), qrVideo(sample.text));
+    await QRCode.toFile(join(dir, `${sample.name}.png`), sample.text, {
       errorCorrectionLevel: 'M',
       scale: 8,
       margin: 4,
@@ -155,8 +160,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     );
     process.exit(1);
   }
-  const { cases, publicKeys } = await generateSamples();
-  console.log(`QR d'essai générés dans ${GENERATED_DIR} :`);
+  const dir = serve ? DEMO_DIR : E2E_DIR;
+  const { cases, publicKeys } = await generateSamples(dir);
+  console.log(`QR d'essai générés dans ${dir} :`);
   for (const sample of cases)
     console.log(`  ${sample.name}.png  ${sample.label} → attendu : ${sample.color}`);
   if (serve) {
