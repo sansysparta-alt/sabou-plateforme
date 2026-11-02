@@ -12,17 +12,19 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **78 récits**, **356 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **79 récits**, **358 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
 
 Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 à 3 points (analyse Semgrep) et US-010 de 5 à 8 points (contrôles axe et Lighthouse CI). S1 monte ainsi à 29 points, au-dessus de la capacité visée : un récit de S1 sera reporté en S2 lors du raffinement de S1.
 
+Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maître d’œuvre) : US-004 est découpé ; il passe de 8 à 5 points (lignes de la base, conflit, cloisonnement par zone) et le nouveau récit US-009 (pièces jointes et voix hors réseau) prend 4 points. US-005 passe de 5 à 6 points : il crée le squelette Flutter et le job Flutter du pipeline, critère repris de US-004. S0 monte ainsi de 34 à 36 points.
+
 ## 2. Plan des sprints
 
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
-| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007 | 34 |
+| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 36 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030 | 29 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
@@ -58,7 +60,7 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 | Epic | Intitulé | Phase | Récits | Points |
 |---|---|---|---|---|
-| E00 | Fondations techniques | 1 | 8 | 37 |
+| E00 | Fondations techniques | 1 | 9 | 39 |
 | E01 | Identité et accès | 2 | 5 | 21 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
@@ -114,25 +116,43 @@ Critères d’acceptation :
 - Étant donné une migration déjà appliquée, quand on la modifie, alors l’outil de migration le détecte et échoue.
 
 #### US-004 · Un prototype de synchronisation hors réseau (Flutter + PowerSync)
-*Fondations techniques* · **Must** · 8 points · cas : UC-74
+*Fondations techniques* · **Must** · 5 points · cas : UC-74
 
 > En tant qu’équipe, je veux un prototype de synchronisation hors réseau (Flutter + PowerSync), afin de valider ou remplacer ce choix technique.
 
+Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique.
+
 Critères d’acceptation :
-- Étant donné un téléphone sans réseau, quand un agent saisit un dossier avec pièces et voix, alors tout est conservé sur le téléphone.
-- Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
-- Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
-- Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
-- Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
+- Étant donné un téléphone sans réseau, quand un agent saisit un dossier, alors il est conservé sur le téléphone.
+- Étant donné une synchronisation coupée puis rétablie, quand elle s’exécute, alors le dossier apparaît sur le serveur sans perte.
+- Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04, précisée dans 04_Regles_Metier.md).
+- Étant donné un agent d’une zone, quand la synchronisation s’exécute, alors il ne reçoit aucune donnée d’une autre zone (test automatique obligatoire : les règles de synchronisation filtrent en dehors du RLS).
+- Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md ; elle dit ce que l’équipe ferait si la licence FSL devenait bloquante.
+
+#### US-009 · Synchroniser les pièces jointes et la voix hors réseau
+*Fondations techniques* · **Must** · 4 points · cas : UC-74
+
+> En tant qu’agent de terrain, je veux que les pièces et les voix d’un dossier saisies sans réseau arrivent sur le serveur, afin qu’aucun fichier ne soit perdu.
+
+Périmètre : PowerSync ne transporte que des lignes. Les fichiers suivent une file d’envoi sur le téléphone, passent par l’API (authentification, zone, taille, type) qui les dépose dans SeaweedFS ; SeaweedFS n’est pas exposé. Envoi du téléphone vers le serveur seulement.
+
+Critères d’acceptation :
+- Étant donné un téléphone sans réseau, quand un agent joint des photos de pièces et une voix à un dossier, alors les fichiers sont conservés sur le téléphone, avec leur empreinte SHA-256.
+- Étant donné un envoi coupé puis rétabli, quand il reprend, alors chaque fichier arrive sur le serveur avec une empreinte identique ; le téléphone ne supprime sa copie qu’après confirmation du serveur.
+- Étant donné un fichier manquant ou une empreinte différente, quand le dossier est soumis, alors la soumission est refusée.
+- Étant donné un agent d’une zone, quand il envoie un fichier pour un dossier d’une autre zone, alors l’envoi est refusé.
 
 #### US-005 · Un prototype de chaîne audio
-*Fondations techniques* · **Must** · 5 points · cas : UC-73
+*Fondations techniques* · **Must** · 6 points · cas : UC-73
 
 > En tant qu’équipe, je veux un prototype de chaîne audio, afin de garantir une voix claire et légère sur téléphone d’entrée de gamme.
 
+Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et son job dans le pipeline. Traitement côté serveur (CdC §8) ; le téléphone envoie de l’Opus 32 kbit/s (Android 10 et plus) ou de l’AAC 48 kbit/s (Android 8 et 9). Android 8.0 minimum. Profil « 3G » du pipeline : 400 kbit/s en réception et en envoi, 400 ms d’aller-retour, bloquant.
+
 Critères d’acceptation :
 - Étant donné un Android d’entrée de gamme, quand on enregistre 90 s dans un lieu bruyant, alors le fichier traité (RNNoise, normalisation, Opus 24 kbit/s) pèse au plus 300 Ko et reste compréhensible.
-- Étant donné une connexion 3G simulée, quand on lance la lecture, alors elle démarre en moins de 3 s.
+- Étant donné une connexion 3G simulée (400 kbit/s en réception et en envoi, 400 ms d’aller-retour), quand on lance la lecture d’une voix traitée de 90 s, alors la lecture démarre en moins de 3 s, avant la fin du téléchargement. Mesure automatique dans le navigateur (Chromium piloté par Playwright, site public), du clic à l’événement `playing`, sans connexion déjà ouverte avec le serveur audio, au travers du relais de bridage de `infra/local` (et non du bridage de Chromium, pour que l’établissement de la connexion soit compté). Essai manuel dans l’application Flutter, même seuil, au travers du même relais.
+- Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
 - Une décision écrite est ajoutée à 05_Choix_Techniques.md.
 
 #### US-006 · Un prototype de QR signé vérifiable hors ligne
