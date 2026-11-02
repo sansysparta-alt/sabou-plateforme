@@ -224,7 +224,7 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 ### 2.17 Prototype de la chaîne audio (récit US-005, novembre 2026)
 
-**Décision « validé » ou « remplacé » : en attente du maître d'œuvre**, après l'essai sur téléphone (application Flutter, seconde partie du récit). Partie serveur : les choix ci-dessous ont été tranchés en cours de récit, sur mesure.
+**Décision du maître d'œuvre (2 novembre 2026) : validé**, après l'essai sur téléphone (mi-force retenue). Partie serveur : les choix ci-dessous ont été tranchés en cours de récit, sur mesure.
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
@@ -241,7 +241,19 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 **Résultats mesurés** (pipeline) : 90 s traitées → **268 Ko**, 90,0 s, **STOI 0,836** (voix bruitée brute : 0,853 ; compressée sans traitement : 0,847). Lecture en 3G : **2,3 s** du clic au son, après 52 Ko reçus.
 
-**Essai sur téléphone (2 novembre 2026)** : REDMI Note 15 (2510DRA23G), Android 16, application Flutter de débogage, relais 3G du banc d'essai. Voix réelle de 66,6 s enregistrée sur le téléphone : **323 Ko envoyés en 14,2 s**, rendus en 189 Ko (mi-force) et 190 Ko (pleine force). Téléchargement mesuré au travers du même relais 3G : premier octet reçu en **1,5 s**, fichier complet en 5,2 s, pour les deux versions. Restent à faire par le maître d'œuvre : le temps de démarrage affiché par l'application et le choix entre mi-force et pleine force, qui se fait à l'écoute.
+**Essai sur téléphone (2 novembre 2026)** : REDMI Note 15 (2510DRA23G), Android 16, application Flutter de débogage, relais 3G du banc d'essai. Voix réelle de 66,6 s enregistrée sur le téléphone : **323 Ko envoyés en 14,2 s**, rendus en 189 Ko (mi-force) et 190 Ko (pleine force). Téléchargement mesuré au travers du même relais 3G : premier octet reçu en **1,5 s**, fichier complet en 5,2 s, pour les deux versions. **Décision du maître d'œuvre (2 novembre 2026)** : le son est jugé bon, **RNNoise à mi-force est retenu**.
+
+**Règles de tout lecteur audio de la plateforme** (application et site ; posées après l'essai, à appliquer dans les récits qui affichent un lecteur) :
+
+| Règle | Référence |
+|---|---|
+| Lecture et pause toujours visibles, jamais de lecture automatique | WCAG 2.2, critère 1.4.2 |
+| Vitesse réglable : 0,75×, 1×, 1,25×, 1,5×, 2×, sans changer la hauteur de la voix ; la vitesse choisie est gardée d'une écoute à l'autre | Backlog (lecteur par section) ; pratique des lecteurs de podcast |
+| Recul et avance de 10 s, barre de progression déplaçable, temps écoulé et durée totale | Pratique courante (Android Media3, lecteurs de podcast) |
+| Reprise là où l'écoute s'est arrêtée | Pratique courante |
+| Cibles tactiles d'au moins 48 dp, chaque bouton nommé pour le lecteur d'écran, commandes au clavier sur le site | WCAG 2.2 (2.5.8, 4.1.2, 2.1.1) ; Material |
+| Lecture qui démarre avant la fin du téléchargement, et indicateur de chargement en 3G | E1, mesures ci-dessus |
+| Transcription en français seulement ; aucune transcription écrite en langue nationale | Règle du projet (langues nationales en voix uniquement) |
 
 **Application mobile (seconde partie du récit)**
 
