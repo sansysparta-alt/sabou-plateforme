@@ -25,6 +25,13 @@ export default tseslint.config(
     rules: reactHooks.configs.recommended.rules,
   },
   {
+    // Service workers du site : globales du service worker, pas celles de Node
+    files: ['apps/site/public/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker },
+    },
+  },
+  {
     files: ['apps/site/**/*.{ts,tsx}'],
     plugins: { '@next/next': nextPlugin },
     rules: {

@@ -1,0 +1,165 @@
+/* Couleurs du verdict (R-QR-05) : contraste d'au moins 4,5:1 avec le texte blanc (WCAG 2.2 AA) */
+.verdict {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  color: #fff;
+}
+
+.verdict[data-color='vert'] {
+  background: #1b6e3a;
+}
+
+.verdict[data-color='ambre'] {
+  background: #8a4b00;
+}
+
+.verdict[data-color='rouge'] {
+  background: #b3261e;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.details dd {
+  margin: 0;
+}
+
+.technical {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* Cible tactile d'au moins 40 px (CdC §8) ; flèche et soulignement : on voit qu'il se déplie */
+.technical summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.technical summary::-webkit-details-marker {
+  display: none;
+}
+
+.technical summary::before {
+  /* Flèche décorative : texte de remplacement vide, les lecteurs d'écran annoncent déjà « replié » ou « déplié » */
+  content: '▸' / '';
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+.technical[open] summary::before {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .technical summary::before {
+    transition: none;
+  }
+}
+
+.technical summary:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.technical p {
+  margin: 0.25rem 0 0;
+}
+
+.digest {
+  font-family: monospace;
+  word-spacing: 0.25em;
+}
+
+.note {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Bouton principal : pleine largeur sur téléphone, cible de 48 px (CdC §8 : 40 px au moins),
+   contraste du texte 6,3:1, focus visible, état désactivé reconnaissable sans la couleur */
+.button {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #1b6e3a;
+  border-radius: 0.5rem;
+  background: #1b6e3a;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: 3px solid #1b6e3a;
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  border-color: #5f6368;
+  background: #fff;
+  color: #3c4043;
+  cursor: not-allowed;
+}
+
+/* Mise en page lisible sur un petit écran : marges de 16 px, police du téléphone */
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: #1f1f1f;
+}
+
+.page h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 1rem;
+}
+
+/* Sans cette règle, « display: block » l'emporte sur l'attribut hidden : l'aperçu noir
+   resterait affiché au-dessus du verdict */
+.video[hidden] {
+  display: none;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

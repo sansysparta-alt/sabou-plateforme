@@ -29,6 +29,7 @@ coverage/
 next-env.d.ts
 *.tsbuildinfo
 
-# Rapports de Playwright
+# Tests de bout en bout (Playwright) : QR d'essai générés, rapports
+apps/site/e2e/.generated/
 test-results/
 playwright-report/

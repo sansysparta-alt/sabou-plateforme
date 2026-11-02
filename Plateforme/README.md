@@ -37,8 +37,8 @@ Les anciennes versions (cahier des charges et maquettes v1.2, conception v1) son
 | 6 | `../packages/db/examples/queries.sql` | Requêtes d'exemple : recherche, workflows, statistiques, cas interdits | Testé (US-003) |
 | 7 | `docs/05_Choix_Techniques.md` | Technologies retenues, justification, alternatives écartées | **Validé** |
 | 8 | `docs/06_Cas_Utilisation.md` | 55 cas d'utilisation par acteur (7 détaillés), reliés aux règles | À jour |
-| 9 | `docs/07_Backlog_Sprints.md` (une version PDF existe, conservée hors de ce dossier) | Backlog priorisé (78 récits avec critères d'acceptation), 19 sprints, Definition of Ready et of Done | À jour |
-| 10 | `docs/07_Backlog_import_GitLab.csv` | Les 78 récits au format d'import des issues GitLab | À jour |
+| 9 | `docs/07_Backlog_Sprints.md` (une version PDF existe, conservée hors de ce dossier) | Backlog priorisé (79 récits avec critères d'acceptation), 19 sprints, Definition of Ready et of Done | À jour |
+| 10 | `docs/07_Backlog_import_GitLab.csv` | Les 79 récits au format d'import des issues GitLab | À jour |
 | 11 | `docs/maquettes/` | Maquettes v1.3 du site public (23 diapositives) et de l'application de gestion (29) | À jour (v1.3) |
 
 ## Règles clés à retenir
