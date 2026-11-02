@@ -87,6 +87,8 @@ for (const sample of cases) {
     test.info().annotations.push({ type: 'Délai du verdict', description: `${elapsed} ms` });
 
     expect(elapsed).toBeLessThan(MAX_VERDICT_MS);
+    // Caméra arrêtée et aperçu masqué : le verdict n'est pas poussé sous un cadre noir
+    await expect(page.getByLabel('Aperçu de la caméra')).toBeHidden();
     await expect(verdict).toHaveAttribute('data-color', sample.color);
     if (sample.color === 'vert') {
       await expect(verdict).toContainText('certificat authentique');

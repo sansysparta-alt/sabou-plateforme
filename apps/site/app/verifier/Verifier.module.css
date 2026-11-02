@@ -64,6 +64,12 @@
   margin-top: 1rem;
 }
 
+/* Sans cette règle, « display: block » l'emporte sur l'attribut hidden : l'aperçu noir
+   resterait affiché au-dessus du verdict */
+.video[hidden] {
+  display: none;
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;
