@@ -1,0 +1,25 @@
+{
+  "version": "0.2",
+  "language": "fr,en",
+  "ignorePaths": ["pnpm-lock.yaml", "node_modules", "dist", ".next", "Plateforme/**/*.sql"],
+  "words": [
+    "SABOU",
+    "soussou",
+    "malinké",
+    "pular",
+    "guerzé",
+    "Kankan",
+    "Labé",
+    "pnpm",
+    "fnm",
+    "nestjs",
+    "vitest",
+    "Semgrep",
+    "Trivy",
+    "PostGIS",
+    "Keycloak",
+    "Valkey",
+    "SeaweedFS",
+    "PowerSync"
+  ]
+}
