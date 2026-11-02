@@ -241,6 +241,18 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 **Résultats mesurés** (pipeline) : 90 s traitées → **268 Ko**, 90,0 s, **STOI 0,836** (voix bruitée brute : 0,853 ; compressée sans traitement : 0,847). Lecture en 3G : **2,3 s** du clic au son, après 52 Ko reçus.
 
+**Application mobile (seconde partie du récit)**
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Flutter 3.47.7**, épinglé par version et par l'empreinte SHA-256 de l'archive officielle (`infra/ci/mobile.sh`) ; sur le poste, installé à part (`FLUTTER_BIN`) | Même règle que les actions et les images (§2.13). 3.47.9, la plus récente, avait 4 jours : trop jeune | Action Flutter tierce : une dépendance de plus à épingler et à surveiller |
+| **Job Flutter dans son propre workflow** (`mobile.yml`), déclenché seulement par `apps/mobile/` et ses fichiers de pipeline ; APK de débogage publié 14 jours | Critère de US-005 et économie de minutes (§2.13). La règle est vérifiée par `check-repo.sh`, avec contre-épreuve | Job dans `ci.yml` avec un test interne : il démarrerait à chaque demande |
+| **`record`** (enregistrement) et **`just_audio`** (lecture progressive) | Paquets les plus utilisés de l'écosystème Flutter pour ces besoins ; `record` écrit l'Opus d'Android 10 en Ogg et l'AAC en MP4, formats acceptés par le serveur | — |
+| **Enregistrement et lecture derrière deux interfaces** (`lib/audio_io.dart`) | L'écran se teste sans micro ni haut-parleur, avec les règles d'accessibilité de Flutter (cibles tactiles, libellés, contraste) | — |
+| **HTTP en clair vers `localhost` seulement, en version de débogage** (`network_security_config`) | Le banc d'essai est relié par `adb reverse`. La version publiée n'a pas ce fichier : HTTPS partout | Autoriser le HTTP en clair partout |
+| **Banc d'essai** (`packages/audio/src/essai-server.ts`), derrière le relais 3G : reçoit la voix, la traite à mi-force et à pleine force, sert les deux versions par morceaux. Pour l'essai seulement | La chaîne de production passera par l'API (tâche pg-boss, SeaweedFS). Types, taille (3 Mo) et chemins contrôlés et testés ; voix effacées à l'arrêt, jamais dans le dépôt | Ajouter FFmpeg à l'image de l'API dès maintenant : prématuré |
+| **Compilation Kotlin incrémentale désactivée, mémoire de Gradle à 4 Go** | Sous Windows, la compilation incrémentale échoue quand le projet et le cache des paquets sont sur deux lecteurs ; les 8 Go du modèle Flutter dépassent la mémoire d'un poste de 8 Go | — |
+
 ---
 
 ## 3. Architecture
