@@ -73,17 +73,17 @@ Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors
 /weight 5"
 [US-007] Un environnement de recette déployé automatiquement,"En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
 
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 2 · **Cas** : —
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 3 · **Cas** : —
 
 **Critères d’acceptation**
 - [ ] Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
 - [ ] Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 /label ~""E00"" ~""Must"" ~""S0""
-/weight 2"
+/weight 3"
 [US-010] Me connecter avec un double facteur obligatoire,"En tant qu’administrateur, je veux me connecter avec un double facteur obligatoire, afin que mon compte ne puisse pas être usurpé.
 
-**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-65
 
 **Critères d’acceptation**
 - [ ] Étant donné un administrateur sans double facteur, quand il se connecte, alors il doit l’activer avant d’accéder à l’application.
@@ -92,7 +92,7 @@ Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors
 - [ ] Premier récit avec de vraies pages : étant donné une demande de fusion, quand le pipeline s’exécute, alors les pages livrées passent les tests d’accessibilité axe (Playwright, WCAG 2.2 AA) et Lighthouse CI (réseau 3G et processeur bridés), avec des seuils bloquants. Chaque récit suivant qui ajoute des pages les ajoute à ces contrôles.
 
 /label ~""E01"" ~""Must"" ~""S1""
-/weight 5"
+/weight 8"
 [US-011] Ne voir que les données de ma zone,"En tant qu’admin préfectoral ou régional, je veux ne voir que les données de ma zone, afin de respecter le moindre privilège.
 
 **Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
