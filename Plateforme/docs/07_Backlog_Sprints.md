@@ -42,14 +42,15 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 
 ### Tâches hors développement, à mener en parallèle (Product Owner)
 
-| Tâche | Échéance | Lien |
-|---|---|---|
-| Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-008, US-162 |
-| Prototype 3.5 — contact DHIS2 au ministère, liste des indicateurs et format | Avant S14 | US-151 |
-| Atelier linguistique : un référent par langue, voix et transcriptions des noms | Avant S4 | US-053, US-071 |
-| Validation du dispositif de sécurité sanitaire par le ministère de la Santé | Avant S6 | US-100 |
-| Accords Orange Money et MTN MoMo (comptes marchands, accès API) | Avant S14 | US-140 |
-| Agrégateur SMS (contrat, numéro expéditeur) | Avant S2 | US-031 |
+| Tâche | Échéance | Lien | Statut (2 novembre 2026) |
+|---|---|---|---|
+| Agrégateur SMS (contrat, **nom d’expéditeur** « SABOU ») | Avant S2 | US-031 | **En cours** : décidé de partir sur un agrégateur avec nom d’expéditeur ; l’enregistrement du nom auprès des opérateurs peut prendre plusieurs semaines |
+| Hébergement de la recette (sprints 0 à 2, données fictives) | Avant fin S0 | US-007 | **En cours** : choix à trancher (Vercel ou serveur unique Docker Compose) |
+| Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-008, US-162 | À lancer |
+| Atelier linguistique : un référent par langue, voix et transcriptions des noms | Avant S4 | US-053, US-071 | Reporté (à revoir plus tard) |
+| Validation du dispositif de sécurité sanitaire par le ministère de la Santé | Avant S6 | US-100 | Reporté (à revoir plus tard) |
+| Accords Orange Money et MTN MoMo (comptes marchands, accès API) | Avant S14 | US-140 | Reporté (à revoir plus tard) |
+| Prototype 3.5 — contact DHIS2 au ministère, liste des indicateurs et format | Avant S14 | US-151 | Reporté (à revoir plus tard) |
 
 ## 3. Epics
 
