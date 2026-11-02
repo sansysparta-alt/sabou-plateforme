@@ -7,6 +7,7 @@ bash infra/ci/install.sh
 bash infra/ci/lint.sh
 bash infra/ci/test.sh
 bash infra/ci/build.sh
+bash infra/ci/e2e.sh
 bash infra/ci/audio-lecture.sh
 # Application mobile : Flutter 3.47.7 (FLUTTER_BIN si le Flutter par défaut est une autre version)
 bash infra/ci/mobile.sh

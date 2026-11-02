@@ -38,28 +38,47 @@ Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors
 /weight 5"
 [US-004] Un prototype de synchronisation hors réseau (Flutter + PowerSync),"En tant qu’équipe, je veux un prototype de synchronisation hors réseau (Flutter + PowerSync), afin de valider ou remplacer ce choix technique.
 
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-74
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-74
+
+Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique.
 
 **Critères d’acceptation**
-- [ ] Étant donné un téléphone sans réseau, quand un agent saisit un dossier avec pièces et voix, alors tout est conservé sur le téléphone.
-- [ ] Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
-- [ ] Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
-- [ ] Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
-- [ ] Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
-
-/label ~""E00"" ~""Must"" ~""S0""
-/weight 8"
-[US-005] Un prototype de chaîne audio,"En tant qu’équipe, je veux un prototype de chaîne audio, afin de garantir une voix claire et légère sur téléphone d’entrée de gamme.
-
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-73
-
-**Critères d’acceptation**
-- [ ] Étant donné un Android d’entrée de gamme, quand on enregistre 90 s dans un lieu bruyant, alors le fichier traité (RNNoise, normalisation, Opus 24 kbit/s) pèse au plus 300 Ko et reste compréhensible.
-- [ ] Étant donné une connexion 3G simulée, quand on lance la lecture, alors elle démarre en moins de 3 s.
-- [ ] Une décision écrite est ajoutée à 05_Choix_Techniques.md.
+- [ ] Étant donné un téléphone sans réseau, quand un agent saisit un dossier, alors il est conservé sur le téléphone.
+- [ ] Étant donné une synchronisation coupée puis rétablie, quand elle s’exécute, alors le dossier apparaît sur le serveur sans perte.
+- [ ] Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04, précisée dans 04_Regles_Metier.md).
+- [ ] Étant donné un agent d’une zone, quand la synchronisation s’exécute, alors il ne reçoit aucune donnée d’une autre zone (test automatique obligatoire : les règles de synchronisation filtrent en dehors du RLS).
+- [ ] Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md ; elle dit ce que l’équipe ferait si la licence FSL devenait bloquante.
 
 /label ~""E00"" ~""Must"" ~""S0""
 /weight 5"
+[US-009] Synchroniser les pièces jointes et la voix hors réseau,"En tant qu’agent de terrain, je veux que les pièces et les voix d’un dossier saisies sans réseau arrivent sur le serveur, afin qu’aucun fichier ne soit perdu.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 4 · **Cas** : UC-74
+
+Périmètre : PowerSync ne transporte que des lignes. Les fichiers suivent une file d’envoi sur le téléphone, passent par l’API (authentification, zone, taille, type) qui les dépose dans SeaweedFS ; SeaweedFS n’est pas exposé. Envoi du téléphone vers le serveur seulement.
+
+**Critères d’acceptation**
+- [ ] Étant donné un téléphone sans réseau, quand un agent joint des photos de pièces et une voix à un dossier, alors les fichiers sont conservés sur le téléphone, avec leur empreinte SHA-256.
+- [ ] Étant donné un envoi coupé puis rétabli, quand il reprend, alors chaque fichier arrive sur le serveur avec une empreinte identique ; le téléphone ne supprime sa copie qu’après confirmation du serveur.
+- [ ] Étant donné un fichier manquant ou une empreinte différente, quand le dossier est soumis, alors la soumission est refusée.
+- [ ] Étant donné un agent d’une zone, quand il envoie un fichier pour un dossier d’une autre zone, alors l’envoi est refusé.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 4"
+[US-005] Un prototype de chaîne audio,"En tant qu’équipe, je veux un prototype de chaîne audio, afin de garantir une voix claire et légère sur téléphone d’entrée de gamme.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 6 · **Cas** : UC-73
+
+Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et son job dans le pipeline. Traitement côté serveur (CdC §8) ; le téléphone envoie de l’Opus 32 kbit/s (Android 10 et plus) ou de l’AAC 48 kbit/s (Android 8 et 9). Android 8.0 minimum. Profil « 3G » du pipeline : 400 kbit/s en réception et en envoi, 400 ms d’aller-retour, bloquant.
+
+**Critères d’acceptation**
+- [ ] Étant donné un Android d’entrée de gamme, quand on enregistre 90 s dans un lieu bruyant, alors le fichier traité (RNNoise, normalisation, Opus 24 kbit/s) pèse au plus 300 Ko et reste compréhensible.
+- [ ] Étant donné une connexion 3G simulée (400 kbit/s en réception et en envoi, 400 ms d’aller-retour), quand on lance la lecture d’une voix traitée de 90 s, alors la lecture démarre en moins de 3 s, avant la fin du téléchargement. Mesure automatique dans le navigateur (Chromium piloté par Playwright, site public), du clic à l’événement `playing`, sans connexion déjà ouverte avec le serveur audio, au travers du relais de bridage de `infra/local` (et non du bridage de Chromium, pour que l’établissement de la connexion soit compté). Essai manuel dans l’application Flutter, même seuil, au travers du même relais.
+- [ ] Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
+- [ ] Une décision écrite est ajoutée à 05_Choix_Techniques.md.
+
+/label ~""E00"" ~""Must"" ~""S0""
+/weight 6"
 [US-006] Un prototype de QR signé vérifiable hors ligne,"En tant qu’équipe, je veux un prototype de QR signé vérifiable hors ligne, afin de valider le format CBOR/COSE/Base45 et Ed25519.
 
 **Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-06

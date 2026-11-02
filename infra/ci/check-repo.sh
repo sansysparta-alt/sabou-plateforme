@@ -31,7 +31,7 @@ for workflow in .github/workflows/*.yml; do
 
   # 4. Les étapes ne font qu'appeler un script de infra/ci/
   while read -r cmd; do
-    [[ "$cmd" =~ ^bash\ infra/ci/[a-z-]+\.sh$ ]] || fail "$workflow : commande hors infra/ci/ : $cmd"
+    [[ "$cmd" =~ ^bash\ infra/ci/[a-z0-9-]+\.sh$ ]] || fail "$workflow : commande hors infra/ci/ : $cmd"
   done < <(grep -Eo 'run: *.+' "$workflow" | sed 's/run: *//')
 done
 
