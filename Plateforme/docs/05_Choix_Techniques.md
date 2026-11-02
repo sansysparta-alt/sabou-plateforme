@@ -198,7 +198,7 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 ### 2.16 Prototype du QR signé (récit US-006, novembre 2026)
 
-**Décision « validé » ou « remplacé » : en attente du maître d'œuvre.** Le prototype confirme le format retenu au §2.9 ; les choix ci-dessous ont été tranchés en cours de récit.
+**Décision du maître d'œuvre (2 novembre 2026) : validé.** Le format retenu au §2.9 (CBOR signé COSE, Base45, Ed25519, empreinte SHA3-256) est confirmé, sur la foi des tests automatiques et de l'essai sur téléphone, hors ligne. Les choix ci-dessous ont été tranchés en cours de récit.
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
