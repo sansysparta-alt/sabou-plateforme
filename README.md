@@ -10,6 +10,7 @@ apps/admin      application de gestion (React + Vite)
 apps/site       site public (Next.js)
 packages/types  types et schémas de validation partagés
 infra/ci        scripts du pipeline (appelés par GitHub Actions, puis GitLab CI)
+infra/local     environnement local (Docker Compose)
 Plateforme/     documents de référence (pas de code)
 ```
 
@@ -64,7 +65,7 @@ Le projet utilise **Node 26** et **pnpm 12** (versions fixées dans `.nvmrc` et 
    pnpm install
    ```
 
-6. **Docker Desktop** doit être démarré pour l'analyse des dépendances (Trivy est lancé dans un conteneur).
+6. **Docker Desktop** doit être démarré : environnement local et analyses Trivy tournent dans des conteneurs.
 
 ## Commandes
 
@@ -75,12 +76,29 @@ Le projet utilise **Node 26** et **pnpm 12** (versions fixées dans `.nvmrc` et 
 | `pnpm test`                         | Tests de chaque application                                    |
 | `pnpm build`                        | Compilation de chaque application                              |
 | `pnpm ci:local`                     | Tout le pipeline, comme dans l'intégration continue (Git Bash) |
+| `pnpm env:up`                       | Environnement local complet (voir ci-dessous)                  |
+| `pnpm env:down`                     | Arrêter l'environnement local, données conservées              |
+| `pnpm env:reset`                    | Arrêter l'environnement local et **effacer** ses données       |
 | `pnpm --filter @sabou/site dev`     | Site public sur http://localhost:3000                          |
 | `pnpm --filter @sabou/admin dev`    | Application de gestion sur http://localhost:5173               |
 
 `pnpm ci:local` se lance depuis un terminal **Git Bash** (dans VS Code : menu du terminal, profil « Git Bash »). Depuis PowerShell ou cmd, la commande `bash` désigne celle de WSL, qui ne voit ni Node ni pnpm : le pipeline s'arrête alors avec un message qui le dit. Le nom `pipeline` n'est pas utilisé, car `pnpm pipeline` est une commande intégrée de pnpm 12 ; `check-repo.sh` refuse tout script racine qui porterait le nom d'une commande intégrée.
 
 Sans Docker, l'analyse Trivy peut utiliser un binaire local de la même version (0.76.1, somme de contrôle vérifiée) : `TRIVY_BIN=/chemin/vers/trivy.exe pnpm ci:local`.
+
+## Environnement local
+
+`pnpm env:up` (depuis PowerShell ou Git Bash) démarre, dans Docker, PostgreSQL 17 + PostGIS, Keycloak, Valkey, SeaweedFS et l'API, puis attend que chaque contrôle de santé soit vert. Le premier lancement télécharge les images (plusieurs minutes) ; les suivants prennent quelques secondes.
+
+| Service    | Adresse                            | Accès                                                       |
+| ---------- | ---------------------------------- | ----------------------------------------------------------- |
+| API        | http://localhost:4000/health/ready | répond `{"status":"ok","service":"api","database":"ok"}`    |
+| Keycloak   | http://localhost:8080              | utilisateur `admin`, mot de passe `KEYCLOAK_ADMIN_PASSWORD` |
+| PostgreSQL | localhost:5432, base `sabou`       | rôles `sabou_migrator` (migrations) et `sabou_app` (API)    |
+| Valkey     | localhost:6379                     | mot de passe `VALKEY_PASSWORD`                              |
+| S3         | http://localhost:8333              | clés `S3_ACCESS_KEY` et `S3_SECRET_KEY`                     |
+
+Au premier lancement, `.env` est créé à partir de `.env.example` avec des mots de passe tirés au hasard ; il n'est jamais versionné. Les ports n'écoutent que sur `127.0.0.1` ; s'il y a un conflit avec un autre projet, il suffit de changer le port dans `.env`. Les données sont gardées dans des volumes Docker jusqu'à `pnpm env:reset`. Changer un mot de passe de `.env` après le premier lancement demande un `pnpm env:reset`, car PostgreSQL ne lit les mots de passe qu'à sa création.
 
 ## Contribuer
 

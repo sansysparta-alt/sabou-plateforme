@@ -163,6 +163,20 @@ Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil 
 
 **TypeScript 6.0, pas 7.** TypeScript 7 (le compilateur réécrit en Go) est sorti, mais typescript-eslint n'accepte pas encore de version au-delà de 6.0 (novembre 2026). On reste en 6.0, épinglé en `~6.0.3`, jusqu'à ce que l'outillage suive.
 
+### 2.14 Environnement local (décision de novembre 2026, récit US-002)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Docker Compose** (`infra/local/compose.yaml`), lancé par `pnpm env:up` (script Node `infra/local/up.mjs`) | Une commande, identique sous PowerShell, Git Bash et dans l'intégration continue ; attend que chaque contrôle de santé soit vert (`--wait`) | k3s en local : trop lourd pour un poste de développement ; la production reste sur k3s (§2.11). Script Bash : ne tourne pas depuis PowerShell |
+| **Mêmes logiciels qu'en production** : PostgreSQL 17 + PostGIS 3.6, Keycloak 26 (sur sa propre base PostgreSQL), Valkey 9, SeaweedFS 4 (passerelle S3), et l'API dans son image Docker | On développe dans les conditions de production ; l'image de l'API est celle qui sera déployée et analysée | Base embarquée de Keycloak (H2) : différente de la production |
+| **Images épinglées par empreinte `sha256`**, contrôlées par `infra/ci/check-pins.sh` (fichiers Compose et Dockerfile) | Même règle que les actions GitHub et Trivy (§2.13) | Étiquettes (`17-3.6`, `latest`) : déplaçables par un tiers |
+| **Mots de passe locaux tirés au hasard** au premier lancement, dans `.env` (non versionné) ; ports ouverts sur `127.0.0.1` seulement ; aucun accès anonyme (S3, Valkey) | Aucun mot de passe utilisable dans le dépôt, aucun service exposé au réseau du poste (ASVS V14) | Mots de passe par défaut dans `.env.example` : réutilisés partout, et un jour en recette |
+| **Rôles PostgreSQL séparés dès le poste local** : `sabou_migrator` (propriétaire, migrations), `sabou_app` (API, sans droit de structure), `keycloak` (sa base seulement) | Le moindre privilège de `00_Conception_BDD_SABOU.md` est vérifié dès le développement | Super-utilisateur pour l'API : masque les erreurs de droits jusqu'à la production |
+| **PostGIS installé à l'initialisation du serveur**, pas par les migrations | PostGIS n'est pas une extension « de confiance » : il faut le super-utilisateur, que les migrations n'ont pas ; en production, l'hébergeur ou CloudNativePG l'installe de la même façon | — |
+| **Contrôles de santé de l'API** : `GET /health` (l'API répond) et `GET /health/ready` (l'API lit la base, PostGIS compris), réponses sans version ni message d'erreur | Utilisables tels quels par Kubernetes (sondes) ; aucune information utile à un attaquant (ASVS 14.3.3) | — |
+
+**Analyse des images Docker par Trivy** (`infra/ci/audit-images.sh`) : l'image de l'API et chaque image tierce de l'environnement local. Décision du maître d'œuvre (novembre 2026) : le pipeline échoue sur toute faille **critique qui a un correctif disponible** ; les failles critiques sans correctif sont listées sans bloquer, car on ne peut pas corriger soi-même une image tierce.
+
 ---
 
 ## 3. Architecture
