@@ -21,12 +21,16 @@ trivy_fs() {
 }
 
 # Usage : trivy_image image arguments…   (image présente sur le poste, lue par le socket Docker)
+# Les exceptions de infra/ci/trivyignore.yaml s'appliquent toujours.
 trivy_image() {
-  local image="$1"
+  local image="$1" ignorefile="infra/ci/trivyignore.yaml"
   shift
   if [[ -n "${TRIVY_BIN:-}" ]]; then
-    "$TRIVY_BIN" image "$@" "$image"
+    "$TRIVY_BIN" image --ignorefile "$ignorefile" "$@" "$image"
     return
   fi
-  _trivy_docker -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" image "$@" "$image"
+  local mount="$PWD/$ignorefile"
+  if command -v cygpath >/dev/null; then mount="$(cygpath -m "$mount")"; fi
+  _trivy_docker -v /var/run/docker.sock:/var/run/docker.sock -v "$mount:/trivyignore.yaml:ro" \
+    "$TRIVY_IMAGE" image --ignorefile /trivyignore.yaml "$@" "$image"
 }

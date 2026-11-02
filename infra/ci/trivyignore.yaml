@@ -1,0 +1,15 @@
+# Exceptions à l'analyse Trivy des images (infra/ci/audit-images.sh).
+# Règle : une exception vise une faille précise dans un fichier précis, porte sa justification
+# et expire. Passé la date, le pipeline rebloque et l'exception est revue (levée ou prolongée
+# après nouvelle analyse). Chaque exception est validée par le maître d'œuvre et notée dans
+# Plateforme/docs/05_Choix_Techniques.md §2.14.
+vulnerabilities:
+  - id: CVE-2025-68121
+    paths:
+      - usr/local/bin/gosu
+    expired_at: 2027-02-01
+    statement: >-
+      Image postgis/postgis 17-3.6 (environnement local). La faille touche la reprise de session
+      TLS de la bibliothèque standard Go (crypto/tls). gosu ne sert qu'à changer d'utilisateur au
+      démarrage du conteneur et n'ouvre aucune connexion TLS : faille non atteignable. Aucune
+      image PostGIS corrigée n'existe en novembre 2026. Validée par le maître d'œuvre (US-002).

@@ -177,6 +177,12 @@ Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil 
 
 **Analyse des images Docker par Trivy** (`infra/ci/audit-images.sh`) : l'image de l'API et chaque image tierce de l'environnement local. Décision du maître d'œuvre (novembre 2026) : le pipeline échoue sur toute faille **critique qui a un correctif disponible** ; les failles critiques sans correctif sont listées sans bloquer, car on ne peut pas corriger soi-même une image tierce.
 
+**Exceptions** (`infra/ci/trivyignore.yaml`) : chacune vise une faille précise dans un fichier précis, porte sa justification, expire, et est validée par le maître d'œuvre. Passé la date, le pipeline rebloque.
+
+| Faille | Image et fichier | Justification | Expire le |
+|---|---|---|---|
+| CVE-2025-68121 (Go, `crypto/tls`) | `postgis/postgis` 17-3.6, `usr/local/bin/gosu` | `gosu` ne fait que changer d'utilisateur au démarrage et n'ouvre aucune connexion TLS : faille non atteignable. Aucune image PostGIS corrigée en novembre 2026 | 1er février 2027 |
+
 ---
 
 ## 3. Architecture
