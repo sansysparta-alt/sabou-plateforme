@@ -4,8 +4,14 @@
 **Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 3 · **Cas** : —
 
 **Critères d’acceptation**
-- [ ] Étant donné une demande de fusion, quand elle est poussée, alors le lint, les tests et la compilation de chaque application s’exécutent.
-- [ ] Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.
+- [ ] Étant donné une demande de fusion, quand elle est poussée, alors le lint, le formatage, les tests et la compilation de chaque application (`apps/api`, `apps/admin`, `apps/site`, `packages/types`) s’exécutent.
+- [ ] Étant donné une fusion sur `main`, quand elle est poussée, alors le même pipeline s’exécute.
+- [ ] Étant donné une dépendance avec une faille critique, quand l’analyse Trivy s’exécute, alors le pipeline échoue.
+- [ ] Chaque étape du pipeline est un script de `infra/ci/` exécutable en local ; le fichier GitHub Actions ne fait que les appeler. Les actions GitHub et Trivy sont épinglés par SHA.
+
+Critère « fusion bloquée si un test échoue » reporté à US-008 : jusque-là, le maître d’œuvre ne fusionne une demande que si son pipeline est vert.
+
+Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-007).
 
 /label ~""E00"" ~""Must"" ~""S0""
 /weight 3"
@@ -39,6 +45,7 @@
 - [ ] Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
 - [ ] Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
 - [ ] Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
+- [ ] Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
 
 /label ~""E00"" ~""Must"" ~""S0""
 /weight 8"
@@ -66,24 +73,26 @@
 /weight 5"
 [US-007] Un environnement de recette déployé automatiquement,"En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
 
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 2 · **Cas** : —
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 3 · **Cas** : —
 
 **Critères d’acceptation**
 - [ ] Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+- [ ] Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 /label ~""E00"" ~""Must"" ~""S0""
-/weight 2"
+/weight 3"
 [US-010] Me connecter avec un double facteur obligatoire,"En tant qu’administrateur, je veux me connecter avec un double facteur obligatoire, afin que mon compte ne puisse pas être usurpé.
 
-**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
+**Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-65
 
 **Critères d’acceptation**
 - [ ] Étant donné un administrateur sans double facteur, quand il se connecte, alors il doit l’activer avant d’accéder à l’application.
 - [ ] Étant donné un praticien ou un citoyen, quand il se connecte, alors le double facteur est proposé mais pas imposé.
 - [ ] Étant donné 5 échecs de connexion, quand une 6e tentative arrive, alors le compte est bloqué temporairement et l’événement est journalisé.
+- [ ] Premier récit avec de vraies pages : étant donné une demande de fusion, quand le pipeline s’exécute, alors les pages livrées passent les tests d’accessibilité axe (Playwright, WCAG 2.2 AA) et Lighthouse CI (réseau 3G et processeur bridés), avec des seuils bloquants. Chaque récit suivant qui ajoute des pages les ajoute à ces contrôles.
 
 /label ~""E01"" ~""Must"" ~""S1""
-/weight 5"
+/weight 8"
 [US-011] Ne voir que les données de ma zone,"En tant qu’admin préfectoral ou régional, je veux ne voir que les données de ma zone, afin de respecter le moindre privilège.
 
 **Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-65
@@ -273,6 +282,7 @@
 **Critères d’acceptation**
 - [ ] Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
 - [ ] Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- [ ] Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée (branche `main` protégée, pipeline réussi obligatoire). Critère reporté de US-001 ; il remplace la convention « on ne fusionne que si le pipeline est vert ».
 - [ ] Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
 - [ ] Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
 

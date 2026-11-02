@@ -123,6 +123,8 @@ Principe : chaque technologie est choisie **uniquement pour son adéquation aux 
 
 Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, déploiement) vit dans des scripts du dépôt ; les fichiers propres à GitHub Actions se contentent de les appeler. Aucun secret de production n'est jamais stocké sur GitHub.
 
+**Décision (novembre 2026) : pas de GitHub Pro, fusion bloquée par convention jusqu'à US-008.** Le dépôt reste privé sur un compte gratuit, qui n'autorise ni protection de branche ni règles de fusion. Jusqu'à US-008, toute modification passe par une branche de récit et une demande de fusion, et le maître d'œuvre ne fusionne que si le pipeline est vert. Le blocage automatique sera configuré sur GitLab, où il est disponible sans frais (critère reporté de US-001 à US-008).
+
 ### 2.12 Qualité
 
 | Choix | Usage |
@@ -132,6 +134,34 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 | **Playwright** | Critères de recette du CdC §11.3 automatisés de bout en bout |
 | **k6** | Tests de charge (pic de trafic national, 3G simulée) |
 | **OWASP ZAP** + audit externe | « Aucune vulnérabilité critique » (CdC §11.3) |
+
+### 2.13 Outillage du dépôt et intégration continue (décision de novembre 2026, récit US-001)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **pnpm workspaces + Turborepo** | Un seul dépôt pour l'API, l'administration, le site et le code partagé ; Turborepo ne relance le lint, les tests et la compilation que sur ce qui a changé, et les met en cache | Nx : plus complet mais plus lourd à apprendre et à maintenir (E11). npm workspaces : pas de cache ni d'exécution ciblée |
+| **ESLint + Prettier** | Les outils les plus répandus et documentés de l'écosystème TypeScript (E11) | Biome : plus rapide, mais moins répandu et moins de règles disponibles |
+| **Trivy en mode fichiers** | Analyse des dépendances dès US-001 ; le même outil analysera les images Docker (US-002) | `pnpm audit` : dépendances JavaScript seulement |
+| **Scripts Bash dans `infra/ci/`** | Exécutés tels quels par GitHub Actions, GitLab CI (US-008) et, en local, par Git Bash | Scripts Node : possibles, mais plus longs pour enchaîner des commandes |
+| **Semgrep, édition communautaire** (analyse du code, avant S2, récit US-007) | Outil libre, lancé par un script et une image épinglée : il tourne tel quel sur GitLab CI | CodeQL : payant sur un dépôt privé (GitHub Advanced Security) |
+| **axe (Playwright) + Lighthouse CI** (à partir de US-010) | Vérifient dans le pipeline WCAG 2.2 AA et les performances en 3G bridée, avec des seuils bloquants | Contrôles manuels : non reproductibles |
+| **Flutter hors de Turborepo** | Pas d'application mobile avant US-004 ; ensuite un job séparé, déclenché seulement par les changements dans `apps/mobile/`, pour économiser les minutes d'intégration continue | — |
+
+**Version de Node : Node 26 LTS.**
+
+| Critère | Node 24 | Node 26 |
+|---|---|---|
+| Statut (2 novembre 2026) | Maintenance depuis le 20 octobre 2026 : correctifs de sécurité seulement | LTS active depuis le 28 octobre 2026 (v26.13.0) |
+| Fin de support | 30 avril 2028 | 30 avril 2029 |
+| Compatibilité de la pile (versions annoncées par chaque outil, novembre 2026) | Complète | NestJS 12.3 et sa CLI, Next.js 16.4, Vite 8.3, Vitest 5.0, ESLint 10, Testcontainers 12.2, pnpm 12, Prettier 3, TypeScript : tous acceptent Node 26 ; aucun blocage relevé |
+
+Justification : avec environ 39 semaines de développement, le pilote et la généralisation tombent fin 2027 et début 2028. Sur Node 24, il faudrait changer de version de Node juste après la mise en production, au moment où l'exploitation doit être la plus stable. Node 26 couvre une année de plus (E11).
+
+Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil ne prouvent pas qu'il a été testé sur Node 26 (Next.js ne publie pas de matrice de tests). Parade : le pipeline de US-001 sert de vérification ; si un outil casse, on revient à Node 24 en changeant `.nvmrc` et le champ `engines`, le temps que l'outil soit corrigé. Les modules natifs ajoutés plus tard sont vérifiés à leur arrivée. Depuis Node 25, Corepack n'est plus livré avec Node : pnpm est installé explicitement et sa version est fixée dans le champ `packageManager`.
+
+**Épinglage par SHA.** Chaque action GitHub est référencée par le SHA complet de son commit (avec la version en commentaire), et l'image Trivy par son empreinte `sha256`, et non par une étiquette qu'un tiers pourrait déplacer vers un code malveillant. Trivy est lancé depuis un script de `infra/ci/` : le même script et la même empreinte serviront sur GitLab CI. Sur un poste sans Docker, la variable `TRIVY_BIN` permet d'utiliser un binaire Trivy local de la même version, à vérifier par sa somme de contrôle ; l'intégration continue utilise toujours l'image épinglée. Renovate tiendra ces empreintes à jour quand il sera mis en place.
+
+**TypeScript 6.0, pas 7.** TypeScript 7 (le compilateur réécrit en Go) est sorti, mais typescript-eslint n'accepte pas encore de version au-delà de 6.0 (novembre 2026). On reste en 6.0, épinglé en `~6.0.3`, jusqu'à ce que l'outillage suive.
 
 ---
 

@@ -1,0 +1,8 @@
+# Documents de référence : rédigés à la main, non formatés automatiquement
+Plateforme/
+CLAUDE.md
+pnpm-lock.yaml
+dist/
+.next/
+.turbo/
+coverage/

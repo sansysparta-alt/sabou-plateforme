@@ -1,0 +1,22 @@
+# Fins de ligne LF partout, quel que soit le poste (Windows compris)
+* text=auto eol=lf
+
+# Scripts shell : LF obligatoire, sinon ils échouent sous Linux
+*.sh text eol=lf
+
+# Fichiers binaires : jamais convertis
+*.docx binary
+*.pptx binary
+*.xlsx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.opus binary
+*.ogg binary
+*.mp3 binary
+*.m4a binary
+*.woff binary
+*.woff2 binary

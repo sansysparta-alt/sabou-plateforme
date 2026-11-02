@@ -12,16 +12,18 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **78 récits**, **352 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **78 récits**, **356 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
+
+Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 à 3 points (analyse Semgrep) et US-010 de 5 à 8 points (contrôles axe et Lighthouse CI). S1 monte ainsi à 29 points, au-dessus de la capacité visée : un récit de S1 sera reporté en S2 lors du raffinement de S1.
 
 ## 2. Plan des sprints
 
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
-| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007 | 33 |
-| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030 | 26 |
+| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007 | 34 |
+| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030 | 29 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
@@ -56,8 +58,8 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 
 | Epic | Intitulé | Phase | Récits | Points |
 |---|---|---|---|---|
-| E00 | Fondations techniques | 1 | 8 | 36 |
-| E01 | Identité et accès | 2 | 5 | 18 |
+| E00 | Fondations techniques | 1 | 8 | 37 |
+| E01 | Identité et accès | 2 | 5 | 21 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
 | E04 | Certification et certificat | 2 | 11 | 44 |
@@ -84,8 +86,13 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 > En tant qu’équipe, je veux un dépôt monorepo avec intégration continue, afin que chaque changement soit vérifié automatiquement.
 
 Critères d’acceptation :
-- Étant donné une demande de fusion, quand elle est poussée, alors le lint, les tests et la compilation de chaque application s’exécutent.
-- Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.
+- Étant donné une demande de fusion, quand elle est poussée, alors le lint, le formatage, les tests et la compilation de chaque application (`apps/api`, `apps/admin`, `apps/site`, `packages/types`) s’exécutent.
+- Étant donné une fusion sur `main`, quand elle est poussée, alors le même pipeline s’exécute.
+- Étant donné une dépendance avec une faille critique, quand l’analyse Trivy s’exécute, alors le pipeline échoue.
+- Chaque étape du pipeline est un script de `infra/ci/` exécutable en local ; le fichier GitHub Actions ne fait que les appeler. Les actions GitHub et Trivy sont épinglés par SHA.
+- ~~Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.~~ **Reporté à US-008** (décision du maître d’œuvre, novembre 2026) : un dépôt privé sur un compte GitHub gratuit n’autorise ni protection de branche ni règles de fusion. Jusqu’à US-008, le blocage se fait **par convention** : le maître d’œuvre ne fusionne une demande que si son pipeline est vert.
+
+Périmètre : les applications sont des squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-007).
 
 #### US-002 · Lancer tout l’environnement local en une commande
 *Fondations techniques* · **Must** · 5 points · cas : —
@@ -116,6 +123,7 @@ Critères d’acceptation :
 - Étant donné le retour du réseau, quand la synchronisation s’exécute, alors le dossier apparaît sur le serveur sans perte.
 - Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04).
 - Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md.
+- Étant donné une demande de fusion qui modifie `apps/mobile/`, quand elle est poussée, alors un job Flutter (analyse, tests, compilation) s’exécute ; il ne s’exécute pas si `apps/mobile/` n’est pas modifié.
 
 #### US-005 · Un prototype de chaîne audio
 *Fondations techniques* · **Must** · 5 points · cas : UC-73
@@ -138,17 +146,18 @@ Critères d’acceptation :
 - Une décision écrite est ajoutée à 05_Choix_Techniques.md.
 
 #### US-007 · Un environnement de recette déployé automatiquement
-*Fondations techniques* · **Must** · 2 points · cas : —
+*Fondations techniques* · **Must** · 3 points · cas : —
 
 > En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
 
 Critères d’acceptation :
 - Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+- Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 ### Sprint 1 — Un administrateur se connecte avec double facteur et ne voit que les données de sa zone.
 
 #### US-010 · Me connecter avec un double facteur obligatoire
-*Identité et accès* · **Must** · 5 points · cas : UC-65
+*Identité et accès* · **Must** · 8 points · cas : UC-65
 
 > En tant qu’administrateur, je veux me connecter avec un double facteur obligatoire, afin que mon compte ne puisse pas être usurpé.
 
@@ -156,6 +165,7 @@ Critères d’acceptation :
 - Étant donné un administrateur sans double facteur, quand il se connecte, alors il doit l’activer avant d’accéder à l’application.
 - Étant donné un praticien ou un citoyen, quand il se connecte, alors le double facteur est proposé mais pas imposé.
 - Étant donné 5 échecs de connexion, quand une 6e tentative arrive, alors le compte est bloqué temporairement et l’événement est journalisé.
+- Premier récit avec de vraies pages : étant donné une demande de fusion, quand le pipeline s’exécute, alors les pages livrées passent les tests d’accessibilité axe (Playwright, WCAG 2.2 AA) et Lighthouse CI (réseau 3G et processeur bridés), avec des seuils bloquants. Chaque récit suivant qui ajoute des pages les ajoute à ces contrôles.
 
 #### US-011 · Ne voir que les données de ma zone
 *Identité et accès* · **Must** · 5 points · cas : UC-65
@@ -333,6 +343,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
 - Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée (branche `main` protégée, pipeline réussi obligatoire). Critère reporté de US-001 ; il remplace la convention « on ne fusionne que si le pipeline est vert ».
 - Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
 - Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
 
@@ -832,7 +843,7 @@ Critères d’acceptation :
 |---|---|
 | Fonctionnel | Tous les critères d’acceptation sont vérifiés et démontrés au Product Owner |
 | Règles métier | Les règles R-xxx concernées sont couvertes par des tests automatiques ; les cas interdits sont testés |
-| Code | Relu et approuvé par un autre développeur ; lint et formatage sans erreur |
+| Code | Relu et approuvé par un autre développeur ; tant que l’équipe ne compte qu’un seul développeur, la relecture est faite par le maître d’œuvre. Lint et formatage sans erreur ; pipeline vert avant toute fusion |
 | Tests | Tests unitaires et d’intégration passés dans l’intégration continue (base PostgreSQL réelle pour les règles en base) ; test de bout en bout pour les parcours utilisateur |
 | Sécurité | Contrôle d’accès par rôle et par zone vérifié ; aucune donnée nominative exposée ; analyse des dépendances et des images sans faille critique |
 | Langues | Textes en français (et anglais si prévu), aucun texte en langue nationale ; repli sur la voix française vérifié |
