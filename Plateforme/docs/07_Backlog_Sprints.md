@@ -150,6 +150,7 @@ Critères d’acceptation :
 
 Critères d’acceptation :
 - Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+- Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 ### Sprint 1 — Un administrateur se connecte avec double facteur et ne voit que les données de sa zone.
 
@@ -162,6 +163,7 @@ Critères d’acceptation :
 - Étant donné un administrateur sans double facteur, quand il se connecte, alors il doit l’activer avant d’accéder à l’application.
 - Étant donné un praticien ou un citoyen, quand il se connecte, alors le double facteur est proposé mais pas imposé.
 - Étant donné 5 échecs de connexion, quand une 6e tentative arrive, alors le compte est bloqué temporairement et l’événement est journalisé.
+- Premier récit avec de vraies pages : étant donné une demande de fusion, quand le pipeline s’exécute, alors les pages livrées passent les tests d’accessibilité axe (Playwright, WCAG 2.2 AA) et Lighthouse CI (réseau 3G et processeur bridés), avec des seuils bloquants. Chaque récit suivant qui ajoute des pages les ajoute à ces contrôles.
 
 #### US-011 · Ne voir que les données de ma zone
 *Identité et accès* · **Must** · 5 points · cas : UC-65

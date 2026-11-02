@@ -12,11 +12,61 @@ Plateforme nationale de la médecine traditionnelle guinéenne. Ce fichier est l
 ## Règles de conduite
 
 - **Pas de développement ni de tests sans feu vert explicite** du maître d'œuvre, récit par récit (US-xxx).
-- Une question ouverte se pose avant de coder, jamais après.
+- Les questions qui relèvent du maître d'œuvre se posent avant de coder, regroupées en une seule fois.
 - **Langues nationales en voix uniquement** : aucun texte en soussou, malinké, pular ou guerzé. Textes et libellés en français (et en anglais).
 - **La plateforme informe, elle ne prescrit pas.**
 - Choix techniques fondés sur l'adéquation au projet (exigences E1 à E11), pas sur les habitudes.
 - On échange en français ; le code (noms de variables, fonctions) est en anglais, les commentaires et la documentation en français.
+
+## Exigence de qualité et autonomie
+
+Principe : aller vite sans perdre en qualité. Le code est de niveau production dès le premier jet, au sens de la Definition of Done. Pas de version « légère » à reprendre plus tard.
+
+### Références
+
+- Sécurité : OWASP ASVS niveau 2.
+- Accessibilité : WCAG 2.2 AA.
+- Performance : Core Web Vitals mesurés sur téléphone d'entrée de gamme, en réseau 3G.
+- Chaîne logicielle : dépendances et actions épinglées, failles analysées.
+
+On s'inspire des pratiques des meilleures équipes du numérique en corrigeant leurs faiblesses connues, sans importer une complexité que le projet ne justifie pas (exigences E1 à E11).
+
+### Preuves
+
+- Chaque critère d'acceptation est prouvé par au moins un test automatisé.
+- Une exigence de qualité n'est considérée comme tenue que si le pipeline la vérifie. Tant qu'elle ne l'est pas, le compte rendu le dit.
+
+### Autonomie
+
+- Claude tranche seul les questions techniques courantes, selon les règles de l'art, et inscrit dans `05_Choix_Techniques.md` toute décision structurante.
+- Il pose une question au maître d'œuvre uniquement pour : un écart au cahier des charges, un changement de périmètre ou d'estimation, une dépense, un sujet de sécurité ou de données, une décision difficile à défaire.
+- Ces questions sont regroupées en une seule fois, avant de coder. Si l'une d'elles surgit en cours de route, Claude s'arrête et la pose aussitôt.
+
+### Jamais seul
+
+- Fusionner dans `main`.
+- Toucher à un secret ou à la production.
+- Supprimer des données.
+- Engager une dépense.
+- Ajouter un service externe.
+
+### Avant de rendre la main
+
+- Pipeline complet vert, en local puis sur GitHub.
+- Contre-épreuves : une erreur volontaire doit faire échouer l'étape concernée.
+- Relecture de son propre diff : sécurité, performance sur réseau faible, accessibilité, lisibilité.
+- Il corrige ce qu'il trouve sans attendre qu'on le lui signale.
+
+### Communication
+
+- Demandes de fusion petites. Si une demande devient trop longue à relire, le récit est découpé.
+- Chaque demande est accompagnée d'un guide de lecture : les fichiers à lire en priorité, ce qui est secondaire ou généré.
+- Récit de 5 points ou plus : un point d'étape de deux lignes à mi-parcours, sans attendre de réponse sauf objection.
+- Un seul compte rendu, à la fin du récit, court :
+  - ce qui est fait et vérifié, avec la correspondance entre critères et tests ;
+  - ce qui ne l'est pas ;
+  - les décisions prises seul, une ligne chacune ;
+  - les actions du maître d'œuvre, numérotées, pas à pas, avec les commandes exactes.
 
 ## Où travailler
 
@@ -27,10 +77,11 @@ Une seule session Claude à la fois sur ce projet : on n'ouvre pas en parallèle
 ## Cycle d'un récit
 
 1. Le maître d'œuvre désigne le récit (ex. « US-003 »).
-2. Claude relit le récit, ses critères d'acceptation et les règles liées, crée la branche du récit (ex. `us-003-migrations-sql`), puis code et teste.
-3. Claude montre le résultat (tests, captures, résumé des fichiers), pousse la branche et ouvre la demande de fusion vers `main` pour lancer le pipeline.
-4. Le maître d'œuvre relit les diffs et valide ou demande des corrections. Tant que l'équipe ne compte qu'un seul développeur, cette relecture tient lieu de relecture par un autre développeur (Definition of Done).
-5. La demande est fusionnée dans `main` uniquement après validation et si le pipeline est vert.
+2. Claude relit le récit, ses critères d'acceptation et les règles liées. Il pose en une seule fois les questions qui relèvent du maître d'œuvre, puis crée la branche du récit (ex. `us-003-migrations-sql`).
+3. Claude code, teste et se relit selon la section « Exigence de qualité et autonomie ». Il commite sur la branche, pousse, ouvre la demande de fusion vers `main` et attend que le pipeline GitHub soit vert.
+4. Claude envoie son compte rendu unique.
+5. Le maître d'œuvre relit les diffs, en suivant le guide de lecture. Tant que l'équipe ne compte qu'un seul développeur, cette relecture tient lieu de relecture par un autre développeur (Definition of Done).
+6. Le maître d'œuvre décide de la fusion dans `main`, uniquement si le pipeline est vert.
 
 ## Git
 
