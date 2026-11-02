@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeBase45, encodeBase45, QR_PREFIX, type CertificateData } from '@sabou/qr';
@@ -135,12 +136,30 @@ export function startSite(port: number, publicKeys: string) {
   );
 }
 
+/** Vrai si le port est libre sur 127.0.0.1. */
+function portIsFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = createServer()
+      .once('error', () => resolve(false))
+      .once('listening', () => probe.close(() => resolve(true)))
+      .listen(port, '127.0.0.1');
+  });
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const serve = process.argv.includes('--serve');
+  // Avant toute génération : de nouveaux QR avec un site déjà lancé (anciennes clés) seraient tous rouges
+  if (serve && !(await portIsFree(3000))) {
+    console.error(
+      'Le port 3000 est déjà pris (site déjà lancé ?) : arrêtez-le, puis relancez. Rien n’a été généré.',
+    );
+    process.exit(1);
+  }
   const { cases, publicKeys } = await generateSamples();
   console.log(`QR d'essai générés dans ${GENERATED_DIR} :`);
   for (const sample of cases)
     console.log(`  ${sample.name}.png  ${sample.label} → attendu : ${sample.color}`);
-  if (process.argv.includes('--serve')) {
+  if (serve) {
     console.log('\nSite lancé sur http://localhost:3000/verifier (Ctrl+C pour arrêter).');
     startSite(3000, publicKeys);
   }
