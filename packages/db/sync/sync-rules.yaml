@@ -1,0 +1,28 @@
+# Règles de synchronisation PowerSync (US-004) : ce que chaque téléphone reçoit.
+# PowerSync lit toute la table publiée ; seules ces règles décident de la diffusion. Elles
+# filtrent donc par zone elles-mêmes, en dehors du RLS, et un test le prouve
+# (packages/db/test/sync-zone.test.ts).
+# La zone vient du jeton signé (Keycloak en production), jamais des paramètres envoyés
+# par le téléphone, que celui-ci pourrait falsifier.
+bucket_definitions:
+  saisies_prefecture:
+    # Agent préfectoral : les dossiers de sa préfecture, et d'elle seule
+    parameters: >-
+      SELECT CAST(request.jwt() ->> 'prefecture_id' AS integer) AS prefecture_id
+      WHERE request.jwt() ->> 'role' = 'prefectoral'
+    data:
+      - >-
+        SELECT id, type, prefecture_id, auteur_id, contenu, statut, version, origine_id, recue_le
+        FROM sabou.saisie_terrain
+        WHERE prefecture_id = bucket.prefecture_id
+
+  avis_agent:
+    # Avis de conflit (R-DON-04, point 4) : à leur seul destinataire
+    parameters: >-
+      SELECT CAST(request.user_id() AS integer) AS agent
+      WHERE request.jwt() ->> 'role' = 'prefectoral'
+    data:
+      - >-
+        SELECT id, saisie_id, motif, copie_id, cree_le
+        FROM sabou.saisie_terrain_avis
+        WHERE destinataire_id = bucket.agent

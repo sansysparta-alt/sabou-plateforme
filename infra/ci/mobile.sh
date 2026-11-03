@@ -23,7 +23,8 @@ if [[ -n "${CI:-}" ]]; then
   git config --global --add safe.directory "$sdk/flutter"
   flutter="$sdk/flutter/bin/flutter"
 else
-  flutter="${FLUTTER_BIN:-flutter}"
+  # Chemin complet : dart est cherché dans le même dossier
+  flutter="$(command -v "${FLUTTER_BIN:-flutter}")"
 fi
 
 installed="$("$flutter" --version --machine 2>/dev/null | node -e \

@@ -6,6 +6,7 @@ Source de vérité du schéma PostgreSQL de SABOU : migrations versionnées (Atl
 migrations/          migrations Atlas, une par changement, et atlas.sum (empreintes)
 seed/dev.sql         jeu d'exemple fictif (développement et tests, jamais en recette ni en production)
 examples/queries.sql requêtes d'exemple et cas interdits, exécutés par les tests
+sync/                configuration de PowerSync et règles de synchronisation vers les téléphones
 src/                 lancement d'Atlas, contrôle des empreintes, commandes db:*
 test/                tests (Vitest + Testcontainers)
 ```
@@ -29,4 +30,5 @@ Repartir d'une base vide : `pnpm env:reset`, `pnpm env:up`, `pnpm db:migrate`, `
    - par Atlas, tant que `atlas.sum` n'a pas été recalculé ;
    - par le contrôle des empreintes (`src/verify.ts`), même après `pnpm db:hash` : la base garde l'empreinte de chaque migration appliquée, comparée à celle du fichier avant toute application. Ce contrôle protège aussi la recette et la production.
 4. Les migrations tournent avec le rôle `sabou_migrator`, propriétaire de la base. L'API utilise `sabou_app`, qui lit et écrit les données sans jamais toucher à la structure, et n'ajoute au journal d'audit que des lignes (R-DON-02). Les rôles et PostGIS sont créés par l'infrastructure, pas par les migrations.
-5. Aucun texte en langue nationale, y compris dans le jeu d'exemple : les langues nationales sont des voix.
+5. PowerSync lit les tables publiées (`powersync`) sous le rôle `sabou_sync`, sans RLS : le cloisonnement par zone de ce qui part vers les téléphones est dans `sync/sync-rules.yaml`, prouvé par `test/sync-zone.test.ts`. Toute table ajoutée à la publication exige sa règle et son test.
+6. Aucun texte en langue nationale, y compris dans le jeu d'exemple : les langues nationales sont des voix.

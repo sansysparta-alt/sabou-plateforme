@@ -12,7 +12,7 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **80 récits**, **358 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **80 récits**, **359 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
 
@@ -22,11 +22,13 @@ Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limi
 
 Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maître d’œuvre) : US-004 est découpé ; il passe de 8 à 5 points (lignes de la base, conflit, cloisonnement par zone) et le nouveau récit US-009 (pièces jointes et voix hors réseau) prend 4 points. US-005 passe de 5 à 6 points : il crée le squelette Flutter et le job Flutter du pipeline, critère repris de US-004. S0 monte ainsi de 34 à 36 points.
 
+Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrement de la base du téléphone (SQLCipher, clé dans le magasin sécurisé Android) entre dans US-004, qui passe de 5 à 6 points ; le surcoût est mesuré sur téléphone d’entrée de gamme. S0 passe à 35 points.
+
 ## 2. Plan des sprints
 
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
-| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 34 |
+| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 31 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
@@ -118,17 +120,18 @@ Critères d’acceptation :
 - Étant donné une migration déjà appliquée, quand on la modifie, alors l’outil de migration le détecte et échoue.
 
 #### US-004 · Un prototype de synchronisation hors réseau (Flutter + PowerSync)
-*Fondations techniques* · **Must** · 5 points · cas : UC-74
+*Fondations techniques* · **Must** · 6 points · cas : UC-74
 
 > En tant qu’équipe, je veux un prototype de synchronisation hors réseau (Flutter + PowerSync), afin de valider ou remplacer ce choix technique.
 
-Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique.
+Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique. Base du téléphone chiffrée (SQLCipher).
 
 Critères d’acceptation :
 - Étant donné un téléphone sans réseau, quand un agent saisit un dossier, alors il est conservé sur le téléphone.
 - Étant donné une synchronisation coupée puis rétablie, quand elle s’exécute, alors le dossier apparaît sur le serveur sans perte.
 - Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04, précisée dans 04_Regles_Metier.md).
 - Étant donné un agent d’une zone, quand la synchronisation s’exécute, alors il ne reçoit aucune donnée d’une autre zone (test automatique obligatoire : les règles de synchronisation filtrent en dehors du RLS).
+- Étant donné la base du téléphone, quand on la lit sans la clé, alors elle est illisible ; la clé est gardée dans le magasin sécurisé du téléphone (Keystore Android), jamais dans le code ; le surcoût du chiffrement est mesuré sur téléphone d’entrée de gamme et noté dans 05_Choix_Techniques.md.
 - Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md ; elle dit ce que l’équipe ferait si la licence FSL devenait bloquante.
 
 #### US-009 · Synchroniser les pièces jointes et la voix hors réseau

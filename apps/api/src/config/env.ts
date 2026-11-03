@@ -5,6 +5,9 @@ import { z } from 'zod';
 const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  // Clé HS256 des jetons de synchronisation (US-004), la même que celle de PowerSync.
+  // Production : clés publiques de Keycloak (US-010).
+  SYNC_JWT_SECRET: z.base64url().min(43),
 });
 
 export type Env = z.infer<typeof envSchema>;

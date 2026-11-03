@@ -31,6 +31,7 @@ export async function createDatabase(): Promise<TestDatabase> {
   await admin.connect();
   await admin.query(`CREATE DATABASE ${name} OWNER sabou_migrator`);
   await admin.query(`GRANT CONNECT, TEMPORARY ON DATABASE ${name} TO sabou_app`);
+  await admin.query(`GRANT CONNECT ON DATABASE ${name} TO sabou_sync`);
   await admin.end();
   await runSql(url('postgres', passwords.postgres), 'CREATE EXTENSION postgis WITH SCHEMA public');
 

@@ -1,0 +1,32 @@
+# Configuration du service PowerSync auto-hébergé (licence FSL), en développement et dans
+# les tests. Les valeurs sensibles sont lues dans l'environnement (!env), jamais écrites ici.
+telemetry:
+  # Aucune donnée d'usage envoyée à l'éditeur : souveraineté des données
+  disable_telemetry_sharing: true
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATA_SOURCE_URI
+      sslmode: disable
+
+# Base de travail de PowerSync, séparée de celle de SABOU
+storage:
+  type: postgresql
+  uri: !env PS_STORAGE_URI
+  sslmode: disable
+
+port: 8080
+
+sync_rules:
+  path: sync-rules.yaml
+
+client_auth:
+  # Développement : clé symétrique HS256. Production : clés publiques de Keycloak (jwks_uri).
+  jwks:
+    keys:
+      - kty: oct
+        alg: HS256
+        kid: sabou-dev
+        k: !env PS_JWT_SECRET
+  audience: [sabou-mobile]

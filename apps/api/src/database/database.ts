@@ -17,6 +17,8 @@ export function createDatabase(url: string): Database {
     connectionTimeoutMillis: 2_000,
     query_timeout: 5_000,
     application_name: 'sabou-api',
+    // Les fonctions et déclencheurs du schéma résolvent leurs tables par le search_path
+    options: '-c search_path=sabou,public',
   });
   // Une connexion au repos coupée par la base (redémarrage, bascule) émet « error » sur le pool :
   // sans écouteur, Node arrête le processus. Le pool la remplace à la requête suivante.

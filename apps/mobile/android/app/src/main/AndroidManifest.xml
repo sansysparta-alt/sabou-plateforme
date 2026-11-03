@@ -2,10 +2,16 @@
     <!-- Enregistrement des voix (Studio) et envoi au serveur -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Aucune sauvegarde des données de l'application (US-004) : la base est chiffrée par
+         une clé du Keystore, qui ne quitte jamais le téléphone ; une copie restaurée
+         ailleurs serait illisible, et les dossiers ne doivent pas sortir du téléphone. -->
     <application
         android:label="SABOU"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
