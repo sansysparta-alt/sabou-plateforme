@@ -74,6 +74,18 @@ On s'inspire des pratiques des meilleures équipes du numérique en corrigeant l
 
 Une seule session Claude à la fois sur ce projet : on n'ouvre pas en parallèle une autre session (application Claude, terminal) qui modifierait les mêmes fichiers.
 
+## Consommation de l'abonnement
+
+Deux limites : une fenêtre de 5 heures et une limite par semaine. Objectif : environ **14 % de la limite hebdomadaire par jour**, pour tenir les 7 jours.
+
+- **Suivi** : la ligne d'état sous la zone de saisie (outil `ccusage`, version 20.0.36 épinglée, installé sur le poste) affiche le coût de la session et le temps restant dans la fenêtre de 5 heures. Le pourcentage hebdomadaire se lit dans le panneau de consommation de Claude Code.
+- **Avant un récit ou une tâche lourde**, Claude lance `ccusage blocks --active` et donne en une ligne l'heure de fin de la fenêtre (par exemple : « commencée à 9 h, fin à 14 h, il reste 3 h 37 »).
+- **Moins de 30 minutes dans la fenêtre, ou plus de 85 % de la semaine** : Claude termine l'étape en cours, commite et pousse, puis donne le message de reprise. Il ne commence pas une tâche lourde.
+- **Une conversation par récit.** À la fin d'un récit, ou d'une partie de récit fusionnée, Claude demande au maître d'œuvre de taper `/clear`. Il ne peut pas le faire lui-même. La mémoire et ce fichier restent. Si une conversation devient longue en cours de récit, Claude propose `/compact`.
+- **Modèle et effort** : effort moyen par défaut. **Sonnet** (`/model`) pour le courant : documents, Git, petites corrections. **Opus** pour l'analyse et le code difficile. Claude dit en une ligne quand un changement de modèle conviendrait.
+- **Économie de Claude** : lire des extraits plutôt que des fichiers entiers, filtrer les journaux, faire des comptes rendus courts, pas de sous-agents ni de relecture multi-agents sans demande. Mesurer lui-même plutôt que demander des essais manuels.
+- **Économie du maître d'œuvre** : un seul message avec toutes les demandes ; une ligne de texte plutôt qu'une capture quand elle suffit.
+
 ## Cycle d'un récit
 
 1. Le maître d'œuvre désigne le récit (ex. « US-003 »).
