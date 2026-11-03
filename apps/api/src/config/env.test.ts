@@ -1,8 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env';
 
 const url = 'postgres://sabou_app:secret-123@localhost:5432/sabou';
-const secret = 'c2Fib3UtY2xlLWRlLXRlc3QtZGUtMzItb2N0ZXRzLW1pbmltdW0';
+// Tirée à chaque exécution : aucun secret, même factice, n'est écrit dans le dépôt
+const secret = randomBytes(32).toString('base64url');
 
 describe('loadEnv', () => {
   it('lit la configuration et applique le port par défaut', () => {
