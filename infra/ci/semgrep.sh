@@ -44,7 +44,7 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "$src:/src:ro" -v "$rules:/rules:ro" -v "$
 node -e '
 const { results, errors } = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
 const high = results.filter((r) => ["ERROR", "HIGH", "CRITICAL"].includes(r.extra.severity));
-for (const e of errors) console.error(`Erreur d’analyse : ${e.path ?? ""} ${e.type ?? ""} ${e.message ?? ""}`.slice(0, 300));
+for (const e of errors) console.error(`Erreur d’analyse : ${e.path ?? ""} ${[].concat(e.type ?? [])[0]} ${e.message ?? ""}`.slice(0, 300));
 for (const r of high) console.error(`HAUTE : ${r.path}:${r.start.line} ${r.check_id}`);
 console.log(`Semgrep : ${results.length} résultat(s), dont ${high.length} de gravité haute ; ${errors.length} erreur(s) d’analyse.`);
 if (high.length > 0) process.exit(1);
