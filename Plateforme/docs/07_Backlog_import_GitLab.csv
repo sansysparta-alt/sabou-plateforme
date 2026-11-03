@@ -11,7 +11,7 @@
 
 Critère « fusion bloquée si un test échoue » reporté à US-008 : jusque-là, le maître d’œuvre ne fusionne une demande que si son pipeline est vert.
 
-Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-007).
+Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-015).
 
 /label ~""E00"" ~""Must"" ~""S0""
 /weight 3"
@@ -90,16 +90,15 @@ Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et 
 
 /label ~""E00"" ~""Must"" ~""S0""
 /weight 5"
-[US-007] Un environnement de recette déployé automatiquement,"En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
+[US-007] Le code est analysé par Semgrep à chaque demande de fusion,"En tant qu’équipe, je veux que chaque demande de fusion soit analysée par Semgrep, afin de bloquer les failles graves avant la fusion.
 
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 3 · **Cas** : —
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 1 · **Cas** : —
 
 **Critères d’acceptation**
-- [ ] Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
 - [ ] Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 /label ~""E00"" ~""Must"" ~""S0""
-/weight 3"
+/weight 1"
 [US-010] Me connecter avec un double facteur obligatoire,"En tant qu’administrateur, je veux me connecter avec un double facteur obligatoire, afin que mon compte ne puisse pas être usurpé.
 
 **Epic** : E01 Identité et accès · **Sprint** : S1 · **Priorité** : Must · **Points** : 8 · **Cas** : UC-65
@@ -183,6 +182,16 @@ Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et 
 
 /label ~""E03"" ~""Must"" ~""S1""
 /weight 3"
+[US-015] Un environnement de recette déployé automatiquement,"En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
+
+**Epic** : E00 Fondations techniques · **Sprint** : S1 · **Priorité** : Must · **Points** : 2 · **Cas** : —
+
+**Critères d’acceptation**
+- [ ] Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+- [ ] Réalisé en fin de S1, juste avant la revue du sprint (décision du maître d’œuvre du 3 novembre 2026). Questions à trancher avant de coder : hébergeur, adresse, accès, clé de déploiement.
+
+/label ~""E00"" ~""Must"" ~""S1""
+/weight 2"
 [US-031] Être notifié par SMS à chaque étape de mon dossier,"En tant que praticien, je veux être notifié par SMS à chaque étape de mon dossier, afin de suivre ma certification.
 
 **Epic** : E03 Audit et notifications · **Sprint** : S2 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-72
@@ -300,7 +309,7 @@ Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et 
 
 **Critères d’acceptation**
 - [ ] Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
-- [ ] Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- [ ] Étant donné les pipelines de US-001, US-007 et US-015, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
 - [ ] Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée (branche `main` protégée, pipeline réussi obligatoire). Critère reporté de US-001 ; il remplace la convention « on ne fusionne que si le pipeline est vert ».
 - [ ] Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
 - [ ] Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.
