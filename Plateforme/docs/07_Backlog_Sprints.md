@@ -12,11 +12,13 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **79 récits**, **358 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **80 récits**, **358 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
 
 Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 à 3 points (analyse Semgrep) et US-010 de 5 à 8 points (contrôles axe et Lighthouse CI). S1 monte ainsi à 29 points, au-dessus de la capacité visée : un récit de S1 sera reporté en S2 lors du raffinement de S1.
+
+Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limite à l’analyse Semgrep (1 point, fait) ; le déploiement automatique de la recette devient le récit US-015 (2 points), placé en fin de S1, juste avant la revue du sprint. S0 passe à 34 points, S1 à 31.
 
 Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maître d’œuvre) : US-004 est découpé ; il passe de 8 à 5 points (lignes de la base, conflit, cloisonnement par zone) et le nouveau récit US-009 (pièces jointes et voix hors réseau) prend 4 points. US-005 passe de 5 à 6 points : il crée le squelette Flutter et le job Flutter du pipeline, critère repris de US-004. S0 monte ainsi de 34 à 36 points.
 
@@ -24,8 +26,8 @@ Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maîtr
 
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
-| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 36 |
-| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030 | 29 |
+| **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 34 |
+| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 31 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
@@ -49,7 +51,7 @@ Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maîtr
 | Tâche | Échéance | Lien | Statut (2 novembre 2026) |
 |---|---|---|---|
 | Agrégateur SMS (contrat, **nom d’expéditeur** « SABOU ») | Avant S2 | US-031 | **En cours** : décidé de partir sur un agrégateur avec nom d’expéditeur ; l’enregistrement du nom auprès des opérateurs peut prendre plusieurs semaines |
-| Hébergement de la recette (sprints 0 à 2, données fictives) | Avant fin S0 | US-007 | **En cours** : choix à trancher (Vercel ou serveur unique Docker Compose) |
+| Hébergement de la recette (sprints 1 et 2, données fictives) | Avant la revue de S1 | US-015 | **Reporté** (décision du 3 novembre 2026) : serveur unique sous Docker Compose recommandé plutôt que Vercel (la recette a besoin de l’API et de la base) ; hébergeur, adresse, accès et clé de déploiement à trancher |
 | Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-008, US-162 | À lancer |
 | Atelier linguistique : un référent par langue, voix et transcriptions des noms | Avant S4 | US-053, US-071 | Reporté (à revoir plus tard) |
 | Validation du dispositif de sécurité sanitaire par le ministère de la Santé | Avant S6 | US-100 | Reporté (à revoir plus tard) |
@@ -60,7 +62,7 @@ Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maîtr
 
 | Epic | Intitulé | Phase | Récits | Points |
 |---|---|---|---|---|
-| E00 | Fondations techniques | 1 | 9 | 39 |
+| E00 | Fondations techniques | 1 | 10 | 39 |
 | E01 | Identité et accès | 2 | 5 | 21 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
@@ -80,7 +82,7 @@ Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maîtr
 
 ## 4. Backlog priorisé (par sprint)
 
-### Sprint 0 — L’équipe peut développer, tester et déployer ; les trois prototypes techniques sont tranchés.
+### Sprint 0 — L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés.
 
 #### US-001 · Un dépôt monorepo avec intégration continue
 *Fondations techniques* · **Must** · 3 points · cas : —
@@ -94,7 +96,7 @@ Critères d’acceptation :
 - Chaque étape du pipeline est un script de `infra/ci/` exécutable en local ; le fichier GitHub Actions ne fait que les appeler. Les actions GitHub et Trivy sont épinglés par SHA.
 - ~~Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée.~~ **Reporté à US-008** (décision du maître d’œuvre, novembre 2026) : un dépôt privé sur un compte GitHub gratuit n’autorise ni protection de branche ni règles de fusion. Jusqu’à US-008, le blocage se fait **par convention** : le maître d’œuvre ne fusionne une demande que si son pipeline est vert.
 
-Périmètre : les applications sont des squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-007).
+Périmètre : les applications sont des squelettes minimaux (un test chacun, aucune fonctionnalité). Hors périmètre : application mobile (US-004), tests sur un vrai PostgreSQL (US-003), analyse des images Docker (US-002), déploiement (US-015).
 
 #### US-002 · Lancer tout l’environnement local en une commande
 *Fondations techniques* · **Must** · 5 points · cas : —
@@ -165,13 +167,12 @@ Critères d’acceptation :
 - Étant donné un QR dont une donnée est modifiée, quand il est scanné, alors le verdict « falsifié » (rouge) s’affiche.
 - Une décision écrite est ajoutée à 05_Choix_Techniques.md.
 
-#### US-007 · Un environnement de recette déployé automatiquement
-*Fondations techniques* · **Must** · 3 points · cas : —
+#### US-007 · Le code est analysé par Semgrep à chaque demande de fusion
+*Fondations techniques* · **Must** · 1 point · cas : —
 
-> En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
+> En tant qu’équipe, je veux que chaque demande de fusion soit analysée par Semgrep, afin de bloquer les failles graves avant la fusion.
 
 Critères d’acceptation :
-- Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
 - Étant donné une demande de fusion, quand elle est poussée, alors le code est analysé par Semgrep (édition communautaire, image épinglée par empreinte, lancée par un script de `infra/ci/`) et un résultat de gravité haute fait échouer le pipeline. À livrer avant S2. CodeQL est écarté : il est payant sur un dépôt privé.
 
 ### Sprint 1 — Un administrateur se connecte avec double facteur et ne voit que les données de sa zone.
@@ -250,6 +251,15 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné une décision de workflow, quand elle est prise, alors une ligne d’audit (qui, quoi, quand, IP) est écrite dans la même transaction.
 - Étant donné une tentative de modification ou de suppression du journal, quand elle s’exécute, alors elle est refusée.
+
+#### US-015 · Un environnement de recette déployé automatiquement
+*Fondations techniques* · **Must** · 2 points · cas : —
+
+> En tant qu’équipe, je veux un environnement de recette déployé automatiquement, afin de montrer chaque sprint.
+
+Critères d’acceptation :
+- Étant donné une fusion sur la branche principale, quand le pipeline se termine, alors l’environnement de recette est mis à jour sans intervention.
+- Réalisé en fin de S1, juste avant la revue du sprint (décision du maître d’œuvre du 3 novembre 2026). Questions à trancher avant de coder : hébergeur, adresse, accès, clé de déploiement.
 
 ### Sprint 2 — Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape.
 
@@ -362,7 +372,7 @@ Critères d’acceptation :
 
 Critères d’acceptation :
 - Étant donné le GitLab installé chez l’hébergeur souverain, quand le dépôt y est poussé, alors tout l’historique, les branches et les étiquettes sont présents.
-- Étant donné les pipelines de US-001 et US-007, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
+- Étant donné les pipelines de US-001, US-007 et US-015, quand ils sont portés sur GitLab CI, alors le lint, les tests, la compilation et le déploiement en recette passent comme sur GitHub.
 - Étant donné un test en échec, quand la demande de fusion est examinée, alors la fusion est bloquée (branche `main` protégée, pipeline réussi obligatoire). Critère reporté de US-001 ; il remplace la convention « on ne fusionne que si le pipeline est vert ».
 - Étant donné le fichier 07_Backlog_import_GitLab.csv, quand il est importé, alors chaque récit devient une issue avec son epic, son sprint et son poids.
 - Étant donné la bascule terminée, quand on consulte GitHub, alors le dépôt est en miroir en lecture seule ou archivé, et GitLab est la seule référence.

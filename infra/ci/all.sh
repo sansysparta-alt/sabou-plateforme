@@ -13,6 +13,8 @@ bash infra/ci/audio-lecture.sh
 bash infra/ci/mobile.sh
 bash infra/ci/audit.sh
 bash infra/ci/audit-selftest.sh
+bash infra/ci/semgrep.sh
+bash infra/ci/semgrep-selftest.sh
 bash infra/ci/env-check.sh
 bash infra/ci/env-check-selftest.sh
 bash infra/ci/audit-images.sh

@@ -30,6 +30,7 @@ test.describe.configure({ mode: 'serial' });
 async function waitForSite(): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt++) {
     try {
+      // nosemgrep: rules.typescript.react.security.react-insecure-request -- site local du test (localhost)
       if ((await fetch(`${BASE_URL}/verifier`)).ok) return;
     } catch {
       // serveur pas encore prêt
@@ -67,6 +68,7 @@ test.beforeAll(async () => {
   site.kill();
   await expect
     .poll(() =>
+      // nosemgrep: rules.typescript.react.security.react-insecure-request -- site local du test (localhost)
       fetch(`${BASE_URL}/verifier`).then(
         () => 'en ligne',
         () => 'arrêté',
