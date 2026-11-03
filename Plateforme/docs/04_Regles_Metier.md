@@ -195,7 +195,7 @@ Légende : **[CdC §x]** = règle reprise du cahier des charges · **[Correction
 | R-DON-01 | Aucun nom complet de patient ; données épidémiologiques anonymisées (agrégats par préfecture, jamais par personne). | [CdC §8] |
 | R-DON-02 | Journal d'audit de toutes les décisions et connexions, non modifiable par l'application. | [CdC §8] |
 | R-DON-03 | Fichiers audio et images hors base, en stockage souverain, avec empreinte d'intégrité. | [CdC §8] |
-| R-DON-04 | Saisie hors réseau pour les agents de terrain, synchronisée au retour de la connexion (conflits : la version serveur validée prime, l'autre est conservée en brouillon). | [CdC §8] [Art] règle de conflit |
+| R-DON-04 | Saisie hors réseau pour les agents de terrain, synchronisée au retour de la connexion. Conflits (règle validée le 3 novembre 2026) : 1) le conflit se règle au niveau du **dossier entier**, jamais champ par champ, sans fusion automatique ; 2) si la version du serveur est **validée**, elle prime : la saisie de l'agent devient une copie en brouillon rattachée au dossier, visible par l'agent ; 3) si la version du serveur n'est **pas validée** (deux brouillons), la dernière modification **dans l'ordre d'arrivée sur le serveur** l'emporte (jamais l'heure du téléphone) ; l'autre est gardée dans l'historique ; 4) dans les cas 2 et 3, l'agent dont la version n'a pas été retenue en est informé à la synchronisation suivante. | [CdC §8] [Art] règle de conflit, précisée par le maître d'œuvre (US-004) |
 
 ---
 
