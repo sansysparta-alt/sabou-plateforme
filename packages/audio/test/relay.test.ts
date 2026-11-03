@@ -14,9 +14,7 @@ beforeAll(async () => {
     response.end(body);
   });
   await new Promise<void>((resolve) => origin.listen(0, '127.0.0.1', resolve));
-  const address = origin.address();
-  if (typeof address !== 'object' || !address) throw new Error('Serveur sans port');
-  relay = await startRelay(0, '127.0.0.1', address.port);
+  relay = await startRelay(0, '127.0.0.1', originPort());
 });
 
 afterAll(async () => {
@@ -43,3 +41,29 @@ describe('Relais 3G (400 kbit/s, 400 ms d’aller-retour)', () => {
     expect(totalMs).toBeLessThan(3 * rtt + transferMs + 800);
   });
 });
+
+describe('Relais : fin de flux', () => {
+  // La fin de flux partait parfois avant les derniers paquets : corps tronqué, test instable
+  it('remet le corps entier avant de fermer, transfert après transfert', async () => {
+    const fast = await startRelay(0, '127.0.0.1', originPort(), {
+      downKbps: 100_000,
+      upKbps: 100_000,
+      rttMs: 2,
+      handshakeRtts: 0,
+    });
+    try {
+      for (let i = 0; i < 200; i++) {
+        const response = await fetch(`http://127.0.0.1:${fast.port}/`);
+        expect((await response.arrayBuffer()).byteLength).toBe(BODY_BYTES);
+      }
+    } finally {
+      await fast.close();
+    }
+  });
+});
+
+function originPort(): number {
+  const address = origin.address();
+  if (typeof address !== 'object' || !address) throw new Error('Serveur sans port');
+  return address.port;
+}

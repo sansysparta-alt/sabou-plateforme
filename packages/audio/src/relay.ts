@@ -35,6 +35,8 @@ class Link {
   private readonly kbps: number;
   private readonly oneWayMs: number;
   private readonly destination: Socket;
+  private pendingPackets = 0;
+  private ending = false;
   bytesDelivered = 0;
 
   constructor(kbps: number, oneWayMs: number, destination: Socket) {
@@ -50,18 +52,25 @@ class Link {
       const start = Math.max(Date.now(), notBefore, this.nextFreeAt);
       this.nextFreeAt = start + transmitMs;
       const deliverAt = this.nextFreeAt + this.oneWayMs;
+      this.pendingPackets++;
       setTimeout(() => {
+        this.pendingPackets--;
         if (this.destination.destroyed) return;
         this.destination.write(packet);
         this.bytesDelivered += packet.length;
+        if (this.ending && this.pendingPackets === 0) this.destination.end();
       }, deliverAt - Date.now());
     }
   }
 
-  /** Fin de flux transmise après le dernier paquet */
+  /**
+   * Fin de flux transmise avec le dernier paquet remis. Un minuteur à part, réglé sur la
+   * même échéance, pouvait partir avant lui : corps tronqué.
+   */
   end(): void {
-    const at = Math.max(Date.now(), this.nextFreeAt) + this.oneWayMs;
-    setTimeout(() => this.destination.end(), at - Date.now());
+    this.ending = true;
+    if (this.pendingPackets > 0) return;
+    setTimeout(() => this.destination.end(), this.oneWayMs);
   }
 }
 
