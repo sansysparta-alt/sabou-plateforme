@@ -118,7 +118,7 @@ Principe : chaque technologie est choisie **uniquement pour son adéquation aux 
 
 **Décision (novembre 2026) : dépôt en deux temps.**
 
-1. **Conception et développement sans données réelles : GitHub** (dépôt privé `sansysparta-alt/sabou-plateforme`). Gratuit, sans serveur à exploiter ; aucune donnée de praticien, de patient ni de voix n'y transite, donc E7 n'est pas encore en jeu. Les pipelines des récits US-001 et US-007 tournent sur GitHub Actions et ne déploient que la recette avec des données fictives.
+1. **Conception et développement sans données réelles : GitHub** (dépôt privé `sansysparta-alt/sabou-plateforme`). Gratuit, sans serveur à exploiter ; aucune donnée de praticien, de patient ni de voix n'y transite, donc E7 n'est pas encore en jeu. Les pipelines des récits US-001, US-007 et US-015 tournent sur GitHub Actions et ne déploient que la recette avec des données fictives.
 2. **Dès que l'hébergeur souverain est disponible (avant S3) et avant toute donnée réelle : GitLab auto-hébergé**, installé sur cette infrastructure. Le dépôt y est poussé avec tout son historique, le pipeline est porté sur GitLab CI et le backlog importé (récit US-008). GitLab devient la seule référence ; GitHub passe en miroir en lecture seule ou est archivé.
 
 Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, déploiement) vit dans des scripts du dépôt ; les fichiers propres à GitHub Actions se contentent de les appeler. Aucun secret de production n'est jamais stocké sur GitHub.
