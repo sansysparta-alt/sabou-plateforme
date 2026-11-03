@@ -277,6 +277,18 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 | **Exceptions ligne par ligne, justifiées** (`// nosemgrep: <règle> -- raison`), et règle i18next écartée (le projet n'utilise pas i18next) | Une exception se lit dans le diff, à côté du code concerné | Exclure des dossiers entiers : cacherait les vrais problèmes |
 | **Contre-épreuve** `infra/ci/semgrep-selftest.sh` : un `fetch` en HTTP clair doit bloquer, le même en HTTPS doit passer | Preuve que le blocage fonctionne vraiment | — |
 
+### 2.19 Prototype de synchronisation hors réseau (récit US-004, novembre 2026, en cours)
+
+Décision « validé » ou « solution remplacée » : à écrire en fin de récit.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **PowerSync 1.27.2, édition auto-hébergée** (image épinglée par empreinte) dans Docker Compose ; sa base de travail est une base PostgreSQL séparée (`powersync`), pas MongoDB | Un seul moteur de base à exploiter ; télémétrie coupée (`disable_telemetry_sharing`) | Stockage MongoDB : un moteur de plus à sauvegarder et surveiller |
+| **Le dossier saisi sur le téléphone est un seul document** (`saisie_terrain` : contenu JSON de 256 Kio au plus, identifiant UUID tiré sur le téléphone, numéro de version attribué par le serveur dans l'ordre d'arrivée) ; les tables métier ne sont remplies qu'à la soumission, côté serveur | R-DON-04 règle le conflit sur le **dossier entier**, sans fusion champ par champ : un document unique rend la règle simple et vérifiable. Les contraintes de la base (langues, zones, transitions) restent appliquées au serveur, jamais contournées par le téléphone | Synchroniser directement `recette`, `dossier_certification`… : identifiants `bigint` impossibles à créer hors réseau, conflits ligne par ligne contraires à R-DON-04 |
+| **Rôles dédiés** : `sabou_sync` (réplication logique, lecture des seules tables publiées) et `powersync_storage` (propriétaire de la base de PowerSync) ; publication `powersync` limitée aux tables utiles | Moindre privilège : PowerSync ne lit rien d'autre que ce qui part vers les téléphones | Le super-utilisateur, ou `FOR ALL TABLES` : PowerSync lirait les mots de passe hachés et le journal d'audit |
+| **Cloisonnement par zone dans les règles de synchronisation** (`packages/db/sync/sync-rules.yaml`), avec une zone lue dans le **jeton signé**, jamais dans les paramètres envoyés par le téléphone | PowerSync lit la table entière, sans RLS : seules ses règles décident de la diffusion. Le test `sync-zone.test.ts` le prouve contre le vrai service, avec deux contre-épreuves (zone figée, rôle non contrôlé) | Zone envoyée par le téléphone : falsifiable |
+| **Jetons HS256 en développement et dans les tests** ; en production, clés publiques de Keycloak (`jwks_uri`, RS256), branchées avec US-010 | Pas de dépendance à Keycloak pour prouver le cloisonnement | — |
+
 ---
 
 ## 3. Architecture

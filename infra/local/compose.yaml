@@ -7,6 +7,8 @@ name: sabou
 services:
   postgres:
     image: postgis/postgis@sha256:1ac10b2551ba84ae05db8e7da477afcd0a3fede99bcb7705da2ee157390cb095 # 17-3.6
+    # Réplication logique : PowerSync lit les changements des tables publiées (US-004)
+    command: [postgres, -c, wal_level=logical]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
@@ -15,6 +17,8 @@ services:
       SABOU_MIGRATOR_PASSWORD: ${SABOU_MIGRATOR_PASSWORD:?}
       SABOU_APP_PASSWORD: ${SABOU_APP_PASSWORD:?}
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      SABOU_SYNC_PASSWORD: ${SABOU_SYNC_PASSWORD:?}
+      POWERSYNC_STORAGE_PASSWORD: ${POWERSYNC_STORAGE_PASSWORD:?}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       # Remplace le script de l'image, qui installerait aussi topology, tiger_geocoder et fuzzystrmatch
@@ -118,6 +122,33 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  powersync:
+    # Édition auto-hébergée (licence FSL) ; configuration et règles dans packages/db/sync
+    image: journeyapps/powersync-service@sha256:d7a99817057a42dae9e6d8fe0c70b49d99105dcac8b8ab0e9ed3cf1ff0978b8b # 1.27.2
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/powersync.yaml
+      PS_DATA_SOURCE_URI: postgresql://sabou_sync:${SABOU_SYNC_PASSWORD:?}@postgres:5432/sabou
+      PS_STORAGE_URI: postgresql://powersync_storage:${POWERSYNC_STORAGE_PASSWORD:?}@postgres:5432/powersync
+      PS_JWT_SECRET: ${POWERSYNC_JWT_SECRET:?}
+    volumes:
+      - ../../packages/db/sync:/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:${POWERSYNC_PORT:-8090}:8080
+    healthcheck:
+      # Vivant même avant les migrations : la réplication attend alors la publication
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/probes/liveness').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
 volumes:
   postgres-data:

@@ -13,7 +13,13 @@ declare module 'vitest' {
       host: string;
       port: number;
       network: string;
-      passwords: { postgres: string; migrator: string; app: string };
+      passwords: {
+        postgres: string;
+        migrator: string;
+        app: string;
+        sync: string;
+        powersyncStorage: string;
+      };
     };
   }
 }
@@ -21,19 +27,25 @@ declare module 'vitest' {
 const repoRoot = join(packageDir, '..', '..');
 
 // Image lue dans infra/local/compose.yaml : une seule source pour l'empreinte
-function postgisImage(): string {
+export function composeImage(name: string): string {
   const compose = readFileSync(join(repoRoot, 'infra', 'local', 'compose.yaml'), 'utf8');
-  const match = /image: (postgis\/postgis@sha256:[0-9a-f]{64})/.exec(compose);
-  if (!match) throw new Error('Image PostGIS introuvable dans infra/local/compose.yaml');
+  const match = new RegExp(`image: (${name}@sha256:[0-9a-f]{64})`).exec(compose);
+  if (!match) throw new Error(`Image ${name} introuvable dans infra/local/compose.yaml`);
   return match[1];
 }
 
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const secret = () => randomBytes(18).toString('base64url');
-  const passwords = { postgres: secret(), migrator: secret(), app: secret() };
+  const passwords = {
+    postgres: secret(),
+    migrator: secret(),
+    app: secret(),
+    sync: secret(),
+    powersyncStorage: secret(),
+  };
 
   const network = await new Network().start();
-  const container = await new GenericContainer(postgisImage())
+  const container = await new GenericContainer(composeImage('postgis/postgis'))
     .withNetwork(network)
     .withNetworkAliases('postgres')
     .withEnvironment({
@@ -42,7 +54,11 @@ export default async function setup(project: TestProject): Promise<() => Promise
       SABOU_MIGRATOR_PASSWORD: passwords.migrator,
       SABOU_APP_PASSWORD: passwords.app,
       KEYCLOAK_DB_PASSWORD: secret(),
+      SABOU_SYNC_PASSWORD: passwords.sync,
+      POWERSYNC_STORAGE_PASSWORD: passwords.powersyncStorage,
     })
+    // Réplication logique, lue par PowerSync (comme dans infra/local/compose.yaml)
+    .withCommand(['postgres', '-c', 'wal_level=logical'])
     // Remplace le script de l'image, comme dans infra/local/compose.yaml
     .withCopyFilesToContainer([
       {
