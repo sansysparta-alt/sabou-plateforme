@@ -277,9 +277,21 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 | **Exceptions ligne par ligne, justifiées** (`// nosemgrep: <règle> -- raison`), et règle i18next écartée (le projet n'utilise pas i18next) | Une exception se lit dans le diff, à côté du code concerné | Exclure des dossiers entiers : cacherait les vrais problèmes |
 | **Contre-épreuve** `infra/ci/semgrep-selftest.sh` : un `fetch` en HTTP clair doit bloquer, le même en HTTPS doit passer | Preuve que le blocage fonctionne vraiment | — |
 
-### 2.19 Prototype de synchronisation hors réseau (récit US-004, novembre 2026, en cours)
+### 2.19 Prototype de synchronisation hors réseau (récit US-004, novembre 2026)
 
-Décision « validé » ou « solution remplacée » : à écrire en fin de récit.
+**Proposition à confirmer par le maître d'œuvre : validé.** Preuves : cloisonnement par zone contre le vrai service PowerSync, règle R-DON-04 contre un vrai PostgreSQL, file d'envoi sans perte en cas de coupure, base du téléphone chiffrée et illisible sans la clé, mesures sur le téléphone d'essai (ci-dessous).
+
+**Si la licence FSL de PowerSync devenait bloquante.** La FSL n'interdit que de proposer un service concurrent de PowerSync ; chaque version devient Apache 2.0 deux ans après sa sortie. Si elle bloquait quand même : 1) rester sur la dernière version utilisable, qui deviendra libre au bout de deux ans ; 2) remplacer le seul sens descendant. Le prototype est construit pour limiter la dépendance : les écritures passent par l'API et la fonction `saisie_terrain_recevoir`, jamais par PowerSync ; la règle de conflit et le cloisonnement vivent dans notre base et nos règles ; le téléphone garde une base SQLite ordinaire. Le remplaçant le plus proche est ElectricSQL (Apache 2.0, lecture de PostgreSQL par réplication logique, filtrage par requête), à prototyper avant de basculer ; estimation : un récit de 5 points.
+
+**Mesure du surcoût de SQLCipher** (téléphone d'essai Xiaomi 2510DRA23G, Helio G99, 8 Go, Android 16 ; mode profil ; médiane de 3 passages ; 300 dossiers d'environ 2 Kio) :
+
+| Mesure | SQLite en clair | SQLCipher, phrase dérivée (PBKDF2) | SQLCipher, clé brute (retenue) |
+|---|---|---|---|
+| Ouverture de la base | 30 ms | 1 631 ms | à mesurer |
+| Enregistrement d'un dossier | 1,9 ms | 2,3 ms | à mesurer |
+| Lecture de 300 dossiers | 8 ms | 15 ms | à mesurer |
+| Réouverture (300 dossiers) | 12 ms | 1 611 ms | à mesurer |
+
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
@@ -288,6 +300,13 @@ Décision « validé » ou « solution remplacée » : à écrire en fin de réc
 | **Rôles dédiés** : `sabou_sync` (réplication logique, lecture des seules tables publiées) et `powersync_storage` (propriétaire de la base de PowerSync) ; publication `powersync` limitée aux tables utiles | Moindre privilège : PowerSync ne lit rien d'autre que ce qui part vers les téléphones | Le super-utilisateur, ou `FOR ALL TABLES` : PowerSync lirait les mots de passe hachés et le journal d'audit |
 | **Cloisonnement par zone dans les règles de synchronisation** (`packages/db/sync/sync-rules.yaml`), avec une zone lue dans le **jeton signé**, jamais dans les paramètres envoyés par le téléphone | PowerSync lit la table entière, sans RLS : seules ses règles décident de la diffusion. Le test `sync-zone.test.ts` le prouve contre le vrai service, avec deux contre-épreuves (zone figée, rôle non contrôlé) | Zone envoyée par le téléphone : falsifiable |
 | **Jetons HS256 en développement et dans les tests** ; en production, clés publiques de Keycloak (`jwks_uri`, RS256), branchées avec US-010 | Pas de dépendance à Keycloak pour prouver le cloisonnement | — |
+| **Règle de conflit R-DON-04 dans une fonction SQL** (`saisie_terrain_recevoir`), seule porte d'entrée des écritures venues des téléphones ; l'API (`POST /sync/upload`) vérifie le jeton puis l'appelle, un point de sauvegarde par opération | Verrou sur le dossier, agent et zone revérifiés en base, ordre d'arrivée garanti par la transaction ; règle prouvée sur un vrai PostgreSQL | Règle dans l'API : deux agents simultanés pourraient se croiser sans verrou commun |
+| **Renvoi idempotent** : un contenu identique déjà reçu ne crée ni version ni copie | Une coupure entre l'enregistrement au serveur et la réponse fait renvoyer le lot : il ne doit rien dupliquer | Numéro d'opération stocké par téléphone : plus lourd, même effet ici |
+| **Avis de conflit synchronisés vers leur seul destinataire** (`saisie_terrain_avis`) | R-DON-04, point 4 : l'agent dont la version n'a pas été retenue l'apprend à la synchronisation suivante, même sans notification | Notification poussée : demande le réseau au bon moment |
+| **PowerSync 2.5.0 (Dart) et SQLCipher** choisi à la compilation (`hooks: user_defines: sqlite3: source: sqlcipher`) ; le paquet `powersync_sqlcipher` est abandonné par l'éditeur depuis la 2.0 | Une seule bibliothèque SQLite dans l'application, chiffrement natif de chaque page (AES-256, HMAC) | SQLite3MultipleCiphers : le maître d'œuvre a retenu SQLCipher |
+| **Clé brute de 256 bits** (`x'…'`), tirée au hasard au premier lancement et gardée dans le magasin sécurisé (`flutter_secure_storage` 11.2.0, Keystore Android) | La dérivation PBKDF2 d'une phrase ne renforce pas une clé déjà aléatoire et coûtait 1,6 s à chaque ouverture | Clé dans le code ou dérivée d'un identifiant du téléphone : récupérable |
+| **Sauvegardes Android désactivées** (`allowBackup`, règles d'extraction) | La clé du Keystore ne quitte pas le téléphone : une copie restaurée serait illisible ; les dossiers ne doivent pas sortir du téléphone | — |
+| **Défaut relevé dans le schéma de US-003** : les fonctions et déclencheurs existants résolvent leurs tables par le `search_path` de l'appelant ; l'API ouvre donc ses connexions avec `search_path=sabou,public`. Les nouvelles fonctions fixent leur propre `search_path` | Sans cela, une écriture de l'API échouait (« relation langue does not exist ») | Corriger toutes les fonctions existantes : à faire dans un récit dédié (sécurité : un `search_path` fixé protège aussi des objets homonymes) |
 
 ---
 
