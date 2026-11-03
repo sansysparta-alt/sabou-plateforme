@@ -8,6 +8,7 @@ bash infra/ci/lint.sh
 bash infra/ci/test.sh
 bash infra/ci/build.sh
 bash infra/ci/e2e.sh
+bash infra/ci/audio-lecture.sh
 bash infra/ci/audit.sh
 bash infra/ci/audit-selftest.sh
 bash infra/ci/env-check.sh

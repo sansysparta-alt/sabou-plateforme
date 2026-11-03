@@ -4,8 +4,9 @@
 # disponible ; les failles critiques sans correctif sont listées sans bloquer (décision du
 # maître d'œuvre, novembre 2026 : on ne peut pas corriger soi-même une image tierce).
 # Usage : audit-images.sh [image…], par défaut toutes les images de infra/local/compose.yaml
-# et l'image d'Atlas (migrations). Elles doivent être présentes sur le poste : pnpm env:up
-# télécharge et construit celles de l'environnement, les tests de @sabou/db celle d'Atlas.
+# et les images d'Atlas (migrations) et de FFmpeg (chaîne audio). Elles doivent être présentes
+# sur le poste : pnpm env:up télécharge et construit celles de l'environnement, les tests de
+# @sabou/db celle d'Atlas, ceux de @sabou/audio celle de FFmpeg.
 source "$(dirname "$0")/env.sh"
 source infra/ci/trivy.sh
 
@@ -15,6 +16,7 @@ else
   mapfile -t images < <(
     awk '/^    image:/ { print $2 }' infra/local/compose.yaml
     grep -Eo "arigaio/atlas@sha256:[0-9a-f]{64}" packages/db/src/atlas.ts
+    grep -Eo "jrottenberg/ffmpeg@sha256:[0-9a-f]{64}" packages/audio/src/ffmpeg.ts
   )
 fi
 

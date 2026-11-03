@@ -76,8 +76,8 @@ Principe : chaque technologie est choisie **uniquement pour son adéquation aux 
 
 | Choix | Pourquoi |
 |---|---|
-| **Opus mono 24 kbit/s** | Format conçu pour la parole : une section de 90 s pèse environ 270 Ko, contre plus d'1 Mo en MP3 de qualité équivalente (E1, E2) |
-| **FFmpeg** côté serveur : réduction de bruit (filtre RNNoise `arnndn`), normalisation du volume (`loudnorm`), conversion Opus | Qualité homogène quel que soit le téléphone ; durée et empreinte calculées automatiquement |
+| **Opus mono 24 kbit/s, en WebM** (trames de 60 ms, index en tête de fichier ; prototype US-005, §2.17) | Format conçu pour la parole : une section de 90 s pèse environ 270 Ko, contre plus d'1 Mo en MP3 de qualité équivalente (E1, E2). Le conteneur WebM permet de commencer la lecture dès les premiers octets |
+| **FFmpeg** côté serveur : réduction de bruit (filtre RNNoise `arnndn`, à mi-force), normalisation du volume (`loudnorm`), conversion Opus | Qualité homogène quel que soit le téléphone ; durée et empreinte calculées automatiquement |
 | **Fichier de secours AAC** | Pour les rares navigateurs (anciens iPhone) qui lisent mal Opus |
 | **Stockage objet compatible S3, auto-hébergé** : **SeaweedFS** (ou Garage) | Audio et images hors base, réplication, souverain (E7). MinIO est écarté à cause des restrictions récentes de son édition libre (à revérifier au moment du choix) |
 
@@ -221,6 +221,25 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 - Annonce du verdict à la voix (UC-06) et version anglaise de la page : avec le site public.
 - Base de données : `certificat.signature` stocke la signature COSE, qui couvre l'en-tête protégé et la charge utile (le commentaire de la colonne dit « signature de l'empreinte ») ; `cle_signature` devra porter l'identifiant de clé (`kid`) publié. Migration à faire avec le récit d'émission du certificat.
 - En production : clé privée dans le coffre (§2.9), identifiant de clé de la DG distinct du préfixe `test-`.
+
+### 2.17 Prototype de la chaîne audio (récit US-005, novembre 2026)
+
+**Décision « validé » ou « remplacé » : en attente du maître d'œuvre**, après l'essai sur téléphone (application Flutter, seconde partie du récit). Partie serveur : les choix ci-dessous ont été tranchés en cours de récit, sur mesure.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **FFmpeg 9.0.2, image « scratch »** (FFmpeg seul, sans système d'exploitation), épinglée par empreinte, lancée sans réseau par `packages/audio/src/ffmpeg.ts` | Même logique qu'Atlas (§2.15) ; analysée par Trivy dans le pipeline ; quasiment rien d'autre que FFmpeg à tenir à jour | Image Ubuntu de FFmpeg 7.1 : 13 mois sans mise à jour ; image linuxserver : 1 Go |
+| **RNNoise à mi-force** (`arnndn` avec `mix=0.5`), modèle **`cb`** du dépôt GregorR/rnnoise-models | Mesuré : à pleine force, RNNoise retire presque tout le bruit mais abîme la voix (STOI 0,799, contre 0,847 pour la voix simplement compressée), sur un brouhaha comme sur un bruit continu. À mi-force, la perte n'est que de 0,012 : une recette doit être comprise mot pour mot. Les 5 modèles du dépôt ont été comparés : `cb` est le meilleur à pleine force, ils se valent à mi-force | Pleine force : moins de bruit, moins d'intelligibilité. Le choix final se fait à l'écoute pendant l'essai sur téléphone (un seul réglage) |
+| **Volume normalisé à -16 LUFS** (crête -1,5 dBTP) | Niveau usuel de la parole écoutée sur téléphone | -23 LUFS (radiodiffusion) : trop faible sur un haut-parleur de téléphone |
+| **Conteneur WebM, index en tête** (`cues_to_front`), **trames Opus de 60 ms** | Mesuré en 3G : avec Ogg, qui n'indique pas sa durée, Chromium ouvre une seconde connexion pour lire la fin du fichier avant de jouer (5,3 à 6,8 s). Avec WebM, la lecture démarre en 2,3 s, après 52 Ko reçus sur 268. Les trames de 60 ms réduisent les en-têtes du conteneur : 268 Ko au lieu de 307 Ko avec des trames de 20 ms | Ogg Opus : trop lent à démarrer en 3G. Le fichier de secours AAC (§2.7) reste prévu |
+| **Métadonnées retirées** (nom de l'appareil, date, position) | Une voix enregistrée sur un téléphone peut porter sa position : rien de tel ne doit être publié (ASVS V8) | — |
+| **Échantillon versionné et reproductible** : 90 s de lecture LibriVox (domaine public) dans un brouhaha de trois autres voix et un bruit grave, à 5 dB | Toujours le même cas difficile, sur tous les postes ; sources et droits dans `packages/audio/fixtures/SOURCES.md` | Voix de synthèse : RNNoise a été entraîné sur de vraies voix, la mesure serait faussée |
+| **Indice STOI** (Taal et al., 2011) écrit en TypeScript, vérifié contre l'implémentation de référence pystoi (écart inférieur à 1e-4) | Mesure objective et reproductible de « reste compréhensible », sans Python dans le pipeline | Écoute seule : non reproductible |
+| **Relais 3G** (`packages/audio/src/relay.ts`, en ligne de commande par `infra/local/relay-3g.ts`) : 400 kbit/s, 400 ms d'aller-retour, 2 allers-retours d'établissement de connexion | L'établissement de la connexion (TCP puis TLS 1.3) est compté, ce que le bridage de Chromium ne fait pas (décision du maître d'œuvre). Le relais est lui-même testé : premier octet après 3 allers-retours, débit tenu | Bridage du navigateur |
+
+**Règle de preuve de « reste compréhensible »** : STOI d'au moins 0,75 par rapport à la voix propre, et perte d'au plus 0,02 par rapport à la même voix compressée sans traitement. La règle envisagée avant de coder (« jamais en dessous de la voix bruitée ») est intenable : la compression Opus seule coûte déjà 0,005.
+
+**Résultats mesurés** (pipeline) : 90 s traitées → **268 Ko**, 90,0 s, **STOI 0,836** (voix bruitée brute : 0,853 ; compressée sans traitement : 0,847). Lecture en 3G : **2,3 s** du clic au son, après 52 Ko reçus.
 
 ---
 
