@@ -9,6 +9,8 @@ bash infra/ci/test.sh
 bash infra/ci/build.sh
 bash infra/ci/e2e.sh
 bash infra/ci/audio-lecture.sh
+# Application mobile : Flutter 3.47.7 (FLUTTER_BIN si le Flutter par défaut est une autre version)
+bash infra/ci/mobile.sh
 bash infra/ci/audit.sh
 bash infra/ci/audit-selftest.sh
 bash infra/ci/env-check.sh

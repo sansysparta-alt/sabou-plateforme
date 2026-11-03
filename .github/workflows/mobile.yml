@@ -1,0 +1,41 @@
+# Application mobile Flutter : ce fichier ne fait qu'appeler infra/ci/mobile.sh. Le job ne
+# tourne que si l'application (ou sa chaîne de compilation) change, pour économiser les
+# minutes d'intégration continue (US-005, 05_Choix_Techniques §2.13). Actions épinglées par SHA.
+name: Application mobile
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'infra/ci/mobile.sh'
+      - '.github/workflows/mobile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'infra/ci/mobile.sh'
+      - '.github/workflows/mobile.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  flutter:
+    name: Flutter (analyse, tests, APK)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash infra/ci/mobile.sh
+      # APK de débogage, pour l'essai sur téléphone du maître d'œuvre
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sabou-mobile-debug-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error

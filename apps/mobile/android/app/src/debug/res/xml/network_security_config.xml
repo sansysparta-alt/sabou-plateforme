@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Version de débogage seulement : HTTP non chiffré autorisé vers le poste de
+     développement (banc d'essai et relais 3G, relié par adb reverse), et nulle part
+     ailleurs. La version publiée n'a pas ce fichier : HTTPS partout. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

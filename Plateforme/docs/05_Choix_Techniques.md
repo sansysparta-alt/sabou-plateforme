@@ -224,7 +224,7 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 ### 2.17 Prototype de la chaîne audio (récit US-005, novembre 2026)
 
-**Décision « validé » ou « remplacé » : en attente du maître d'œuvre**, après l'essai sur téléphone (application Flutter, seconde partie du récit). Partie serveur : les choix ci-dessous ont été tranchés en cours de récit, sur mesure.
+**Décision du maître d'œuvre (2 novembre 2026) : validé**, après l'essai sur téléphone (mi-force retenue). Partie serveur : les choix ci-dessous ont été tranchés en cours de récit, sur mesure.
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
@@ -240,6 +240,32 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 **Règle de preuve de « reste compréhensible »** : STOI d'au moins 0,75 par rapport à la voix propre, et perte d'au plus 0,02 par rapport à la même voix compressée sans traitement. La règle envisagée avant de coder (« jamais en dessous de la voix bruitée ») est intenable : la compression Opus seule coûte déjà 0,005.
 
 **Résultats mesurés** (pipeline) : 90 s traitées → **268 Ko**, 90,0 s, **STOI 0,836** (voix bruitée brute : 0,853 ; compressée sans traitement : 0,847). Lecture en 3G : **2,3 s** du clic au son, après 52 Ko reçus.
+
+**Essai sur téléphone (2 novembre 2026)** : REDMI Note 15 (2510DRA23G), Android 16, application Flutter de débogage, relais 3G du banc d'essai. Voix réelle de 66,6 s enregistrée sur le téléphone : **323 Ko envoyés en 14,2 s**, rendus en 189 Ko (mi-force) et 190 Ko (pleine force). Téléchargement mesuré au travers du même relais 3G : premier octet reçu en **1,5 s**, fichier complet en 5,2 s, pour les deux versions. **Décision du maître d'œuvre (2 novembre 2026)** : le son est jugé bon, **RNNoise à mi-force est retenu**.
+
+**Règles de tout lecteur audio de la plateforme** (application et site ; posées après l'essai, à appliquer dans les récits qui affichent un lecteur) :
+
+| Règle | Référence |
+|---|---|
+| Lecture et pause toujours visibles, jamais de lecture automatique | WCAG 2.2, critère 1.4.2 |
+| Vitesse réglable : 0,75×, 1×, 1,25×, 1,5×, 2×, sans changer la hauteur de la voix ; la vitesse choisie est gardée d'une écoute à l'autre | Backlog (lecteur par section) ; pratique des lecteurs de podcast |
+| Recul et avance de 10 s, barre de progression déplaçable, temps écoulé et durée totale | Pratique courante (Android Media3, lecteurs de podcast) |
+| Reprise là où l'écoute s'est arrêtée | Pratique courante |
+| Cibles tactiles d'au moins 48 dp, chaque bouton nommé pour le lecteur d'écran, commandes au clavier sur le site | WCAG 2.2 (2.5.8, 4.1.2, 2.1.1) ; Material |
+| Lecture qui démarre avant la fin du téléchargement, et indicateur de chargement en 3G | E1, mesures ci-dessus |
+| Transcription en français seulement ; aucune transcription écrite en langue nationale | Règle du projet (langues nationales en voix uniquement) |
+
+**Application mobile (seconde partie du récit)**
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Flutter 3.47.7**, épinglé par version et par l'empreinte SHA-256 de l'archive officielle (`infra/ci/mobile.sh`) ; sur le poste, installé à part (`FLUTTER_BIN`) | Même règle que les actions et les images (§2.13). 3.47.9, la plus récente, avait 4 jours : trop jeune | Action Flutter tierce : une dépendance de plus à épingler et à surveiller |
+| **Job Flutter dans son propre workflow** (`mobile.yml`), déclenché seulement par `apps/mobile/` et ses fichiers de pipeline ; APK de débogage publié 14 jours | Critère de US-005 et économie de minutes (§2.13). La règle est vérifiée par `check-repo.sh`, avec contre-épreuve | Job dans `ci.yml` avec un test interne : il démarrerait à chaque demande |
+| **`record`** (enregistrement) et **`just_audio`** (lecture progressive) | Paquets les plus utilisés de l'écosystème Flutter pour ces besoins ; `record` écrit l'Opus d'Android 10 en Ogg et l'AAC en MP4, formats acceptés par le serveur | — |
+| **Enregistrement et lecture derrière deux interfaces** (`lib/audio_io.dart`) | L'écran se teste sans micro ni haut-parleur, avec les règles d'accessibilité de Flutter (cibles tactiles, libellés, contraste) | — |
+| **HTTP en clair vers `localhost` seulement, en version de débogage** (`network_security_config`) | Le banc d'essai est relié par `adb reverse`. La version publiée n'a pas ce fichier : HTTPS partout | Autoriser le HTTP en clair partout |
+| **Banc d'essai** (`packages/audio/src/essai-server.ts`), derrière le relais 3G : reçoit la voix, la traite à mi-force et à pleine force, sert les deux versions par morceaux. Pour l'essai seulement | La chaîne de production passera par l'API (tâche pg-boss, SeaweedFS). Types, taille (3 Mo) et chemins contrôlés et testés ; voix effacées à l'arrêt, jamais dans le dépôt | Ajouter FFmpeg à l'image de l'API dès maintenant : prématuré |
+| **Compilation Kotlin incrémentale désactivée, mémoire de Gradle à 4 Go** | Sous Windows, la compilation incrémentale échoue quand le projet et le cache des paquets sont sur deux lecteurs ; les 8 Go du modèle Flutter dépassent la mémoire d'un poste de 8 Go | — |
 
 ---
 

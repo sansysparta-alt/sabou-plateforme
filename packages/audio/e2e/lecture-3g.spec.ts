@@ -11,6 +11,7 @@ import { expect, test } from '@playwright/test';
 import { startRelay, type Relay } from '../src/relay.ts';
 import { packageDir } from '../src/ffmpeg.ts';
 import { processVoice } from '../src/process.ts';
+import { sendAudio } from '../src/serve-file.ts';
 
 const MAX_START_MS = 3000;
 
@@ -31,27 +32,7 @@ function listen(server: Server): Promise<number> {
 
 /** Fichier audio servi comme par le stockage objet : demandes partielles (Range) acceptées. */
 function serveAudio(file: Buffer): Server {
-  return createServer((request, response) => {
-    const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.range ?? '');
-    const headers = {
-      'Content-Type': 'audio/webm',
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': 'no-store',
-    };
-    if (!range) {
-      response.writeHead(200, { ...headers, 'Content-Length': file.length });
-      response.end(file);
-      return;
-    }
-    const start = Number(range[1]);
-    const end = range[2] ? Math.min(Number(range[2]), file.length - 1) : file.length - 1;
-    response.writeHead(206, {
-      ...headers,
-      'Content-Range': `bytes ${start}-${end}/${file.length}`,
-      'Content-Length': end - start + 1,
-    });
-    response.end(file.subarray(start, end + 1));
-  });
+  return createServer((request, response) => sendAudio(request, response, file, 'audio/webm'));
 }
 
 test.beforeAll(async () => {

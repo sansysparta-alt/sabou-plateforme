@@ -6,3 +6,5 @@ dist/
 .next/
 .turbo/
 coverage/
+# Application Flutter : formatée par dart format (job Flutter) ; pubspec.yaml est réécrit par Flutter
+apps/mobile/
