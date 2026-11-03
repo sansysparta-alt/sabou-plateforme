@@ -267,6 +267,16 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 | **Banc d'essai** (`packages/audio/src/essai-server.ts`), derrière le relais 3G : reçoit la voix, la traite à mi-force et à pleine force, sert les deux versions par morceaux. Pour l'essai seulement | La chaîne de production passera par l'API (tâche pg-boss, SeaweedFS). Types, taille (3 Mo) et chemins contrôlés et testés ; voix effacées à l'arrêt, jamais dans le dépôt | Ajouter FFmpeg à l'image de l'API dès maintenant : prématuré |
 | **Compilation Kotlin incrémentale désactivée, mémoire de Gradle à 4 Go** | Sous Windows, la compilation incrémentale échoue quand le projet et le cache des paquets sont sur deux lecteurs ; les 8 Go du modèle Flutter dépassent la mémoire d'un poste de 8 Go | — |
 
+### 2.18 Analyse du code par Semgrep (récit US-007, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Semgrep 1.181.0, édition communautaire**, image `semgrep/semgrep` épinglée par empreinte, lancée par `infra/ci/semgrep.sh` | Le script tourne tel quel sur GitLab CI (US-008) ; `--metrics=off` : aucune donnée envoyée à Semgrep, le code n'est jamais transmis | CodeQL : payant sur un dépôt privé. Semgrep AppSec Platform : service externe, compte requis |
+| **Règles du dépôt `semgrep/semgrep-rules`, épinglées par commit**, téléchargées à chaque analyse (bash, dockerfile, generic, html, javascript, typescript, yaml) | Le même code donne toujours le même verdict. La licence des règles (Semgrep Rules License v1.0) permet l'usage interne mais pas la redistribution : elles ne sont pas copiées dans le dépôt | Jeux du registre (`p/default`) : changent sans prévenir, non épinglables |
+| **Seule la gravité haute bloque** (ERROR, ou HIGH et CRITICAL) ; les autres résultats sont affichés | Critère de US-007. Les avertissements restent visibles sans arrêter le travail | Tout bloquer : trop de bruit (règles de style, portabilité) |
+| **Exceptions ligne par ligne, justifiées** (`// nosemgrep: <règle> -- raison`), et règle i18next écartée (le projet n'utilise pas i18next) | Une exception se lit dans le diff, à côté du code concerné | Exclure des dossiers entiers : cacherait les vrais problèmes |
+| **Contre-épreuve** `infra/ci/semgrep-selftest.sh` : un `fetch` en HTTP clair doit bloquer, le même en HTTPS doit passer | Preuve que le blocage fonctionne vraiment | — |
+
 ---
 
 ## 3. Architecture
