@@ -105,6 +105,7 @@ services:
     image: sabou-api:local
     environment:
       DATABASE_URL: postgres://sabou_app:${SABOU_APP_PASSWORD:?}@postgres:5432/sabou
+      SYNC_JWT_SECRET: ${POWERSYNC_JWT_SECRET:?}
     depends_on:
       postgres:
         condition: service_healthy

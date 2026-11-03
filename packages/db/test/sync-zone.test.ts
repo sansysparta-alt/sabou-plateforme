@@ -2,6 +2,7 @@
 // d'une autre zone. Le service PowerSync réel (même image que infra/local/compose.yaml)
 // lit la base par réplication logique ; le test lit le flux de synchronisation comme le
 // ferait le téléphone. PowerSync voit toute la table : seul sync-rules.yaml cloisonne.
+// Les avis de conflit (R-DON-04, point 4) ne vont qu'à leur destinataire.
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { GenericContainer, Wait, type StartedTestContainer } from 'testcontainers';
@@ -17,7 +18,12 @@ const jwtSecret = randomBytes(32).toString('base64url');
 
 let db: TestDatabase;
 let powersync: StartedTestContainer;
-const ids = { labe: randomUUID(), kankan: randomUUID() };
+const ids = {
+  labe: randomUUID(),
+  kankan: randomUUID(),
+  avisLabe: randomUUID(),
+  avisKankan: randomUUID(),
+};
 
 interface Claims {
   sub: string;
@@ -45,6 +51,9 @@ interface SyncResult {
   status: number;
   rows: { object_type: string; object_id: string; data: Record<string, unknown> }[];
 }
+
+const objects = (rows: SyncResult['rows'], table: string) =>
+  rows.filter((row) => row.object_type === table).map((row) => row.object_id);
 
 // Lit le flux NDJSON de /sync/stream jusqu'au premier point de contrôle complet
 async function sync(jwt: string): Promise<SyncResult> {
@@ -98,7 +107,10 @@ beforeAll(async () => {
     db.url.app,
     `INSERT INTO sabou.saisie_terrain (id, type, prefecture_id, auteur_id, contenu) VALUES
        ('${ids.labe}', 'dossier', ${LABE}, 3, '{"praticien": "Sékou Kourouma"}'),
-       ('${ids.kankan}', 'dossier', ${KANKAN}, 5, '{"praticien": "Aïssatou Traoré"}')`,
+       ('${ids.kankan}', 'dossier', ${KANKAN}, 5, '{"praticien": "Aïssatou Traoré"}');
+     INSERT INTO sabou.saisie_terrain_avis (id, saisie_id, destinataire_id, motif) VALUES
+       ('${ids.avisLabe}', '${ids.labe}', 3, 'version_plus_recente'),
+       ('${ids.avisKankan}', '${ids.kankan}', 5, 'version_plus_recente')`,
   );
 
   const pg = (user: string, password: string, database: string) =>
@@ -138,13 +150,19 @@ describe('Cloisonnement par zone de la synchronisation (US-004, R-DON-04)', () =
       token({ sub: '3', role: 'prefectoral', prefecture_id: LABE }),
     );
     expect(status).toBe(200);
-    expect(rows.map((row) => row.object_id)).toEqual([ids.labe]);
-    expect(rows.every((row) => row.data.prefecture_id === LABE)).toBe(true);
+    expect(objects(rows, 'saisie_terrain')).toEqual([ids.labe]);
+    expect(objects(rows, 'saisie_terrain_avis')).toEqual([ids.avisLabe]);
+    expect(
+      rows
+        .filter((row) => row.object_type === 'saisie_terrain')
+        .every((row) => row.data.prefecture_id === LABE),
+    ).toBe(true);
   });
 
   it("l'agent de Kankan reçoit le dossier de Kankan et aucun dossier de Labé", async () => {
     const { rows } = await sync(token({ sub: '5', role: 'prefectoral', prefecture_id: KANKAN }));
-    expect(rows.map((row) => row.object_id)).toEqual([ids.kankan]);
+    expect(objects(rows, 'saisie_terrain')).toEqual([ids.kankan]);
+    expect(objects(rows, 'saisie_terrain_avis')).toEqual([ids.avisKankan]);
   });
 
   it("un compte qui n'est pas agent préfectoral ne reçoit rien, même avec une préfecture", async () => {

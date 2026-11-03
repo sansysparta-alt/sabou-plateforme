@@ -38,19 +38,20 @@ Périmètre : squelettes minimaux (un test chacun, aucune fonctionnalité). Hors
 /weight 5"
 [US-004] Un prototype de synchronisation hors réseau (Flutter + PowerSync),"En tant qu’équipe, je veux un prototype de synchronisation hors réseau (Flutter + PowerSync), afin de valider ou remplacer ce choix technique.
 
-**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-74
+**Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 6 · **Cas** : UC-74
 
-Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique.
+Périmètre : les lignes de la base (dossier et ses données). Les fichiers (pièces et voix) sont traités par US-009. PowerSync en édition auto-hébergée (licence FSL), dans Docker Compose ; PostgreSQL en réplication logique. Base du téléphone chiffrée (SQLCipher).
 
 **Critères d’acceptation**
 - [ ] Étant donné un téléphone sans réseau, quand un agent saisit un dossier, alors il est conservé sur le téléphone.
 - [ ] Étant donné une synchronisation coupée puis rétablie, quand elle s’exécute, alors le dossier apparaît sur le serveur sans perte.
 - [ ] Étant donné une modification concurrente, quand la synchronisation s’exécute, alors la version validée du serveur prime et l’autre reste en brouillon (R-DON-04, précisée dans 04_Regles_Metier.md).
 - [ ] Étant donné un agent d’une zone, quand la synchronisation s’exécute, alors il ne reçoit aucune donnée d’une autre zone (test automatique obligatoire : les règles de synchronisation filtrent en dehors du RLS).
+- [ ] Étant donné la base du téléphone, quand on la lit sans la clé, alors elle est illisible ; la clé est gardée dans le magasin sécurisé du téléphone (Keystore Android), jamais dans le code ; le surcoût du chiffrement est mesuré sur téléphone d’entrée de gamme et noté dans 05_Choix_Techniques.md.
 - [ ] Une décision écrite « validé » ou « solution remplacée » est ajoutée à 05_Choix_Techniques.md ; elle dit ce que l’équipe ferait si la licence FSL devenait bloquante.
 
 /label ~""E00"" ~""Must"" ~""S0""
-/weight 5"
+/weight 6"
 [US-009] Synchroniser les pièces jointes et la voix hors réseau,"En tant qu’agent de terrain, je veux que les pièces et les voix d’un dossier saisies sans réseau arrivent sur le serveur, afin qu’aucun fichier ne soit perdu.
 
 **Epic** : E00 Fondations techniques · **Sprint** : S0 · **Priorité** : Must · **Points** : 4 · **Cas** : UC-74

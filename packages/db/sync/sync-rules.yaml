@@ -15,3 +15,14 @@ bucket_definitions:
         SELECT id, type, prefecture_id, auteur_id, contenu, statut, version, origine_id, recue_le
         FROM sabou.saisie_terrain
         WHERE prefecture_id = bucket.prefecture_id
+
+  avis_agent:
+    # Avis de conflit (R-DON-04, point 4) : à leur seul destinataire
+    parameters: >-
+      SELECT CAST(request.user_id() AS integer) AS agent
+      WHERE request.jwt() ->> 'role' = 'prefectoral'
+    data:
+      - >-
+        SELECT id, saisie_id, motif, copie_id, cree_le
+        FROM sabou.saisie_terrain_avis
+        WHERE destinataire_id = bucket.agent

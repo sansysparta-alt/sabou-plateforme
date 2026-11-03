@@ -15,11 +15,11 @@ const envFile = join(root, '.env');
 const compose = ['compose', '--file', 'infra/local/compose.yaml', '--env-file', '.env'];
 
 // Copie .env.example en remplissant chaque variable vide par un secret aléatoire
-// (base64url : utilisable tel quel dans une URL de connexion)
+// (base64url : utilisable tel quel dans une URL de connexion ; 256 bits, assez pour une clé HS256)
 function generateEnv(example) {
   return example
     .replaceAll('\r\n', '\n')
-    .replace(/^([A-Z0-9_]+)=$/gm, (_, name) => `${name}=${randomBytes(24).toString('base64url')}`);
+    .replace(/^([A-Z0-9_]+)=$/gm, (_, name) => `${name}=${randomBytes(32).toString('base64url')}`);
 }
 
 function ensureEnv() {
@@ -68,9 +68,10 @@ function docker(args) {
 }
 
 function main(command = 'up') {
+  // Avant toute commande : Compose refuse un .env auquel manque une variable
+  if (['up', 'down', 'reset'].includes(command)) ensureEnv();
   switch (command) {
     case 'up': {
-      ensureEnv();
       docker(['up', '--detach', '--build', '--wait', '--wait-timeout', '300']);
       const env = readEnv();
       console.log(`
