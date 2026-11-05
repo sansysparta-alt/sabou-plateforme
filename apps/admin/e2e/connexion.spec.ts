@@ -14,6 +14,9 @@ import {
 } from './keycloak';
 
 async function expectAccessible(page: Page, screen: string): Promise<void> {
+  // Page complète (feuilles de style comprises) : sinon un bouton pas encore mis en forme
+  // peut sembler trop petit (target-size), selon la vitesse du réseau
+  await page.waitForLoadState('load');
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
