@@ -310,6 +310,27 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 ---
 
+### 2.20 Connexion et double facteur (récit US-010, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 5 novembre 2026 (questions de sécurité posées avant le développement).
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **API intermédiaire (« BFF »)** : l'API NestJS échange le code d'autorisation (OIDC, PKCE S256, `state` lié au navigateur par un cookie, `nonce`), vérifie le jeton d'identité (`openid-client` 6.8.8) et garde les jetons ; le navigateur n'a qu'un cookie `__Host-sabou_session` HttpOnly, Secure, SameSite=Lax. Sessions dans Valkey (`ioredis` 5.11.1) : seule l'empreinte SHA-256 de l'identifiant est stockée | Un script injecté ne peut pas voler de jeton ; la révocation (US-013) se fait côté serveur. Recommandation actuelle pour les applications dans le navigateur (OAuth 2.0 for Browser-Based Apps) | Jetons dans l'application React : exposés à toute faille XSS |
+| **Pages de connexion servies par Keycloak**, thème `sabou` (gabarits de base, une feuille CSS de quelques Ko, français et anglais) | Le mot de passe ne transite jamais par notre code ; page légère en 3G | Formulaire maison avec « direct grant » : déconseillé (OAuth 2.1), contourne le double facteur conditionnel ; thème `keycloak.v2` (PatternFly) : trop lourd en 3G |
+| **Double facteur** : code TOTP d'une application (FreeOTP, Google ou Microsoft Authenticator), obligatoire pour le rôle technique `administrateur` (porté par `dg`, `admin_regional`, `admin_prefectoral`, `comite`), proposé aux autres. Un administrateur sans second facteur doit configurer le TOTP puis ses codes de secours avant tout accès. Téléphone perdu : code de secours, ou réinitialisation par la DG | R-ACC-03 ; pas de SMS (détournement de carte SIM, coût, agrégateur pas encore prêt) | SMS ; passkeys (plus tard) |
+| **Défense en profondeur** : l'API refuse la session d'un administrateur dont le jeton ne contient pas `otp` dans le claim `amr`. Juste après l'activation, l'administrateur se reconnecte donc une fois avec son nouveau code | Une erreur de configuration de Keycloak ne suffit pas à ouvrir l'accès | — |
+| **`prompt=login`** à chaque connexion | `amr` décrit toujours les facteurs réellement saisis ; l'activation du double facteur exige de retaper le mot de passe ; pas de course entre la déconnexion et le cookie SSO de Keycloak | Reprise silencieuse de la session Keycloak |
+| **Blocage** : 5 échecs, compte bloqué 15 minutes (compteur remis à zéro après 12 h sans échec), sans blocage définitif ; tentatives à moins d'une seconde d'intervalle : 1 minute | CdC §3.1. Limite connue : un tiers qui connaît un identifiant peut le bloquer 15 minutes | Blocage définitif : déni de service trop facile |
+| **Sessions** : 30 minutes d'inactivité, 10 heures au plus (Keycloak et API) ; jeton d'accès de 5 minutes | ASVS V3 | — |
+| **Journal** : événements de connexion de Keycloak (dont `LOGIN_ERROR` et `USER_DISABLED_BY_TEMPORARY_LOCKOUT`) conservés 90 jours ; US-030 les versera au journal d'audit | R-ACC-05 | — |
+| **Domaine Keycloak versionné** : `infra/local/keycloak/realm-sabou.json`, importé à la création du domaine ; `pnpm env:realm` le réimporte en local | Configuration relue et reproductible, la même en recette et en production | Réglage à la main dans la console |
+| **Mot de passe oublié** : « Contactez votre administrateur » ; réinitialisation par e-mail plus tard (service SMTP à choisir) | Pas de service externe ajouté sans accord | — |
+
+**Particularités de Keycloak 26.8 relevées** (à garder en tête si l'on modifie le parcours) : une étape ALTERNATIVE n'est pas inscrite dans le claim `amr` ; chaque méthode est donc placée dans son propre sous-parcours, où elle est REQUIRED. Une référence AMR sans `default.reference.maxAge` n'est gardée que si le jeton est émis dans la même seconde : la durée est fixée à 10 heures. Le code saisi pendant la configuration du TOTP ne compte pas dans `amr`.
+
+**Contrôles du pipeline** (job « Application de gestion de bout en bout », `infra/ci/e2e-admin.sh`) : tests Playwright des critères contre le vrai Keycloak, axe (WCAG 2.2 AA) sur chaque écran traversé ; Lighthouse CI sur la page d'accueil et la page de connexion Keycloak, 3G normale (300 ms, 700 kbit/s, processeur divisé par 4), médiane de 3 mesures. Seuils bloquants : performance ≥ 0,90, accessibilité = 1, bonnes pratiques ≥ 0,90, LCP ≤ 3 s, CLS ≤ 0,1, TBT ≤ 200 ms, poids ≤ 150 Ko. Mesures du 5 novembre 2026 : application 0,92 / 1 / 0,96, LCP 2,8 s, 61 Ko ; Keycloak 0,97 / 1 / 1, LCP 2,1 s, 29 Ko. Le LCP de l'application (2,8 s) dépasse l'objectif de 2,5 s : le contenu attend React (60 Ko compressés). Piste : pré-générer la page de connexion à la compilation. Les pages sont servies comme en production (`apps/admin/scripts/serve.mjs` : Brotli, cache long, CSP).
+
 ## 3. Architecture
 
 ```

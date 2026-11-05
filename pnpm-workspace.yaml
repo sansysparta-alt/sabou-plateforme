@@ -10,3 +10,9 @@ allowBuilds:
   cpu-features: false
   protobufjs: false
   ssh2: false
+# @nestjs/platform-express importe rxjs sans le déclarer : sans cette ligne, il prend la version
+# remontée dans node_modules, qui peut être rxjs 6 (amené par @lhci/cli) au lieu de rxjs 7.
+packageExtensions:
+  '@nestjs/platform-express':
+    peerDependencies:
+      rxjs: '^7.8.0'

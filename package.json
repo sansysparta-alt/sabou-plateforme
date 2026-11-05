@@ -15,6 +15,7 @@
     "env:up": "node infra/local/up.mjs up",
     "env:down": "node infra/local/up.mjs down",
     "env:reset": "node infra/local/up.mjs reset",
+    "env:realm": "node infra/local/up.mjs realm",
     "db:migrate": "pnpm --filter @sabou/db migrate",
     "db:hash": "pnpm --filter @sabou/db hash",
     "db:seed": "pnpm --filter @sabou/db seed",

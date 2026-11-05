@@ -35,9 +35,17 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332 # 26.8.1
-    # Mode développement (HTTP, sans nom d'hôte imposé) ; la base reste PostgreSQL, comme en production
-    command: [start-dev]
+    # Mode développement (HTTP) ; la base reste PostgreSQL, comme en production.
+    # Le domaine « sabou » (US-010) n'est importé qu'au premier démarrage : après une
+    # modification de keycloak/realm-sabou.json, lancer « node infra/local/up.mjs reset ».
+    command: [start-dev, --import-realm]
     environment:
+      # Adresse vue par le navigateur (émetteur des jetons) ; l'API passe par le réseau interne
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8080}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      # Valeurs reportées dans realm-sabou.json à l'import
+      SABOU_ADMIN_CLIENT_SECRET: ${SABOU_ADMIN_CLIENT_SECRET:?}
+      SABOU_ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
@@ -45,6 +53,9 @@ services:
       KC_HEALTH_ENABLED: 'true'
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
+    volumes:
+      - ./keycloak/realm-sabou.json:/opt/keycloak/data/import/realm-sabou.json:ro
+      - ./keycloak/themes/sabou:/opt/keycloak/themes/sabou:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +117,13 @@ services:
     environment:
       DATABASE_URL: postgres://sabou_app:${SABOU_APP_PASSWORD:?}@postgres:5432/sabou
       SYNC_JWT_SECRET: ${POWERSYNC_JWT_SECRET:?}
+      # Connexion des utilisateurs (US-010) : émetteur public, échanges par le réseau interne
+      KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-8080}/realms/sabou
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_ALLOW_HTTP: 'true'
+      ADMIN_CLIENT_SECRET: ${SABOU_ADMIN_CLIENT_SECRET:?}
+      ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
+      VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
     depends_on:
       postgres:
         condition: service_healthy
