@@ -17,7 +17,12 @@ async function expectAccessible(page: Page, screen: string): Promise<void> {
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
-  expect(violations.map((v) => `${screen} — ${v.id} : ${v.help}`)).toEqual([]);
+  // Élément fautif cité : un échec dans le pipeline se comprend sans le reproduire
+  expect(
+    violations.map(
+      (v) => `${screen} — ${v.id} : ${v.help} [${v.nodes.map((n) => n.html).join(' | ')}]`,
+    ),
+  ).toEqual([]);
 }
 
 async function submitPassword(page: Page, user: TestUser, password = user.password) {
