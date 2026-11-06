@@ -52,8 +52,12 @@ function load(dir) {
 load(dist);
 
 function proxy(req, res) {
+  // Premier mandataire : l'IP du client (journal d'audit, US-030) est celle de la connexion,
+  // jamais un en-tête X-Forwarded-For ou Forwarded envoyé par le client lui-même
+  const headers = { ...req.headers, 'x-forwarded-for': req.socket.remoteAddress ?? '' };
+  delete headers.forwarded;
   const upstream = request(
-    { host: '127.0.0.1', port: apiPort, path: req.url, method: req.method, headers: req.headers },
+    { host: '127.0.0.1', port: apiPort, path: req.url, method: req.method, headers },
     (response) => {
       res.writeHead(response.statusCode ?? 502, response.headers);
       response.pipe(res);

@@ -12,6 +12,11 @@ import {
   userEvents,
   type TestUser,
 } from './keycloak';
+import { auditLines } from './audit';
+
+// La relève des événements Keycloak a lieu toutes les 5 s en local (AUDIT_POLL_SECONDS)
+const AUDIT_DELAY = { timeout: 20_000, intervals: [1_000] };
+const ipAddress = expect.stringMatching(/^[0-9a-f.:]+$/);
 
 async function expectAccessible(page: Page, screen: string): Promise<void> {
   // Page complète (feuilles de style comprises) : sinon un bouton pas encore mis en forme
@@ -178,4 +183,43 @@ test('5 échecs : la 6e tentative est refusée, même avec le bon mot de passe, 
   expect(events.filter((e) => e.type === 'LOGIN_ERROR').length).toBeGreaterThanOrEqual(6);
   expect(events.some((e) => e.type === 'USER_DISABLED_BY_TEMPORARY_LOCKOUT')).toBe(true);
   expect(events.some((e) => e.error === 'user_temporarily_disabled')).toBe(true);
+
+  // US-030 : échecs et blocage versés au journal d'audit, avec l'IP
+  await expect
+    .poll(() => auditLines(user.id).map((line) => line.action), AUDIT_DELAY)
+    .toContain('keycloak.user_disabled_by_temporary_lockout');
+  const errors = auditLines(user.id).filter((line) => line.action === 'keycloak.login_error');
+  expect(errors.length).toBeGreaterThanOrEqual(6);
+  expect(errors[0]).toMatchObject({ source: 'keycloak', ip: ipAddress });
+});
+
+test('journal d’audit : échec, connexion et déconnexion, avec l’IP (US-030)', async ({ page }) => {
+  const user = await createUser('praticien');
+  // Contre-épreuve : une IP annoncée par le client lui-même n'est jamais retenue
+  await page.setExtraHTTPHeaders({ 'x-forwarded-for': '203.0.113.9' });
+  await startLogin(page);
+  await submitPassword(page, user, `mauvais-${user.password}`);
+  await expect(page.locator('#input-error')).toBeVisible();
+  await page.waitForTimeout(1_100);
+  await submitPassword(page, user);
+  await expect(page).toHaveURL(`${APP}/`);
+  await page.getByRole('button', { name: 'Se déconnecter' }).click();
+  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+
+  await expect
+    .poll(() => auditLines(user.id).map((line) => `${line.source}:${line.action}`), AUDIT_DELAY)
+    .toEqual(
+      expect.arrayContaining([
+        'keycloak:keycloak.login_error',
+        'keycloak:keycloak.login',
+        'application:connexion.reussie',
+        'application:deconnexion',
+      ]),
+    );
+  const lines = auditLines(user.id);
+  expect(lines.every((line) => line.ip !== null && line.ip !== '203.0.113.9')).toBe(true);
+  expect(lines.find((line) => line.action === 'connexion.reussie')).toMatchObject({
+    ip: ipAddress,
+    details: { identifiant: user.username, second_facteur: false },
+  });
 });

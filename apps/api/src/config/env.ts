@@ -23,6 +23,15 @@ const envSchema = z
     // Adresse publique de l'application de gestion (même origine que /auth, via le proxy)
     ADMIN_APP_URL: z.url({ protocol: /^https?$/ }),
     VALKEY_URL: z.url({ protocol: /^rediss?$/ }),
+
+    // Journal d'audit (US-030) : compte de service Keycloak en lecture seule des événements
+    // de connexion (rôle view-events), relevés toutes les AUDIT_POLL_SECONDS (0 : jamais)
+    AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),
+    AUDIT_CLIENT_SECRET: z.string().min(32),
+    AUDIT_POLL_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
+    // Mandataires dont l'en-tête X-Forwarded-For fait foi pour l'IP du journal (syntaxe
+    // « trust proxy » d'Express). Par défaut : réseaux privés seulement (Docker, proxy interne).
+    TRUST_PROXY: z.string().min(1).default('loopback, linklocal, uniquelocal'),
   })
   .superRefine((env, ctx) => {
     // Sans TLS, les échanges avec Keycloak et le cookie de session seraient lisibles sur le réseau

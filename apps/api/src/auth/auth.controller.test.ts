@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { Logger, Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { sessionUserSchema } from '@sabou/types';
+import { AUDIT_LOG, type AuditEntry, type AuditLog } from '../audit/audit.log';
 import { ENV, loadEnv } from '../config/env';
 import { AuthController, LOGIN_COOKIE, SESSION_COOKIE, safeReturnTo } from './auth.controller';
 import { IDENTITY_PROVIDER, type IdentityClaims, type IdentityProvider } from './identity-provider';
@@ -42,6 +43,16 @@ class MemoryStore implements SessionStore {
   }
 }
 
+// Journal d'audit simulé : garde les lignes ; peut être rendu indisponible
+class MemoryAudit implements Pick<AuditLog, 'record'> {
+  entries: AuditEntry[] = [];
+  down = false;
+  async record(entry: AuditEntry) {
+    if (this.down) throw new Error('base indisponible');
+    this.entries.push(entry);
+  }
+}
+
 // Keycloak simulé : les identités renvoyées sont choisies par chaque test
 class FakeIdp implements IdentityProvider {
   claims: IdentityClaims = identity(['praticien'], ['pwd']);
@@ -63,6 +74,7 @@ function identity(roles: string[], amr: string[]): IdentityClaims {
 
 const store = new MemoryStore();
 const idp = new FakeIdp();
+const audit = new MemoryAudit();
 let app: INestApplication;
 let base: string;
 
@@ -73,6 +85,7 @@ beforeAll(async () => {
     KEYCLOAK_ISSUER: 'http://localhost:8080/realms/sabou',
     KEYCLOAK_ALLOW_HTTP: 'true',
     ADMIN_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    AUDIT_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     ADMIN_APP_URL: APP,
     VALKEY_URL: 'redis://localhost:6379',
   });
@@ -82,6 +95,7 @@ beforeAll(async () => {
       { provide: ENV, useValue: env },
       { provide: IDENTITY_PROVIDER, useValue: idp },
       { provide: SESSION_STORE, useValue: store },
+      { provide: AUDIT_LOG, useValue: audit },
     ],
   })
   class TestModule {}
@@ -95,10 +109,13 @@ afterAll(() => app.close());
 beforeEach(() => {
   store.sessions.clear();
   store.logins.clear();
+  audit.entries = [];
+  audit.down = false;
   idp.logout.mockClear();
   idp.finishLogin.mockClear();
   vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
   vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+  vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 });
 
 function setCookies(response: Response): string[] {
@@ -262,6 +279,64 @@ describe('POST /auth/logout', () => {
     expect(setCookies(response).find((c) => c.startsWith(`${SESSION_COOKIE}=`))).toMatch(
       /Expires=Thu, 01 Jan 1970/,
     );
+  });
+});
+
+// US-030 : toute connexion est journalisée (R-ACC-05) ; les échecs et blocages saisis
+// dans Keycloak sont relevés par KeycloakEventsPoller
+describe('Journal d’audit des connexions', () => {
+  const ip = expect.stringMatching(/^(::ffff:)?127\.0\.0\.1$|^::1$/);
+
+  it('connexion réussie : qui, quoi et IP', async () => {
+    await loginAs(['dg', 'administrateur'], ['pwd', 'otp']);
+    expect(audit.entries).toEqual([
+      {
+        action: 'connexion.reussie',
+        objectType: 'compte',
+        objectId: 'u-1',
+        account: 'u-1',
+        ip,
+        details: { identifiant: 'awa.camara', second_facteur: true },
+      },
+    ]);
+  });
+
+  it('connexion refusée faute de second facteur : journalisée', async () => {
+    await loginAs(['comite', 'administrateur'], ['pwd']);
+    expect(audit.entries).toMatchObject([
+      {
+        action: 'connexion.refusee',
+        account: 'u-1',
+        ip,
+        details: { motif: 'double_facteur_absent' },
+      },
+    ]);
+  });
+
+  it('journal indisponible : aucune session ouverte, session Keycloak fermée', async () => {
+    audit.down = true;
+    const response = await loginAs(['praticien'], ['pwd']);
+    expect(response.headers.get('location')).toBe(`${APP}/?erreur=connexion`);
+    expect(cookieValue(response, SESSION_COOKIE)).toBeUndefined();
+    expect(store.sessions.size).toBe(0);
+    expect(idp.logout).toHaveBeenCalledWith('jeton-de-rafraichissement');
+  });
+
+  it('déconnexion : journalisée ; close même si le journal est indisponible', async () => {
+    const login = await loginAs(['praticien'], ['pwd']);
+    const cookie = `${SESSION_COOKIE}=${cookieValue(login, SESSION_COOKIE)}`;
+    audit.entries = [];
+    await fetch(`${base}/auth/logout`, { method: 'POST', headers: { cookie, origin: APP } });
+    expect(audit.entries).toMatchObject([{ action: 'deconnexion', account: 'u-1', ip }]);
+
+    const again = await loginAs(['praticien'], ['pwd']);
+    audit.down = true;
+    const response = await fetch(`${base}/auth/logout`, {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE}=${cookieValue(again, SESSION_COOKIE)}`, origin: APP },
+    });
+    expect(response.status).toBe(204);
+    expect(store.sessions.size).toBe(0);
   });
 });
 

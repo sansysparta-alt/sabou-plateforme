@@ -45,6 +45,7 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
       # Valeurs reportées dans realm-sabou.json à l'import
       SABOU_ADMIN_CLIENT_SECRET: ${SABOU_ADMIN_CLIENT_SECRET:?}
+      SABOU_AUDIT_CLIENT_SECRET: ${SABOU_AUDIT_CLIENT_SECRET:?}
       SABOU_ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
@@ -122,6 +123,9 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_ALLOW_HTTP: 'true'
       ADMIN_CLIENT_SECRET: ${SABOU_ADMIN_CLIENT_SECRET:?}
+      # Journal d'audit (US-030) : relève des événements de Keycloak, rapprochée en local
+      AUDIT_CLIENT_SECRET: ${SABOU_AUDIT_CLIENT_SECRET:?}
+      AUDIT_POLL_SECONDS: '5'
       ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
       VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
     depends_on:
