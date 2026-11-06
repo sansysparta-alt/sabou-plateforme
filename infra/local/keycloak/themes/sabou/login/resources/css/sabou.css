@@ -1,0 +1,344 @@
+/* Thème de connexion SABOU (US-010). Une seule feuille, sans police ni image à télécharger :
+   la page tient en quelques kilo-octets sur un réseau 3G. Contrastes WCAG 2.2 AA (≥ 4,5:1),
+   cibles tactiles de 44 px, focus visible. */
+:root {
+  --sabou-green: #14532d; /* 9,9:1 sur blanc */
+  --sabou-green-dark: #0b3a1f;
+  --sabou-text: #1c1917;
+  --sabou-muted: #44403c; /* 10:1 sur blanc */
+  --sabou-bg: #f5f5f4;
+  --sabou-surface: #ffffff;
+  --sabou-border: #57534e; /* 7,5:1 : contour des champs (≥ 3:1) */
+  --sabou-error: #b91c1c; /* 6,5:1 */
+  --sabou-error-bg: #fef2f2;
+  --sabou-info-bg: #eff6ff;
+  --sabou-focus: #1d4ed8;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--sabou-text);
+  background: var(--sabou-bg);
+}
+
+.sabou-login {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+#kc-header-wrapper {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sabou-green);
+  text-align: center;
+  margin-bottom: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.sabou-card {
+  background: var(--sabou-surface);
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  padding: 1.5rem 1.25rem;
+}
+
+.sabou-header {
+  /* Titre à gauche, langue à droite, même quand le titre tient sur deux lignes */
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+#kc-page-title {
+  font-size: 1.375rem;
+  margin: 0 0 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Sélecteur de langue : liste masquée tant que le bouton n'est pas ouvert */
+.sabou-locale {
+  order: 2;
+  flex: 0 0 auto;
+}
+#kc-locale-dropdown {
+  position: relative;
+}
+#kc-current-locale-link {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  font: inherit;
+  color: var(--sabou-green);
+  background: transparent;
+  border: 1px solid var(--sabou-border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.sabou-locale__list {
+  display: none;
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border);
+  border-radius: 0.375rem;
+  min-width: 9rem;
+}
+#kc-current-locale-link[aria-expanded='true'] + .sabou-locale__list {
+  display: block;
+}
+.sabou-locale__item {
+  display: block;
+  padding: 0.625rem 0.875rem;
+  color: var(--sabou-text);
+  text-decoration: none;
+}
+.sabou-locale__item:hover {
+  background: var(--sabou-bg);
+}
+
+.sabou-field {
+  margin-bottom: 1rem;
+}
+
+.sabou-label {
+  /* En ligne : l'astérisque des champs obligatoires reste à côté du libellé */
+  display: inline-block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.required {
+  color: var(--sabou-error);
+  font-weight: 600;
+}
+
+.sabou-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--sabou-text);
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border);
+  border-radius: 0.375rem;
+}
+.sabou-input[aria-invalid='true'] {
+  border: 2px solid var(--sabou-error);
+}
+
+.sabou-input-group {
+  display: flex;
+  gap: 0.25rem;
+}
+.sabou-input-group .sabou-input {
+  flex: 1 1 auto;
+}
+
+/* Bouton « afficher le mot de passe » : pictogramme dessiné en CSS, libellé porté par aria-label */
+.sabou-reveal {
+  flex: 0 0 44px;
+  min-height: 44px;
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.sabou-reveal i {
+  display: inline-block;
+  width: 1.25rem;
+  height: 0.75rem;
+  border: 2px solid var(--sabou-muted);
+  border-radius: 50%;
+  position: relative;
+}
+.sabou-reveal i::after {
+  content: '';
+  position: absolute;
+  inset: 0.125rem 0.375rem;
+  border-radius: 50%;
+  background: var(--sabou-muted);
+}
+.sabou-reveal .sabou-reveal__hide::before {
+  content: '';
+  position: absolute;
+  left: -0.25rem;
+  right: -0.25rem;
+  top: 50%;
+  border-top: 2px solid var(--sabou-muted);
+  transform: rotate(-30deg);
+}
+
+.sabou-error {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--sabou-error);
+  font-weight: 600;
+}
+
+.sabou-help {
+  color: var(--sabou-muted);
+  font-size: 0.9375rem;
+}
+
+.sabou-options-links {
+  margin-bottom: 1rem;
+  color: var(--sabou-muted);
+  font-size: 0.9375rem;
+}
+
+.sabou-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
+  font: inherit;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 2px solid var(--sabou-green);
+  cursor: pointer;
+  text-decoration: none;
+}
+.sabou-button--primary {
+  color: #ffffff;
+  background: var(--sabou-green);
+}
+.sabou-button--primary:hover {
+  background: var(--sabou-green-dark);
+}
+.sabou-button--secondary {
+  color: var(--sabou-green);
+  background: var(--sabou-surface);
+}
+.sabou-button--block {
+  width: 100%;
+}
+.sabou-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+a {
+  color: var(--sabou-green);
+  text-underline-offset: 0.15em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--sabou-focus);
+  outline-offset: 2px;
+}
+
+.sabou-alert {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.375rem;
+  border-left: 4px solid var(--sabou-green);
+  background: var(--sabou-info-bg);
+}
+.alert-error.sabou-alert {
+  border-left-color: var(--sabou-error);
+  background: var(--sabou-error-bg);
+  color: var(--sabou-error);
+  font-weight: 600;
+}
+.alert-warning.sabou-alert {
+  border-left-color: #92400e;
+  background: #fffbeb;
+}
+
+/* Configuration du code à usage unique : étapes, QR et clé lisibles sur petit écran */
+#kc-totp-settings {
+  padding-left: 1.25rem;
+}
+#kc-totp-settings li {
+  margin-bottom: 0.75rem;
+}
+#kc-totp-secret-qr-code {
+  display: block;
+  max-width: 12rem;
+  height: auto;
+  margin-top: 0.5rem;
+}
+#kc-totp-secret-key {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+#kc-totp-supported-apps {
+  padding-left: 1.25rem;
+}
+
+/* Codes de secours */
+.sabou-codes {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 1.0625rem;
+  padding-left: 0;
+  list-style: none;
+  columns: 2;
+}
+.sabou-codes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.sabou-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+#kc-info-wrapper,
+#kc-registration {
+  margin-top: 1rem;
+}
+
+#kc-username {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+#kc-attempted-username {
+  font-weight: 600;
+}
+.kc-tooltip-text {
+  font-size: 0.9375rem;
+}
+
+/* Masque les éléments vides prévus pour des icônes de PatternFly */
+.pf-c-alert__icon:empty,
+.pf-c-alert__icon:not(:has(*:not(:empty))) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

@@ -191,6 +191,8 @@ Critères d’acceptation :
 - Étant donné 5 échecs de connexion, quand une 6e tentative arrive, alors le compte est bloqué temporairement et l’événement est journalisé.
 - Premier récit avec de vraies pages : étant donné une demande de fusion, quand le pipeline s’exécute, alors les pages livrées passent les tests d’accessibilité axe (Playwright, WCAG 2.2 AA) et Lighthouse CI (réseau 3G et processeur bridés), avec des seuils bloquants. Chaque récit suivant qui ajoute des pages les ajoute à ces contrôles.
 
+Écarts à l’écran « Connexion » du CdC (maquette), validés par le maître d’œuvre le 5 novembre 2026 : pas de sélecteur de profil (le profil vient du compte) ; « Mot de passe oublié » renvoie vers l’administrateur, la réinitialisation par e-mail demandera un service SMTP et un récit à créer ; « Explorer la démo sans compte » hors de ce récit. Décisions techniques : `05_Choix_Techniques.md` §2.20.
+
 #### US-011 · Ne voir que les données de ma zone
 *Identité et accès* · **Must** · 5 points · cas : UC-65
 

@@ -1,9 +1,10 @@
 // Environnement local en une commande, depuis PowerShell comme depuis Git Bash :
-//   node infra/local/up.mjs [up | down | reset]
+//   node infra/local/up.mjs [up | down | reset | realm]
 // up    : crée .env au premier lancement, construit l'API, démarre tout et attend
 //         que chaque contrôle de santé soit vert ;
 // down  : arrête les conteneurs, les données sont conservées ;
-// reset : arrête et supprime les données (base, cache, fichiers) des volumes locaux.
+// reset : arrête et supprime les données (base, cache, fichiers) des volumes locaux ;
+// realm : réimporte infra/local/keycloak/realm-sabou.json (comptes locaux du domaine effacés).
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -67,9 +68,36 @@ function docker(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-function main(command = 'up') {
+// Keycloak n'importe le domaine qu'à sa création : on le supprime, puis on redémarre
+// Keycloak, qui le recrée depuis le fichier versionné.
+async function reimportRealm() {
+  const env = readEnv();
+  const base = `http://localhost:${env.KEYCLOAK_PORT}`;
+  const token = await fetch(`${base}/realms/master/protocol/openid-connect/token`, {
+    method: 'POST',
+    body: new URLSearchParams({
+      grant_type: 'password',
+      client_id: 'admin-cli',
+      username: 'admin',
+      password: env.KEYCLOAK_ADMIN_PASSWORD,
+    }),
+  }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Keycloak : ${r.status}`))));
+  const removed = await fetch(`${base}/admin/realms/sabou`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token.access_token}` },
+  });
+  if (!removed.ok && removed.status !== 404) {
+    console.error(`Suppression du domaine impossible : ${removed.status}`);
+    process.exit(1);
+  }
+  docker(['restart', 'keycloak']);
+  docker(['up', '--detach', '--wait', '--wait-timeout', '300', 'keycloak']);
+  console.log('Domaine « sabou » réimporté depuis infra/local/keycloak/realm-sabou.json.');
+}
+
+async function main(command = 'up') {
   // Avant toute commande : Compose refuse un .env auquel manque une variable
-  if (['up', 'down', 'reset'].includes(command)) ensureEnv();
+  if (['up', 'down', 'reset', 'realm'].includes(command)) ensureEnv();
   switch (command) {
     case 'up': {
       docker(['up', '--detach', '--build', '--wait', '--wait-timeout', '300']);
@@ -84,6 +112,9 @@ Environnement prêt, contrôles de santé verts :
   S3           http://localhost:${env.S3_PORT}`);
       break;
     }
+    case 'realm':
+      await reimportRealm();
+      break;
     case 'down':
       docker(['down']);
       break;
@@ -96,4 +127,4 @@ Environnement prêt, contrôles de santé verts :
   }
 }
 
-main(process.argv[2]);
+await main(process.argv[2]);
