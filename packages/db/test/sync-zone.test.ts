@@ -103,8 +103,9 @@ beforeAll(async () => {
   const { network, passwords } = inject('server');
   db = await createSeededDatabase();
   await runSql(db.url.postgres, `CREATE DATABASE ${db.name}_ps OWNER powersync_storage`);
+  // Données posées par le propriétaire des tables, hors cloisonnement par zone (US-011)
   await runSql(
-    db.url.app,
+    db.url.migrator,
     `INSERT INTO sabou.saisie_terrain (id, type, prefecture_id, auteur_id, contenu) VALUES
        ('${ids.labe}', 'dossier', ${LABE}, 3, '{"praticien": "Sékou Kourouma"}'),
        ('${ids.kankan}', 'dossier', ${KANKAN}, 5, '{"praticien": "Aïssatou Traoré"}');

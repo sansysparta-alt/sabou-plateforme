@@ -381,6 +381,20 @@ Décisions techniques prises pendant le lot (règles de l'art, sans question au 
 
 **Contrôles du pipeline** : `packages/db/test/comptes.test.ts` (contraintes, vrai PostgreSQL), `packages/types/src/accounts.test.ts` (validation), `apps/api/src/accounts/accounts.test.ts` (enchaînement des décisions, accès réservé à la DG, origine), `apps/api/src/auth/session.store.test.ts` (révocation par compte), `apps/api/src/auth/auth.controller.test.ts` (compte suspendu refusé, lien avec l'utilisateur), `apps/admin/e2e/comptes.spec.ts` (critères de US-012 et US-013 de bout en bout, axe sur chaque écran).
 
+### 2.23 Cloisonnement par zone (lot B : US-011, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 6 novembre 2026, en réponse aux questions posées au début du lot. Elles mettent en œuvre la ligne « Autorisation par zone dans PostgreSQL (RLS) » du §1.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Contexte ouvert par l'API dans chaque transaction** (`sabou.contexte_ouvrir(sub)`, fonction `SECURITY DEFINER`) : rôle, compte, préfecture et région sont **lus en base** pour le compte Keycloak actif, puis posés en portée locale (`set_config(..., true)`). Côté API, tout accès passe par `inZone` (`apps/api/src/database/zone.ts`) | La zone ne vient jamais de la requête ni du jeton ; elle disparaît avec la transaction et ne passe pas d'une requête à l'autre par le pool. Un compte suspendu n'ouvre plus de contexte | Zone lue dans le jeton : figée jusqu'à son expiration, même après un changement de zone |
+| **Règles RLS sur `praticien`, `dossier_certification`, ses pièces, visites et historique, `saisie_terrain`, ses versions et ses avis** : DG et Comité scientifique nationaux ; admin préfectoral : sa préfecture ; admin régional : les préfectures de sa région ; praticien : sa fiche et ses dossiers ; citoyen et requête sans contexte : rien. Les tables filles suivent leur dossier | Critères de US-011 ; une requête oubliée ne fuit pas, elle ne renvoie rien. Le filtre « dossiers à l'étape d'expertise » du Comité viendra avec le workflow (S2) | Toutes les tables à zone dès ce lot : règles écrites sans leurs récits |
+| **Garde-fous vérifiés par le pipeline** (`packages/db/test/zones.test.ts`) : toute table qui porte une zone (`prefecture_id`, `praticien_id`, `dossier_id`, `saisie_id`) a son RLS, sauf celles listées avec le récit qui l'ajoutera ; toute fonction `SECURITY DEFINER` fixe son `search_path` (`pg_temp` en dernier) et n'est pas ouverte à `PUBLIC` ; seules les vues publiques s'exécutent avec les droits du propriétaire | Un récit qui ajoute une table ou une fonction ne peut pas oublier le cloisonnement sans faire échouer le pipeline | Revue manuelle seule |
+| **Traitements internes par fonctions `SECURITY DEFINER` étroites**, qui contrôlent elles-mêmes l'acteur : réception de la synchronisation (`saisie_terrain_recevoir`), recalcul des notes après un témoignage, vérification publique d'un certificat. Les fonctions de workflow (`dossier_transition`, `recette_transition`) restent soumises au RLS, dans le contexte de l'acteur | Ni nouveau rôle de base ni nouveau secret ; double contrôle sur les décisions | Rôle `BYPASSRLS` : un secret de plus, et un rôle qui voit tout s'il est mal utilisé |
+| **PowerSync (`sabou_sync`) lit toutes les saisies** (règle de lecture dédiée) et garde son propre filtre par zone (§2.19) | Sans cette règle, sa copie initiale serait vide ; son filtre reste prouvé par `sync-zone.test.ts` | — |
+| **Vue interne `v_dossiers_bloques` aux droits de l'appelant** (`security_invoker`) ; les vues publiques (`v_annuaire_public`, `v_temoignage_public`, `v_couverture_langue`) gardent les droits du propriétaire | Une vue ignore le RLS par défaut : la vue interne aurait montré les dossiers de toutes les zones | — |
+| **Listes en lecture seule** `GET /api/praticiens` et `GET /api/dossiers` (administrateurs avec second facteur), pagination par curseur (`limite` ≤ 100, `apres`), aucun paramètre de zone accepté ; les écrans arrivent en S2 | Preuve des critères par appel direct à l'API ; pages courtes en 3G | Écrans dès ce lot : hors des 5 points |
+
 ## 3. Architecture
 
 ```

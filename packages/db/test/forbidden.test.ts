@@ -2,7 +2,12 @@
 // Chaque cas part de l'état du jeu d'exemple (transaction annulée) et vérifie la raison du
 // refus : une erreur pour une autre raison ne prouverait rien.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createSeededDatabase, inRolledBackTransaction, type TestDatabase } from './helpers.ts';
+import {
+  createSeededDatabase,
+  inRolledBackTransaction,
+  openContext,
+  type TestDatabase,
+} from './helpers.ts';
 
 let db: TestDatabase;
 const attempt = (sql: string) => inRolledBackTransaction(db.url.app, sql);
@@ -43,19 +48,31 @@ describe('Traitement incomplet', () => {
 
 describe('Acteur hors zone (R-CER-02)', () => {
   // DS-1041 (praticien de Labé) resoumis par son praticien : il passe à l'étape 2
-  const resubmit = `SELECT dossier_transition(1, 'soumis', 6);`;
+  const resubmit = `${openContext('s.kourouma@exemple.gn')} SELECT dossier_transition(1, 'soumis', 6);`;
+  const as = openContext;
 
   it('refuse la validation par le préfectoral de Kankan', async () => {
-    await expect(attempt(`${resubmit} SELECT dossier_transition(1, 'valide', 5);`)).rejects.toThrow(
-      "Acteur 5 non habilité pour l'étape 2 du dossier DS-1041",
-    );
+    // La fonction contrôle l'acteur elle-même, quel que soit le contexte ouvert
+    await expect(
+      attempt(`${resubmit} ${as('dg@sabou-sante.gn')} SELECT dossier_transition(1, 'valide', 5);`),
+    ).rejects.toThrow("Acteur 5 non habilité pour l'étape 2 du dossier DS-1041");
+  });
+
+  it('dans son propre contexte, le préfectoral de Kankan ne voit même pas le dossier (US-011)', async () => {
+    await expect(
+      attempt(
+        `${resubmit} ${as('prefectoral.kankan@sabou-sante.gn')} SELECT dossier_transition(1, 'valide', 5);`,
+      ),
+    ).rejects.toThrow('Dossier 1 introuvable');
   });
 
   it('laisse passer le préfectoral de Labé jusqu’au contrôle suivant (contrôle positif)', async () => {
     // Même rôle, bonne zone : l'habilitation passe, seule la visite terrain manque (R-CER-06)
-    await expect(attempt(`${resubmit} SELECT dossier_transition(1, 'valide', 3);`)).rejects.toThrow(
-      'visite terrain signée requise avant validation (R-CER-06)',
-    );
+    await expect(
+      attempt(
+        `${resubmit} ${as('prefectoral.labe@sabou-sante.gn')} SELECT dossier_transition(1, 'valide', 3);`,
+      ),
+    ).rejects.toThrow('visite terrain signée requise avant validation (R-CER-06)');
   });
 });
 
@@ -63,7 +80,9 @@ describe('Rejet sans motif', () => {
   it('refuse un rejet de traitement sans motif, ou avec un motif vide', async () => {
     for (const motif of ['NULL', `''`, `'   '`]) {
       await expect(
-        attempt(`SELECT recette_transition(3, 'soumise', 4, ${motif});`),
+        attempt(
+          `${openContext('comite@sabou-sante.gn')} SELECT recette_transition(3, 'soumise', 4, ${motif});`,
+        ),
       ).rejects.toThrow('Transition transmise → soumise : motif obligatoire');
     }
   });
@@ -71,14 +90,17 @@ describe('Rejet sans motif', () => {
   it('refuse un rejet de dossier avec un motif fait d’espaces', async () => {
     await expect(
       attempt(
-        `SELECT dossier_transition(1, 'soumis', 6); SELECT dossier_transition(1, 'rejete', 3, '  ');`,
+        `${openContext('s.kourouma@exemple.gn')} SELECT dossier_transition(1, 'soumis', 6);
+         ${openContext('prefectoral.labe@sabou-sante.gn')} SELECT dossier_transition(1, 'rejete', 3, '  ');`,
       ),
     ).rejects.toThrow('ck_motif_rejet');
   });
 
   it('accepte un rejet motivé (contrôle positif)', async () => {
     await expect(
-      attempt(`SELECT recette_transition(3, 'soumise', 4, 'Posologie à préciser');`),
+      attempt(
+        `${openContext('comite@sabou-sante.gn')} SELECT recette_transition(3, 'soumise', 4, 'Posologie à préciser');`,
+      ),
     ).resolves.toBeUndefined();
   });
 });

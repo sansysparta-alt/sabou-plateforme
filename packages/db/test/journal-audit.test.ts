@@ -3,7 +3,7 @@
 // Jeu d'exemple : dossier n° 1 en cours, soumis par son praticien (utilisateur n° 6).
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createSeededDatabase, runSql, type TestDatabase } from './helpers.ts';
+import { createSeededDatabase, openContext, runSql, type TestDatabase } from './helpers.ts';
 
 let db: TestDatabase;
 let client: pg.Client;
@@ -29,6 +29,7 @@ describe('Décision de workflow (critère 1)', () => {
   it('écrit qui, quoi, quand et IP dans la même transaction que la décision', async () => {
     await client.query('BEGIN');
     await client.query(`SELECT audit_contexte('197.149.10.24')`);
+    await client.query(openContext('s.kourouma@exemple.gn'));
     await client.query(`SELECT dossier_transition(1, 'soumis', 6)`);
     const { rows } = await client.query(`
       SELECT utilisateur_id, action, objet_type, objet_id, host(ip) AS ip, source,
@@ -51,12 +52,16 @@ describe('Décision de workflow (critère 1)', () => {
     const before = (await lastLines())[0].id;
     await client.query('BEGIN');
     await client.query(`SELECT audit_contexte('197.149.10.24')`);
+    await client.query(openContext('s.kourouma@exemple.gn'));
     await client.query(`SELECT dossier_transition(1, 'soumis', 6)`);
     await client.query('ROLLBACK');
     expect((await lastLines())[0].id).toBe(before);
+    await client.query('BEGIN');
+    await client.query(openContext('s.kourouma@exemple.gn'));
     const { rows } = await client.query(
       'SELECT etape_courante FROM dossier_certification WHERE id = 1',
     );
+    await client.query('ROLLBACK');
     expect(rows[0].etape_courante).toBe(1);
   });
 
@@ -64,6 +69,7 @@ describe('Décision de workflow (critère 1)', () => {
     const before = (await lastLines())[0].id;
     await client.query('BEGIN');
     // Un agent préfectoral ne valide pas un dossier qui n'a pas été soumis
+    await client.query(openContext('prefectoral.labe@sabou-sante.gn'));
     await expect(client.query(`SELECT dossier_transition(1, 'valide', 3)`)).rejects.toThrow();
     await client.query('ROLLBACK');
     expect((await lastLines())[0].id).toBe(before);

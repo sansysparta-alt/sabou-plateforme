@@ -8,16 +8,23 @@ import { createSeededDatabase, type TestDatabase } from './helpers.ts';
 
 let db: TestDatabase;
 let client: pg.Client;
+// Propriétaire des tables, hors cloisonnement par zone (US-011) : il observe ce qui est
+// réellement écrit et joue la validation faite au serveur
+let owner: pg.Client;
 
 beforeAll(async () => {
   db = await createSeededDatabase();
   // Comme l'API : schéma sabou en tête du search_path (les déclencheurs en dépendent)
   client = new pg.Client({ connectionString: db.url.app, options: '-c search_path=sabou,public' });
-  await client.connect();
+  owner = new pg.Client({
+    connectionString: db.url.migrator,
+    options: '-c search_path=sabou,public',
+  });
+  await Promise.all([client.connect(), owner.connect()]);
 });
 
 afterAll(async () => {
-  await client?.end();
+  await Promise.all([client?.end(), owner?.end()]);
 });
 
 async function receive(
@@ -34,12 +41,12 @@ async function receive(
 }
 
 async function row(id: string) {
-  const { rows } = await client.query('SELECT * FROM sabou.saisie_terrain WHERE id = $1', [id]);
+  const { rows } = await owner.query('SELECT * FROM sabou.saisie_terrain WHERE id = $1', [id]);
   return rows[0];
 }
 
 async function notices(id: string) {
-  const { rows } = await client.query(
+  const { rows } = await owner.query(
     'SELECT destinataire_id::int, motif, copie_id FROM sabou.saisie_terrain_avis WHERE saisie_id = $1',
     [id],
   );
@@ -63,7 +70,7 @@ describe('Réception d’un dossier saisi hors réseau (US-004, critère 2)', ()
     await receive(id, 3, { praticien: 'A' });
     expect(await receive(id, 3, { praticien: 'A' }, 1)).toBe('identique');
     expect(await row(id)).toMatchObject({ version: 1 });
-    const { rows } = await client.query(
+    const { rows } = await owner.query(
       'SELECT count(*)::int AS n FROM sabou.saisie_terrain WHERE id = $1',
       [id],
     );
@@ -101,7 +108,7 @@ describe('Conflit au niveau du dossier entier (R-DON-04)', () => {
   it('2) version du serveur validée : elle prime, la saisie devient une copie en brouillon visible de l’agent', async () => {
     const id = randomUUID();
     await receive(id, 3, { praticien: 'A' });
-    await client.query(`UPDATE sabou.saisie_terrain SET statut = 'valide' WHERE id = $1`, [id]);
+    await owner.query(`UPDATE sabou.saisie_terrain SET statut = 'valide' WHERE id = $1`, [id]);
 
     expect(await receive(id, 3, { praticien: 'A modifié hors réseau' }, 1)).toBe('copie_brouillon');
     expect(await row(id)).toMatchObject({
@@ -109,7 +116,7 @@ describe('Conflit au niveau du dossier entier (R-DON-04)', () => {
       contenu: { praticien: 'A' },
       version: 1,
     });
-    const { rows: copies } = await client.query(
+    const { rows: copies } = await owner.query(
       'SELECT * FROM sabou.saisie_terrain WHERE origine_id = $1',
       [id],
     );
@@ -145,7 +152,7 @@ describe('Conflit au niveau du dossier entier (R-DON-04)', () => {
       version: 3,
       contenu: { praticien: 'version de l’autre agent' },
     });
-    const { rows: history } = await client.query(
+    const { rows: history } = await owner.query(
       'SELECT version, contenu, auteur_id::int FROM sabou.saisie_terrain_version WHERE saisie_id = $1 ORDER BY version',
       [id],
     );
