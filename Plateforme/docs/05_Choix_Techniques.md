@@ -350,13 +350,16 @@ Décisions validées par le maître d'œuvre le 6 novembre 2026 : relève des é
 
 ### 2.22 Gestion des comptes (lot A : US-012 et US-013, novembre 2026)
 
-Décisions validées par le maître d'œuvre le 6 novembre 2026.
+Décisions validées par le maître d'œuvre le 6 novembre 2026 (les trois dernières en réponse aux questions posées au début du lot).
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
 | **Keycloak seule source** des mots de passe et du double facteur ; la table `utilisateur` garde le rôle, la zone, les langues et l'identifiant Keycloak (`keycloak_id`). Une migration retire `mot_de_passe_hash`, `mfa_actif`, `mfa_secret_chiffre` et leurs contraintes (aucune donnée réelle) | Un secret n'existe qu'à un endroit ; le double facteur est déjà imposé par Keycloak et vérifié par l'API (§2.20) | Copie des empreintes dans PostgreSQL : deux sources à garder d'accord |
 | **Invitation par lien à usage unique, valable 72 h**, que la DG transmet elle-même ; seule l'empreinte SHA-256 du jeton est gardée en base | Aucun service d'envoi à ajouter ; un vol de la base ne donne aucun lien utilisable | Envoi par e-mail ou SMS : service externe pas encore choisi |
 | **Réactivation** d'un compte suspendu, journalisée comme la suspension | Pendant naturel de la suspension (US-013) | — |
+| **Choix du mot de passe sur une page de SABOU** : le lien d'invitation ouvre une page de l'application de gestion ; l'API transmet le mot de passe une seule fois à Keycloak (`reset-password`, règles de mot de passe de Keycloak), sans le garder ni le journaliser. Ensuite, connexion normale par Keycloak (double facteur imposé aux administrateurs, §2.20) | Sans service d'e-mail, Keycloak ne fournit pas de lien « choisir son mot de passe ». **Écart assumé à §2.20** (« le mot de passe ne transite jamais par notre code »), limité à l'acceptation d'une invitation | Mot de passe provisoire montré à la DG : un secret connu d'un tiers et deux canaux ; envoi par Keycloak (`execute-actions-email`) : service SMTP à choisir |
+| **Compte de service `sabou-comptes`**, avec les seuls rôles `manage-users` et `view-users` du domaine `sabou` (secret `SABOU_COMPTES_CLIENT_SECRET`), distinct de `sabou-audit` | Un compte par usage, avec les droits strictement nécessaires | Compte d'administration du domaine |
+| **Langues de travail** = une langue d'interface (texte : français ou anglais) et une langue d'écoute (voix), colonnes existantes | Suffisant en v1 ; plusieurs langues d'écoute pourront venir par une migration | Table de liaison utilisateur–langue |
 
 ## 3. Architecture
 
