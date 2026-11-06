@@ -395,6 +395,19 @@ Décisions validées par le maître d'œuvre le 6 novembre 2026, en réponse aux
 | **Vue interne `v_dossiers_bloques` aux droits de l'appelant** (`security_invoker`) ; les vues publiques (`v_annuaire_public`, `v_temoignage_public`, `v_couverture_langue`) gardent les droits du propriétaire | Une vue ignore le RLS par défaut : la vue interne aurait montré les dossiers de toutes les zones | — |
 | **Listes en lecture seule** `GET /api/praticiens` et `GET /api/dossiers` (administrateurs avec second facteur), pagination par curseur (`limite` ≤ 100, `apres`), aucun paramètre de zone accepté ; les écrans arrivent en S2 | Preuve des critères par appel direct à l'API ; pages courtes en 3G | Écrans dès ce lot : hors des 5 points |
 
+### 2.24 Référentiels : langues, territoires, spécialités (lot C : US-020 et US-021, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 6 novembre 2026, en réponse aux questions posées au début du lot.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Référentiel initial chargé par une migration** (`20261106180000_referentiels`) : rôles, 6 langues, 4 régions naturelles, 8 régions, 33 préfectures et la zone spéciale de Conakry (gérée comme une préfecture), 8 spécialités. Il n'est plus dans le jeu d'exemple. Les sous-préfectures sont ajoutées par la DG ou par un import de la liste officielle, plus tard | Une base de recette ou de production a ses référentiels sans jeu d'exemple ; données publiques, non personnelles. Liste des préfectures à relire par le maître d'œuvre | Liste complète des sous-préfectures sans source officielle |
+| **Règles tenues par la base** : une langue nationale n'a pas d'usage texte (R-LNG-02) ; le français reste actif en texte et en voix ; code, type et usage d'une langue sont fixés à sa création ; la langue par défaut d'une région naturelle ne peut pas être désactivée ; une langue ou une spécialité désactivée ne peut plus être choisie, mais les lignes qui la portent restent modifiables | L'API n'est pas le seul rempart (§2.23) ; une langue retirée par erreur ne bloque pas les fiches existantes | Contrôles dans l'API seule |
+| **Nouvelle langue créée inactive**, activée par la DG quand ses contenus sont prêts ; elle sert aussitôt partout où une langue est choisie (comptes, voix), sans modifier le code (R-LNG-01) | Critère de US-020 ; pas de langue vide montrée au public | — |
+| **Territoires : création et renommage** (régions, préfectures, sous-préfectures), journalisés avec l'ancien nom. **Fusion reportée** à un récit à part (US-022), car elle rattache praticiens, dossiers et comptes à une autre zone ; **pas de désactivation de territoire** (un territoire disparaît par fusion) | Opération difficile à défaire, hors des 5 points du lot | Fusion dans US-020 |
+| **Spécialités : ajout, modification des libellés et désactivation libres** ; jamais de suppression d'une spécialité (clé étrangère des praticiens) | Réponse du maître d'œuvre ; la liste de 8 n'est que la liste initiale | Liste figée à 8 |
+| **API `GET/POST/PATCH /api/referentiels/…`** réservée à la DG avec second facteur (même garde que les comptes, origine vérifiée) ; chaque décision et sa ligne d'audit dans une même transaction (`referentiel.*`). **Écran `/referentiels`** de l'application de gestion, chargé à la demande (3,4 ko compressés, sans zod) | Paramétrage « sans code » ; page légère en 3G | Formulaires générés à partir des schémas zod : +29 ko compressés |
+
 ## 3. Architecture
 
 ```

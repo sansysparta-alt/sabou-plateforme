@@ -1,0 +1,108 @@
+// Critères d'acceptation du lot C (US-020, US-021), de bout en bout : application de gestion
+// (compilée), API, Keycloak et PostgreSQL réels, écran vérifié par axe (WCAG 2.2 AA).
+// Les refus tenus par la base (voix en anglais, langue nationale écrite…) sont prouvés par
+// packages/db/test/referentiels.test.ts.
+import { randomInt } from 'node:crypto';
+import { expect, test, type Page } from '@playwright/test';
+import { expectAccessible, firstAdministratorLogin } from './helpers';
+import { APP, createUser } from './keycloak';
+
+test.setTimeout(240_000);
+
+// Code de langue libre : la base de bout en bout garde les langues des passages précédents
+async function freeLanguageCode(page: Page): Promise<string> {
+  const taken = await page.getByRole('region', { name: 'Langues' }).textContent();
+  for (;;) {
+    const code = Array.from({ length: 3 }, () => String.fromCharCode(97 + randomInt(26))).join('');
+    if (!taken?.includes(`(${code})`)) return code;
+  }
+}
+
+test('la DG paramètre langues, territoires et spécialités sans modifier le code', async ({
+  page,
+}) => {
+  const dg = await createUser('dg');
+  await firstAdministratorLogin(page, dg);
+  await page.getByRole('link', { name: 'Gérer les référentiels' }).click();
+  await expect(page).toHaveURL(`${APP}/referentiels`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Référentiels');
+  await expectAccessible(page, 'Référentiels');
+
+  // US-020 : l'anglais n'a pas de voix ; Conakry est en Basse Guinée, soussou par défaut
+  const languages = page.getByRole('region', { name: 'Langues' });
+  const english = languages.getByRole('listitem').filter({ hasText: 'Anglais' });
+  await expect(english.getByRole('definition').nth(1)).toHaveText('texte');
+  const conakry = page
+    .getByRole('region', { name: 'Territoires' })
+    .getByRole('listitem')
+    .filter({ has: page.getByRole('heading', { name: 'Conakry', exact: true }) });
+  await expect(conakry).toContainText('Basse Guinée');
+  await expect(conakry).toContainText('Soussou');
+
+  // US-020 : une langue nationale ajoutée, inactive, puis activée…
+  const code = await freeLanguageCode(page);
+  const name = `Langue ${code}`;
+  const form = page.getByRole('form', { name: 'Ajouter une langue' });
+  await form.getByLabel('Nom en français').fill(name);
+  await form.getByLabel('Code', { exact: true }).fill(code);
+  await expect(form.getByLabel('Texte')).toBeDisabled();
+  await form.getByRole('button', { name: 'Ajouter la langue' }).click();
+  await expect(page.getByRole('status')).toHaveText(`Langue ${name} ajoutée, inactive.`);
+  const added = languages.getByRole('listitem').filter({ hasText: `(${code})` });
+  await expect(added).toContainText('Inactive');
+  await added.getByRole('button', { name: `Activer la langue ${name}` }).click();
+  await expect(added).toContainText('Active');
+
+  // … est aussitôt proposée dans la gestion des comptes : langue de travail et d'écoute
+  await page.goto(`${APP}/comptes`);
+  const invite = page.getByRole('region', { name: 'Inviter un compte' });
+  await expect(invite.getByRole('group', { name })).toBeVisible();
+  await expect(invite.getByRole('option', { name })).toBeAttached();
+
+  // US-021 : les 8 spécialités, en français et en anglais
+  await page.goto(`${APP}/referentiels`);
+  const specialties = page.getByRole('region', { name: 'Spécialités' }).getByRole('listitem');
+  for (const [fr, en] of [
+    ['Phytothérapie', 'Herbal medicine'],
+    ['Pédiatrie', 'Paediatrics'],
+    ['Os et fractures', 'Bones and fractures'],
+    ['Nutrition', 'Nutrition'],
+    ['Gynécologie et santé maternelle', 'Gynaecology and maternal health'],
+    ['Santé mentale', 'Mental health'],
+    ['Maladies de la peau', 'Skin diseases'],
+    ['Morsures et envenimations', 'Bites and envenomations'],
+  ]) {
+    const item = specialties.filter({ has: page.getByRole('heading', { name: fr, exact: true }) });
+    await expect(item).toContainText(en);
+  }
+
+  // Ajout d'un territoire : la sous-préfecture apparaît sous sa préfecture
+  const territory = page.getByRole('form', { name: 'Ajouter un territoire' });
+  const subPrefecture = `Essai ${code}`;
+  await territory.getByLabel('Préfecture').selectOption({ label: 'Labé' });
+  await territory.getByLabel('Nom').fill(subPrefecture);
+  await territory.getByRole('button', { name: 'Ajouter le territoire' }).click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Territoires' })
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('heading', { name: 'Labé', exact: true }) }),
+  ).toContainText(subPrefecture);
+
+  // Renommage : l'ancien nom disparaît, le nouveau apparaît
+  const rename = page.getByRole('form', { name: 'Renommer un territoire' });
+  await rename.getByLabel('Niveau').selectOption({ label: 'Sous-préfecture' });
+  await rename.getByLabel('Sous-préfecture à renommer').selectOption({ label: subPrefecture });
+  await rename.getByLabel('Nouveau nom').fill(`${subPrefecture} bis`);
+  await rename.getByRole('button', { name: 'Renommer' }).click();
+  await expect(page.getByRole('status')).toHaveText(`Territoire renommé en ${subPrefecture} bis.`);
+
+  // Spécialité désactivée puis réactivée (la base de bout en bout reste dans son état)
+  const nutrition = specialties.filter({
+    has: page.getByRole('heading', { name: 'Nutrition', exact: true }),
+  });
+  await nutrition.getByRole('button', { name: 'Désactiver la spécialité Nutrition' }).click();
+  await expect(nutrition).toContainText('Inactive');
+  await nutrition.getByRole('button', { name: 'Activer la spécialité Nutrition' }).click();
+  await expect(nutrition).toContainText('Active');
+});
