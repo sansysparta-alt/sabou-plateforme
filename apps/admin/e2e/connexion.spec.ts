@@ -147,12 +147,17 @@ test('5 échecs : la 6e tentative est refusée, même avec le bon mot de passe, 
   expect(events.some((e) => e.type === 'USER_DISABLED_BY_TEMPORARY_LOCKOUT')).toBe(true);
   expect(events.some((e) => e.error === 'user_temporarily_disabled')).toBe(true);
 
-  // US-030 : échecs et blocage versés au journal d'audit, avec l'IP
-  await expect
-    .poll(() => auditLines(user.id).map((line) => line.action), AUDIT_DELAY)
-    .toContain('keycloak.user_disabled_by_temporary_lockout');
+  // US-030 : échecs et blocage versés au journal d'audit, avec l'IP. Le 6e échec suit le
+  // blocage et peut n'être relevé qu'au passage suivant : on attend les deux conditions.
+  const summary = () => {
+    const actions = auditLines(user.id).map((line) => line.action);
+    return {
+      lockout: actions.includes('keycloak.user_disabled_by_temporary_lockout'),
+      enoughErrors: actions.filter((action) => action === 'keycloak.login_error').length >= 6,
+    };
+  };
+  await expect.poll(summary, AUDIT_DELAY).toEqual({ lockout: true, enoughErrors: true });
   const errors = auditLines(user.id).filter((line) => line.action === 'keycloak.login_error');
-  expect(errors.length).toBeGreaterThanOrEqual(6);
   expect(errors[0]).toMatchObject({ source: 'keycloak', ip: ipAddress });
 });
 
