@@ -348,6 +348,16 @@ Décisions validées par le maître d'œuvre le 6 novembre 2026 : relève des é
 
 **Contrôles du pipeline** : `packages/db/test/journal-audit.test.ts` (vrai PostgreSQL, rôle de l'API et propriétaire), `apps/api/src/audit/audit.test.ts` et `auth.controller.test.ts` (relève et connexions), test de bout en bout « journal d'audit » de `apps/admin/e2e/connexion.spec.ts` (vrai Keycloak, lecture du journal en base).
 
+### 2.22 Gestion des comptes (lot A : US-012 et US-013, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 6 novembre 2026.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Keycloak seule source** des mots de passe et du double facteur ; la table `utilisateur` garde le rôle, la zone, les langues et l'identifiant Keycloak (`keycloak_id`). Une migration retire `mot_de_passe_hash`, `mfa_actif`, `mfa_secret_chiffre` et leurs contraintes (aucune donnée réelle) | Un secret n'existe qu'à un endroit ; le double facteur est déjà imposé par Keycloak et vérifié par l'API (§2.20) | Copie des empreintes dans PostgreSQL : deux sources à garder d'accord |
+| **Invitation par lien à usage unique, valable 72 h**, que la DG transmet elle-même ; seule l'empreinte SHA-256 du jeton est gardée en base | Aucun service d'envoi à ajouter ; un vol de la base ne donne aucun lien utilisable | Envoi par e-mail ou SMS : service externe pas encore choisi |
+| **Réactivation** d'un compte suspendu, journalisée comme la suspension | Pendant naturel de la suspension (US-013) | — |
+
 ## 3. Architecture
 
 ```

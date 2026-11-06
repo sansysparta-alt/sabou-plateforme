@@ -211,6 +211,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné une invitation envoyée, quand la personne l’accepte, alors son compte a exactement le rôle, la zone et les langues attribués.
 - Étant donné un rôle régional sans région, quand la DG enregistre, alors l’enregistrement est refusé.
+- Décisions du maître d’œuvre du 6 novembre 2026 (lot A, avec US-013) : invitation par lien à usage unique valable 72 h, que la DG transmet elle-même (aucun service d’envoi) ; l’invité choisit son mot de passe et, s’il est administrateur, active le double facteur. Keycloak est la seule source des mots de passe et du double facteur : la table `utilisateur` garde le rôle, la zone, les langues et l’identifiant Keycloak.
 
 #### US-013 · Suspendre un compte en un clic
 *Identité et accès* · **Must** · 2 points · cas : UC-65
@@ -220,6 +221,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné un compte connecté, quand la DG le suspend, alors ses sessions sont révoquées dans la minute et toute nouvelle connexion est refusée.
 - La suspension est inscrite au journal d’audit.
+- Ajout du lot A (6 novembre 2026, sans changement d’estimation) : la réactivation d’un compte suspendu, pendant naturel de la suspension, également inscrite au journal d’audit.
 
 #### US-014 · Créer un compte gratuit avec mon numéro de téléphone
 *Identité et accès* · **Must** · 3 points · cas : UC-10
