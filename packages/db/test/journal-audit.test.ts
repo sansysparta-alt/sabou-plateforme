@@ -131,10 +131,24 @@ describe('Événements de connexion relevés dans Keycloak', () => {
     expect(rows[0].n).toBe(1);
   });
 
+  it('ont une source par domaine : un même identifiant peut venir des deux domaines', async () => {
+    await client.query(insert);
+    await client.query(insert.replace("VALUES ('keycloak'", "VALUES ('keycloak-public'"));
+    const { rows } = await client.query(
+      `SELECT array_agg(source ORDER BY source) AS s FROM journal_audit WHERE ref_externe = 'evt-1'`,
+    );
+    expect(rows[0].s).toEqual(['keycloak', 'keycloak-public']);
+  });
+
   it('portent toujours leur identifiant et leur heure dans Keycloak', async () => {
     await expect(
       client.query(
         `INSERT INTO journal_audit (source, action, objet_type) VALUES ('keycloak', 'x', 'compte')`,
+      ),
+    ).rejects.toThrow('ck_audit_keycloak');
+    await expect(
+      client.query(
+        `INSERT INTO journal_audit (source, action, objet_type) VALUES ('keycloak-public', 'x', 'compte')`,
       ),
     ).rejects.toThrow('ck_audit_keycloak');
   });

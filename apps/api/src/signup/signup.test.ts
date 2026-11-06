@@ -130,6 +130,7 @@ beforeAll(async () => {
     COMPTES_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     PUBLIC_KEYCLOAK_ISSUER: 'http://localhost:8080/realms/sabou-public',
     SITE_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    PUBLIC_AUDIT_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     INSCRIPTION_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     SITE_URL: SITE,
     SMS_PROVIDER: 'journal',

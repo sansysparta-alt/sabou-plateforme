@@ -12,7 +12,11 @@ import { KeycloakEventsPoller } from './keycloak-events.poller';
     {
       provide: KEYCLOAK_EVENTS,
       inject: [ENV],
-      useFactory: (env: Env) => new KeycloakAdminEventSource(env),
+      // Domaine des administrateurs (US-030) et domaine des citoyens (lot D)
+      useFactory: (env: Env) => [
+        new KeycloakAdminEventSource(env, 'admin'),
+        new KeycloakAdminEventSource(env, 'public'),
+      ],
     },
     KeycloakEventsPoller,
   ],

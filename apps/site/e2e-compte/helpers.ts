@@ -63,6 +63,37 @@ export async function signUpThroughApi(phone: string, firstName: string, passwor
   expect(await created.json()).toEqual({ status: 'created' });
 }
 
+// Lignes du journal d'audit d'un citoyen (« source:action »), lues en base par psql dans le
+// conteneur PostgreSQL : le test vérifie ce qui est réellement écrit
+export function auditActions(phone: string): string[] {
+  // Numéro fictif du test seulement : rien d'autre n'entre dans la requête
+  if (!/^6\d{8}$/.test(phone)) throw new Error(`Numéro invalide : ${phone}`);
+  const out = execFileSync(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'infra/local/compose.yaml',
+      '--env-file',
+      '.env',
+      'exec',
+      '-T',
+      'postgres',
+      'psql',
+      '-U',
+      'postgres',
+      '-d',
+      'sabou',
+      '-tAc',
+      `SELECT coalesce(json_agg(a.source || ':' || a.action ORDER BY a.id), '[]')
+         FROM sabou.journal_audit a JOIN sabou.utilisateur u ON a.compte = u.keycloak_id::text
+        WHERE u.role_code = 'citoyen' AND u.telephone = '+224${phone}'`,
+    ],
+    { cwd: root, encoding: 'utf8' },
+  );
+  return JSON.parse(out) as string[];
+}
+
 export async function expectAccessible(page: Page, screen: string): Promise<void> {
   await page.waitForLoadState('load');
   const { violations } = await new AxeBuilder({ page })

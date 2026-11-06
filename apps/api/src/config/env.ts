@@ -41,6 +41,10 @@ const envSchema = z
     SITE_CLIENT_ID: z.string().min(1).default('sabou-site'),
     SITE_CLIENT_SECRET: z.string().min(32),
     SITE_URL: z.url({ protocol: /^https?$/ }),
+    // Compte de service « sabou-audit » du domaine public (view-events) : échecs de connexion
+    // des citoyens versés au journal d'audit
+    PUBLIC_AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),
+    PUBLIC_AUDIT_CLIENT_SECRET: z.string().min(32),
     // Compte de service « sabou-inscription » (manage-users, view-users de sabou-public)
     INSCRIPTION_CLIENT_ID: z.string().min(1).default('sabou-inscription'),
     INSCRIPTION_CLIENT_SECRET: z.string().min(32),

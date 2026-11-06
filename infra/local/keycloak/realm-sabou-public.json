@@ -130,6 +130,29 @@
       },
       "defaultClientScopes": ["roles"],
       "optionalClientScopes": []
+    },
+    {
+      "clientId": "sabou-audit",
+      "name": "Journal d'audit SABOU (citoyens)",
+      "description": "Compte de service de l'API (lot D) : lit les événements de connexion des citoyens pour les verser au journal d'audit. Rôle view-events seulement ; aucune connexion d'utilisateur.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${SABOU_PUBLIC_AUDIT_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "defaultClientScopes": ["roles"],
+      "optionalClientScopes": []
     }
   ],
   "users": [
@@ -139,6 +162,14 @@
       "serviceAccountClientId": "sabou-inscription",
       "clientRoles": {
         "realm-management": ["manage-users", "view-users"]
+      }
+    },
+    {
+      "username": "service-account-sabou-audit",
+      "enabled": true,
+      "serviceAccountClientId": "sabou-audit",
+      "clientRoles": {
+        "realm-management": ["view-events"]
       }
     }
   ],

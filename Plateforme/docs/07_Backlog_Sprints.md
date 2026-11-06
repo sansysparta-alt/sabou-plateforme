@@ -227,7 +227,7 @@ Critères d’acceptation :
 #### US-014 · Créer un compte gratuit avec mon numéro de téléphone
 *Identité et accès* · **Must** · 5 points · cas : UC-10
 
-Estimation portée de 3 à 5 points le 6 novembre 2026 (décision du maître d'œuvre, 05 §2.25) : le lot D comprend l'inscription et la connexion du citoyen au site public (UC-10). Restent à placer : le mot de passe oublié par SMS (avec US-031) et le versement au journal d'audit des échecs de connexion du domaine `sabou-public`.
+Estimation portée de 3 à 5 points le 6 novembre 2026 (décision du maître d'œuvre, 05 §2.25) : le lot D comprend l'inscription et la connexion du citoyen au site public (UC-10). Reste à placer : le mot de passe oublié par SMS (avec US-031).
 
 > En tant que citoyen, je veux créer un compte gratuit avec mon numéro de téléphone, afin de témoigner et de demander une plante.
 

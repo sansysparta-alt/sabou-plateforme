@@ -2,7 +2,7 @@
 // (domaine « sabou-public »), Valkey et PostgreSQL réels. Chaque écran traversé, pages de
 // Keycloak comprises, est vérifié par axe (WCAG 2.2 AA).
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, newPhone, signUpThroughApi, smsCode } from './helpers';
+import { auditActions, expectAccessible, newPhone, signUpThroughApi, smsCode } from './helpers';
 
 const PASSWORD = '40718293';
 
@@ -122,4 +122,16 @@ test('connexion : numéro saisi avec indicatif et espaces, mauvais mot de passe 
   await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Connexion' }).click();
   await expect(page.getByText('Bonjour Fanta.')).toBeVisible();
+
+  // Toute connexion est journalisée (R-ACC-05) : l'échec, relevé dans le domaine des
+  // citoyens (toutes les 5 s en local), et la réussite, écrite par l'API
+  await expect
+    .poll(() => auditActions(phone), { timeout: 20_000, intervals: [1_000] })
+    .toEqual(
+      expect.arrayContaining([
+        'application:compte.inscription',
+        'keycloak-public:keycloak.login_error',
+        'application:connexion.reussie',
+      ]),
+    );
 });

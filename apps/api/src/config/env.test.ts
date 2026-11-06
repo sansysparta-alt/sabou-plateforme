@@ -19,6 +19,7 @@ const base = {
   ADMIN_APP_URL: 'https://gestion.sabou.example',
   PUBLIC_KEYCLOAK_ISSUER: 'https://auth.sabou.example/realms/sabou-public',
   SITE_CLIENT_SECRET: clientSecret,
+  PUBLIC_AUDIT_CLIENT_SECRET: auditSecret,
   INSCRIPTION_CLIENT_SECRET: auditSecret,
   SITE_URL: 'https://sabou.example',
   SMS_PROVIDER: 'journal',
@@ -37,6 +38,7 @@ describe('loadEnv', () => {
       COMPTES_CLIENT_ID: 'sabou-comptes',
       INVITATION_HOURS: 72,
       SITE_CLIENT_ID: 'sabou-site',
+      PUBLIC_AUDIT_CLIENT_ID: 'sabou-audit',
       INSCRIPTION_CLIENT_ID: 'sabou-inscription',
       TRUST_PROXY: 'loopback, linklocal, uniquelocal',
     });
