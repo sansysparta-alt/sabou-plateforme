@@ -8,3 +8,5 @@ export { sessionUserSchema, type SessionUser } from './session.js';
 export * from './accounts.js';
 export * from './zones.js';
 export * from './referentials.js';
+export * from './citizens.js';
+export * from './phone.js';

@@ -29,10 +29,10 @@ INSERT INTO utilisateur (email, telephone, prenom, nom, role_code, region_admin_
  ('a.traore@exemple.gn',               '+224620000008','Aïssatou','Traoré',  'praticien',   NULL,NULL,'fr','mal',md5('sabou:a.traore@exemple.gn')::uuid),                 -- 8
  ('f.camara@exemple.gn',               '+224620000009','Fatoumata','Camara', 'praticien',   NULL,NULL,'fr','sou',md5('sabou:f.camara@exemple.gn')::uuid),                 -- 9
  ('i.bah@exemple.gn',                  '+224620000010','Ibrahima','Bah',     'praticien',   NULL,NULL,'fr','pul',md5('sabou:i.bah@exemple.gn')::uuid),                 -- 10
- ('aminata@exemple.gn',                NULL,           'Aminata','Diallo',   'citoyen',     NULL,NULL,'fr','mal',md5('sabou:aminata@exemple.gn')::uuid),                 -- 11
- ('kadiatou@exemple.gn',               NULL,           'Kadiatou','Barry',   'citoyen',     NULL,NULL,'fr','pul',md5('sabou:kadiatou@exemple.gn')::uuid),                 -- 12
- ('sory@exemple.gn',                   NULL,           'Sory','Keita',       'citoyen',     NULL,NULL,'fr','sou',md5('sabou:sory@exemple.gn')::uuid),                 -- 13
- ('mariam@exemple.gn',                 NULL,           'Mariam','Camara',    'citoyen',     NULL,NULL,'en','fr',md5('sabou:mariam@exemple.gn')::uuid),                 -- 14
+ ('aminata@exemple.gn',                '+224620000011','Aminata','Diallo',   'citoyen',     NULL,NULL,'fr','mal',md5('sabou:aminata@exemple.gn')::uuid),                 -- 11
+ ('kadiatou@exemple.gn',               '+224620000012','Kadiatou','Barry',   'citoyen',     NULL,NULL,'fr','pul',md5('sabou:kadiatou@exemple.gn')::uuid),                 -- 12
+ ('sory@exemple.gn',                   '+224620000013','Sory','Keita',       'citoyen',     NULL,NULL,'fr','sou',md5('sabou:sory@exemple.gn')::uuid),                 -- 13
+ ('mariam@exemple.gn',                 '+224620000014','Mariam','Camara',    'citoyen',     NULL,NULL,'en','fr',md5('sabou:mariam@exemple.gn')::uuid),                 -- 14
  ('regional.labe@sabou-sante.gn',      '+224620000015','Alpha','Barry',      'regional',    4,   NULL,'fr','pul',md5('sabou:regional.labe@sabou-sante.gn')::uuid),  -- 15
  ('regional.kankan@sabou-sante.gn',    '+224620000016','Mory','Kaba',        'regional',    7,   NULL,'fr','mal',md5('sabou:regional.kankan@sabou-sante.gn')::uuid);  -- 16
 
