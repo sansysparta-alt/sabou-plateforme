@@ -10,9 +10,37 @@ import {
 // Valkey simulé : les seules commandes utilisées par le magasin de sessions
 class FakeValkey {
   data = new Map<string, { value: string; ttl: number }>();
-  async set(key: string, value: string, _ex: 'EX', ttl: number) {
+  sets = new Map<string, Set<string>>();
+  async set(key: string, value: string, _ex?: 'EX', ttl = -1) {
     this.data.set(key, { value, ttl });
     return 'OK';
+  }
+  async sadd(key: string, member: string) {
+    this.sets.set(key, (this.sets.get(key) ?? new Set()).add(member));
+    return 1;
+  }
+  async expire() {
+    return 1;
+  }
+  async smembers(key: string) {
+    return [...(this.sets.get(key) ?? [])];
+  }
+  async exists(key: string) {
+    return this.data.has(key) ? 1 : 0;
+  }
+  // Transaction : les commandes sont jouées dans l'ordre à exec()
+  multi() {
+    const queue: (() => Promise<unknown>)[] = [];
+    const chain = {
+      set: (...args: Parameters<FakeValkey['set']>) => (queue.push(() => this.set(...args)), chain),
+      sadd: (key: string, member: string) => (queue.push(() => this.sadd(key, member)), chain),
+      expire: () => chain,
+      exec: async () => {
+        for (const command of queue) await command();
+        return [];
+      },
+    };
+    return chain;
   }
   async getex(key: string, _ex: 'EX', ttl: number) {
     const entry = this.data.get(key);
@@ -25,8 +53,10 @@ class FakeValkey {
     this.data.delete(key);
     return entry?.value ?? null;
   }
-  async del(key: string) {
-    return this.data.delete(key) ? 1 : 0;
+  async del(...keys: string[]) {
+    let n = 0;
+    for (const key of keys) n += Number(this.data.delete(key) || this.sets.delete(key));
+    return n;
   }
 }
 
@@ -71,6 +101,28 @@ describe('ValkeySessionStore', () => {
     const id = await store.create(session(now - SESSION_MAX_SECONDS * 1000));
     expect(await store.touch(id, now)).toBeNull();
     expect(valkey.data.size).toBe(0);
+  });
+
+  it('suspension (US-013) : ferme toutes les sessions du compte, pas celles des autres', async () => {
+    const { valkey, store } = setup();
+    const first = await store.create(session(Date.now()));
+    const second = await store.create(session(Date.now()));
+    const other = await store.create({ ...session(Date.now()), sub: 'u-2' });
+    await store.revokeAccount('u-1');
+    expect(await store.touch(first)).toBeNull();
+    expect(await store.touch(second)).toBeNull();
+    expect(await store.touch(other)).toMatchObject({ sub: 'u-2' });
+    expect(valkey.sets.has('sabou:compte:u-1:sessions')).toBe(false);
+  });
+
+  it('suspension : refuse aussi une session ouverte après coup (connexion en cours)', async () => {
+    const { store } = setup();
+    await store.revokeAccount('u-1');
+    const late = await store.create(session(Date.now()));
+    expect(await store.touch(late)).toBeNull();
+    await store.restoreAccount('u-1');
+    const after = await store.create(session(Date.now()));
+    expect(await store.touch(after)).toMatchObject({ sub: 'u-1' });
   });
 
   it("ne rend une transaction de connexion qu'une seule fois", async () => {

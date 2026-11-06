@@ -41,6 +41,8 @@ body {
   color: #ffffff;
 }
 .brand {
+  color: #ffffff;
+  text-decoration: none;
   font-weight: 700;
   font-size: 1.25rem;
   letter-spacing: 0.05em;
@@ -117,6 +119,8 @@ h2 {
 }
 .facts dd {
   margin: 0;
+  /* Adresse e-mail longue sur un écran de 360 px : jamais de défilement horizontal */
+  overflow-wrap: anywhere;
 }
 .card {
   margin-top: 1.5rem;
@@ -131,4 +135,146 @@ h2 {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+/* Gestion des comptes (lot A) */
+.button--outline {
+  color: var(--green);
+  background: var(--surface);
+}
+.button--danger {
+  color: #ffffff;
+  background: var(--error);
+  border-color: var(--error);
+}
+.button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.form {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+.field {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.field > label,
+.field > legend {
+  font-weight: 600;
+  padding: 0;
+}
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+input:not([type='radio'], [type='checkbox']),
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-right: 1.25rem;
+}
+.choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--green);
+}
+.rights {
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0.75rem 0.5rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.375rem;
+}
+.rights legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+.card--success {
+  border-color: var(--green);
+  border-width: 2px;
+}
+.link-field {
+  margin: 0.25rem 0 0.75rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+.copied {
+  margin-left: 0.75rem;
+  color: var(--green);
+  font-weight: 600;
+}
+.accounts {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.account {
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+}
+.account h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+}
+.account .facts {
+  margin: 0 0 0.75rem;
+}
+.badge {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.badge--actif {
+  color: var(--green);
+  background: #dcfce7;
+}
+.badge--suspendu {
+  color: var(--error);
+  background: var(--error-bg);
+}
+.badge--invite {
+  color: #713f12;
+  background: #fef9c3;
+}
+/* Annonce aux lecteurs d'écran, sans place à l'écran */
+.visually-hidden,
+.sr-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.sr-status:not(:empty) {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--green);
+  background: #f0fdf4;
+  color: var(--green);
+  font-weight: 600;
+  border-radius: 0.375rem;
 }

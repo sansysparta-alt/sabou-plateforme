@@ -73,6 +73,19 @@ export async function createUser(role: string): Promise<TestUser> {
   return { id: user!.id, username, password };
 }
 
+// Rôles du domaine attribués au compte (directement ou par un rôle composite)
+export async function realmRoles(userId: string): Promise<string[]> {
+  const roles = await admin<{ name: string }[]>(`/users/${userId}/role-mappings/realm/composite`);
+  return roles.map((role) => role.name);
+}
+
+export async function keycloakUser(username: string) {
+  const [user] = await admin<{ id: string; enabled: boolean }[]>(
+    `/users?username=${encodeURIComponent(username)}&exact=true`,
+  );
+  return user ?? null;
+}
+
 export function bruteForceStatus(userId: string) {
   return admin<{ disabled: boolean; numFailures: number }>(
     `/attack-detection/brute-force/users/${userId}`,

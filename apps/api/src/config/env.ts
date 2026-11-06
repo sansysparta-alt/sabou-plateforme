@@ -29,6 +29,12 @@ const envSchema = z
     AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),
     AUDIT_CLIENT_SECRET: z.string().min(32),
     AUDIT_POLL_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
+    // Gestion des comptes (lot A) : compte de service Keycloak limité à manage-users et
+    // view-users (création des invités, suspension, réactivation, fin des sessions)
+    COMPTES_CLIENT_ID: z.string().min(1).default('sabou-comptes'),
+    COMPTES_CLIENT_SECRET: z.string().min(32),
+    // Validité d'un lien d'invitation (décision du maître d'œuvre : 72 h)
+    INVITATION_HOURS: z.coerce.number().int().min(1).max(72).default(72),
     // Mandataires dont l'en-tête X-Forwarded-For fait foi pour l'IP du journal (syntaxe
     // « trust proxy » d'Express). Par défaut : réseaux privés seulement (Docker, proxy interne).
     TRUST_PROXY: z.string().min(1).default('loopback, linklocal, uniquelocal'),

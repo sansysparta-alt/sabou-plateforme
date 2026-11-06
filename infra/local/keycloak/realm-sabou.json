@@ -179,6 +179,29 @@
       },
       "defaultClientScopes": ["roles"],
       "optionalClientScopes": []
+    },
+    {
+      "clientId": "sabou-comptes",
+      "name": "Gestion des comptes SABOU",
+      "description": "Compte de service de l'API (lot A : US-012, US-013) : crée les comptes invités, les suspend, les réactive et ferme leurs sessions. Rôles manage-users et view-users seulement ; aucune connexion d'utilisateur.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${SABOU_COMPTES_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "defaultClientScopes": ["roles"],
+      "optionalClientScopes": []
     }
   ],
   "users": [
@@ -188,6 +211,14 @@
       "serviceAccountClientId": "sabou-audit",
       "clientRoles": {
         "realm-management": ["view-events"]
+      }
+    },
+    {
+      "username": "service-account-sabou-comptes",
+      "enabled": true,
+      "serviceAccountClientId": "sabou-comptes",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users"]
       }
     }
   ],

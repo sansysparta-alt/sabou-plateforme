@@ -348,6 +348,39 @@ Décisions validées par le maître d'œuvre le 6 novembre 2026 : relève des é
 
 **Contrôles du pipeline** : `packages/db/test/journal-audit.test.ts` (vrai PostgreSQL, rôle de l'API et propriétaire), `apps/api/src/audit/audit.test.ts` et `auth.controller.test.ts` (relève et connexions), test de bout en bout « journal d'audit » de `apps/admin/e2e/connexion.spec.ts` (vrai Keycloak, lecture du journal en base).
 
+### 2.22 Gestion des comptes (lot A : US-012 et US-013, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 6 novembre 2026 (les trois dernières en réponse aux questions posées au début du lot).
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Keycloak seule source** des mots de passe et du double facteur ; la table `utilisateur` garde le rôle, la zone, les langues et l'identifiant Keycloak (`keycloak_id`). Une migration retire `mot_de_passe_hash`, `mfa_actif`, `mfa_secret_chiffre` et leurs contraintes (aucune donnée réelle) | Un secret n'existe qu'à un endroit ; le double facteur est déjà imposé par Keycloak et vérifié par l'API (§2.20) | Copie des empreintes dans PostgreSQL : deux sources à garder d'accord |
+| **Invitation par lien à usage unique, valable 72 h**, que la DG transmet elle-même ; seule l'empreinte SHA-256 du jeton est gardée en base | Aucun service d'envoi à ajouter ; un vol de la base ne donne aucun lien utilisable | Envoi par e-mail ou SMS : service externe pas encore choisi |
+| **Réactivation** d'un compte suspendu, journalisée comme la suspension | Pendant naturel de la suspension (US-013) | — |
+| **Choix du mot de passe sur une page de SABOU** : le lien d'invitation ouvre une page de l'application de gestion ; l'API transmet le mot de passe une seule fois à Keycloak (dans la création du compte, règles de mot de passe de Keycloak), sans le garder ni le journaliser. Ensuite, connexion normale par Keycloak (double facteur imposé aux administrateurs, §2.20) | Sans service d'e-mail, Keycloak ne fournit pas de lien « choisir son mot de passe ». **Écart assumé à §2.20** (« le mot de passe ne transite jamais par notre code »), limité à l'acceptation d'une invitation | Mot de passe provisoire montré à la DG : un secret connu d'un tiers et deux canaux ; envoi par Keycloak (`execute-actions-email`) : service SMTP à choisir |
+| **Compte de service `sabou-comptes`**, avec les seuls rôles `manage-users` et `view-users` du domaine `sabou` (secret `SABOU_COMPTES_CLIENT_SECRET`), distinct de `sabou-audit` | Un compte par usage, avec les droits strictement nécessaires | Compte d'administration du domaine |
+| **Langues de travail** = table existante `utilisateur_langue` : pour chaque langue attribuée, droit d'enregistrer, de traduire, de valider (R-GOV-06). La langue d'interface (texte : français ou anglais) et la langue d'écoute (voix) restent des préférences du compte | Schéma et conception déjà validés (00_Conception_BDD §utilisateur_langue) ; la question posée au début du lot l'avait omis à tort, corrigé le jour même | Langues réduites aux deux préférences |
+
+Décisions techniques prises pendant le lot (règles de l'art, sans question au maître d'œuvre) :
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Un seul parcours « créer ou inviter »** : la DG prépare le compte (statut `invite`, sans compte Keycloak), l'API renvoie le lien ; le compte Keycloak naît à l'acceptation, avec le mot de passe choisi et le rôle attribué. Identifiant de connexion = adresse e-mail | Le mot de passe n'est jamais connu de la DG ; la zone et les langues sont contrôlées dès l'invitation (contraintes de la base) | Compte Keycloak créé à l'invitation, désactivé : un compte sans mot de passe à surveiller |
+| **Rôles invitables** : DG, admin régional, admin préfectoral, Comité scientifique. Gestion réservée à la DG connectée avec son second facteur (UC-65, R-ACC-04) | Les praticiens (15 000) et les citoyens ont leurs propres parcours d'inscription | — |
+| **Zone exigée par le rôle** dans le schéma de validation partagé (`@sabou/types`) et par la contrainte `ck_zone_role` de la base : une région et une seule pour l'admin régional, une préfecture et une seule pour l'admin préfectoral, aucune pour la DG et le Comité | R-ACC-02 ; la base reste le dernier rempart | — |
+| **Lien d'invitation** : jeton de 256 bits dans le fragment de l'adresse (`/invitation#…`), retiré de la barre d'adresse dès la lecture, envoyé à l'API dans le corps d'une requête POST ; seule son empreinte SHA-256 est en base ; un nouveau lien ferme les précédents | Le fragment n'est jamais envoyé au serveur : le jeton n'apparaît ni dans les journaux des mandataires ni dans l'en-tête Referer | Jeton dans le chemin ou la requête |
+| **Suspension** : dans une seule transaction avec sa ligne d'audit, (1) marque « suspendu » et fermeture des sessions de l'API dans Valkey (index des sessions par compte), (2) compte désactivé dans Keycloak, (3) sessions Keycloak fermées. Un échec de Keycloak annule tout et rend les sessions. La marque refuse aussi une session ouverte par une connexion en cours au moment de la suspension. La connexion refuse en plus un compte suspendu en base (défense en profondeur). La DG ne peut pas suspendre son propre compte | Critère « sessions révoquées dans la minute » tenu immédiatement, sans dépendre de l'expiration des jetons (5 min) | Attendre l'expiration des jetons |
+| **Lien connexion ↔ utilisateur** : à chaque connexion, l'API retrouve l'utilisateur par `keycloak_id`, note `derniere_connexion` et inscrit `utilisateur_id` dans le journal d'audit | Suite annoncée au §2.21 | — |
+| **Compte de service** : sans `view-realm`, le rôle se lit dans la liste des rôles que le compte peut recevoir (`role-mappings/realm/available`) ; vérifié sur Keycloak 26.8 | Droits strictement nécessaires | `view-realm` : lecture de toute la configuration du domaine |
+| **Client des comptes de service partagé** (`apps/api/src/keycloak/service-account.ts`) par `sabou-audit` et `sabou-comptes` | Une seule implémentation du jeton et des erreurs | — |
+| **`/api` relayé vers l'API** sous la même origine que l'application, comme `/auth` (Vite en développement, `scripts/serve.mjs` en recette) ; décisions protégées par le contrôle de l'en-tête `Origin` | Cookie de session `SameSite=Lax`, même origine ; protection contre la falsification de requête | — |
+| **Application sans zod** : elle n'importe que des types de `@sabou/types` ; libellés des rôles définis côté application | Paquet téléchargé léger en 3G ; l'API valide chaque requête | Validation zod dans le navigateur (+ ~15 Ko compressés) |
+| **Jeu d'exemple pour les tests de bout en bout** : `pnpm db:seed --if-empty` dans `infra/ci/e2e-admin.sh` | Régions, préfectures et langues nécessaires aux invitations ; base locale du développeur déjà chargée | Référentiels en migration : objet du lot C (US-020, US-021) |
+
+**Limites connues et suites** : le premier compte DG de la recette et de la production est à créer par une procédure d'amorçage (US-015, déploiement) ; le vol du secret `sabou-comptes` permettrait de créer un compte DG (secret à protéger comme une clé d'administration) ; les liens d'invitation ne sont pas limités en nombre de tentatives (jeton de 256 bits, deviner est impossible en pratique).
+
+**Contrôles du pipeline** : `packages/db/test/comptes.test.ts` (contraintes, vrai PostgreSQL), `packages/types/src/accounts.test.ts` (validation), `apps/api/src/accounts/accounts.test.ts` (enchaînement des décisions, accès réservé à la DG, origine), `apps/api/src/auth/session.store.test.ts` (révocation par compte), `apps/api/src/auth/auth.controller.test.ts` (compte suspendu refusé, lien avec l'utilisateur), `apps/admin/e2e/comptes.spec.ts` (critères de US-012 et US-013 de bout en bout, axe sur chaque écran).
+
 ## 3. Architecture
 
 ```

@@ -15,6 +15,7 @@ const base = {
   KEYCLOAK_ISSUER: 'https://auth.sabou.example/realms/sabou',
   ADMIN_CLIENT_SECRET: clientSecret,
   AUDIT_CLIENT_SECRET: auditSecret,
+  COMPTES_CLIENT_SECRET: auditSecret,
   ADMIN_APP_URL: 'https://gestion.sabou.example',
   VALKEY_URL: 'rediss://:motdepasse@valkey:6379',
 };
@@ -28,6 +29,8 @@ describe('loadEnv', () => {
       ADMIN_CLIENT_ID: 'sabou-admin',
       AUDIT_CLIENT_ID: 'sabou-audit',
       AUDIT_POLL_SECONDS: 60,
+      COMPTES_CLIENT_ID: 'sabou-comptes',
+      INVITATION_HOURS: 72,
       TRUST_PROXY: 'loopback, linklocal, uniquelocal',
     });
   });

@@ -64,7 +64,8 @@ Notation : **PK**, *FK*, `?` = facultatif. Clés techniques `bigint` identité +
 - prefecture(**id**, nom, *region_admin_id*)
 - sous_prefecture(**id**, nom, *prefecture_id*)
 - role(**code** {dg, regional, prefectoral, scientifique, praticien, citoyen}, libelle_fr, libelle_en)
-- utilisateur(**id**, email, mot_de_passe_hash, prenom, nom, telephone?, *role_code*, *region_admin_id*?, *prefecture_id*?, *langue_interface* (texte), *langue_ecoute* (voix), mfa_actif, mfa_secret_chiffre?, statut {actif, suspendu}, derniere_connexion, created_at, updated_at)
+- utilisateur(**id**, email, prenom, nom, telephone?, *role_code*, *region_admin_id*?, *prefecture_id*?, *langue_interface* (texte), *langue_ecoute* (voix), keycloak_id? (unique), statut {invite, actif, suspendu}, derniere_connexion, created_at, updated_at) — mot de passe et double facteur dans Keycloak seulement (lot A, 05 §2.22)
+- invitation(**id**, *utilisateur_id*, jeton_empreinte (SHA-256, unique), expire_le, utilisee_le?, *cree_par*?, created_at)
   - contraintes : zone obligatoire selon le rôle ; MFA obligatoire pour dg, regional, prefectoral, scientifique (R-ACC-02, R-ACC-03)
 - utilisateur_langue(***utilisateur_id*, *langue_code***, peut_enregistrer, peut_traduire, peut_valider) (R-GOV-06)
 

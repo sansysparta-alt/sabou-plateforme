@@ -8,6 +8,8 @@ source "$(dirname "$0")/env.sh"
 node infra/local/up.mjs up
 # Schéma à jour : une connexion n'ouvre de session qu'une fois journalisée (US-030)
 pnpm db:migrate
+# Régions, préfectures et langues du jeu d'exemple fictif (gestion des comptes, lot A)
+pnpm db:seed --if-empty
 # L'application et ses dépendances du dépôt (@sabou/types)
 pnpm --filter "@sabou/admin..." run build
 if [[ -n "${CI:-}" ]]; then

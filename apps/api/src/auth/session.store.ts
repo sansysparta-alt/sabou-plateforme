@@ -33,6 +33,11 @@ export interface SessionStore {
   // Renvoie la session et prolonge son délai d'inactivité ; null si absente ou expirée
   touch(id: string, now?: number): Promise<SessionData | null>;
   destroy(id: string): Promise<void>;
+  // Suspension (US-013) : ferme toutes les sessions du compte et refuse les suivantes,
+  // y compris celle d'une connexion en cours au moment de la suspension
+  revokeAccount(sub: string): Promise<void>;
+  // Réactivation : le compte peut de nouveau ouvrir une session
+  restoreAccount(sub: string): Promise<void>;
   saveLogin(tx: LoginTransaction): Promise<void>;
   // Lecture unique : une transaction ne sert qu'une fois
   takeLogin(state: string): Promise<LoginTransaction | null>;
@@ -48,35 +53,57 @@ function digest(value: string): string {
   return createHash('sha256').update(value).digest('base64url');
 }
 
+const sessionKey = (hash: string) => `sabou:session:${hash}`;
+// Empreintes des sessions d'un compte, pour les fermer toutes à la suspension
+const accountSessionsKey = (sub: string) => `sabou:compte:${sub}:sessions`;
+// Présente tant que le compte est suspendu (sans expiration)
+const suspendedKey = (sub: string) => `sabou:compte:${sub}:suspendu`;
+
 export class ValkeySessionStore implements SessionStore {
   constructor(private readonly valkey: Redis) {}
 
   async create(data: SessionData): Promise<string> {
     const id = newSessionId();
-    await this.valkey.set(
-      `sabou:session:${digest(id)}`,
-      JSON.stringify(data),
-      'EX',
-      SESSION_IDLE_SECONDS,
-    );
+    const hash = digest(id);
+    await this.valkey
+      .multi()
+      .set(sessionKey(hash), JSON.stringify(data), 'EX', SESSION_IDLE_SECONDS)
+      .sadd(accountSessionsKey(data.sub), hash)
+      // Aucune session ne vit plus de 10 heures : l'index non plus
+      .expire(accountSessionsKey(data.sub), SESSION_MAX_SECONDS)
+      .exec();
     return id;
   }
 
   async touch(id: string, now = Date.now()): Promise<SessionData | null> {
-    const key = `sabou:session:${digest(id)}`;
+    const key = sessionKey(digest(id));
     // Prolonge l'inactivité et lit la session en une seule requête
     const raw = await this.valkey.getex(key, 'EX', SESSION_IDLE_SECONDS);
     if (!raw) return null;
     const data = JSON.parse(raw) as SessionData;
-    if (now - data.createdAt >= SESSION_MAX_SECONDS * 1000) {
+    if (
+      now - data.createdAt >= SESSION_MAX_SECONDS * 1000 ||
+      (await this.valkey.exists(suspendedKey(data.sub))) === 1
+    ) {
       await this.valkey.del(key);
       return null;
     }
     return data;
   }
 
+  async revokeAccount(sub: string): Promise<void> {
+    // La marque d'abord : une session créée entre les deux étapes est refusée quand même
+    await this.valkey.set(suspendedKey(sub), '1');
+    const hashes = await this.valkey.smembers(accountSessionsKey(sub));
+    await this.valkey.del(accountSessionsKey(sub), ...hashes.map(sessionKey));
+  }
+
+  async restoreAccount(sub: string): Promise<void> {
+    await this.valkey.del(suspendedKey(sub));
+  }
+
   async destroy(id: string): Promise<void> {
-    await this.valkey.del(`sabou:session:${digest(id)}`);
+    await this.valkey.del(sessionKey(digest(id)));
   }
 
   async saveLogin(tx: LoginTransaction): Promise<void> {

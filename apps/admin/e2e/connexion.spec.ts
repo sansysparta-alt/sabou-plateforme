@@ -1,7 +1,13 @@
 // Critères d'acceptation de US-010, de bout en bout : application de gestion (compilée),
 // API, Keycloak et Valkey réels. Chaque écran traversé est vérifié par axe (WCAG 2.2 AA).
-import { expect, test, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import {
+  configureTotp,
+  expectAccessible,
+  sessionStatus,
+  startLogin,
+  submitPassword,
+} from './helpers';
 import {
   APP,
   bruteForceStatus,
@@ -10,55 +16,12 @@ import {
   msUntilNextPeriod,
   totp,
   userEvents,
-  type TestUser,
 } from './keycloak';
 import { auditLines } from './audit';
 
 // La relève des événements Keycloak a lieu toutes les 5 s en local (AUDIT_POLL_SECONDS)
 const AUDIT_DELAY = { timeout: 20_000, intervals: [1_000] };
 const ipAddress = expect.stringMatching(/^[0-9a-f.:]+$/);
-
-async function expectAccessible(page: Page, screen: string): Promise<void> {
-  // Page complète (feuilles de style comprises) : sinon un bouton pas encore mis en forme
-  // peut sembler trop petit (target-size), selon la vitesse du réseau
-  await page.waitForLoadState('load');
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-    .analyze();
-  // Élément fautif cité : un échec dans le pipeline se comprend sans le reproduire
-  expect(
-    violations.map(
-      (v) => `${screen} — ${v.id} : ${v.help} [${v.nodes.map((n) => n.html).join(' | ')}]`,
-    ),
-  ).toEqual([]);
-}
-
-async function submitPassword(page: Page, user: TestUser, password = user.password) {
-  // Identifiant absent quand Keycloak le connaît déjà (il redemande seulement le mot de passe)
-  const username = page.getByLabel("Nom d'utilisateur");
-  if (await username.isVisible()) await username.fill(user.username);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Connexion' }).click();
-}
-
-async function startLogin(page: Page) {
-  await page.goto(APP);
-  await page.getByRole('link', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/realms/sabou/`));
-}
-
-// Écran « configurer l'authentification par mobile » : lit le secret, saisit le code
-async function configureTotp(page: Page): Promise<string> {
-  const secret = await page.locator('input[name="totpSecret"]').inputValue();
-  await page.locator('#totp').fill(totp(secret));
-  await page.locator('#userLabel').fill('Téléphone de service');
-  await page.locator('#saveTOTPBtn').click();
-  return secret;
-}
-
-async function sessionStatus(page: Page): Promise<number> {
-  return (await page.request.get(`${APP}/auth/session`)).status();
-}
 
 test('administrateur sans double facteur : activation obligatoire avant d’accéder à l’application', async ({
   page,
