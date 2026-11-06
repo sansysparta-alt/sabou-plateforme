@@ -28,6 +28,13 @@ import {
 export const SESSION_COOKIE = '__Host-sabou_session';
 export const LOGIN_COOKIE = '__Host-sabou_login';
 
+// Lien entre le compte Keycloak et l'utilisateur de la plateforme (lot A) : noté à chaque
+// connexion ; null pour un compte Keycloak sans utilisateur (comptes de test)
+export const LOGIN_RECORDER = Symbol('LOGIN_RECORDER');
+export interface LoginRecorder {
+  recordLogin(sub: string): Promise<{ userId: number; status: string } | null>;
+}
+
 // Rôle porté par les 4 profils d'administration (DG, régional, préfectoral, Comité)
 const ADMINISTRATOR_ROLE = 'administrateur';
 
@@ -67,6 +74,7 @@ export class AuthController {
     @Inject(IDENTITY_PROVIDER) private readonly idp: IdentityProvider,
     @Inject(SESSION_STORE) private readonly sessions: SessionStore,
     @Inject(AUDIT_LOG) private readonly audit: AuditLog,
+    @Inject(LOGIN_RECORDER) private readonly accounts: LoginRecorder,
   ) {
     this.appOrigin = new URL(env.ADMIN_APP_URL).origin;
   }
@@ -144,11 +152,30 @@ export class AuthController {
 
     // Toute connexion est journalisée (R-ACC-05) : sans ligne d'audit, pas de session
     try {
+      const account = await this.accounts.recordLogin(claims.sub);
+      // Défense en profondeur (US-013) : Keycloak refuse déjà un compte suspendu
+      if (account?.status === 'suspendu') {
+        this.logger.warn(`Connexion refusée : compte ${claims.sub} suspendu`);
+        await this.idp.logout(refreshToken).catch(() => undefined);
+        await this.audit
+          .record({
+            action: 'connexion.refusee',
+            objectType: 'compte',
+            objectId: claims.sub,
+            account: claims.sub,
+            userId: account.userId,
+            ip: req.ip,
+            details: { identifiant: claims.username, motif: 'compte_suspendu' },
+          })
+          .catch((error: unknown) => this.auditFailed(error));
+        return this.fail(res, 'connexion');
+      }
       await this.audit.record({
         action: 'connexion.reussie',
         objectType: 'compte',
         objectId: claims.sub,
         account: claims.sub,
+        userId: account?.userId,
         ip: req.ip,
         details: { identifiant: claims.username, second_facteur: secondFactor },
       });

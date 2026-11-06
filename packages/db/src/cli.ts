@@ -1,6 +1,7 @@
 // Base de l'environnement local (pnpm env:up) :
 //   pnpm db:migrate   applique les migrations en attente
 //   pnpm db:seed      charge le jeu d'exemple fictif dans une base migrée et vide
+//                     (--if-empty : ne fait rien si la base contient déjà des comptes)
 //   pnpm db:hash      recalcule atlas.sum après l'ajout d'une migration
 // Les mots de passe sont lus dans le .env de la racine du dépôt.
 import { readFileSync } from 'node:fs';
@@ -55,6 +56,11 @@ async function main(command: string | undefined): Promise<void> {
         .query<{ n: number }>('SELECT count(*)::int AS n FROM sabou.utilisateur')
         .finally(() => client.end());
       if (rows[0].n > 0) {
+        // Tests de bout en bout : la base locale du développeur est souvent déjà chargée
+        if (process.argv.includes('--if-empty')) {
+          console.log('Jeu d’exemple déjà chargé : rien à faire.');
+          break;
+        }
         throw new Error(
           'La base contient déjà des données : « pnpm env:reset » pour repartir à vide.',
         );

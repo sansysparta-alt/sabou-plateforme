@@ -177,6 +177,7 @@ describe('KeycloakAdminEventSource', () => {
         KEYCLOAK_ALLOW_HTTP: 'true',
         ADMIN_CLIENT_SECRET: randomBytes(32).toString('base64url'),
         AUDIT_CLIENT_SECRET: secret,
+        COMPTES_CLIENT_SECRET: randomBytes(32).toString('base64url'),
         ADMIN_APP_URL: 'http://localhost:5173',
         VALKEY_URL: 'redis://localhost:6379',
       }),

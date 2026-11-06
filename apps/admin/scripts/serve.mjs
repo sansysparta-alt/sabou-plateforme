@@ -71,7 +71,8 @@ function proxy(req, res) {
 
 createServer((req, res) => {
   const path = new URL(req.url ?? '/', 'http://localhost').pathname;
-  if (path === '/auth' || path.startsWith('/auth/')) return proxy(req, res);
+  // /auth : connexion (US-010) ; /api : gestion des comptes et suivantes (lot A)
+  if (/^\/(auth|api)(\/|$)/.test(path)) return proxy(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') return res.writeHead(405).end();
   // Application à page unique : toute adresse inconnue reçoit index.html
   const file = files.get(path) ?? files.get('/index.html');

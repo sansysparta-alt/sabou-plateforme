@@ -1,7 +1,16 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+
+// Pages chargées à la demande : l'accueil et la connexion restent légers en 3G
+const AccountsPage = lazy(() =>
+  import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
+);
+const InvitationPage = lazy(() =>
+  import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
+);
 import {
   fetchSession,
   hasManagementAccess,
+  isDirector,
   LOGIN_ERRORS,
   logout,
   profileLabel,
@@ -30,7 +39,29 @@ function takeLoginError(): string | undefined {
   return code ? (LOGIN_ERRORS[code] ?? LOGIN_ERRORS.connexion) : undefined;
 }
 
+// Pages de l'application ; toute autre adresse mène à l'accueil
+const path = () => window.location.pathname.replace(/\/+$/, '') || '/';
+
 export function App() {
+  // Acceptation d'une invitation : la personne n'a pas encore de compte ni de session
+  if (path() === '/invitation') {
+    return (
+      <>
+        <header className="topbar">
+          <span className="brand">SABOU</span>
+        </header>
+        <main className="page">
+          <Suspense fallback={<p>Chargement…</p>}>
+            <InvitationPage />
+          </Suspense>
+        </main>
+      </>
+    );
+  }
+  return <ConnectedApp />;
+}
+
+function ConnectedApp() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [loginError] = useState(takeLoginError);
   const [mfaJustEnabled] = useState(() => takeParam('info') === 'double-facteur');
@@ -58,7 +89,9 @@ export function App() {
   return (
     <>
       <header className="topbar">
-        <span className="brand">SABOU</span>
+        <a className="brand" href="/">
+          SABOU
+        </a>
         {state.status === 'connected' && (
           <div className="topbar__user">
             <span>{state.user.name}</span>
@@ -76,9 +109,14 @@ export function App() {
           </p>
         )}
         {state.status === 'anonymous' && <LoginPage error={loginError} />}
-        {state.status === 'connected' && (
-          <HomePage user={state.user} mfaJustEnabled={mfaJustEnabled} />
-        )}
+        {state.status === 'connected' &&
+          (path() === '/comptes' && isDirector(state.user) ? (
+            <Suspense fallback={<p>Chargement…</p>}>
+              <AccountsPage />
+            </Suspense>
+          ) : (
+            <HomePage user={state.user} mfaJustEnabled={mfaJustEnabled} />
+          ))}
       </main>
     </>
   );
@@ -137,6 +175,13 @@ function HomePage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled:
         <dt>Connexion protégée par double facteur</dt>
         <dd>{user.secondFactor ? 'Oui' : 'Non'}</dd>
       </dl>
+      {isDirector(user) && (
+        <nav aria-label="Gestion">
+          <a className="button button--primary" href="/comptes">
+            Gérer les comptes
+          </a>
+        </nav>
+      )}
       {!user.secondFactor && !mfaJustEnabled && (
         <section aria-labelledby="mfa-title" className="card">
           <h2 id="mfa-title">Protégez votre compte</h2>

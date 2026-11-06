@@ -176,8 +176,8 @@ let labeAgent: number | undefined;
 async function secondLabeAgent(): Promise<number> {
   if (labeAgent) return labeAgent;
   const { rows } = await client.query<{ id: string }>(
-    `INSERT INTO sabou.utilisateur (email, mot_de_passe_hash, prenom, nom, role_code, prefecture_id, mfa_actif, mfa_secret_chiffre)
-     VALUES ('prefectoral2.labe@sabou-sante.gn', '$argon2id$exemple', 'Mariama', 'Diallo', 'prefectoral', 4, true, '\\xdeadbeef')
+    `INSERT INTO sabou.utilisateur (email, prenom, nom, role_code, prefecture_id, keycloak_id)
+     VALUES ('prefectoral2.labe@sabou-sante.gn', 'Mariama', 'Diallo', 'prefectoral', 4, gen_random_uuid())
      RETURNING id`,
   );
   labeAgent = Number(rows[0]!.id);

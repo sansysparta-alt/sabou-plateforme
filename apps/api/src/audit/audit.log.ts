@@ -21,7 +21,8 @@ export interface AuditEntry {
 }
 
 export interface AuditLog {
-  record(entry: AuditEntry): Promise<void>;
+  // Écrit la ligne, dans la transaction de la décision quand elle est donnée
+  record(entry: AuditEntry, trx?: Transaction<never>): Promise<void>;
   // Transaction d'une décision : les fonctions de workflow y écrivent leur ligne d'audit,
   // qui reçoit l'IP de la requête ; décision et ligne sont confirmées ou annulées ensemble.
   decide<T>(ip: string | undefined, work: (trx: Transaction<never>) => Promise<T>): Promise<T>;
@@ -63,14 +64,14 @@ export function keycloakEventRow(event: KeycloakEvent) {
 export class PgAuditLog implements AuditLog {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  async record(entry: AuditEntry): Promise<void> {
+  async record(entry: AuditEntry, trx?: Transaction<never>): Promise<void> {
     await sql`
       INSERT INTO sabou.journal_audit
         (utilisateur_id, compte, action, objet_type, objet_id, details, ip)
       VALUES (${entry.userId ?? null}, ${entry.account ?? null}, ${entry.action},
               ${entry.objectType}, ${entry.objectId ?? null},
               ${JSON.stringify(entry.details ?? {})}::jsonb, ${normalizeIp(entry.ip)}::inet)
-    `.execute(this.db);
+    `.execute(trx ?? this.db);
   }
 
   async decide<T>(

@@ -31,6 +31,11 @@ export function profileLabel(user: SessionUser): string {
   return PROFILES.find(([role]) => user.roles.includes(role))?.[1] ?? 'Aucun profil';
 }
 
+// Gestion des comptes réservée à la Direction Générale (UC-65), vérifiée aussi par l'API
+export function isDirector(user: SessionUser): boolean {
+  return user.roles.includes('dg');
+}
+
 // L'application de gestion sert les 4 profils d'administration et les praticiens
 export function hasManagementAccess(user: SessionUser): boolean {
   return user.administrator || user.roles.includes('praticien');

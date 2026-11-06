@@ -1,12 +1,18 @@
 import 'reflect-metadata';
 import { randomBytes } from 'node:crypto';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { Logger, Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { sessionUserSchema } from '@sabou/types';
 import { AUDIT_LOG, type AuditEntry, type AuditLog } from '../audit/audit.log';
 import { ENV, loadEnv } from '../config/env';
-import { AuthController, LOGIN_COOKIE, SESSION_COOKIE, safeReturnTo } from './auth.controller';
+import {
+  AuthController,
+  LOGIN_COOKIE,
+  LOGIN_RECORDER,
+  SESSION_COOKIE,
+  safeReturnTo,
+} from './auth.controller';
 import { IDENTITY_PROVIDER, type IdentityClaims, type IdentityProvider } from './identity-provider';
 import {
   newSessionId,
@@ -33,6 +39,10 @@ class MemoryStore implements SessionStore {
   async destroy(id: string) {
     this.sessions.delete(id);
   }
+  async revokeAccount(sub: string) {
+    for (const [id, data] of this.sessions) if (data.sub === sub) this.sessions.delete(id);
+  }
+  async restoreAccount() {}
   async saveLogin(tx: LoginTransaction) {
     this.logins.set(tx.state, tx);
   }
@@ -75,6 +85,17 @@ function identity(roles: string[], amr: string[]): IdentityClaims {
 const store = new MemoryStore();
 const idp = new FakeIdp();
 const audit = new MemoryAudit();
+// Utilisateurs de la plateforme simulés : aucun par défaut (compte Keycloak seul)
+type PlatformAccount = { userId: number; status: string } | null;
+const accounts: {
+  account: PlatformAccount;
+  recordLogin: Mock<(sub: string) => Promise<PlatformAccount>>;
+} = {
+  account: null as PlatformAccount,
+  recordLogin: vi.fn<(sub: string) => Promise<PlatformAccount>>(
+    async (): Promise<PlatformAccount> => accounts.account,
+  ),
+};
 let app: INestApplication;
 let base: string;
 
@@ -86,6 +107,7 @@ beforeAll(async () => {
     KEYCLOAK_ALLOW_HTTP: 'true',
     ADMIN_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     AUDIT_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    COMPTES_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     ADMIN_APP_URL: APP,
     VALKEY_URL: 'redis://localhost:6379',
   });
@@ -96,6 +118,7 @@ beforeAll(async () => {
       { provide: IDENTITY_PROVIDER, useValue: idp },
       { provide: SESSION_STORE, useValue: store },
       { provide: AUDIT_LOG, useValue: audit },
+      { provide: LOGIN_RECORDER, useValue: accounts },
     ],
   })
   class TestModule {}
@@ -111,6 +134,8 @@ beforeEach(() => {
   store.logins.clear();
   audit.entries = [];
   audit.down = false;
+  accounts.account = null;
+  accounts.recordLogin.mockClear();
   idp.logout.mockClear();
   idp.finishLogin.mockClear();
   vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
@@ -310,6 +335,24 @@ describe('Journal d’audit des connexions', () => {
         ip,
         details: { motif: 'double_facteur_absent' },
       },
+    ]);
+  });
+
+  it('connexion réussie : reliée à l’utilisateur de la plateforme (lot A)', async () => {
+    accounts.account = { userId: 3, status: 'actif' };
+    await loginAs(['dg', 'administrateur'], ['pwd', 'otp']);
+    expect(accounts.recordLogin).toHaveBeenCalledWith('u-1');
+    expect(audit.entries).toMatchObject([{ action: 'connexion.reussie', userId: 3 }]);
+  });
+
+  it('compte suspendu dans la plateforme : refusé, journalisé, session Keycloak fermée (US-013)', async () => {
+    accounts.account = { userId: 3, status: 'suspendu' };
+    const response = await loginAs(['dg', 'administrateur'], ['pwd', 'otp']);
+    expect(response.headers.get('location')).toBe(`${APP}/?erreur=connexion`);
+    expect(store.sessions.size).toBe(0);
+    expect(idp.logout).toHaveBeenCalledWith('jeton-de-rafraichissement');
+    expect(audit.entries).toMatchObject([
+      { action: 'connexion.refusee', userId: 3, details: { motif: 'compte_suspendu' } },
     ]);
   });
 

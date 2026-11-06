@@ -34,24 +34,25 @@ INSERT INTO role (code, libelle_fr, libelle_en) VALUES
  ('praticien','Tradipraticien','Traditional healer'),('citoyen','Citoyen','Citizen');
 
 -- ---------- Comptes ----------
-INSERT INTO utilisateur (email, telephone, mot_de_passe_hash, prenom, nom, role_code, region_admin_id, prefecture_id,
-                         langue_interface, langue_ecoute, mfa_actif, mfa_secret_chiffre) VALUES
- ('dg@sabou-sante.gn',                 '+224620000001','$argon2id$exemple','Mohamed','Camara',   'dg',          NULL,NULL,'fr','fr', true,'\xdeadbeef'::bytea),  -- 1
- ('regional.kindia@sabou-sante.gn',    '+224620000002','$argon2id$exemple','Fatoumata','Bangoura','regional',    3,   NULL,'fr','sou',true,'\xdeadbeef'::bytea),  -- 2
- ('prefectoral.labe@sabou-sante.gn',   '+224620000003','$argon2id$exemple','Ibrahima','Sow',     'prefectoral', NULL,4,   'fr','pul',true,'\xdeadbeef'::bytea),  -- 3
- ('comite@sabou-sante.gn',             '+224620000004','$argon2id$exemple','Aboubacar','Diakité','scientifique',NULL,NULL,'fr','fr', true,'\xdeadbeef'::bytea),  -- 4
- ('prefectoral.kankan@sabou-sante.gn', '+224620000005','$argon2id$exemple','Mohamed','Condé',    'prefectoral', NULL,7,   'fr','mal',true,'\xdeadbeef'::bytea),  -- 5
- ('s.kourouma@exemple.gn',             '+224620000006','$argon2id$exemple','Sékou','Kourouma',   'praticien',   NULL,NULL,'fr','pul',false,NULL),                 -- 6
- ('m.diallo@exemple.gn',               '+224620000007','$argon2id$exemple','Mamadou','Diallo',   'praticien',   NULL,NULL,'fr','pul',false,NULL),                 -- 7
- ('a.traore@exemple.gn',               '+224620000008','$argon2id$exemple','Aïssatou','Traoré',  'praticien',   NULL,NULL,'fr','mal',false,NULL),                 -- 8
- ('f.camara@exemple.gn',               '+224620000009','$argon2id$exemple','Fatoumata','Camara', 'praticien',   NULL,NULL,'fr','sou',false,NULL),                 -- 9
- ('i.bah@exemple.gn',                  '+224620000010','$argon2id$exemple','Ibrahima','Bah',     'praticien',   NULL,NULL,'fr','pul',false,NULL),                 -- 10
- ('aminata@exemple.gn',                NULL,           '$argon2id$exemple','Aminata','Diallo',   'citoyen',     NULL,NULL,'fr','mal',false,NULL),                 -- 11
- ('kadiatou@exemple.gn',               NULL,           '$argon2id$exemple','Kadiatou','Barry',   'citoyen',     NULL,NULL,'fr','pul',false,NULL),                 -- 12
- ('sory@exemple.gn',                   NULL,           '$argon2id$exemple','Sory','Keita',       'citoyen',     NULL,NULL,'fr','sou',false,NULL),                 -- 13
- ('mariam@exemple.gn',                 NULL,           '$argon2id$exemple','Mariam','Camara',    'citoyen',     NULL,NULL,'en','fr', false,NULL),                 -- 14
- ('regional.labe@sabou-sante.gn',      '+224620000015','$argon2id$exemple','Alpha','Barry',      'regional',    4,   NULL,'fr','pul',true,'\xdeadbeef'::bytea),  -- 15
- ('regional.kankan@sabou-sante.gn',    '+224620000016','$argon2id$exemple','Mory','Kaba',        'regional',    7,   NULL,'fr','mal',true,'\xdeadbeef'::bytea);  -- 16
+-- keycloak_id fictif et stable : aucun de ces comptes n'existe dans Keycloak
+INSERT INTO utilisateur (email, telephone, prenom, nom, role_code, region_admin_id, prefecture_id,
+                         langue_interface, langue_ecoute, keycloak_id) VALUES
+ ('dg@sabou-sante.gn',                 '+224620000001','Mohamed','Camara',   'dg',          NULL,NULL,'fr','fr', md5('sabou:dg@sabou-sante.gn')::uuid),  -- 1
+ ('regional.kindia@sabou-sante.gn',    '+224620000002','Fatoumata','Bangoura','regional',    3,   NULL,'fr','sou',md5('sabou:regional.kindia@sabou-sante.gn')::uuid),  -- 2
+ ('prefectoral.labe@sabou-sante.gn',   '+224620000003','Ibrahima','Sow',     'prefectoral', NULL,4,   'fr','pul',md5('sabou:prefectoral.labe@sabou-sante.gn')::uuid),  -- 3
+ ('comite@sabou-sante.gn',             '+224620000004','Aboubacar','Diakité','scientifique',NULL,NULL,'fr','fr', md5('sabou:comite@sabou-sante.gn')::uuid),  -- 4
+ ('prefectoral.kankan@sabou-sante.gn', '+224620000005','Mohamed','Condé',    'prefectoral', NULL,7,   'fr','mal',md5('sabou:prefectoral.kankan@sabou-sante.gn')::uuid),  -- 5
+ ('s.kourouma@exemple.gn',             '+224620000006','Sékou','Kourouma',   'praticien',   NULL,NULL,'fr','pul',md5('sabou:s.kourouma@exemple.gn')::uuid),                 -- 6
+ ('m.diallo@exemple.gn',               '+224620000007','Mamadou','Diallo',   'praticien',   NULL,NULL,'fr','pul',md5('sabou:m.diallo@exemple.gn')::uuid),                 -- 7
+ ('a.traore@exemple.gn',               '+224620000008','Aïssatou','Traoré',  'praticien',   NULL,NULL,'fr','mal',md5('sabou:a.traore@exemple.gn')::uuid),                 -- 8
+ ('f.camara@exemple.gn',               '+224620000009','Fatoumata','Camara', 'praticien',   NULL,NULL,'fr','sou',md5('sabou:f.camara@exemple.gn')::uuid),                 -- 9
+ ('i.bah@exemple.gn',                  '+224620000010','Ibrahima','Bah',     'praticien',   NULL,NULL,'fr','pul',md5('sabou:i.bah@exemple.gn')::uuid),                 -- 10
+ ('aminata@exemple.gn',                NULL,           'Aminata','Diallo',   'citoyen',     NULL,NULL,'fr','mal',md5('sabou:aminata@exemple.gn')::uuid),                 -- 11
+ ('kadiatou@exemple.gn',               NULL,           'Kadiatou','Barry',   'citoyen',     NULL,NULL,'fr','pul',md5('sabou:kadiatou@exemple.gn')::uuid),                 -- 12
+ ('sory@exemple.gn',                   NULL,           'Sory','Keita',       'citoyen',     NULL,NULL,'fr','sou',md5('sabou:sory@exemple.gn')::uuid),                 -- 13
+ ('mariam@exemple.gn',                 NULL,           'Mariam','Camara',    'citoyen',     NULL,NULL,'en','fr',md5('sabou:mariam@exemple.gn')::uuid),                 -- 14
+ ('regional.labe@sabou-sante.gn',      '+224620000015','Alpha','Barry',      'regional',    4,   NULL,'fr','pul',md5('sabou:regional.labe@sabou-sante.gn')::uuid),  -- 15
+ ('regional.kankan@sabou-sante.gn',    '+224620000016','Mory','Kaba',        'regional',    7,   NULL,'fr','mal',md5('sabou:regional.kankan@sabou-sante.gn')::uuid);  -- 16
 
 INSERT INTO utilisateur_langue (utilisateur_id, langue_code, peut_enregistrer, peut_traduire, peut_valider) VALUES
  (1,'fr',true,true,true),(1,'en',false,true,true),
