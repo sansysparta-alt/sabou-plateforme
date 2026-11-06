@@ -34,7 +34,7 @@ import { ENV, type Env } from '../config/env';
 import { AccountsRepository } from './accounts.repository';
 import { AccountsService, type Actor } from './accounts.service';
 
-type SessionRequest = Request & { session?: SessionData };
+export type SessionRequest = Request & { session?: SessionData };
 
 // Requête qui modifie quelque chose : seule l'application de gestion peut l'envoyer
 // (protection contre la falsification de requête, en plus du cookie SameSite=Lax)
@@ -64,7 +64,7 @@ export class DirectorGuard implements CanActivate {
   }
 }
 
-function parse<T extends z.ZodType>(schema: T, body: unknown): z.infer<T> {
+export function parse<T extends z.ZodType>(schema: T, body: unknown): z.infer<T> {
   const result = schema.safeParse(body);
   if (!result.success) {
     throw new BadRequestException(result.error.issues.map((issue) => issue.message));
@@ -72,7 +72,7 @@ function parse<T extends z.ZodType>(schema: T, body: unknown): z.infer<T> {
   return result.data;
 }
 
-const actor = (req: SessionRequest): Actor => ({ sub: req.session!.sub, ip: req.ip });
+export const actor = (req: SessionRequest): Actor => ({ sub: req.session!.sub, ip: req.ip });
 
 // Gestion des comptes par la DG (lot A : US-012, US-013)
 @Controller('api/comptes')
