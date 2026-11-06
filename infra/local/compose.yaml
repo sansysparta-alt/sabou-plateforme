@@ -36,8 +36,9 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332 # 26.8.1
     # Mode développement (HTTP) ; la base reste PostgreSQL, comme en production.
-    # Le domaine « sabou » (US-010) n'est importé qu'au premier démarrage : après une
-    # modification de keycloak/realm-sabou.json, lancer « node infra/local/up.mjs reset ».
+    # Les domaines « sabou » (administration, US-010) et « sabou-public » (citoyens, lot D)
+    # ne sont importés qu'au premier démarrage : après une modification de leur fichier,
+    # lancer « pnpm env:realm ».
     command: [start-dev, --import-realm]
     environment:
       # Adresse vue par le navigateur (émetteur des jetons) ; l'API passe par le réseau interne
@@ -48,6 +49,9 @@ services:
       SABOU_AUDIT_CLIENT_SECRET: ${SABOU_AUDIT_CLIENT_SECRET:?}
       SABOU_COMPTES_CLIENT_SECRET: ${SABOU_COMPTES_CLIENT_SECRET:?}
       SABOU_ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
+      SABOU_SITE_CLIENT_SECRET: ${SABOU_SITE_CLIENT_SECRET:?}
+      SABOU_INSCRIPTION_CLIENT_SECRET: ${SABOU_INSCRIPTION_CLIENT_SECRET:?}
+      SABOU_SITE_URL: http://localhost:${SITE_PORT:-3000}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
@@ -57,7 +61,9 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
     volumes:
       - ./keycloak/realm-sabou.json:/opt/keycloak/data/import/realm-sabou.json:ro
+      - ./keycloak/realm-sabou-public.json:/opt/keycloak/data/import/realm-sabou-public.json:ro
       - ./keycloak/themes/sabou:/opt/keycloak/themes/sabou:ro
+      - ./keycloak/themes/sabou-public:/opt/keycloak/themes/sabou-public:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,6 +136,12 @@ services:
       # Gestion des comptes (lot A) : compte de service manage-users et view-users
       COMPTES_CLIENT_SECRET: ${SABOU_COMPTES_CLIENT_SECRET:?}
       ADMIN_APP_URL: http://localhost:${ADMIN_PORT:-5173}
+      # Comptes citoyens (lot D) : domaine « sabou-public », site public, SMS factice
+      PUBLIC_KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-8080}/realms/sabou-public
+      SITE_CLIENT_SECRET: ${SABOU_SITE_CLIENT_SECRET:?}
+      INSCRIPTION_CLIENT_SECRET: ${SABOU_INSCRIPTION_CLIENT_SECRET:?}
+      SITE_URL: http://localhost:${SITE_PORT:-3000}
+      SMS_PROVIDER: journal
       VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
     depends_on:
       postgres:

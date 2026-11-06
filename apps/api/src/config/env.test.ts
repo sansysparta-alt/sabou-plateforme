@@ -17,6 +17,11 @@ const base = {
   AUDIT_CLIENT_SECRET: auditSecret,
   COMPTES_CLIENT_SECRET: auditSecret,
   ADMIN_APP_URL: 'https://gestion.sabou.example',
+  PUBLIC_KEYCLOAK_ISSUER: 'https://auth.sabou.example/realms/sabou-public',
+  SITE_CLIENT_SECRET: clientSecret,
+  INSCRIPTION_CLIENT_SECRET: auditSecret,
+  SITE_URL: 'https://sabou.example',
+  SMS_PROVIDER: 'journal',
   VALKEY_URL: 'rediss://:motdepasse@valkey:6379',
 };
 
@@ -31,6 +36,8 @@ describe('loadEnv', () => {
       AUDIT_POLL_SECONDS: 60,
       COMPTES_CLIENT_ID: 'sabou-comptes',
       INVITATION_HOURS: 72,
+      SITE_CLIENT_ID: 'sabou-site',
+      INSCRIPTION_CLIENT_ID: 'sabou-inscription',
       TRUST_PROXY: 'loopback, linklocal, uniquelocal',
     });
   });

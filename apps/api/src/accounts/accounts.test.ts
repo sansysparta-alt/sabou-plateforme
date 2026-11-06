@@ -105,6 +105,11 @@ beforeAll(async () => {
     ADMIN_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     AUDIT_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     COMPTES_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    PUBLIC_KEYCLOAK_ISSUER: 'http://localhost:8080/realms/sabou-public',
+    SITE_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    INSCRIPTION_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+    SITE_URL: 'http://localhost:3000',
+    SMS_PROVIDER: 'journal',
     ADMIN_APP_URL: APP,
     VALKEY_URL: 'redis://localhost:6379',
   });

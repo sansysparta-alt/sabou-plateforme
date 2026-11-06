@@ -2,15 +2,26 @@ import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { AccountsRepository } from '../accounts/accounts.repository';
 import { ENV, type Env } from '../config/env';
-import { AuthController, LOGIN_RECORDER } from './auth.controller';
-import { IDENTITY_PROVIDER, KeycloakIdentityProvider } from './identity-provider';
+import {
+  AuthController,
+  CITIZEN_IDENTITY_PROVIDER,
+  CitizenAuthController,
+  LOGIN_RECORDER,
+} from './auth.controller';
+import {
+  adminClient,
+  citizenClient,
+  IDENTITY_PROVIDER,
+  KeycloakIdentityProvider,
+} from './identity-provider';
 import { SESSION_STORE, ValkeySessionStore } from './session.store';
 
-const VALKEY = Symbol('VALKEY');
+export const VALKEY = Symbol('VALKEY');
 
-// Connexion des utilisateurs par Keycloak, sessions dans Valkey (US-010)
+// Connexion des utilisateurs par Keycloak, sessions dans Valkey (US-010) : administration
+// (domaine « sabou ») et citoyens du site public (domaine « sabou-public », lot D)
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, CitizenAuthController],
   providers: [
     {
       provide: VALKEY,
@@ -27,12 +38,17 @@ const VALKEY = Symbol('VALKEY');
     {
       provide: IDENTITY_PROVIDER,
       inject: [ENV],
-      useFactory: (env: Env) => new KeycloakIdentityProvider(env),
+      useFactory: (env: Env) => new KeycloakIdentityProvider(env, adminClient(env)),
+    },
+    {
+      provide: CITIZEN_IDENTITY_PROVIDER,
+      inject: [ENV],
+      useFactory: (env: Env) => new KeycloakIdentityProvider(env, citizenClient(env)),
     },
     // Lien entre la connexion et l'utilisateur de la plateforme (lot A)
     { provide: LOGIN_RECORDER, useClass: AccountsRepository },
   ],
-  exports: [SESSION_STORE],
+  exports: [SESSION_STORE, VALKEY],
 })
 export class AuthModule implements OnApplicationShutdown {
   constructor(@Inject(VALKEY) private readonly valkey: Redis) {}
