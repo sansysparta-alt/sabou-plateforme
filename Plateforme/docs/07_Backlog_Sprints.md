@@ -251,6 +251,16 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné la liste initiale, quand on l’affiche, alors les 8 spécialités du cahier des charges v1.3 sont présentes, en français et en anglais.
 
+#### US-022 · Fusionner deux territoires
+*Référentiels* · **Could** · à estimer au raffinement · cas : UC-65
+
+> En tant que DG, je veux fusionner deux territoires, afin de suivre un redécoupage administratif.
+
+Ajouté le 6 novembre 2026, sorti de US-020 (décision du maître d'œuvre, 05 §2.24) : la fusion rattache praticiens, dossiers et comptes à une autre zone, opération difficile à défaire. Sprint à fixer au raffinement.
+
+Critères d’acceptation (à compléter au raffinement) :
+- Étant donné deux préfectures fusionnées, quand on consulte les praticiens de la préfecture conservée, alors ceux de l'ancienne y figurent et l'opération est journalisée.
+
 #### US-030 · Un journal de toutes les décisions et connexions, non modifiable
 *Audit et notifications* · **Must** · 3 points · cas : —
 

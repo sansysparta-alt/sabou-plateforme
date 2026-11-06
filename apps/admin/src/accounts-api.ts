@@ -22,11 +22,12 @@ export class ApiError extends Error {
 
 const GENERIC = 'Le service est momentanément indisponible. Veuillez réessayer.';
 
-async function call<T>(path: string, body?: unknown): Promise<T> {
+// Appel de l'API ; sans corps : GET, avec corps : POST, sauf méthode donnée
+export async function call<T>(path: string, body?: unknown, method?: 'PATCH'): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: method ?? (body === undefined ? 'GET' : 'POST'),
       credentials: 'same-origin',
       headers: body === undefined ? {} : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),

@@ -1,8 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 
 // Pages chargées à la demande : l'accueil et la connexion restent légers en 3G
 const AccountsPage = lazy(() =>
   import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
+);
+const ReferentialsPage = lazy(() =>
+  import('./ReferentialsPage').then((m) => ({ default: m.ReferentialsPage })),
 );
 const InvitationPage = lazy(() =>
   import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
@@ -109,16 +112,27 @@ function ConnectedApp() {
           </p>
         )}
         {state.status === 'anonymous' && <LoginPage error={loginError} />}
-        {state.status === 'connected' &&
-          (path() === '/comptes' && isDirector(state.user) ? (
-            <Suspense fallback={<p>Chargement…</p>}>
-              <AccountsPage />
-            </Suspense>
-          ) : (
-            <HomePage user={state.user} mfaJustEnabled={mfaJustEnabled} />
-          ))}
+        {state.status === 'connected' && (
+          <ConnectedPage user={state.user} mfaJustEnabled={mfaJustEnabled} />
+        )}
       </main>
     </>
+  );
+}
+
+// Pages de la DG ; tout autre profil, ou toute autre adresse, mène à l'accueil
+const DIRECTOR_PAGES: Record<string, ComponentType> = {
+  '/comptes': AccountsPage,
+  '/referentiels': ReferentialsPage,
+};
+
+function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
+  const Page = isDirector(user) ? DIRECTOR_PAGES[path()] : undefined;
+  if (!Page) return <HomePage user={user} mfaJustEnabled={mfaJustEnabled} />;
+  return (
+    <Suspense fallback={<p>Chargement…</p>}>
+      <Page />
+    </Suspense>
   );
 }
 
@@ -179,6 +193,9 @@ function HomePage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled:
         <nav aria-label="Gestion">
           <a className="button button--primary" href="/comptes">
             Gérer les comptes
+          </a>{' '}
+          <a className="button button--primary" href="/referentiels">
+            Gérer les référentiels
           </a>
         </nav>
       )}

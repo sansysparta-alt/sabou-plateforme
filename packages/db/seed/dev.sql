@@ -11,27 +11,9 @@ SET search_path = sabou, public;
 BEGIN;
 
 -- ---------- Référentiel ----------
-INSERT INTO langue (code, iso639_3, nom_fr, type, texte, voix, ordre) VALUES
- ('fr', 'fra', 'Français', 'officielle',     true,  true,  1),
- ('en', 'eng', 'Anglais',  'internationale', true,  false, 2),
- ('sou','sus', 'Soussou',  'nationale',      false, true,  3),
- ('mal','emk', 'Malinké',  'nationale',      false, true,  4),
- ('pul','fuf', 'Pular',    'nationale',      false, true,  5),
- ('gue','gkp', 'Guerzé',   'nationale',      false, true,  6);
-
-INSERT INTO region_naturelle (code, nom, langue_defaut_code) VALUES
- ('BG','Basse Guinée','sou'), ('MG','Moyenne Guinée','pul'), ('HG','Haute Guinée','mal'), ('GF','Guinée Forestière','gue');
-INSERT INTO region_admin (nom, region_naturelle_id) VALUES
- ('Boké',1),('Conakry',1),('Kindia',1),('Labé',2),('Mamou',2),('Faranah',3),('Kankan',3),('N''Zérékoré',4);
-INSERT INTO prefecture (nom, region_admin_id) VALUES
- ('Boké',1),('Conakry',2),('Kindia',3),('Labé',4),('Mamou',5),('Faranah',6),('Kankan',7),('N''Zérékoré',8),('Siguiri',7),('Coyah',3);
+-- Rôles, langues, régions, préfectures et spécialités : migration 20261106180000_referentiels.
 INSERT INTO sous_prefecture (nom, prefecture_id) VALUES
  ('Popodara',4),('Hafia',4),('Balandougou',7),('Kintinian',9);
-
-INSERT INTO role (code, libelle_fr, libelle_en) VALUES
- ('dg','Direction Générale','General Directorate'),('regional','Admin Régional','Regional Admin'),
- ('prefectoral','Admin Préfectoral','Prefectoral Admin'),('scientifique','Comité Scientifique','Scientific Committee'),
- ('praticien','Tradipraticien','Traditional healer'),('citoyen','Citoyen','Citizen');
 
 -- ---------- Comptes ----------
 -- keycloak_id fictif et stable : aucun de ces comptes n'existe dans Keycloak
@@ -61,13 +43,6 @@ INSERT INTO utilisateur_langue (utilisateur_id, langue_code, peut_enregistrer, p
  (8,'mal',true,false,false),(8,'fr',true,false,false);
 
 -- ---------- Praticiens ----------
-INSERT INTO specialite (code, libelle_fr, libelle_en) VALUES
- ('phytotherapie','Phytothérapie','Herbal medicine'),('pediatrie','Pédiatrie','Paediatrics'),
- ('os_fractures','Os et fractures','Bones and fractures'),('nutrition','Nutrition','Nutrition'),
- ('gynecologie','Gynécologie et santé maternelle','Gynaecology and maternal health'),
- ('sante_mentale','Santé mentale','Mental health'),('dermatologie','Maladies de la peau','Skin diseases'),
- ('envenimations','Morsures et envenimations','Bites and envenomations');   -- 8 spécialités (R-CER-09)
-
 INSERT INTO praticien (code, utilisateur_id, specialite_id, prefecture_id, sous_prefecture_id, langue_principale, annees_experience, statut, nb_vues) VALUES
  ('PR-1041', 6, 1, 4, 1,    'pul', 12, 'en_attente', 0),     -- 1
  ('PR-1042', 7, 1, 4, 2,    'pul', 20, 'certifie', 4120),    -- 2

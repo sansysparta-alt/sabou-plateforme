@@ -6,6 +6,7 @@ import { AccountsModule } from './accounts/accounts.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CertificationModule } from './certification/certification.module';
+import { ReferentialsModule } from './referentials/referentials.module';
 import { SyncModule } from './sync/sync.module';
 
 // Module racine : chaque domaine (certification, dictionnaire, traitements…) y sera importé
@@ -17,6 +18,7 @@ import { SyncModule } from './sync/sync.module';
     AuthModule,
     AccountsModule,
     CertificationModule,
+    ReferentialsModule,
     SyncModule,
   ],
   controllers: [HealthController],
