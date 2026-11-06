@@ -12,7 +12,7 @@ Entrée : `06_Cas_Utilisation.md` (cas d’utilisation validés). Méthode : Scr
 - Priorité MoSCoW : **Must** (indispensable au lancement), **Should** (important), **Could** (si le temps le permet).
 - **Contre le risque de backlog trop gros** : seuls les sprints 0 à 3 sont détaillés au format « Étant donné… quand… alors… » ; les récits suivants ont des critères plus courts, à affiner lors du raffinement qui précède chaque sprint.
 
-Volume : **80 récits**, **359 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
+Volume : **80 récits**, **361 points**, **19 sprints** (sprint 0 à sprint 18), soit environ **39 semaines** de développement : le sprint 0 dure 3 semaines (mise en place et prototypes), les autres 2 semaines.
 
 Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les retards et la dette technique de leur phase.
 
@@ -29,7 +29,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
-| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 31 |
+| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
@@ -65,7 +65,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | Epic | Intitulé | Phase | Récits | Points |
 |---|---|---|---|---|
 | E00 | Fondations techniques | 1 | 10 | 39 |
-| E01 | Identité et accès | 2 | 5 | 21 |
+| E01 | Identité et accès | 2 | 5 | 23 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
 | E04 | Certification et certificat | 2 | 11 | 44 |
@@ -225,7 +225,9 @@ Critères d’acceptation :
 - Ajout du lot A (6 novembre 2026, sans changement d’estimation) : la réactivation d’un compte suspendu, pendant naturel de la suspension, également inscrite au journal d’audit.
 
 #### US-014 · Créer un compte gratuit avec mon numéro de téléphone
-*Identité et accès* · **Must** · 3 points · cas : UC-10
+*Identité et accès* · **Must** · 5 points · cas : UC-10
+
+Estimation portée de 3 à 5 points le 6 novembre 2026 (décision du maître d'œuvre, 05 §2.25) : le lot D comprend l'inscription et la connexion du citoyen au site public (UC-10). Restent à placer : le mot de passe oublié par SMS (avec US-031) et le versement au journal d'audit des échecs de connexion du domaine `sabou-public`.
 
 > En tant que citoyen, je veux créer un compte gratuit avec mon numéro de téléphone, afin de témoigner et de demander une plante.
 
@@ -748,6 +750,8 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Pages principales affichées en moins de 3 s en 3G simulée.
 - Contraste AA, focus visible, cibles de 40 px, textes alternatifs.
+
+Constat du 6 novembre 2026 (lot D, 05 §2.25) : en 3G simulée, le socle de Next.js et React donne un LCP d'environ 4,5 s sur les pages du compte citoyen. Lighthouse le signale sans bloquer (`apps/site/lighthouserc.cjs`) ; ce récit rend les seuils de vitesse bloquants.
 
 ### Sprint 14 — Un praticien paie GOLD par Mobile Money, publie un 4e traitement et renouvelle son certificat.
 

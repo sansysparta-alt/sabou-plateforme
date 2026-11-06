@@ -38,7 +38,7 @@ jobs:
       - run: bash infra/ci/audio-lecture.sh
 
   admin-e2e:
-    name: Application de gestion de bout en bout (axe, Lighthouse)
+    name: Application de gestion et compte citoyen de bout en bout (axe, Lighthouse)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
