@@ -6,6 +6,7 @@ const url = 'postgres://sabou_app:secret-123@localhost:5432/sabou';
 // Tirés à chaque exécution : aucun secret, même factice, n'est écrit dans le dépôt
 const secret = randomBytes(32).toString('base64url');
 const clientSecret = randomBytes(32).toString('base64url');
+const auditSecret = randomBytes(32).toString('base64url');
 
 // Configuration minimale valide (production : HTTPS partout)
 const base = {
@@ -13,6 +14,7 @@ const base = {
   SYNC_JWT_SECRET: secret,
   KEYCLOAK_ISSUER: 'https://auth.sabou.example/realms/sabou',
   ADMIN_CLIENT_SECRET: clientSecret,
+  AUDIT_CLIENT_SECRET: auditSecret,
   ADMIN_APP_URL: 'https://gestion.sabou.example',
   VALKEY_URL: 'rediss://:motdepasse@valkey:6379',
 };
@@ -24,6 +26,9 @@ describe('loadEnv', () => {
       PORT: 3000,
       KEYCLOAK_ALLOW_HTTP: false,
       ADMIN_CLIENT_ID: 'sabou-admin',
+      AUDIT_CLIENT_ID: 'sabou-audit',
+      AUDIT_POLL_SECONDS: 60,
+      TRUST_PROXY: 'loopback, linklocal, uniquelocal',
     });
   });
 
@@ -52,6 +57,9 @@ describe('loadEnv', () => {
   it('refuse un secret de client Keycloak trop court', () => {
     expect(() => loadEnv({ ...base, ADMIN_CLIENT_SECRET: 'court' })).toThrow(
       /^Configuration invalide : ADMIN_CLIENT_SECRET$/,
+    );
+    expect(() => loadEnv({ ...base, AUDIT_CLIENT_SECRET: 'court' })).toThrow(
+      /^Configuration invalide : AUDIT_CLIENT_SECRET$/,
     );
   });
 

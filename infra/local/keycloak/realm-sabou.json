@@ -156,6 +156,39 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "sabou-audit",
+      "name": "Journal d'audit SABOU",
+      "description": "Compte de service de l'API (US-030) : lit les événements de connexion pour les verser au journal d'audit. Rôle view-events seulement ; aucune connexion d'utilisateur.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${SABOU_AUDIT_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "defaultClientScopes": ["roles"],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-sabou-audit",
+      "enabled": true,
+      "serviceAccountClientId": "sabou-audit",
+      "clientRoles": {
+        "realm-management": ["view-events"]
+      }
     }
   ],
   "browserFlow": "sabou-browser",

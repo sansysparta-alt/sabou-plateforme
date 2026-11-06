@@ -256,6 +256,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné une décision de workflow, quand elle est prise, alors une ligne d’audit (qui, quoi, quand, IP) est écrite dans la même transaction.
 - Étant donné une tentative de modification ou de suppression du journal, quand elle s’exécute, alors elle est refusée.
+- Décisions du maître d’œuvre du 6 novembre 2026 : les connexions sont journalisées par l’API (réussites, refus, déconnexions) et les événements de Keycloak (échecs, blocages, double facteur) relevés par un compte de service en lecture seule ; conservation sans limite en v1 (une purge future passera par une migration, jamais par l’application). **Reporté** : chaînage des empreintes (chaque ligne porte l’empreinte de la précédente), pour rendre visible une modification faite en contournant l’application ; à estimer au raffinement de S17 avec US-162.
 
 #### US-015 · Un environnement de recette déployé automatiquement
 *Fondations techniques* · **Must** · 2 points · cas : —

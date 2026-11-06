@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { SessionUser } from '@sabou/types';
+import { AUDIT_LOG, type AuditLog } from '../audit/audit.log';
 import { ENV, type Env } from '../config/env';
 import { IDENTITY_PROVIDER, type IdentityProvider } from './identity-provider';
 import {
@@ -65,6 +66,7 @@ export class AuthController {
     @Inject(ENV) private readonly env: Env,
     @Inject(IDENTITY_PROVIDER) private readonly idp: IdentityProvider,
     @Inject(SESSION_STORE) private readonly sessions: SessionStore,
+    @Inject(AUDIT_LOG) private readonly audit: AuditLog,
   ) {
     this.appOrigin = new URL(env.ADMIN_APP_URL).origin;
   }
@@ -126,7 +128,34 @@ export class AuthController {
     if (claims.roles.includes(ADMINISTRATOR_ROLE) && !secondFactor) {
       this.logger.warn(`Connexion refusée : administrateur ${claims.sub} sans second facteur`);
       await this.idp.logout(refreshToken).catch(() => undefined);
+      // Le refus tient même si le journal est indisponible ; l'échec est signalé
+      await this.audit
+        .record({
+          action: 'connexion.refusee',
+          objectType: 'compte',
+          objectId: claims.sub,
+          account: claims.sub,
+          ip: req.ip,
+          details: { identifiant: claims.username, motif: 'double_facteur_absent' },
+        })
+        .catch((error: unknown) => this.auditFailed(error));
       return this.fail(res, 'double-facteur');
+    }
+
+    // Toute connexion est journalisée (R-ACC-05) : sans ligne d'audit, pas de session
+    try {
+      await this.audit.record({
+        action: 'connexion.reussie',
+        objectType: 'compte',
+        objectId: claims.sub,
+        account: claims.sub,
+        ip: req.ip,
+        details: { identifiant: claims.username, second_facteur: secondFactor },
+      });
+    } catch (error) {
+      this.auditFailed(error);
+      await this.idp.logout(refreshToken).catch(() => undefined);
+      return this.fail(res, 'connexion');
     }
 
     const id = await this.sessions.create({
@@ -174,6 +203,20 @@ export class AuthController {
       this.logger.error(`Déconnexion Keycloak impossible : ${(error as Error).message}`);
     });
     this.logger.log(`Déconnexion : ${session.sub}`);
+    await this.audit
+      .record({
+        action: 'deconnexion',
+        objectType: 'compte',
+        objectId: session.sub,
+        account: session.sub,
+        ip: req.ip,
+        details: { identifiant: session.username },
+      })
+      .catch((error: unknown) => this.auditFailed(error));
+  }
+
+  private auditFailed(error: unknown): void {
+    this.logger.error(`Journal d'audit indisponible : ${(error as Error).message}`);
   }
 
   private fail(res: Response, reason: 'connexion' | 'annulee' | 'double-facteur'): void {
