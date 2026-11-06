@@ -202,6 +202,7 @@ Critères d’acceptation :
 - Étant donné l’admin préfectoral de Labé, quand il liste les praticiens, alors seuls ceux de Labé apparaissent, même par appel direct à l’API.
 - Étant donné l’admin régional de Kankan, quand il liste les dossiers, alors seuls ceux des préfectures de sa région apparaissent.
 - Étant donné une requête SQL sans contexte de zone, quand elle s’exécute sous le rôle applicatif, alors elle ne renvoie aucune ligne (RLS).
+- Décisions du maître d’œuvre du 6 novembre 2026 (lot B) : API seule (`GET /api/praticiens`, `GET /api/dossiers`), écrans en S2 ; RLS sur les praticiens, les dossiers et leurs tables filles, et les saisies de terrain, les autres tables à zone suivent leur récit ; accès internes par fonctions SQL dédiées, sans rôle qui contourne le RLS ; Comité national, praticien limité à sa fiche, citoyen sans accès (05_Choix_Techniques.md §2.23).
 
 #### US-012 · Créer ou inviter un compte et lui attribuer rôle, zone et langues de travail
 *Identité et accès* · **Must** · 3 points · cas : UC-65

@@ -40,6 +40,9 @@ SELECT code, prenom, nom, specialite, prefecture, note_moyenne, nb_recettes FROM
 SELECT auteur, note, contenu, reponse_praticien FROM v_temoignage_public WHERE recette_id = 1 ORDER BY created_at DESC;
 
 -- ===================== WORKFLOWS =====================
+-- Chaque décision s'exécute dans le contexte de zone du compte connecté (US-011) : l'API
+-- l'ouvre dans chaque transaction ; ce fichier tient en une seule transaction.
+SELECT contexte_ouvrir(md5('sabou:s.kourouma@exemple.gn')::uuid);   -- praticien (6)
 -- Dossier DS-1041 : le praticien (utilisateur 6) resoumet après le rejet → étape 2
 SELECT dossier_transition(1, 'soumis', 6);
 -- Interdit : le préfectoral de Kankan (5) n'est pas compétent pour un praticien de Labé
@@ -47,16 +50,20 @@ SELECT dossier_transition(1, 'soumis', 6);
 -- Interdit : validation terrain sans visite réalisée et compte rendu signé
 -- SELECT dossier_transition(1, 'valide', 3);                         -- ERREUR attendue
 -- Rejet terrain : retour à l'étape 1, motif obligatoire
+SELECT contexte_ouvrir(md5('sabou:prefectoral.labe@sabou-sante.gn')::uuid);   -- (3)
 SELECT dossier_transition(1, 'rejete', 3, 'Justificatif de domicile manquant');
 
 -- Traitement REC-2043 (transmis) : le Comité (4) l'expertise, la DG (1) le certifie
+SELECT contexte_ouvrir(md5('sabou:comite@sabou-sante.gn')::uuid);
 SELECT recette_transition(3, 'expertisee', 4);
+SELECT contexte_ouvrir(md5('sabou:dg@sabou-sante.gn')::uuid);
 SELECT recette_transition(3, 'certifiee', 1);
 -- Interdit : un rejet sans motif
 -- (corrigé : l'exemple v2 visait REC-2045, déjà en brouillon, refusé pour une autre raison)
 -- SELECT recette_transition(3, 'suspendue', 4);                      -- ERREUR attendue
 -- SELECT recette_transition(3, 'suspendue', 4, '   ');               -- ERREUR attendue
 -- Suspension d'un traitement après un signalement grave (R-SAN-03)
+SELECT contexte_ouvrir(md5('sabou:comite@sabou-sante.gn')::uuid);
 SELECT recette_transition(1, 'suspendue', 4, 'Signalement de vomissements en cours d''examen');
 SELECT recette_transition(1, 'certifiee', 4);                         -- levée de la suspension
 
@@ -77,6 +84,8 @@ UPDATE temoignage SET statut = 'retire' WHERE auteur_id = 14 AND recette_id = 1;
 -- UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-2045';                     -- ERREUR attendue
 
 -- ===================== ANALYTIQUES =====================
+-- Tableaux de bord de la DG : zone nationale
+SELECT contexte_ouvrir(md5('sabou:dg@sabou-sante.gn')::uuid);
 -- 1. Couverture vocale par langue (DG, « Ressources linguistiques »)
 SELECT * FROM v_couverture_langue ORDER BY couverture_pct DESC;
 

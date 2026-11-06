@@ -85,6 +85,11 @@ export async function inRolledBackTransaction(url: string, sql: string): Promise
   }
 }
 
+// Ouvre, dans la transaction en cours, le contexte de zone d'un compte du jeu d'exemple
+// (identifiant Keycloak fictif tiré de l'adresse, voir seed/dev.sql)
+export const openContext = (email: string): string =>
+  `SELECT sabou.contexte_ouvrir(md5('sabou:${email}')::uuid);`;
+
 // Copie de travail du dossier des migrations, pour les modifier sans toucher au dépôt
 export function copyMigrations(): { dir: string; rehash(): void; cleanup(): void } {
   const dir = mkdtempSync(join(tmpdir(), 'sabou-migrations-'));

@@ -12,8 +12,8 @@ export interface AuditLine {
   details: Record<string, unknown>;
 }
 
-// Requête en lecture sur la base locale ; les valeurs y entrent seulement après contrôle
-function psql(query: string): string {
+// Requête sur la base locale ; les valeurs y entrent seulement après contrôle
+export function psql(query: string): string {
   return execFileSync(
     'docker',
     [
