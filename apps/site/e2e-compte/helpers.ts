@@ -48,7 +48,13 @@ export async function smsCode(phone: string): Promise<string> {
 }
 
 // Inscription par l'API, comme le site (même origine) : prépare un numéro déjà inscrit
-export async function signUpThroughApi(phone: string, firstName: string, password: string) {
+export async function signUpThroughApi(
+  phone: string,
+  firstName: string,
+  password: string,
+  // Praticien (US-040a) : { profile: 'praticien', lastName }
+  extra: Record<string, string> = {},
+) {
   const post = (path: string, body: unknown) =>
     fetch(`${API}/api/inscription/${path}`, {
       method: 'POST',
@@ -59,7 +65,7 @@ export async function signUpThroughApi(phone: string, firstName: string, passwor
   const verified = (await (
     await post('verification', { phone, code: await smsCode(phone) })
   ).json()) as { ticket: string };
-  const created = await post('compte', { ticket: verified.ticket, firstName, password });
+  const created = await post('compte', { ticket: verified.ticket, firstName, password, ...extra });
   expect(await created.json()).toEqual({ status: 'created' });
 }
 
@@ -92,6 +98,58 @@ export function auditActions(phone: string): string[] {
     { cwd: root, encoding: 'utf8' },
   );
   return JSON.parse(out) as string[];
+}
+
+// Requête SQL lue par psql dans le conteneur PostgreSQL (super-utilisateur), pour vérifier
+// ce qui est réellement écrit ou préparer un cas. Valeurs du test seulement.
+export function psql(query: string): string {
+  return execFileSync(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'infra/local/compose.yaml',
+      '--env-file',
+      '.env',
+      'exec',
+      '-T',
+      'postgres',
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'sabou',
+      '-tAc',
+      query,
+    ],
+    { cwd: root, encoding: 'utf8' },
+  ).trim();
+}
+
+// Dernier SMS factice envoyé à ce numéro (journal de l'API)
+export function lastSms(phone: string): string | undefined {
+  const logs = execFileSync(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'infra/local/compose.yaml',
+      '--env-file',
+      '.env',
+      'logs',
+      'api',
+      '--since',
+      '5m',
+      '--no-log-prefix',
+    ],
+    { cwd: root, encoding: 'utf8' },
+  );
+  return logs
+    .split('\n')
+    .filter((line) => line.includes(`+224${phone} :`))
+    .at(-1);
 }
 
 export async function expectAccessible(page: Page, screen: string): Promise<void> {
