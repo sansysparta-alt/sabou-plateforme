@@ -7,6 +7,17 @@
 #      puis Lighthouse CI (apps/site/lighthouserc.cjs).
 source "$(dirname "$0")/env.sh"
 
+# En cas d'échec, les dernières lignes des journaux de l'API et du stockage : la cause d'une
+# réponse 500 n'apparaît que là
+dump_logs() {
+  local status=$?
+  if ((status != 0)); then
+    docker compose -p sabou logs --no-color --tail=80 api seaweedfs >&2 || true
+  fi
+  return "$status"
+}
+trap dump_logs EXIT
+
 node infra/local/up.mjs up
 # Schéma à jour : une connexion n'ouvre de session qu'une fois journalisée (US-030)
 pnpm db:migrate
