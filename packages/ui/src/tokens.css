@@ -1,0 +1,92 @@
+/* Fondations de la charte SABOU (CdC §10), US-016 : seule source des couleurs, polices,
+   espacements, rayons et ombres. Aucun écran ne fixe de valeur en dur : il emploie ces variables.
+   Écarts assumés à §10, justifiés par WCAG 2.2 AA (05_Choix_Techniques.md §2.27) :
+   - les liens sont en Vert institution (6,5:1) et non en Vert action (3,5:1, insuffisant pour du texte) ;
+   - l'Or n'est employé en texte que sur Vert forêt (5,0:1).
+   Aucune police n'est téléchargée (3G) : Cambria et Calibri si l'appareil les a, sinon l'équivalent
+   présent, puis la famille générique (Android n'a ni Georgia ni Segoe UI). */
+:root {
+  /* Couleurs de la charte */
+  --sabou-forest: #0b3d2e; /* bandeaux, navigation, fonds sombres */
+  --sabou-institution: #0f6b4f; /* titres, boutons principaux, éléments actifs, liens */
+  --sabou-action: #1f9b72; /* graphiques et indicateurs uniquement (pas de texte) */
+  --sabou-mint: #cfe9db; /* fonds de cartes, onglets, puces */
+  --sabou-mist: #e6f4ec; /* fonds clairs, élément de navigation actif */
+  --sabou-gold: #c9a227; /* accents, logo, étape d'approbation ; texte seulement sur Vert forêt */
+
+  /* Neutres */
+  --sabou-text: #17201c;
+  --sabou-text-muted: #4a5551;
+  --sabou-bg: #f5f7f6;
+  --sabou-surface: #ffffff;
+  --sabou-border: #dce3e0; /* séparateurs décoratifs */
+  --sabou-border-strong: #6b7672; /* contours de champs : 3:1 au moins (WCAG 1.4.11) */
+  --sabou-on-dark: #ffffff;
+  --sabou-on-dark-muted: #cfe9db;
+
+  /* États : texte, fond, contour */
+  --sabou-info: #1d4f91;
+  --sabou-info-bg: #eef4fb;
+  --sabou-info-border: #c3d6ee;
+  --sabou-success: #0f6b4f;
+  --sabou-success-bg: #e6f4ec;
+  --sabou-success-border: #b5dcc6;
+  --sabou-warning: #7a4b00;
+  --sabou-warning-bg: #fdf6e3;
+  --sabou-warning-border: #ecd9a4;
+  --sabou-error: #b42318;
+  --sabou-error-bg: #fdf1f0;
+  --sabou-error-border: #f4c7c3;
+  --sabou-focus: #1d4f91;
+
+  /* Typographie : titres de page en Cambria gras, tout le reste en Calibri ; interlignage 1,5 */
+  --sabou-font-title: Cambria, Georgia, 'Times New Roman', serif;
+  --sabou-font-text:
+    Calibri, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+  --sabou-font-mono: Consolas, 'Roboto Mono', 'Liberation Mono', monospace;
+  --sabou-text-xs: 0.8125rem; /* 13 px : légendes (10 pt de la charte, lisible à l'écran) */
+  --sabou-text-sm: 0.875rem; /* 14 px */
+  --sabou-text-md: 1rem; /* 16 px : texte courant (équivalent écran des 14 pt de la charte) */
+  --sabou-text-lg: 1.125rem; /* 18 px */
+  --sabou-text-xl: 1.375rem; /* 22 px */
+  --sabou-text-2xl: 1.75rem; /* 28 px : titre de page */
+  --sabou-text-3xl: 2rem; /* 32 px : chiffre clé */
+  --sabou-leading: 1.5;
+  --sabou-leading-tight: 1.25;
+  --sabou-weight-regular: 400;
+  --sabou-weight-semibold: 600;
+  --sabou-weight-bold: 700;
+
+  /* Espacements (pas de 4 px) et grille : 12 colonnes, gouttières de 18 px */
+  --sabou-space-1: 0.25rem;
+  --sabou-space-2: 0.5rem;
+  --sabou-space-3: 0.75rem;
+  --sabou-space-4: 1rem;
+  --sabou-space-5: 1.5rem;
+  --sabou-space-6: 2rem;
+  --sabou-space-7: 3rem;
+  --sabou-space-8: 4rem;
+  --sabou-grid-columns: 12;
+  --sabou-grid-gutter: 18px;
+  --sabou-content-max: 75rem;
+  --sabou-sidebar-width: 16rem;
+  --sabou-topbar-height: 3.5rem;
+  --sabou-target: 2.75rem; /* cible tactile de 44 px */
+
+  /* Rayons (8 à 16 px) et ombres douces */
+  --sabou-radius-sm: 8px;
+  --sabou-radius-md: 12px;
+  --sabou-radius-lg: 16px;
+  --sabou-radius-full: 999px;
+  --sabou-shadow-1: 0 1px 2px rgb(11 61 46 / 0.06), 0 1px 3px rgb(11 61 46 / 0.08);
+  --sabou-shadow-2: 0 4px 12px rgb(11 61 46 / 0.08), 0 2px 4px rgb(11 61 46 / 0.06);
+
+  --sabou-transition: 120ms ease-out;
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sabou-transition: 0ms;
+  }
+}

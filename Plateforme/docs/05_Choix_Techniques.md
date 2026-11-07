@@ -482,6 +482,24 @@ Décisions techniques prises pendant le récit (règles de l'art, sans question 
 
 **Contrôles du pipeline** : `packages/db/test/dossier-praticien.test.ts` (règles de la base, vrai PostgreSQL), `apps/api/src/dossiers/dossiers.test.ts` (critères et protections à travers l'API), `apps/api/src/signup/signup.test.ts` et `packages/types/src/citizens.test.ts` (inscription d'un praticien), `apps/site/e2e-compte/dossier.spec.ts` (critères de bout en bout : Keycloak, PostgreSQL et SeaweedFS réels).
 
+### 2.27 Base de design commune (US-016, novembre 2026)
+
+Décisions du maître d'œuvre du 8 novembre 2026 : une base posée une fois pour toutes, d'après la charte (CdC §10) et la maquette v1.3, dans le style des consoles des grands acteurs du numérique (sobre, sans emoji ni trait décoratif). Mode d'emploi : `packages/ui/README.md`.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Paquet `@sabou/ui`** : variables CSS de la charte (`tokens.css`), socle, composants CSS préfixés `ui-` et composants React (ossature, en-tête de page, boutons, messages, champs, cartes, chiffres clés, tableaux, pastilles, icônes). Source TypeScript exportée telle quelle, compilée par l'application qui l'emploie | Une seule source pour l'application de gestion, puis le site public ; aucun écran ne fixe de valeur en dur | Bibliothèque de composants (MUI, Chakra…) : poids en 3G, style étranger à la charte ; Storybook : outillage lourd pour une quinzaine de composants |
+| **Polices non téléchargées** : titres `Cambria, Georgia, 'Times New Roman', serif` ; texte `Calibri, 'Segoe UI', Roboto, …, sans-serif` (validé par le maître d'œuvre) | La charte est exacte sur PC Windows ; sur Android, Roboto et la famille générique ; zéro octet en 3G | Polices web (≈ 150 Ko) |
+| **Cambria pour le seul titre de page** (`h1`), Calibri pour le reste | Identité institutionnelle gardée, lisibilité d'une console | Cambria pour tous les titres |
+| **Écart assumé à CdC §10** : la charte prévoit le Vert action (#1F9B72) pour les liens ; il n'atteint que 3,5:1 sur blanc, sous le seuil de 4,5:1 de WCAG 2.2 AA (1.4.3). Les liens sont en Vert institution (6,5:1) ; le Vert action sert aux graphiques et indicateurs (3:1 suffit, 1.4.11). L'Or (2,4:1 sur blanc) n'est employé en texte que sur Vert forêt (5,0:1) | Accessibilité exigée (WCAG 2.2 AA) ; validé par le maître d'œuvre le 8 novembre 2026 | Vert action foncé (couleur hors charte) |
+| **Texte courant à 16 px**, légendes à 13 px (la charte dit 14 pt et 10 pt, unités d'impression) | Équivalent écran ; 16 px évite le zoom automatique des champs sur téléphone | 18,7 px (14 pt converti) : trop grand pour une console |
+| **Icônes en SVG intégré**, au trait, décoratives par défaut | Pas d'emoji (y compris la cloche de la maquette), pas de police d'icônes à télécharger | Emoji ; police d'icônes |
+| **Messages** : encadré fin tout autour, fond teinté, icône ; erreur en `role="alert"`, autres en `role="status"` | Sobriété demandée ; WCAG 4.1.3 | Trait latéral coloré (US-010 à US-014) |
+| **Navigation latérale groupée par rubriques** (maquette), menu repliable sur téléphone ; lien d'évitement | Maquette v1.3 ; WCAG 2.4.1 | — |
+| **Thème Keycloak sur les mêmes variables** : `sabou.css` reprend `tokens.css`, un contrôle du pipeline vérifie qu'ils restent identiques | Connexion et application ont le même aspect | Copie manuelle sans contrôle |
+
+**Contrôles du pipeline** : `packages/ui/src/tokens.test.ts` (contraste AA de chaque couple employé, couleurs de la charte inchangées, aucun emoji, aucun trait latéral, aucune couleur en dur hors `tokens.css`, polices terminées par la famille générique) ; `packages/ui/src/components.test.tsx` (rôles, libellés, page courante, menu). Contre-épreuve faite : un trait latéral, une couleur en dur ou un gris trop clair font échouer les tests.
+
 ## 3. Architecture
 
 ```
