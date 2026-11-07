@@ -297,7 +297,7 @@ Lecture : avec la clé brute, le chiffrement coûte environ 3 ms à l'ouverture 
 
 Méthode, quand l'installation par USB est refusée (MIUI : `INSTALL_FAILED_USER_RESTRICTED`) : compiler le test en application (`flutter build apk --profile --target=integration_test/chiffrement_test.dart`), la déposer sur le téléphone (`adb push`), l'installer depuis le gestionnaire de fichiers, puis lire la ligne `SABOU_MESURE` dans `adb logcat`.
 
-Reste à faire sur le téléphone : l'essai de bout en bout de la synchronisation (`integration_test/synchro_test.dart`), qui demande l'environnement local complet.
+**Essai de bout en bout de la synchronisation sur le téléphone** (7 novembre 2026, `integration_test/synchro_test.dart`, même méthode, services du poste joints par `adb reverse`) : réussi. Le dossier saisi hors réseau est arrivé au serveur au retour du réseau (ligne `saisie_terrain` de la préfecture 4, version 1, vérifiée en base) ; aller-retour téléphone → API → PostgreSQL → PowerSync → téléphone : 720 ms en réseau local. Tous les critères de US-004 sont ainsi vérifiés sur le téléphone d'essai.
 
 
 | Choix | Pourquoi | Écarté |
