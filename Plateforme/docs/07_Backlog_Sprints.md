@@ -20,6 +20,8 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
 
+Ajout du 8 novembre 2026 (décision du maître d’œuvre) : US-016 (base de design et tableau de bord d’accueil, 5 points) entre en S2 ; pour ne pas le surcharger, US-041 (visites terrain, 5 points) passe en S3. S2 reste à 31 points, S3 passe de 23 à 28 points.
+
 Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limite à l’analyse Semgrep (1 point, fait) ; le déploiement automatique de la recette devient le récit US-015 (2 points), placé en fin de S1, juste avant la revue du sprint. S0 passe à 34 points, S1 à 31.
 
 Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maître d’œuvre) : US-004 est découpé ; il passe de 8 à 5 points (lignes de la base, conflit, cloisonnement par zone) et le nouveau récit US-009 (pièces jointes et voix hors réseau) prend 4 points. US-005 passe de 5 à 6 points : il crée le squelette Flutter et le job Flutter du pipeline, critère repris de US-004. S0 monte ainsi de 34 à 36 points.
@@ -32,8 +34,8 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 |---|---|---|---|---|
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
-| **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040a, US-040b, US-041, US-042, US-043, US-044 | 31 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
+| **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008 | 28 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -286,6 +288,19 @@ Critères d’acceptation :
 
 ### Sprint 2 — Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape.
 
+#### US-016 · Une base de design commune et un tableau de bord d’accueil
+*Socle* · **Must** · 5 points · cas : UC-65 · décision du maître d’œuvre du 8 novembre 2026
+
+> En tant qu’administrateur, je veux une interface sobre et cohérente, avec un tableau de bord d’accueil, afin de m’orienter tout de suite et de retrouver les mêmes repères sur chaque écran.
+
+Critères d’acceptation :
+- Les fondations de la charte (CdC §10) sont posées une fois pour toutes : couleurs, typographie, espacements, rayons, ombres, grille ; et des composants réutilisables documentés : boutons, messages, champs de formulaire, tableaux, cartes, bandeau, navigation. Chaque futur écran les reprend sans retouche.
+- Aucun emoji, aucun trait décoratif ; les messages sont des encadrés sobres avec une icône dessinée.
+- Étant donné un administrateur connecté, quand il arrive dans l’application, alors il voit un tableau de bord : navigation selon son rôle, cartes de chiffres de sa zone (comptes, référentiels, dossiers soumis), activité récente, et les fonctions à venir annoncées.
+- Étant donné un administrateur qui vient d’activer son double facteur, quand la configuration se termine, alors il saisit son code sans voir de message d’erreur.
+- Les textes anglais ou techniques des pages de connexion (« Warning alert », « code-barres », « Soumettre ») sont remplacés ; le nom de l’utilisateur n’est plus coupé dans le bandeau.
+- Chaque page passe axe (WCAG 2.2 AA) et Lighthouse CI (seuils de US-010), sur téléphone et sur ordinateur.
+
 #### US-031 · Être notifié par SMS à chaque étape de mon dossier
 *Audit et notifications* · **Must** · 5 points · cas : UC-72
 
@@ -319,15 +334,6 @@ Critères d’acceptation :
 - Étant donné les critères de US-040a, quand je soumets depuis l’application, alors ils sont tenus de la même façon (pièces manquantes affichées, accusé de réception).
 - Hors périmètre : saisie du dossier hors réseau (US-080, US-082).
 
-#### US-041 · Planifier et réaliser les visites terrain
-*Certification et certificat* · **Must** · 5 points · cas : UC-30
-
-> En tant qu’admin préfectoral, je veux planifier et réaliser les visites terrain, afin de vérifier les praticiens.
-
-Critères d’acceptation :
-- Étant donné une visite planifiée, quand la veille arrive, alors un rappel part au praticien.
-- Étant donné une visite réalisée, quand je l’enregistre, alors un compte rendu signé est obligatoire.
-
 #### US-042 · Valider ou rejeter un dossier à l’étape 2
 *Certification et certificat* · **Must** · 5 points · cas : UC-31
 
@@ -356,6 +362,15 @@ Critères d’acceptation :
 - Étant donné un dossier à l’étape 4, quand je valide, alors il passe à l’étape 5 ; quand je rejette avec motif, il revient à l’étape 3.
 
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
+
+#### US-041 · Planifier et réaliser les visites terrain
+*Certification et certificat* · **Must** · 5 points · cas : UC-30
+
+> En tant qu’admin préfectoral, je veux planifier et réaliser les visites terrain, afin de vérifier les praticiens.
+
+Critères d’acceptation :
+- Étant donné une visite planifiée, quand la veille arrive, alors un rappel part au praticien.
+- Étant donné une visite réalisée, quand je l’enregistre, alors un compte rendu signé est obligatoire.
 
 #### US-045 · Approuver un dossier et émettre un certificat signé
 *Certification et certificat* · **Must** · 8 points · cas : UC-60
