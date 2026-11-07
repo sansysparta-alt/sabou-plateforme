@@ -20,8 +20,7 @@ async function lastRows(sql: string): Promise<Record<string, unknown>[]> {
   try {
     await client.query('BEGIN');
     const results = (await client.query(`SET LOCAL search_path = sabou, public; ${sql}`)) as
-      | pg.QueryResult
-      | pg.QueryResult[];
+      pg.QueryResult | pg.QueryResult[];
     return (Array.isArray(results) ? results.at(-1)! : results).rows;
   } finally {
     await client.query('ROLLBACK').catch(() => undefined);
@@ -126,6 +125,14 @@ describe('Fiche et dossier ouverts par le praticien', () => {
     ).rejects.toThrow("Fiche non modifiable pendant l'examen du dossier");
   });
 
+  it('fige la fiche d’un praticien certifié (fiche publiée dans l’annuaire)', async () => {
+    // PR-1042 : Mamadou Diallo, certifié dans le jeu d'exemple
+    await expect(
+      attempt(`${openContext('m.diallo@exemple.gn')}
+        UPDATE praticien SET prefecture_id = 7 WHERE code = 'PR-1042'`),
+    ).rejects.toThrow("Fiche non modifiable pendant l'examen du dossier");
+  });
+
   it('refuse un dossier ouvert directement à l’étape 3', async () => {
     await expect(
       attempt(`${newPractitionerAccount()}
@@ -167,7 +174,9 @@ describe('Pièces et soumission (critères 1 et 2 de US-040)', () => {
 
   it('refuse un dépôt de pièce après la soumission', async () => {
     await expect(
-      attempt(`${withDossier} ${piece('identite')} ${piece('photo')} ${submit} ${piece('justificatif')}`),
+      attempt(
+        `${withDossier} ${piece('identite')} ${piece('photo')} ${submit} ${piece('justificatif')}`,
+      ),
     ).rejects.toThrow('Pièce non modifiable par le praticien à ce stade');
   });
 

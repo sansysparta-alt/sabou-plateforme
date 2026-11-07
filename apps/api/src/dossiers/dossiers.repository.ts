@@ -154,8 +154,8 @@ export class DossiersRepository {
 
   // Dossier en cours du praticien, à l'étape 1 (sinon : verrouillé)
   private async openDossier(trx: ZoneTrx): Promise<{ id: number; code: string }> {
-    const { rows } = await sql<{ id: number; code: string; etape: number; fiche: boolean }>`
-      SELECT d.id::int, d.code, d.etape_courante::int AS etape, true AS fiche
+    const { rows } = await sql<{ id: number | null; code: string; etape: number }>`
+      SELECT d.id::int, d.code, d.etape_courante::int AS etape
         FROM sabou.praticien p
         LEFT JOIN sabou.dossier_certification d ON d.praticien_id = p.id AND d.statut = 'en_cours'
        WHERE p.utilisateur_id = sabou.contexte_utilisateur()`.execute(trx);
