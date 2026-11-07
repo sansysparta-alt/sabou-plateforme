@@ -79,8 +79,12 @@ describe('Admin préfectoral de Labé (US-011, critère 1)', () => {
       'SELECT DISTINCT dossier_id FROM dossier_piece',
     );
     expect(pieces.rows.map((r) => Number(r.dossier_id)).sort()).toEqual([1, 2]);
-    const other = await as(KANKAN_REGION, 'SELECT * FROM dossier_piece');
-    expect(other.rows).toEqual([]);
+    // Région de Kankan : les pièces du seul DS-1043 (Siguiri), jamais celles de Labé
+    const other = await as<{ dossier_id: string }>(
+      KANKAN_REGION,
+      'SELECT DISTINCT dossier_id FROM dossier_piece',
+    );
+    expect(other.rows.map((r) => Number(r.dossier_id))).toEqual([3]);
   });
 });
 

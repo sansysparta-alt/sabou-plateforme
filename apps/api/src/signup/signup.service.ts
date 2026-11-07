@@ -4,6 +4,7 @@ import {
   citizenPasswordError,
   toInternational,
   type SignupError,
+  type SignupProfile,
   type SignupVerifyResult,
 } from '@sabou/types';
 import { AccountExistsError, PasswordRejectedError } from '../accounts/identity-admin';
@@ -70,17 +71,19 @@ export class SignupService {
         remainingAttempts: check.remainingAttempts,
       });
     }
-    if (await this.repository.citizenExists(toInternational(phone))) return { status: 'existing' };
+    if (await this.repository.accountExists(toInternational(phone))) return { status: 'existing' };
     return { status: 'new', ticket: await this.store.issueTicket(phone) };
   }
 
-  // Étape 3 : création du compte Keycloak, puis de l'utilisateur et de sa ligne d'audit
+  // Étape 3 : création du compte Keycloak, puis de l'utilisateur et de sa ligne d'audit.
+  // Profil citoyen, ou praticien (US-040a), qui ouvre ensuite sa fiche et son dossier.
   async complete(
     ticket: string,
-    firstName: string,
+    person: { profile: SignupProfile; firstName: string; lastName?: string },
     password: string,
     ip: string | undefined,
   ): Promise<SignupCompleteResult> {
+    const { profile, firstName, lastName } = person;
     const phone = await this.store.peekTicket(ticket);
     if (!phone) throw ticketInvalid();
     const refused = citizenPasswordError(password, phone);
@@ -92,7 +95,13 @@ export class SignupService {
 
     let keycloakId: string;
     try {
-      keycloakId = await this.identity.createCitizen({ username: phone, firstName, password });
+      keycloakId = await this.identity.createAccount({
+        username: phone,
+        firstName,
+        ...(lastName ? { lastName } : {}),
+        password,
+        role: profile,
+      });
     } catch (error) {
       if (error instanceof AccountExistsError) return { status: 'existing' };
       if (error instanceof PasswordRejectedError) {
@@ -108,9 +117,11 @@ export class SignupService {
 
     try {
       await this.repository.transaction(async (trx) => {
-        const userId = await this.repository.createCitizen(trx, {
+        const userId = await this.repository.createAccount(trx, {
           phone: toInternational(phone),
           firstName,
+          ...(lastName ? { lastName } : {}),
+          role: profile,
           keycloakId,
         });
         await this.audit.record(
@@ -121,7 +132,7 @@ export class SignupService {
             account: keycloakId,
             userId,
             ip,
-            details: { role: 'citoyen' },
+            details: { role: profile },
           },
           trx,
         );
@@ -133,12 +144,12 @@ export class SignupService {
           `Compte Keycloak ${keycloakId} à retirer à la main : ${(cause as Error).message}`,
         );
       });
-      if ((error as { constraint?: string }).constraint === 'ux_utilisateur_telephone_citoyen') {
+      if ((error as { constraint?: string }).constraint === 'ux_utilisateur_telephone_public') {
         return { status: 'existing' };
       }
       throw error;
     }
-    this.logger.log(`Compte citoyen créé : ${keycloakId}`);
+    this.logger.log(`Compte ${profile} créé : ${keycloakId}`);
     return { status: 'created' };
   }
 

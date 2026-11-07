@@ -23,6 +23,9 @@ const base = {
   INSCRIPTION_CLIENT_SECRET: auditSecret,
   SITE_URL: 'https://sabou.example',
   SMS_PROVIDER: 'journal',
+  S3_ENDPOINT: 'http://seaweedfs:8333',
+  S3_ACCESS_KEY: 'sabou',
+  S3_SECRET_KEY: 's'.repeat(32),
   VALKEY_URL: 'rediss://:motdepasse@valkey:6379',
 };
 
@@ -41,6 +44,9 @@ describe('loadEnv', () => {
       PUBLIC_AUDIT_CLIENT_ID: 'sabou-audit',
       INSCRIPTION_CLIENT_ID: 'sabou-inscription',
       TRUST_PROXY: 'loopback, linklocal, uniquelocal',
+      S3_REGION: 'us-east-1',
+      S3_PIECES_BUCKET: 'sabou-pieces',
+      S3_CREATE_BUCKET: false,
     });
   });
 

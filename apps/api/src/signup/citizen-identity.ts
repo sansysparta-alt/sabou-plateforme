@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SignupProfile } from '@sabou/types';
 import type { Env } from '../config/env';
 import { translateKeycloakError } from '../accounts/identity-admin';
 import { KeycloakServiceAccount } from '../keycloak/service-account';
@@ -9,20 +10,23 @@ export interface NewCitizen {
   // Identifiant de connexion : les 9 chiffres nationaux du numéro
   username: string;
   firstName: string;
+  // Praticien seulement (porté par le certificat)
+  lastName?: string;
   password: string;
+  role: SignupProfile;
 }
 
 // Comptes du domaine Keycloak « sabou-public », seule source des mots de passe des citoyens
+// et des praticiens
 export interface CitizenIdentity {
-  // Crée le compte avec son mot de passe et le rôle « citoyen » ; renvoie son « sub ».
+  // Crée le compte avec son mot de passe et son rôle (citoyen ou praticien) ; renvoie son « sub ».
   // AccountExistsError si le numéro a déjà un compte ; PasswordRejectedError si les règles
   // du domaine refusent le mot de passe.
-  createCitizen(citizen: NewCitizen): Promise<string>;
+  createAccount(citizen: NewCitizen): Promise<string>;
   deleteAccount(id: string): Promise<void>;
 }
 
 const roleSchema = z.array(z.object({ id: z.string().min(1), name: z.string() }));
-const CITIZEN_ROLE = 'citoyen';
 
 // Compte de service « sabou-inscription » : manage-users et view-users du seul domaine public
 export class KeycloakCitizenIdentity implements CitizenIdentity {
@@ -39,7 +43,7 @@ export class KeycloakCitizenIdentity implements CitizenIdentity {
     );
   }
 
-  async createCitizen(citizen: NewCitizen): Promise<string> {
+  async createAccount(citizen: NewCitizen): Promise<string> {
     let response: Response;
     try {
       response = await this.client.request('/users', {
@@ -48,6 +52,7 @@ export class KeycloakCitizenIdentity implements CitizenIdentity {
           username: citizen.username,
           enabled: true,
           firstName: citizen.firstName,
+          ...(citizen.lastName ? { lastName: citizen.lastName } : {}),
           credentials: [{ type: 'password', value: citizen.password, temporary: false }],
         },
       });
@@ -60,8 +65,8 @@ export class KeycloakCitizenIdentity implements CitizenIdentity {
       const available = roleSchema.parse(
         await (await this.client.request(`/users/${id}/role-mappings/realm/available`)).json(),
       );
-      const role = available.find((candidate) => candidate.name === CITIZEN_ROLE);
-      if (!role) throw new Error(`Keycloak : rôle ${CITIZEN_ROLE} introuvable`);
+      const role = available.find((candidate) => candidate.name === citizen.role);
+      if (!role) throw new Error(`Keycloak : rôle ${citizen.role} introuvable`);
       await this.client.request(`/users/${id}/role-mappings/realm`, {
         method: 'POST',
         body: [{ id: role.id, name: role.name }],

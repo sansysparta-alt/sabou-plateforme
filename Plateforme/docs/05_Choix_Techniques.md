@@ -451,6 +451,37 @@ Décisions techniques prises pendant le lot (règles de l'art, sans question au 
 
 **Contrôles du pipeline** : `packages/db/test/citoyens.test.ts` (contraintes, vrai PostgreSQL), `packages/types/src/citizens.test.ts` (numéro, code, mot de passe, prénom), `apps/api/src/signup/signup.store.test.ts` (code, essais, ticket et limites contre un vrai Valkey), `apps/api/src/signup/signup.test.ts` (critères et protections à travers l'API), `apps/api/src/auth/citizen-auth.test.ts` (session du citoyen séparée de l'administration), `apps/api/src/audit/audit.test.ts` et `packages/db/test/journal-audit.test.ts` (relève par domaine), `apps/site/app/inscription/SignupFlow.test.tsx` (écran), `apps/site/e2e-compte/inscription.spec.ts` (critères de bout en bout, axe sur chaque écran, pages Keycloak comprises ; échec et réussite de connexion lus dans le journal d'audit), `apps/site/lighthouserc.cjs` (page Keycloak : seuils bloquants ; pages du site : accessibilité et bonnes pratiques bloquantes, vitesse signalée).
 
+### 2.26 Dossier de certification soumis par le praticien (US-040a, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 7 novembre 2026 (questions posées au début du récit).
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Le praticien s'inscrit lui-même**, par le parcours du citoyen (code SMS, ticket, mot de passe) avec le profil « praticien » et son nom ; rôle `praticien` du domaine `sabou-public` ; e-mail facultatif ; **un compte par numéro** (citoyen ou praticien, index `ux_utilisateur_telephone_public`). La saisie par l'agent préfectoral (UC-32) vient en S8 | Le cahier des charges ne dit pas comment le praticien obtient son compte (manque comblé) ; l'identifiant de connexion du domaine public est le numéro | Invitation par le préfectoral : il faudrait d'abord le rencontrer |
+| **Découpage** : US-040a (API et base, 5 points) puis US-040b (application Flutter : connexion, écrans, photo compressée pour la 3G, 5 points). S2 passe de 26 à 31 points | US-040 avec l'application mobile pesait environ 10 points | Un seul récit de 10 points |
+| **Recettes vocales hors du dossier de S2** : elles s'y ajoutent avec le Studio (S5). **Écart à R-CER-06 et UC-20**, assumé jusqu'en S5 | Le Studio des recettes n'existe pas encore | Voix de présentation provisoire |
+| **Pièces obligatoires : identité et photo** ; justificatifs facultatifs, contrôlés à la visite | Un praticien traditionnel n'a pas toujours de justificatif écrit | Trois pièces obligatoires |
+
+Décisions techniques prises pendant le récit (règles de l'art, sans question au maître d'œuvre) :
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Règles tenues par la base** (migration `20261107120000_dossier_praticien`) : codes `PR-` et `DS-` attribués par des séquences ; le praticien ne crée qu'une fiche « en attente » et ne touche ni au statut, ni aux notes, ni au code ; il n'ouvre qu'un dossier initial à l'étape 1 ; il ne dépose ou ne retire ses pièces qu'à l'étape 1, jamais un compte rendu de visite ; **fiche figée pendant l'examen** (un changement de préfecture ferait sortir le dossier de la zone du préfectoral) **et une fois le praticien certifié ou suspendu** (fiche publiée, migration `20261107130000_fiche_praticien_certifie`) ; soumission refusée sans identité ni photo (trigger sur `dossier_historique`, fonction `dossier_pieces_manquantes`) | L'API n'est pas le seul rempart (§2.23) | Contrôles dans l'API seule |
+| **API** `GET /api/praticien/dossier`, `PUT /api/praticien/fiche`, `POST` et `DELETE /api/praticien/dossier/pieces/…`, `POST /api/praticien/dossier/soumission` ; session du domaine public (rôle `praticien`), écritures refusées sans l'origine du site ; aucun identifiant de praticien ni de dossier accepté | Toujours le dossier du compte connecté, lu en base | — |
+| **Dépôt d'une pièce** : le fichier lui-même dans le corps de la requête (pas de multipart), **5 Mo au plus** (surplus lu et jeté, jamais gardé en mémoire), **format reconnu aux premiers octets** (JPEG, PNG, PDF) quel que soit l'en-tête ; clé S3 tirée au hasard (`pieces/<uuid>.<ext>`), sans nom de fichier ni identité ; empreinte SHA-256 en base ; fichier retiré si la base refuse la pièce | ASVS V12 (fichiers) ; aucun fichier actif (SVG, HTML) servi plus tard ; requêtes simples en 3G | Formulaire multipart : une bibliothèque de plus ; adresse S3 publique |
+| **Client S3 : `aws4fetch` 1.0.20** (signature SigV4, aucune dépendance) ; seau `sabou-pieces` créé au démarrage sur le poste local seulement (`S3_CREATE_BUCKET`) | Un paquet de quelques kilo-octets plutôt que le SDK d'AWS et sa centaine de paquets à surveiller | `@aws-sdk/client-s3` |
+| **Accusé de réception** : réponse de l'API (code, étape 2, date) et SMS « votre dossier DS-… est bien reçu », envoyé **après la validation de la transaction** par l'interface du lot D ; un échec d'envoi n'annule pas la soumission | Critère 1 de US-040 ; jamais de SMS pour une soumission annulée (US-031) | SMS dans la transaction |
+| **Réponses** : 422 et liste des pièces manquantes (critère 2) ; 409 `rejection_delay` moins de 12 mois après un rejet définitif (critère 3, trigger existant de R-CER-04) ; 409 `locked` pendant l'examen ; 415 format refusé ; 413 trop gros | Messages en français, lisibles par l'application mobile | — |
+
+**Limites connues et suites** :
+- En local, l'API utilise la clé d'administration de SeaweedFS ; en recette et en production, une clé limitée au seau des pièces (US-015, US-162).
+- Lecture des pièces par les administrateurs : avec les écrans de l'étape 2 (US-041), par l'API seulement, après contrôle des droits.
+- Un fichier peut rester orphelin dans le seau si son retrait échoue (signalé dans le journal de l'API) : nettoyage périodique avec l'exploitation.
+- Un citoyen déjà inscrit ne peut pas devenir praticien avec le même numéro : changement de rôle à prévoir si le besoin se présente.
+- Le jeu d'exemple local n'est pas rechargé (`db:seed --if-empty`) : les photos ajoutées aux dossiers d'exemple n'apparaissent qu'après `pnpm env:reset`.
+
+**Contrôles du pipeline** : `packages/db/test/dossier-praticien.test.ts` (règles de la base, vrai PostgreSQL), `apps/api/src/dossiers/dossiers.test.ts` (critères et protections à travers l'API), `apps/api/src/signup/signup.test.ts` et `packages/types/src/citizens.test.ts` (inscription d'un praticien), `apps/site/e2e-compte/dossier.spec.ts` (critères de bout en bout : Keycloak, PostgreSQL et SeaweedFS réels).
+
 ## 3. Architecture
 
 ```

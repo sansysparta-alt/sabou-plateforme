@@ -71,7 +71,12 @@ INSERT INTO dossier_certification (code, praticien_id, type, etape_courante, eta
 INSERT INTO dossier_piece (dossier_id, type, fichier_url, sha256, depose_par, depose_le) VALUES
  (2,'identite',           'pieces/ds1042/identite.pdf',     encode(sha256(convert_to('ds1042-identite','UTF8')),'hex'), 7, now() - interval '60 days'),  -- 1
  (2,'compte_rendu_visite','pieces/ds1042/visite-signee.pdf',encode(sha256(convert_to('ds1042-visite','UTF8')),'hex'),   3, now() - interval '55 days'),  -- 2
- (1,'identite',           'pieces/ds1041/identite.jpg',     encode(sha256(convert_to('ds1041-identite','UTF8')),'hex'), 6, now() - interval '12 days');  -- 3
+ (1,'identite',           'pieces/ds1041/identite.jpg',     encode(sha256(convert_to('ds1041-identite','UTF8')),'hex'), 6, now() - interval '12 days'),  -- 3
+ -- Photos et pièce d'identité exigées à la soumission (US-040a)
+ (1,'photo',              'pieces/ds1041/photo.jpg',        encode(sha256(convert_to('ds1041-photo','UTF8')),'hex'),    6, now() - interval '12 days'),  -- 4
+ (2,'photo',              'pieces/ds1042/photo.jpg',        encode(sha256(convert_to('ds1042-photo','UTF8')),'hex'),    7, now() - interval '60 days'),  -- 5
+ (3,'identite',           'pieces/ds1043/identite.pdf',     encode(sha256(convert_to('ds1043-identite','UTF8')),'hex'), 8, now() - interval '55 days'),  -- 6
+ (3,'photo',              'pieces/ds1043/photo.jpg',        encode(sha256(convert_to('ds1043-photo','UTF8')),'hex'),    8, now() - interval '55 days');  -- 7
 
 INSERT INTO visite_terrain (dossier_id, admin_id, prevue_le, rappel_envoye_le, realisee_le, compte_rendu_piece_id, statut) VALUES
  (2, 3, now() - interval '56 days', now() - interval '57 days', now() - interval '55 days', 2,    'realisee'),

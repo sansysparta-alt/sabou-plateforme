@@ -69,7 +69,7 @@ describe('Compte citoyen (US-014)', () => {
     const phone = newPhone();
     await client.query('BEGIN');
     expect(await constraintOf(citizen({ phone }))).toBe('accepté');
-    expect(await constraintOf(citizen({ phone }))).toBe('ux_utilisateur_telephone_citoyen');
+    expect(await constraintOf(citizen({ phone }))).toBe('ux_utilisateur_telephone_public');
   });
 
   it('exige toujours e-mail et nom pour les autres rôles', async () => {
