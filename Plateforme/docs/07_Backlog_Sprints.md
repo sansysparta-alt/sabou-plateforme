@@ -18,6 +18,8 @@ Les sprints S9, S15 et S16 sont volontairement plus légers : ils absorbent les 
 
 Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 à 3 points (analyse Semgrep) et US-010 de 5 à 8 points (contrôles axe et Lighthouse CI). S1 monte ainsi à 29 points, au-dessus de la capacité visée : un récit de S1 sera reporté en S2 lors du raffinement de S1.
 
+Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
+
 Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limite à l’analyse Semgrep (1 point, fait) ; le déploiement automatique de la recette devient le récit US-015 (2 points), placé en fin de S1, juste avant la revue du sprint. S0 passe à 34 points, S1 à 31.
 
 Réestimation du 2 novembre 2026, au cadrage des prototypes (décision du maître d’œuvre) : US-004 est découpé ; il passe de 8 à 5 points (lignes de la base, conflit, cloisonnement par zone) et le nouveau récit US-009 (pièces jointes et voix hors réseau) prend 4 points. US-005 passe de 5 à 6 points : il crée le squelette Flutter et le job Flutter du pipeline, critère repris de US-004. S0 monte ainsi de 34 à 36 points.
@@ -30,7 +32,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 |---|---|---|---|---|
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
-| **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040, US-041, US-042, US-043, US-044 | 26 |
+| **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-031, US-040a, US-040b, US-041, US-042, US-043, US-044 | 31 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-045, US-046, US-047, US-048, US-049, US-008 | 23 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
@@ -294,7 +296,7 @@ Critères d’acceptation :
 - Étant donné une transition annulée (erreur), quand la transaction échoue, alors aucun SMS ne part.
 - Étant donné un échec d’envoi, quand le service SMS répond en erreur, alors 3 nouvelles tentatives ont lieu puis l’échec est visible.
 
-#### US-040 · Soumettre mon dossier de certification
+#### US-040a · Soumettre mon dossier de certification (API et base)
 *Certification et certificat* · **Must** · 5 points · cas : UC-20
 
 > En tant que praticien, je veux soumettre mon dossier de certification, afin d’entrer dans le workflow.
@@ -303,6 +305,19 @@ Critères d’acceptation :
 - Étant donné un dossier complet (identité, pièces, photo), quand je le soumets, alors il passe à l’étape 2 et je reçois un accusé de réception.
 - Étant donné une pièce obligatoire manquante, quand je soumets, alors la soumission est bloquée avec la liste des pièces manquantes.
 - Étant donné un rejet définitif datant de moins de 12 mois, quand j’ouvre un dossier, alors c’est refusé.
+
+Décisions du maître d’œuvre (7 novembre 2026) : le praticien s’inscrit lui-même par son numéro, comme le citoyen ; pièces obligatoires : identité et photo ; recettes vocales ajoutées au dossier en S5 (écart à R-CER-06, voir 05 §2.26).
+
+#### US-040b · Soumettre mon dossier depuis l’application mobile
+*Certification et certificat* · **Must** · 5 points · cas : UC-20
+
+> En tant que praticien, je veux remplir et soumettre mon dossier depuis mon téléphone, afin de ne pas dépendre d’un ordinateur.
+
+Critères d’acceptation :
+- Étant donné l’application Flutter, quand je me connecte avec mon numéro et mon mot de passe, alors j’accède à mon dossier (domaine `sabou-public`).
+- Étant donné une photo prise avec le téléphone, quand je la joins, alors elle est compressée avant l’envoi et passe en 3G.
+- Étant donné les critères de US-040a, quand je soumets depuis l’application, alors ils sont tenus de la même façon (pièces manquantes affichées, accusé de réception).
+- Hors périmètre : saisie du dossier hors réseau (US-080, US-082).
 
 #### US-041 · Planifier et réaliser les visites terrain
 *Certification et certificat* · **Must** · 5 points · cas : UC-30
