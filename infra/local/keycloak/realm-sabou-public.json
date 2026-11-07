@@ -51,6 +51,10 @@
       {
         "name": "citoyen",
         "description": "Citoyen inscrit par son numéro de téléphone (US-014)"
+      },
+      {
+        "name": "praticien",
+        "description": "Tradipraticien inscrit par son numéro de téléphone, qui soumet son dossier de certification (US-040a)"
       }
     ]
   },

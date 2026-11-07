@@ -80,3 +80,29 @@ describe('Mot de passe et prénom du citoyen', () => {
     }
   });
 });
+
+describe('Profil choisi à l’inscription (US-040a)', () => {
+  const base = { ticket: 'a'.repeat(43), password: '40718293', firstName: 'Mariama' };
+
+  it('vaut « citoyen » par défaut, sans nom', () => {
+    const parsed = signupCompleteRequestSchema.safeParse(base);
+    expect(parsed.success && parsed.data.profile).toBe('citoyen');
+    expect(signupCompleteRequestSchema.safeParse({ ...base, lastName: 'Soumah' }).success).toBe(
+      false,
+    );
+  });
+
+  it('exige un nom en lettres pour un praticien', () => {
+    const praticien = { ...base, profile: 'praticien' };
+    expect(
+      signupCompleteRequestSchema.safeParse({ ...praticien, lastName: 'Soumah' }).success,
+    ).toBe(true);
+    for (const lastName of [undefined, '', 'S0umah', 'x'.repeat(81)]) {
+      expect(signupCompleteRequestSchema.safeParse({ ...praticien, lastName }).success).toBe(false);
+    }
+  });
+
+  it('refuse tout autre profil', () => {
+    expect(signupCompleteRequestSchema.safeParse({ ...base, profile: 'dg' }).success).toBe(false);
+  });
+});

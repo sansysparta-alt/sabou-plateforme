@@ -40,16 +40,35 @@ export type SignupVerifyResult = { status: 'new'; ticket: string } | { status: '
 
 export const signupTicketSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 
-export const signupCompleteRequestSchema = z.strictObject({
-  ticket: signupTicketSchema,
-  firstName: z
+const personName = (label: string, max: number) =>
+  z
     .string()
     .trim()
-    .min(1, 'Indiquez votre prénom.')
-    .max(50, 'Le prénom compte au plus 50 caractères.')
-    .regex(/^\p{L}[\p{L}\p{M}' -]*$/u, 'Le prénom ne contient que des lettres.'),
-  password: z.string().max(CITIZEN_PASSWORD_MAX),
-});
+    .min(1, `Indiquez votre ${label}.`)
+    .max(max, `Le ${label} compte au plus ${max} caractères.`)
+    .regex(/^\p{L}[\p{L}\p{M}' -]*$/u, `Le ${label} ne contient que des lettres.`);
+
+// Profil choisi à l'inscription : citoyen (par défaut) ou praticien (US-040a), qui donne
+// aussi son nom, porté par le certificat
+export const SIGNUP_PROFILES = ['citoyen', 'praticien'] as const;
+export type SignupProfile = (typeof SIGNUP_PROFILES)[number];
+
+export const signupCompleteRequestSchema = z
+  .strictObject({
+    ticket: signupTicketSchema,
+    profile: z.enum(SIGNUP_PROFILES).default('citoyen'),
+    firstName: personName('prénom', 50),
+    lastName: personName('nom', 80).optional(),
+    password: z.string().max(CITIZEN_PASSWORD_MAX),
+  })
+  .refine((request) => request.profile !== 'praticien' || request.lastName !== undefined, {
+    message: 'Indiquez votre nom.',
+    path: ['lastName'],
+  })
+  .refine((request) => request.profile !== 'citoyen' || request.lastName === undefined, {
+    message: 'Le nom n’est pas demandé pour un compte citoyen.',
+    path: ['lastName'],
+  });
 export type SignupCompleteRequest = z.input<typeof signupCompleteRequestSchema>;
 
 // Le mot de passe dépend du numéro (on refuse son propre numéro) : contrôlé par l'API une

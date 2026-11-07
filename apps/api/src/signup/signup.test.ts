@@ -79,7 +79,7 @@ const smsSender: SmsSender = {
 const identity = {
   accounts: new Map<string, NewCitizen>(),
   failure: null as Error | null,
-  createCitizen: vi.fn(async (citizen: NewCitizen) => {
+  createAccount: vi.fn(async (citizen: NewCitizen) => {
     if (identity.failure) throw identity.failure;
     if ([...identity.accounts.values()].some((a) => a.username === citizen.username)) {
       throw new AccountExistsError();
@@ -94,18 +94,25 @@ const identity = {
 } satisfies CitizenIdentity & Record<string, unknown>;
 // Utilisateurs de la plateforme : numéro international → identifiant
 const repository = {
-  citizens: new Map<string, { id: number; firstName: string; keycloakId: string }>(),
+  accounts: new Map<
+    string,
+    { id: number; firstName: string; lastName?: string; role: string; keycloakId: string }
+  >(),
   down: false,
-  async citizenExists(phone: string) {
-    return repository.citizens.has(phone);
+  async accountExists(phone: string) {
+    return repository.accounts.has(phone);
   },
   async transaction<T>(work: (trx: never) => Promise<T>) {
     return work(undefined as never);
   },
-  async createCitizen(_trx: unknown, c: { phone: string; firstName: string; keycloakId: string }) {
+  async createAccount(
+    _trx: unknown,
+    c: { phone: string; firstName: string; lastName?: string; role: string; keycloakId: string },
+  ) {
     if (repository.down) throw new Error('base indisponible');
-    const id = repository.citizens.size + 100;
-    repository.citizens.set(c.phone, { id, firstName: c.firstName, keycloakId: c.keycloakId });
+    const id = repository.accounts.size + 100;
+    const { phone, ...account } = c;
+    repository.accounts.set(phone, { id, ...account });
     return id;
   },
 };
@@ -164,9 +171,9 @@ beforeEach(() => {
   sms.sent = [];
   identity.accounts.clear();
   identity.failure = null;
-  identity.createCitizen.mockClear();
+  identity.createAccount.mockClear();
   identity.deleteAccount.mockClear();
-  repository.citizens.clear();
+  repository.accounts.clear();
   repository.down = false;
   audit.entries = [];
 });
@@ -207,7 +214,7 @@ describe('Critère 1 : un numéro valide reçoit un code ; le compte est créé 
     expect(verified.status).toBe(200);
     const result = (await verified.json()) as { status: string; ticket: string };
     expect(result.status).toBe('new');
-    expect(identity.createCitizen).not.toHaveBeenCalled();
+    expect(identity.createAccount).not.toHaveBeenCalled();
 
     const created = await post('compte', {
       ticket: result.ticket,
@@ -216,12 +223,13 @@ describe('Critère 1 : un numéro valide reçoit un code ; le compte est créé 
     });
     expect(created.status).toBe(200);
     expect(await created.json()).toEqual({ status: 'created' });
-    expect(identity.createCitizen).toHaveBeenCalledWith({
+    expect(identity.createAccount).toHaveBeenCalledWith({
       username: '621234567',
       firstName: 'Aïssatou',
       password: '40718293',
+      role: 'citoyen',
     });
-    const citizen = repository.citizens.get('+224621234567')!;
+    const citizen = repository.accounts.get('+224621234567')!;
     expect(citizen.firstName).toBe('Aïssatou');
     expect(audit.entries).toEqual([
       expect.objectContaining({
@@ -267,7 +275,7 @@ describe('Critère 1 : un numéro valide reçoit un code ; le compte est créé 
       expect(refused.status).toBe(400);
       expect(await refused.json()).toMatchObject({ error: 'invalid' });
     }
-    expect(identity.createCitizen).not.toHaveBeenCalled();
+    expect(identity.createAccount).not.toHaveBeenCalled();
     const created = await post('compte', { ticket, firstName: 'Awa', password: '40718293' });
     expect(await created.json()).toEqual({ status: 'created' });
   });
@@ -298,6 +306,62 @@ describe('Critère 1 : un numéro valide reçoit un code ; le compte est créé 
     expect(response.status).toBe(500);
     expect(identity.deleteAccount).toHaveBeenCalledTimes(1);
     expect(identity.accounts.size).toBe(0);
+  });
+});
+
+describe('Inscription d’un praticien (US-040a)', () => {
+  it('crée un compte praticien avec son nom (rôle praticien dans Keycloak et en base)', async () => {
+    const { ticket } = (await (await codeAndVerify('661234567')).json()) as { ticket: string };
+    const created = await post('compte', {
+      ticket,
+      profile: 'praticien',
+      firstName: 'Mariama',
+      lastName: ' Soumah ',
+      password: '40718293',
+    });
+    expect(created.status).toBe(200);
+    expect(identity.createAccount).toHaveBeenCalledWith({
+      username: '661234567',
+      firstName: 'Mariama',
+      lastName: 'Soumah',
+      password: '40718293',
+      role: 'praticien',
+    });
+    expect(repository.accounts.get('+224661234567')).toMatchObject({
+      role: 'praticien',
+      lastName: 'Soumah',
+    });
+    expect(audit.entries).toEqual([
+      expect.objectContaining({ action: 'compte.inscription', details: { role: 'praticien' } }),
+    ]);
+  });
+
+  it('exige le nom du praticien, sans consommer le ticket', async () => {
+    const { ticket } = (await (await codeAndVerify('661234568')).json()) as { ticket: string };
+    const refused = await post('compte', {
+      ticket,
+      profile: 'praticien',
+      firstName: 'Mariama',
+      password: '40718293',
+    });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({
+      error: 'invalid',
+      message: 'Indiquez votre nom.',
+    });
+    expect(identity.createAccount).not.toHaveBeenCalled();
+  });
+
+  it('refuse un profil inconnu (pas de compte administrateur par l’inscription)', async () => {
+    const { ticket } = (await (await codeAndVerify('661234569')).json()) as { ticket: string };
+    const refused = await post('compte', {
+      ticket,
+      profile: 'dg',
+      firstName: 'Mariama',
+      password: '40718293',
+    });
+    expect(refused.status).toBe(400);
+    expect(identity.createAccount).not.toHaveBeenCalled();
   });
 });
 

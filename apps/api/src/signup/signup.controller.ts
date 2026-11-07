@@ -32,7 +32,7 @@ function parse<S extends z.ZodType>(schema: S, body: unknown): z.output<S> {
   return result.data;
 }
 
-// Inscription d'un citoyen depuis le site public (lot D : US-014). Sans session : seule
+// Inscription d'un citoyen (lot D : US-014) ou d'un praticien (US-040a). Sans session : seule
 // l'origine du site est acceptée, pour qu'une autre page ne déclenche pas d'envoi de SMS.
 @Controller('api/inscription')
 export class SignupController {
@@ -76,8 +76,16 @@ export class SignupController {
   @Header('Cache-Control', 'no-store')
   complete(@Body() body: unknown, @Req() req: Request): Promise<SignupCompleteResult> {
     this.requireSite(req);
-    const { ticket, firstName, password } = parse(signupCompleteRequestSchema, body);
-    return this.service.complete(ticket, firstName, password, req.ip);
+    const { ticket, profile, firstName, lastName, password } = parse(
+      signupCompleteRequestSchema,
+      body,
+    );
+    return this.service.complete(
+      ticket,
+      { profile, firstName, ...(lastName ? { lastName } : {}) },
+      password,
+      req.ip,
+    );
   }
 
   private requireSite(req: Request): void {
