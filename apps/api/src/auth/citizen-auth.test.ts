@@ -101,6 +101,9 @@ beforeAll(async () => {
     INSCRIPTION_CLIENT_SECRET: randomBytes(32).toString('base64url'),
     SITE_URL: SITE,
     SMS_PROVIDER: 'journal',
+    S3_ENDPOINT: 'http://seaweedfs:8333',
+    S3_ACCESS_KEY: 'sabou',
+    S3_SECRET_KEY: 's'.repeat(32),
     ADMIN_APP_URL: 'http://localhost:5173',
     VALKEY_URL: 'redis://localhost:6379',
   });

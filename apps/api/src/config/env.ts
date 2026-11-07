@@ -52,6 +52,17 @@ const envSchema = z
     // pour le poste local et la recette ; le vrai agrégateur arrive avec US-031. Aucune
     // valeur par défaut : la production doit choisir explicitement.
     SMS_PROVIDER: z.enum(['journal']),
+    // Pièces des dossiers (US-040a, §2.26) : stockage objet S3 (SeaweedFS). Seau créé au
+    // démarrage sur le poste local seulement ; ailleurs, il est préparé au déploiement.
+    S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
+    S3_ACCESS_KEY: z.string().min(1),
+    S3_SECRET_KEY: z.string().min(16),
+    S3_REGION: z.string().min(1).default('us-east-1'),
+    S3_PIECES_BUCKET: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/)
+      .default('sabou-pieces'),
+    S3_CREATE_BUCKET: z.stringbool().default(false),
     // Mandataires dont l'en-tête X-Forwarded-For fait foi pour l'IP du journal (syntaxe
     // « trust proxy » d'Express). Par défaut : réseaux privés seulement (Docker, proxy interne).
     TRUST_PROXY: z.string().min(1).default('loopback, linklocal, uniquelocal'),

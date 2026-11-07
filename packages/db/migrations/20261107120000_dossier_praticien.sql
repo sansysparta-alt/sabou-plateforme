@@ -3,7 +3,8 @@
 --     numéro de mobile guinéen, prénom, nom, mot de passe ; adresse e-mail facultative.
 --     Un numéro ne porte qu'un seul compte du domaine public (citoyen ou praticien).
 --   - Sa fiche (spécialité, préfecture, langue) et son dossier sont créés par lui ; les
---     champs qui relèvent de l'administration (statut, code, notes, vues) lui sont fermés.
+--     champs qui relèvent de l'administration (statut, code, notes, vues) lui sont fermés,
+--     et la fiche est figée pendant l'examen du dossier (étape 2 et suivantes).
 --   - Pièces : le praticien ne dépose que ses propres pièces, à l'étape 1 seulement.
 --   - Soumission : refusée sans pièce d'identité ni photo (décision du maître d'œuvre du
 --     7 novembre 2026 ; les justificatifs sont facultatifs et contrôlés lors de la visite).
@@ -62,6 +63,12 @@ BEGIN
         IS DISTINCT FROM
         (OLD.code, OLD.utilisateur_id, OLD.statut, OLD.note_moyenne, OLD.nb_avis, OLD.nb_vues) THEN
     RAISE EXCEPTION 'Le praticien ne modifie pas le code, le statut, les notes ni les vues de sa fiche'
+      USING ERRCODE = 'insufficient_privilege';
+  -- Une fois le dossier soumis, la fiche est figée : changer de préfecture ferait sortir le
+  -- dossier de la zone de l'administrateur qui l'examine (R-CER-02)
+  ELSIF EXISTS (SELECT 1 FROM dossier_certification d
+                 WHERE d.praticien_id = OLD.id AND d.statut = 'en_cours' AND d.etape_courante > 1) THEN
+    RAISE EXCEPTION 'Fiche non modifiable pendant l''examen du dossier'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
   RETURN NEW;

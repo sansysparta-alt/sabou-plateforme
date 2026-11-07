@@ -119,6 +119,13 @@ describe('Fiche et dossier ouverts par le praticien', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('fige la fiche une fois le dossier soumis (pas de changement de zone en cours d’examen)', async () => {
+    await expect(
+      attempt(`${withDossier} ${piece('identite')} ${piece('photo')} ${submit}
+        UPDATE praticien SET prefecture_id = 7 WHERE utilisateur_id = contexte_utilisateur()`),
+    ).rejects.toThrow("Fiche non modifiable pendant l'examen du dossier");
+  });
+
   it('refuse un dossier ouvert directement à l’étape 3', async () => {
     await expect(
       attempt(`${newPractitionerAccount()}
