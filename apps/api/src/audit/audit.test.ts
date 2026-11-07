@@ -178,6 +178,12 @@ describe('KeycloakAdminEventSource', () => {
         ADMIN_CLIENT_SECRET: randomBytes(32).toString('base64url'),
         AUDIT_CLIENT_SECRET: secret,
         COMPTES_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+        PUBLIC_KEYCLOAK_ISSUER: 'http://localhost:8080/realms/sabou-public',
+        SITE_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+        PUBLIC_AUDIT_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+        INSCRIPTION_CLIENT_SECRET: randomBytes(32).toString('base64url'),
+        SITE_URL: 'http://localhost:3000',
+        SMS_PROVIDER: 'journal',
         ADMIN_APP_URL: 'http://localhost:5173',
         VALKEY_URL: 'redis://localhost:6379',
       }),
@@ -229,18 +235,20 @@ describe('KeycloakEventsPoller', () => {
     audit = {
       imported: [],
       last: null,
-      async lastKeycloakEventTime() {
-        return this.last;
+      async lastKeycloakEventTime(source) {
+        return source === 'keycloak' ? this.last : null;
       },
-      async importKeycloakEvents(events) {
-        this.imported.push(...events);
+      async importKeycloakEvents(events, source) {
+        this.imported.push(...events.map((e) => ({ ...e, details: { source } })));
         return events.length;
       },
     };
     since.mockReset();
     vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
-    poller = new KeycloakEventsPoller(env, audit as unknown as AuditLog, { since });
+    poller = new KeycloakEventsPoller(env, audit as unknown as AuditLog, [
+      { auditSource: 'keycloak', since },
+    ]);
   });
 
   it('première relève : tout ce que Keycloak garde ; ensuite, depuis le dernier versé', async () => {
@@ -269,5 +277,21 @@ describe('KeycloakEventsPoller', () => {
     expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'));
     since.mockResolvedValueOnce([event(2)]);
     expect(await poller.poll()).toBe(1);
+  });
+
+  it('relève chaque domaine avec son propre point de reprise ; une panne n’arrête pas l’autre', async () => {
+    const publicSince = vi.fn<(since: number | null) => Promise<KeycloakEvent[]>>();
+    const both = new KeycloakEventsPoller(env, audit as unknown as AuditLog, [
+      { auditSource: 'keycloak', since },
+      { auditSource: 'keycloak-public', since: publicSince },
+    ]);
+    audit.last = event(1).time;
+    since.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    publicSince.mockResolvedValueOnce([event(3)]);
+    expect(await both.poll()).toBe(1);
+    expect(since).toHaveBeenLastCalledWith(event(1).time - OVERLAP_MS);
+    expect(publicSince).toHaveBeenLastCalledWith(null);
+    expect(audit.imported).toEqual([{ ...event(3), details: { source: 'keycloak-public' } }]);
+    expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('(keycloak)'));
   });
 });

@@ -1,9 +1,10 @@
 <#-- Copie de base/login/login.ftl (Keycloak 26.8.1, licence Apache 2.0). Seul ajout SABOU :
      le message « Mot de passe oublié » quand la réinitialisation par e-mail est désactivée, et pas
-     de tabindex positif (ordre de tabulation naturel). -->
+     de tabindex positif (ordre de tabulation naturel). Thème « sabou-public » (lot D, propriété
+     sabouPhoneLogin) : numéro de téléphone comme identifiant, aide sous le champ, lien d'inscription. -->
 <#import "template.ftl" as layout>
 <#import "passkeys.ftl" as passkeys>
-<@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
+<@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=(realm.password && realm.registrationAllowed && !registrationDisabled??) || properties.sabouPhoneLogin?has_content; section>
     <#if section = "header">
         ${msg("loginAccountTitle")}
     <#elseif section = "form">
@@ -15,11 +16,20 @@
                         <div class="${properties.kcFormGroupClass!}">
                             <label for="username" class="${properties.kcLabelClass!}"><#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if></label>
 
+                            <#if properties.sabouPhoneLogin?has_content>
+                            <input id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="tel"
+                                   inputmode="tel" autofocus autocomplete="tel-national" aria-describedby="sabou-phone-help"
+                                   aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
+                                   dir="ltr"
+                            />
+                            <p id="sabou-phone-help" class="${properties.kcInputHelperTextAfterClass!}">${msg("sabouPhoneHelp")}</p>
+                            <#else>
                             <input id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="text"
                                    autofocus autocomplete="${(enableWebAuthnConditionalUI?has_content)?then('username webauthn', 'username')}"
                                    aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
                                    dir="ltr"
                             />
+                            </#if>
 
                             <#if messagesPerField.existsError('username','password')>
                                 <span id="input-error" class="${properties.kcInputErrorMessageClass!}" aria-live="polite">
@@ -89,7 +99,10 @@
         <@passkeys.conditionalUIData />
         <script type="module" src="${url.resourcesPath}/js/passwordVisibility.js"></script>
     <#elseif section = "info" >
-        <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
+        <#if properties.sabouPhoneLogin?has_content && client?? && client.baseUrl?has_content>
+            <#-- SABOU (lot D) : l'inscription se fait sur le site public (vérification par SMS) -->
+            <p id="sabou-signup">${msg("sabouNoAccount")} <a href="${client.baseUrl}/inscription">${msg("sabouSignup")}</a></p>
+        <#elseif realm.password && realm.registrationAllowed && !registrationDisabled??>
             <div id="kc-registration-container">
                 <div id="kc-registration">
                     <span>${msg("noAccount")} <a

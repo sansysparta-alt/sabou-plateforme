@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Env } from '../config/env';
+import type { KeycloakAuditSource } from './audit.log';
 import { KeycloakAdminError, KeycloakServiceAccount } from '../keycloak/service-account';
 
 export const KEYCLOAK_EVENTS = Symbol('KEYCLOAK_EVENTS');
@@ -19,6 +20,8 @@ const eventSchema = z.object({
 export type KeycloakEvent = z.infer<typeof eventSchema>;
 
 export interface KeycloakEventSource {
+  // Domaine relevé, tel qu'il est inscrit au journal (colonne « source »)
+  readonly auditSource: KeycloakAuditSource;
   // Tous les événements survenus depuis « since » (millisecondes, inclus)
   since(since: number | null): Promise<KeycloakEvent[]>;
 }
@@ -27,13 +30,25 @@ const PAGE_SIZE = 100;
 // Garde-fou : au-delà, la relève suivante reprend où celle-ci s'est arrêtée
 const MAX_PAGES = 50;
 
-// Lecture des événements par le compte de service « sabou-audit » (rôle view-events,
-// lecture seule), distinct du client de connexion des utilisateurs.
+// Lecture des événements par le compte de service « sabou-audit » de chaque domaine (rôle
+// view-events, lecture seule), distinct du client de connexion des utilisateurs.
 export class KeycloakAdminEventSource implements KeycloakEventSource {
   private readonly client: KeycloakServiceAccount;
+  readonly auditSource: KeycloakAuditSource;
 
-  constructor(env: Env) {
-    this.client = new KeycloakServiceAccount(env, env.AUDIT_CLIENT_ID, env.AUDIT_CLIENT_SECRET);
+  constructor(env: Env, realm: 'admin' | 'public' = 'admin') {
+    this.auditSource = realm === 'admin' ? 'keycloak' : 'keycloak-public';
+    this.client =
+      realm === 'admin'
+        ? new KeycloakServiceAccount(env, env.AUDIT_CLIENT_ID, env.AUDIT_CLIENT_SECRET)
+        : new KeycloakServiceAccount(
+            {
+              KEYCLOAK_ISSUER: env.PUBLIC_KEYCLOAK_ISSUER,
+              KEYCLOAK_INTERNAL_URL: env.KEYCLOAK_INTERNAL_URL,
+            },
+            env.PUBLIC_AUDIT_CLIENT_ID,
+            env.PUBLIC_AUDIT_CLIENT_SECRET,
+          );
   }
 
   async since(since: number | null): Promise<KeycloakEvent[]> {

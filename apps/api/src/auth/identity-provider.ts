@@ -15,9 +15,11 @@ export interface IdentityClaims {
 
 export interface IdentityProvider {
   // Ouvre une connexion : PKCE, state et nonce tirés au hasard
+  // loginHint : identifiant pré-rempli sur la page de connexion (citoyen après inscription)
   startLogin(
     returnTo: string,
     action?: 'configure-totp',
+    loginHint?: string,
   ): Promise<{ url: string; tx: LoginTransaction }>;
   // Échange le code reçu sur /auth/callback ; le jeton d'identité est vérifié (signature,
   // émetteur, audience, nonce, expiration) par openid-client
@@ -33,12 +35,37 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
+// Client OIDC d'un espace : « sabou-admin » (domaine sabou) ou « sabou-site » (sabou-public)
+export interface OidcClient {
+  issuer: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
+
+export const adminClient = (env: Env): OidcClient => ({
+  issuer: env.KEYCLOAK_ISSUER,
+  clientId: env.ADMIN_CLIENT_ID,
+  clientSecret: env.ADMIN_CLIENT_SECRET,
+  redirectUri: new URL('/auth/callback', env.ADMIN_APP_URL).href,
+});
+
+export const citizenClient = (env: Env): OidcClient => ({
+  issuer: env.PUBLIC_KEYCLOAK_ISSUER,
+  clientId: env.SITE_CLIENT_ID,
+  clientSecret: env.SITE_CLIENT_SECRET,
+  redirectUri: new URL('/auth/citoyen/callback', env.SITE_URL).href,
+});
+
 export class KeycloakIdentityProvider implements IdentityProvider {
   private config?: Promise<oidc.Configuration>;
   private readonly redirectUri: string;
 
-  constructor(private readonly env: Env) {
-    this.redirectUri = new URL('/auth/callback', env.ADMIN_APP_URL).href;
+  constructor(
+    private readonly env: Env,
+    private readonly client: OidcClient,
+  ) {
+    this.redirectUri = client.redirectUri;
   }
 
   // Découverte paresseuse : l'API démarre même si Keycloak n'est pas encore prêt ;
@@ -52,8 +79,8 @@ export class KeycloakIdentityProvider implements IdentityProvider {
   }
 
   private async discover(): Promise<oidc.Configuration> {
-    const { env } = this;
-    const issuer = new URL(env.KEYCLOAK_ISSUER);
+    const { env, client } = this;
+    const issuer = new URL(client.issuer);
     const internal = env.KEYCLOAK_INTERNAL_URL ? new URL(env.KEYCLOAK_INTERNAL_URL) : undefined;
     // Les échanges de serveur à serveur passent par l'adresse interne (réseau Docker) ;
     // l'émetteur attendu dans les jetons reste l'adresse publique.
@@ -67,9 +94,9 @@ export class KeycloakIdentityProvider implements IdentityProvider {
     };
     const config = await oidc.discovery(
       issuer,
-      env.ADMIN_CLIENT_ID,
+      client.clientId,
       undefined,
-      oidc.ClientSecretBasic(env.ADMIN_CLIENT_SECRET),
+      oidc.ClientSecretBasic(client.clientSecret),
       {
         [oidc.customFetch]: fetchViaInternal,
         execute: env.KEYCLOAK_ALLOW_HTTP ? [oidc.allowInsecureRequests] : [],
@@ -83,6 +110,7 @@ export class KeycloakIdentityProvider implements IdentityProvider {
   async startLogin(
     returnTo: string,
     action?: 'configure-totp',
+    loginHint?: string,
   ): Promise<{ url: string; tx: LoginTransaction }> {
     const config = await this.configuration();
     const codeVerifier = oidc.randomPKCECodeVerifier();
@@ -105,6 +133,7 @@ export class KeycloakIdentityProvider implements IdentityProvider {
       prompt: 'login',
       // Action demandée par l'application (« activer le double facteur »)
       ...(action === 'configure-totp' ? { kc_action: 'CONFIGURE_TOTP' } : {}),
+      ...(loginHint ? { login_hint: loginHint } : {}),
     });
     return { url: url.href, tx };
   }
@@ -144,7 +173,7 @@ export class KeycloakIdentityProvider implements IdentityProvider {
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
         authorization: `Basic ${Buffer.from(
-          `${encodeURIComponent(this.env.ADMIN_CLIENT_ID)}:${encodeURIComponent(this.env.ADMIN_CLIENT_SECRET)}`,
+          `${encodeURIComponent(this.client.clientId)}:${encodeURIComponent(this.client.clientSecret)}`,
         ).toString('base64')}`,
       },
       body: new URLSearchParams({ refresh_token: refreshToken }).toString(),

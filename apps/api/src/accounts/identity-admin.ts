@@ -80,7 +80,7 @@ export class KeycloakIdentityAdmin implements IdentityAdmin {
         },
       });
     } catch (error) {
-      throw translate(error);
+      throw translateKeycloakError(error);
     }
     const id = /\/users\/([0-9a-f-]{36})$/.exec(response.headers.get('location') ?? '')?.[1];
     if (!id) throw new Error('Keycloak : identifiant du compte créé absent');
@@ -115,7 +115,7 @@ export class KeycloakIdentityAdmin implements IdentityAdmin {
   }
 }
 
-function translate(error: unknown): unknown {
+export function translateKeycloakError(error: unknown): unknown {
   if (!(error instanceof KeycloakAdminError)) return error;
   if (error.status === 409) return new AccountExistsError();
   if (error.status === 400) {

@@ -4,7 +4,8 @@
 //         que chaque contrôle de santé soit vert ;
 // down  : arrête les conteneurs, les données sont conservées ;
 // reset : arrête et supprime les données (base, cache, fichiers) des volumes locaux ;
-// realm : réimporte infra/local/keycloak/realm-sabou.json (comptes locaux du domaine effacés).
+// realm : réimporte les domaines Keycloak « sabou » et « sabou-public » depuis
+//         infra/local/keycloak/ (comptes locaux de ces domaines effacés).
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -68,6 +69,9 @@ function docker(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
+// Domaines versionnés : administration (US-010) et citoyens (lot D)
+const REALMS = ['sabou', 'sabou-public'];
+
 // Keycloak n'importe le domaine qu'à sa création : on le supprime, puis on redémarre
 // Keycloak, qui le recrée depuis le fichier versionné.
 async function reimportRealm() {
@@ -82,17 +86,19 @@ async function reimportRealm() {
       password: env.KEYCLOAK_ADMIN_PASSWORD,
     }),
   }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Keycloak : ${r.status}`))));
-  const removed = await fetch(`${base}/admin/realms/sabou`, {
-    method: 'DELETE',
-    headers: { authorization: `Bearer ${token.access_token}` },
-  });
-  if (!removed.ok && removed.status !== 404) {
-    console.error(`Suppression du domaine impossible : ${removed.status}`);
-    process.exit(1);
+  for (const realm of REALMS) {
+    const removed = await fetch(`${base}/admin/realms/${realm}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token.access_token}` },
+    });
+    if (!removed.ok && removed.status !== 404) {
+      console.error(`Suppression du domaine ${realm} impossible : ${removed.status}`);
+      process.exit(1);
+    }
   }
   docker(['restart', 'keycloak']);
   docker(['up', '--detach', '--wait', '--wait-timeout', '300', 'keycloak']);
-  console.log('Domaine « sabou » réimporté depuis infra/local/keycloak/realm-sabou.json.');
+  console.log(`Domaines ${REALMS.join(', ')} réimportés depuis infra/local/keycloak/.`);
 }
 
 async function main(command = 'up') {

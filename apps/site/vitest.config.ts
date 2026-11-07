@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     // Tests de bout en bout : lancés par Playwright (pnpm e2e), pas par Vitest
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    exclude: [...configDefaults.exclude, 'e2e/**', 'e2e-compte/**'],
   },
 });

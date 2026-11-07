@@ -35,13 +35,36 @@ const envSchema = z
     COMPTES_CLIENT_SECRET: z.string().min(32),
     // Validité d'un lien d'invitation (décision du maître d'œuvre : 72 h)
     INVITATION_HOURS: z.coerce.number().int().min(1).max(72).default(72),
+    // Comptes citoyens (lot D : US-014, §2.25) : domaine Keycloak « sabou-public », séparé de
+    // celui de l'administration ; le site public sert d'origine et de retour de connexion.
+    PUBLIC_KEYCLOAK_ISSUER: z.url({ protocol: /^https?$/ }),
+    SITE_CLIENT_ID: z.string().min(1).default('sabou-site'),
+    SITE_CLIENT_SECRET: z.string().min(32),
+    SITE_URL: z.url({ protocol: /^https?$/ }),
+    // Compte de service « sabou-audit » du domaine public (view-events) : échecs de connexion
+    // des citoyens versés au journal d'audit
+    PUBLIC_AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),
+    PUBLIC_AUDIT_CLIENT_SECRET: z.string().min(32),
+    // Compte de service « sabou-inscription » (manage-users, view-users de sabou-public)
+    INSCRIPTION_CLIENT_ID: z.string().min(1).default('sabou-inscription'),
+    INSCRIPTION_CLIENT_SECRET: z.string().min(32),
+    // Envoi des SMS : « journal » = faux fournisseur (code écrit dans le journal de l'API),
+    // pour le poste local et la recette ; le vrai agrégateur arrive avec US-031. Aucune
+    // valeur par défaut : la production doit choisir explicitement.
+    SMS_PROVIDER: z.enum(['journal']),
     // Mandataires dont l'en-tête X-Forwarded-For fait foi pour l'IP du journal (syntaxe
     // « trust proxy » d'Express). Par défaut : réseaux privés seulement (Docker, proxy interne).
     TRUST_PROXY: z.string().min(1).default('loopback, linklocal, uniquelocal'),
   })
   .superRefine((env, ctx) => {
     // Sans TLS, les échanges avec Keycloak et le cookie de session seraient lisibles sur le réseau
-    for (const key of ['KEYCLOAK_ISSUER', 'KEYCLOAK_INTERNAL_URL', 'ADMIN_APP_URL'] as const) {
+    for (const key of [
+      'KEYCLOAK_ISSUER',
+      'KEYCLOAK_INTERNAL_URL',
+      'ADMIN_APP_URL',
+      'PUBLIC_KEYCLOAK_ISSUER',
+      'SITE_URL',
+    ] as const) {
       if (env[key]?.startsWith('http:') && !env.KEYCLOAK_ALLOW_HTTP) {
         ctx.addIssue({ code: 'custom', path: [key], message: 'https requis' });
       }

@@ -11,10 +11,13 @@
     "lint": "eslint .",
     "test": "vitest run",
     "e2e": "node e2e/samples.ts && playwright test",
+    "e2e:compte": "playwright test --config playwright.compte.config.ts",
+    "lighthouse": "lhci autorun",
     "demo:verifier": "node e2e/samples.ts --serve"
   },
   "dependencies": {
     "@sabou/qr": "workspace:*",
+    "@sabou/types": "workspace:*",
     "jsqr": "^1.4.0",
     "next": "^16.4.3",
     "react": "^19.3.1",
@@ -22,6 +25,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

@@ -7,6 +7,10 @@ import type { KeycloakEvent } from './keycloak-events';
 
 export const AUDIT_LOG = Symbol('AUDIT_LOG');
 
+// Origine des événements de connexion relevés : domaine Keycloak des administrateurs
+// (« sabou ») ou des citoyens (« sabou-public », lot D). Chacune a son point de reprise.
+export type KeycloakAuditSource = 'keycloak' | 'keycloak-public';
+
 // Une ligne du journal d'audit (R-DON-02, R-ACC-05). L'heure est celle de la base.
 export interface AuditEntry {
   // Ce qui s'est passé, ex. « connexion.reussie »
@@ -26,10 +30,10 @@ export interface AuditLog {
   // Transaction d'une décision : les fonctions de workflow y écrivent leur ligne d'audit,
   // qui reçoit l'IP de la requête ; décision et ligne sont confirmées ou annulées ensemble.
   decide<T>(ip: string | undefined, work: (trx: Transaction<never>) => Promise<T>): Promise<T>;
-  // Heure du dernier événement Keycloak versé (millisecondes), point de reprise de la relève
-  lastKeycloakEventTime(): Promise<number | null>;
+  // Heure du dernier événement versé depuis ce domaine (millisecondes), point de reprise
+  lastKeycloakEventTime(source: KeycloakAuditSource): Promise<number | null>;
   // Verse les événements ; un événement déjà versé est ignoré. Renvoie le nombre de lignes ajoutées.
-  importKeycloakEvents(events: KeycloakEvent[]): Promise<number>;
+  importKeycloakEvents(events: KeycloakEvent[], source: KeycloakAuditSource): Promise<number>;
 }
 
 // Une adresse mal formée ne doit jamais faire échouer l'écriture (ni bloquer une connexion)
@@ -84,14 +88,17 @@ export class PgAuditLog implements AuditLog {
     });
   }
 
-  async lastKeycloakEventTime(): Promise<number | null> {
+  async lastKeycloakEventTime(source: KeycloakAuditSource): Promise<number | null> {
     const { rows } = await sql<{ last: Date | null }>`
-      SELECT max(survenu_le) AS last FROM sabou.journal_audit WHERE source = 'keycloak'
+      SELECT max(survenu_le) AS last FROM sabou.journal_audit WHERE source = ${source}
     `.execute(this.db);
     return rows[0]?.last ? rows[0].last.getTime() : null;
   }
 
-  async importKeycloakEvents(events: KeycloakEvent[]): Promise<number> {
+  async importKeycloakEvents(
+    events: KeycloakEvent[],
+    source: KeycloakAuditSource,
+  ): Promise<number> {
     if (events.length === 0) return 0;
     // Ordre chronologique, une seule transaction : le point de reprise n'avance jamais
     // au-delà d'un événement qui n'aurait pas été versé
@@ -100,7 +107,7 @@ export class PgAuditLog implements AuditLog {
       WITH ajout AS (
         INSERT INTO sabou.journal_audit
           (source, ref_externe, survenu_le, action, objet_type, objet_id, compte, ip, details)
-        SELECT 'keycloak', e.ref, e.occurred_at, e.action, 'compte', e.account, e.account,
+        SELECT ${source}, e.ref, e.occurred_at, e.action, 'compte', e.account, e.account,
                e.ip, e.details
           FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
             AS e(ref text, occurred_at timestamptz, action text, account text, ip inet, details jsonb)
