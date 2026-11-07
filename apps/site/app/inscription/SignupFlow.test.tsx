@@ -50,8 +50,11 @@ describe('Inscription du citoyen', () => {
     await reachCodeStep();
     expect(calls).toEqual([{ path: 'code', body: { phone: '621234567' } }]);
     expect(screen.getByText(/au 621 23 45 67/)).toBeTruthy();
-    // Le focus passe sur le titre de l'étape (lecteurs d'écran)
-    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2 }));
+    // Le focus passe sur le titre de l'étape (lecteurs d'écran). Il est donné par un effet,
+    // après l'affichage du titre : on l'attend, sinon le test échoue sur une machine lente
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2 })),
+    );
   });
 
   it('refuse un numéro non guinéen sans appeler l’API', () => {
