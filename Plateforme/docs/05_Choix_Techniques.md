@@ -283,14 +283,21 @@ Les scripts v2 de `Plateforme/database/` passaient tels quels sur PostgreSQL 17.
 
 **Si la licence FSL de PowerSync devenait bloquante.** La FSL n'interdit que de proposer un service concurrent de PowerSync ; chaque version devient Apache 2.0 deux ans après sa sortie. Si elle bloquait quand même : 1) rester sur la dernière version utilisable, qui deviendra libre au bout de deux ans ; 2) remplacer le seul sens descendant. Le prototype est construit pour limiter la dépendance : les écritures passent par l'API et la fonction `saisie_terrain_recevoir`, jamais par PowerSync ; la règle de conflit et le cloisonnement vivent dans notre base et nos règles ; le téléphone garde une base SQLite ordinaire. Le remplaçant le plus proche est ElectricSQL (Apache 2.0, lecture de PostgreSQL par réplication logique, filtrage par requête), à prototyper avant de basculer ; estimation : un récit de 5 points.
 
-**Mesure du surcoût de SQLCipher** (téléphone d'essai Xiaomi 2510DRA23G, Helio G99, 8 Go, Android 16 ; mode profil ; médiane de 3 passages ; 300 dossiers d'environ 2 Kio) :
+**Mesure du surcoût de SQLCipher** (téléphone d'essai Xiaomi 2510DRA23G, Helio G99, 8 Go, Android 16 ; mode profil ; médiane de 3 passages ; 300 dossiers d'environ 2 Kio ; test `integration_test/chiffrement_test.dart`, mesure du 7 novembre 2026, les trois variantes dans le même passage) :
 
 | Mesure | SQLite en clair | SQLCipher, phrase dérivée (PBKDF2) | SQLCipher, clé brute (retenue) |
 |---|---|---|---|
-| Ouverture de la base | 30 ms | 1 631 ms | à mesurer |
-| Enregistrement d'un dossier | 1,9 ms | 2,3 ms | à mesurer |
-| Lecture de 300 dossiers | 8 ms | 15 ms | à mesurer |
-| Réouverture (300 dossiers) | 12 ms | 1 611 ms | à mesurer |
+| Ouverture de la base | 58 ms | 1 382 ms | 61 ms |
+| Enregistrement d'un dossier | 2,5 ms | 3,6 ms | 3,5 ms |
+| Lecture de 300 dossiers | 8,7 ms | 12,5 ms | 12,2 ms |
+| Réouverture (300 dossiers) | 12,5 ms | 1 336 ms | 15,0 ms |
+| Taille de la base | 1,9 Mio | 2,5 Mio | 2,5 Mio |
+
+Lecture : avec la clé brute, le chiffrement coûte environ 3 ms à l'ouverture et 1 ms par dossier enregistré, imperceptible pour l'agent ; la phrase dérivée aurait imposé 1,4 s à chaque ouverture, d'où le choix de la clé brute. Le téléphone d'essai est de milieu de gamme : les durées seront plus longues sur un appareil d'entrée de gamme (2 à 3 Go), sans changer l'écart entre les variantes. La première mesure (3 novembre, phrase dérivée seule) donnait des ordres de grandeur identiques.
+
+Méthode, quand l'installation par USB est refusée (MIUI : `INSTALL_FAILED_USER_RESTRICTED`) : compiler le test en application (`flutter build apk --profile --target=integration_test/chiffrement_test.dart`), la déposer sur le téléphone (`adb push`), l'installer depuis le gestionnaire de fichiers, puis lire la ligne `SABOU_MESURE` dans `adb logcat`.
+
+Reste à faire sur le téléphone : l'essai de bout en bout de la synchronisation (`integration_test/synchro_test.dart`), qui demande l'environnement local complet.
 
 
 | Choix | Pourquoi | Écarté |
