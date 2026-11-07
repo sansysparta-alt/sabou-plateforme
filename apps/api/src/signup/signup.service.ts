@@ -133,7 +133,7 @@ export class SignupService {
           `Compte Keycloak ${keycloakId} à retirer à la main : ${(cause as Error).message}`,
         );
       });
-      if ((error as { constraint?: string }).constraint === 'ux_utilisateur_telephone_citoyen') {
+      if ((error as { constraint?: string }).constraint === 'ux_utilisateur_telephone_public') {
         return { status: 'existing' };
       }
       throw error;
