@@ -49,6 +49,8 @@ Le thème des pages de connexion Keycloak reprend les mêmes variables (`@sabou/
 
 Classes utilitaires de mise en page : `ui-grid` (cartes, colonnes automatiques), `ui-grid--wide`, `ui-section`, `ui-list`, `ui-form`, `ui-form__actions`, `ui-muted`, `ui-visually-hidden`.
 
+Listes de fiches (comptes, référentiels) : `ui-stack` (liste verticale), `ui-card ui-card--plain` (carte sans en-tête séparé), `ui-card--success` (mise en avant après une action), `ui-facts` (liste de définitions), `ui-code`, `ui-live-status` (annonce d'état après une action, invisible tant qu'elle est vide). Un message d'erreur de formulaire à focaliser se passe `ref` : `<Alert tone="error" ref={errorRef}>`.
+
 ## Contrôles
 
 `pnpm --filter @sabou/ui test` : contrastes AA de chaque couple de couleurs employé, couleurs de la charte inchangées, aucun emoji, aucun trait latéral, aucune couleur en dur hors `tokens.css`, polices terminées par la famille générique, accessibilité des composants. Les pages qui les emploient passent en plus axe et Lighthouse CI (seuils de US-010).

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Alert, PageHeader } from '@sabou/ui';
 import type { InvitationPreview } from '@sabou/types';
 import { acceptInvitation, ApiError, previewInvitation } from './accounts-api';
 import { ROLE_LABELS } from './roles';
@@ -51,25 +52,23 @@ export function InvitationPage() {
   if (state.status === 'invalid') {
     return (
       <>
-        <h1>Invitation</h1>
-        <p role="alert" className="alert alert--error">
-          {state.message}
-        </p>
+        <PageHeader title="Invitation" />
+        <Alert tone="error">{state.message}</Alert>
       </>
     );
   }
   if (state.status === 'done') {
     return (
       <>
-        <h1>Compte activé</h1>
-        <p role="status" className="alert alert--success">
+        <PageHeader title="Compte activé" />
+        <Alert tone="success">
           Votre mot de passe est enregistré. Connectez-vous avec votre adresse e-mail.
-        </p>
+        </Alert>
         <p>
           À la première connexion, vous configurerez le double facteur : une application de votre
           téléphone affichera un code à saisir en plus du mot de passe.
         </p>
-        <a className="button button--primary" href="/auth/login">
+        <a className="ui-button ui-button--primary" href="/auth/login">
           Se connecter
         </a>
       </>
@@ -98,7 +97,7 @@ function PasswordForm({
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string>();
   const [sending, setSending] = useState(false);
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -127,25 +126,28 @@ function PasswordForm({
 
   return (
     <>
-      <h1>Bienvenue, {preview.firstName}</h1>
+      <PageHeader title={`Bienvenue, ${preview.firstName}`} />
       <p>
         La Direction Générale vous a ouvert un compte <strong>{ROLE_LABELS[preview.role]}</strong>.
         Votre identifiant de connexion est <strong>{preview.email}</strong>.
       </p>
-      <form className="form" onSubmit={onSubmit} noValidate>
+      <form className="ui-form" onSubmit={onSubmit} noValidate>
         {error && (
-          <p ref={errorRef} tabIndex={-1} role="alert" className="alert alert--error">
+          <Alert tone="error" ref={errorRef}>
             {error}
-          </p>
+          </Alert>
         )}
         {/* Identifiant lu par les gestionnaires de mots de passe */}
         <input type="hidden" name="username" autoComplete="username" value={preview.email} />
-        <div className="field">
-          <label htmlFor={`${id}-password`}>Choisissez un mot de passe</label>
-          <p id={`${id}-hint`} className="hint">
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-password`}>
+            Choisissez un mot de passe
+          </label>
+          <p id={`${id}-hint`} className="ui-field__hint">
             {MIN_PASSWORD} caractères au moins. Une phrase de plusieurs mots est facile à retenir.
           </p>
           <input
+            className="ui-input"
             id={`${id}-password`}
             type="password"
             autoComplete="new-password"
@@ -157,9 +159,12 @@ function PasswordForm({
             onChange={(event) => setPassword(event.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor={`${id}-confirmation`}>Saisissez-le une seconde fois</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-confirmation`}>
+            Saisissez-le une seconde fois
+          </label>
           <input
+            className="ui-input"
             id={`${id}-confirmation`}
             type="password"
             autoComplete="new-password"
@@ -169,7 +174,7 @@ function PasswordForm({
             onChange={(event) => setConfirmation(event.target.value)}
           />
         </div>
-        <button type="submit" className="button button--primary" disabled={sending}>
+        <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
           {sending ? 'Enregistrement…' : 'Enregistrer mon mot de passe'}
         </button>
       </form>

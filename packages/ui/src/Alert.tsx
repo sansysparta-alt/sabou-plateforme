@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Icon } from './Icon';
 
 export type AlertTone = 'info' | 'success' | 'warning' | 'error';
@@ -8,14 +8,18 @@ export interface AlertProps {
   title?: string;
   children?: ReactNode;
   id?: string;
+  // Message à focaliser (erreur d'un formulaire) : il reçoit alors tabIndex={-1}
+  ref?: Ref<HTMLDivElement>;
 }
 
 // Message sobre : encadré fin tout autour, icône dessinée, pas de trait latéral.
 // Erreur : role="alert" (annoncée aussitôt) ; autres : role="status" (annoncée sans interrompre).
-export function Alert({ tone = 'info', title, children, id }: AlertProps) {
+export function Alert({ tone = 'info', title, children, id, ref }: AlertProps) {
   return (
     <div
+      ref={ref}
       id={id}
+      tabIndex={ref ? -1 : undefined}
       className={`ui-alert ui-alert--${tone}`}
       role={tone === 'error' ? 'alert' : 'status'}
     >

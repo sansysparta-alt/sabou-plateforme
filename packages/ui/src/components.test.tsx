@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Alert, AppShell, DataTable, SelectField, StatCard, TextField } from './index';
@@ -19,6 +20,21 @@ describe('Alert', () => {
   it("l'icône est décorative : le sens est porté par le texte", () => {
     const { container } = render(<Alert tone="warning" title="Attention" />);
     expect(container.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it("l'erreur d'un formulaire peut recevoir le focus ; les autres messages non", () => {
+    const ref = createRef<HTMLDivElement>();
+    render(
+      <>
+        <Alert tone="error" ref={ref}>
+          Champ manquant
+        </Alert>
+        <Alert tone="info">Information</Alert>
+      </>,
+    );
+    ref.current!.focus();
+    expect(document.activeElement).toBe(screen.getByRole('alert'));
+    expect(screen.getByRole('status').hasAttribute('tabindex')).toBe(false);
   });
 });
 

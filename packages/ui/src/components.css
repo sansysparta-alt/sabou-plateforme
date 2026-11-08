@@ -118,6 +118,10 @@
   display: grid;
   gap: var(--sabou-space-4);
 }
+/* Bouton à sa largeur naturelle, pas étiré sur toute la ligne */
+.ui-form > .ui-button {
+  justify-self: start;
+}
 .ui-field {
   display: grid;
   gap: var(--sabou-space-1);
@@ -552,4 +556,62 @@
 }
 .ui-muted {
   color: var(--sabou-text-muted);
+}
+
+/* ---------- Listes de fiches (comptes, référentiels) ---------- */
+/* Carte dont le contenu porte directement le remplissage (formulaire, fiche) */
+.ui-card--plain {
+  padding: var(--sabou-space-5);
+}
+.ui-card--plain > * + * {
+  margin-top: var(--sabou-space-3);
+}
+/* Carte mise en avant après une action réussie (lien d'invitation) : contour, pas de trait latéral */
+.ui-card--success {
+  border-color: var(--sabou-success-border);
+  background: var(--sabou-success-bg);
+}
+.ui-stack {
+  display: grid;
+  gap: var(--sabou-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ui-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sabou-space-1) var(--sabou-space-4);
+  margin: 0;
+}
+.ui-facts dt {
+  font-weight: var(--sabou-weight-semibold);
+}
+.ui-facts dd {
+  margin: 0;
+  /* Adresse e-mail longue sur un écran de 360 px : jamais de défilement horizontal */
+  overflow-wrap: anywhere;
+}
+.ui-code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: var(--sabou-text-sm);
+}
+/* Annonce d'état après une action : invisible tant qu'elle est vide, sobre ensuite */
+.ui-live-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ui-live-status:not(:empty) {
+  margin: 0;
+  padding: var(--sabou-space-3) var(--sabou-space-4);
+  border: 1px solid var(--sabou-success-border);
+  border-radius: var(--sabou-radius-sm);
+  background: var(--sabou-success-bg);
+  color: var(--sabou-success);
+  font-weight: var(--sabou-weight-semibold);
 }

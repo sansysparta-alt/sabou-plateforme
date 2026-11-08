@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Alert, Badge, PageHeader } from '@sabou/ui';
 import type { Language, LanguageType, Referentials, Specialty, TerritoryLevel } from '@sabou/types';
 import { ApiError } from './accounts-api';
+import { BADGE_TONES } from './roles';
 import {
   createLanguage,
   createSpecialty,
@@ -58,16 +60,12 @@ export function ReferentialsPage() {
 
   return (
     <>
-      <h1>Référentiels</h1>
+      <PageHeader title="Référentiels" />
       <p>
         Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée.
       </p>
-      {loadError && (
-        <p role="alert" className="alert alert--error">
-          {loadError}
-        </p>
-      )}
-      <p role="status" className="sr-status">
+      {loadError && <Alert tone="error">{loadError}</Alert>}
+      <p role="status" className="ui-live-status">
         {notice}
       </p>
       {data === null && !loadError && <p>Chargement…</p>}
@@ -106,14 +104,14 @@ function useAction(onDone: OnDone) {
 }
 
 function ErrorText({ error }: { error?: string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (error) ref.current?.focus();
   }, [error]);
   return error ? (
-    <p ref={ref} tabIndex={-1} role="alert" className="alert alert--error">
+    <Alert tone="error" ref={ref}>
       {error}
-    </p>
+    </Alert>
   ) : null;
 }
 
@@ -123,11 +121,11 @@ function LanguagesSection({ languages, onDone }: { languages: Language[]; onDone
   return (
     <section aria-labelledby="languages-title">
       <h2 id="languages-title">Langues</h2>
-      <p className="hint">
+      <p className="ui-field__hint">
         Les langues nationales existent uniquement en voix. Une langue ajoutée reste inactive
         jusqu’à son activation.
       </p>
-      <ul className="accounts">
+      <ul className="ui-stack">
         {languages.map((language) => (
           <LanguageItem key={language.code} language={language} onDone={onDone} />
         ))}
@@ -141,27 +139,27 @@ function LanguageItem({ language, onDone }: { language: Language; onDone: OnDone
   const { busy, error, run } = useAction(onDone);
   const next = !language.active;
   return (
-    <li className="account">
+    <li className="ui-card ui-card--plain">
       <h3>
-        {language.name} <span className="hint">({language.code})</span>
+        {language.name} <span className="ui-field__hint">({language.code})</span>
       </h3>
-      <dl className="facts">
+      <dl className="ui-facts">
         <dt>Type</dt>
         <dd>{LANGUAGE_TYPE_LABELS[language.type]}</dd>
         <dt>Usage</dt>
         <dd>{usage(language)}</dd>
         <dt>Statut</dt>
         <dd>
-          <span className={`badge badge--${language.active ? 'actif' : 'suspendu'}`}>
+          <Badge tone={BADGE_TONES[language.active ? 'actif' : 'suspendu']}>
             {language.active ? 'Active' : 'Inactive'}
-          </span>
+          </Badge>
         </dd>
       </dl>
       <ErrorText error={error} />
       {language.code !== 'fr' && (
         <button
           type="button"
-          className={`button ${next ? 'button--outline' : 'button--danger'}`}
+          className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
           disabled={busy}
           onClick={() =>
             run(
@@ -171,7 +169,7 @@ function LanguageItem({ language, onDone }: { language: Language; onDone: OnDone
           }
         >
           {next ? 'Activer' : 'Désactiver'}
-          <span className="visually-hidden"> la langue {language.name}</span>
+          <span className="ui-visually-hidden"> la langue {language.name}</span>
         </button>
       )}
     </li>
@@ -209,12 +207,20 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
   }
 
   return (
-    <form className="form card" onSubmit={onSubmit} aria-labelledby={`${id}-t`} noValidate>
+    <form
+      className="ui-form ui-card ui-card--plain"
+      onSubmit={onSubmit}
+      aria-labelledby={`${id}-t`}
+      noValidate
+    >
       <h3 id={`${id}-t`}>Ajouter une langue</h3>
       <ErrorText error={error} />
-      <div className="field">
-        <label htmlFor={`${id}-name`}>Nom en français</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-name`}>
+          Nom en français
+        </label>
         <input
+          className="ui-input"
           id={`${id}-name`}
           required
           maxLength={80}
@@ -222,12 +228,15 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-code`}>Code</label>
-        <span className="hint" id={`${id}-code-hint`}>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-code`}>
+          Code
+        </label>
+        <span className="ui-field__hint" id={`${id}-code-hint`}>
           2 ou 3 lettres, sans accent (ex. kis).
         </span>
         <input
+          className="ui-input"
           id={`${id}-code`}
           required
           maxLength={3}
@@ -236,18 +245,24 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
           onChange={(e) => setForm({ ...form, code: e.target.value })}
         />
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-iso`}>Code ISO 639-3 (facultatif)</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-iso`}>
+          Code ISO 639-3 (facultatif)
+        </label>
         <input
+          className="ui-input"
           id={`${id}-iso`}
           maxLength={3}
           value={form.iso}
           onChange={(e) => setForm({ ...form, iso: e.target.value })}
         />
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-type`}>Type</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-type`}>
+          Type
+        </label>
         <select
+          className="ui-select"
           id={`${id}-type`}
           value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value as LanguageType })}
@@ -259,9 +274,9 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
           ))}
         </select>
       </div>
-      <fieldset className="field">
-        <legend>Usage</legend>
-        <label className="choice">
+      <fieldset className="ui-fieldset">
+        <legend className="ui-fieldset__legend">Usage</legend>
+        <label className="ui-choice">
           <input
             type="checkbox"
             checked={!national && form.text}
@@ -272,11 +287,11 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
           Texte
         </label>
         {national && (
-          <span className="hint" id={`${id}-text-hint`}>
+          <span className="ui-field__hint" id={`${id}-text-hint`}>
             Aucun texte écrit en langue nationale.
           </span>
         )}
-        <label className="choice">
+        <label className="ui-choice">
           <input
             type="checkbox"
             checked={form.voice}
@@ -285,7 +300,7 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
           Voix
         </label>
       </fieldset>
-      <button type="submit" className="button button--primary" disabled={busy}>
+      <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
         Ajouter la langue
       </button>
     </form>
@@ -300,18 +315,18 @@ function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDo
   return (
     <section aria-labelledby="territories-title">
       <h2 id="territories-title">Territoires</h2>
-      <p className="hint">
+      <p className="ui-field__hint">
         La région naturelle fixe la langue vocale proposée par défaut. La fusion de territoires fera
         l’objet d’une évolution à part.
       </p>
-      <ul className="accounts">
+      <ul className="ui-stack">
         {data.regions.map((region) => {
           const natural = data.naturalRegions.find((n) => n.id === region.parentId);
           const prefectures = data.prefectures.filter((p) => p.parentId === region.id);
           return (
-            <li key={region.id} className="account">
+            <li key={region.id} className="ui-card ui-card--plain">
               <h3>{region.name}</h3>
-              <dl className="facts">
+              <dl className="ui-facts">
                 <dt>Région naturelle</dt>
                 <dd>{natural?.name}</dd>
                 <dt>Langue par défaut</dt>
@@ -370,9 +385,16 @@ function LevelSelect({
   onChange: (level: TerritoryLevel) => void;
 }) {
   return (
-    <div className="field">
-      <label htmlFor={id}>Niveau</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value as TerritoryLevel)}>
+    <div className="ui-field">
+      <label className="ui-field__label" htmlFor={id}>
+        Niveau
+      </label>
+      <select
+        className="ui-select"
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value as TerritoryLevel)}
+      >
         {(Object.keys(LEVEL_LABELS) as TerritoryLevel[]).map((level) => (
           <option key={level} value={level}>
             {LEVEL_LABELS[level].one}
@@ -400,7 +422,12 @@ function TerritoryForm({ data, onDone }: { data: Referentials; onDone: OnDone })
   }
 
   return (
-    <form className="form card" onSubmit={onSubmit} aria-labelledby={`${id}-t`} noValidate>
+    <form
+      className="ui-form ui-card ui-card--plain"
+      onSubmit={onSubmit}
+      aria-labelledby={`${id}-t`}
+      noValidate
+    >
       <h3 id={`${id}-t`}>Ajouter un territoire</h3>
       <ErrorText error={error} />
       <LevelSelect
@@ -411,9 +438,12 @@ function TerritoryForm({ data, onDone }: { data: Referentials; onDone: OnDone })
           setParentId('');
         }}
       />
-      <div className="field">
-        <label htmlFor={`${id}-parent`}>{LEVEL_LABELS[level].parent}</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-parent`}>
+          {LEVEL_LABELS[level].parent}
+        </label>
         <select
+          className="ui-select"
           id={`${id}-parent`}
           required
           value={parentId}
@@ -427,9 +457,12 @@ function TerritoryForm({ data, onDone }: { data: Referentials; onDone: OnDone })
           ))}
         </select>
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-name`}>Nom</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-name`}>
+          Nom
+        </label>
         <input
+          className="ui-input"
           id={`${id}-name`}
           required
           maxLength={80}
@@ -437,7 +470,7 @@ function TerritoryForm({ data, onDone }: { data: Referentials; onDone: OnDone })
           onChange={(e) => setName(e.target.value)}
         />
       </div>
-      <button type="submit" className="button button--primary" disabled={busy}>
+      <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
         Ajouter le territoire
       </button>
     </form>
@@ -464,7 +497,12 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
   }
 
   return (
-    <form className="form card" onSubmit={onSubmit} aria-labelledby={`${id}-t`} noValidate>
+    <form
+      className="ui-form ui-card ui-card--plain"
+      onSubmit={onSubmit}
+      aria-labelledby={`${id}-t`}
+      noValidate
+    >
       <h3 id={`${id}-t`}>Renommer un territoire</h3>
       <ErrorText error={error} />
       <LevelSelect
@@ -475,9 +513,12 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
           setTargetId('');
         }}
       />
-      <div className="field">
-        <label htmlFor={`${id}-target`}>{LEVEL_LABELS[level].one} à renommer</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-target`}>
+          {LEVEL_LABELS[level].one} à renommer
+        </label>
         <select
+          className="ui-select"
           id={`${id}-target`}
           required
           value={targetId}
@@ -491,9 +532,12 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
           ))}
         </select>
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-name`}>Nouveau nom</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-name`}>
+          Nouveau nom
+        </label>
         <input
+          className="ui-input"
           id={`${id}-name`}
           required
           maxLength={80}
@@ -501,7 +545,7 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
           onChange={(e) => setName(e.target.value)}
         />
       </div>
-      <button type="submit" className="button button--primary" disabled={busy}>
+      <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
         Renommer
       </button>
     </form>
@@ -514,10 +558,10 @@ function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[];
   return (
     <section aria-labelledby="specialties-title">
       <h2 id="specialties-title">Spécialités</h2>
-      <p className="hint">
+      <p className="ui-field__hint">
         Une spécialité désactivée n’est plus proposée ; les praticiens qui l’ont la gardent.
       </p>
-      <ul className="accounts">
+      <ul className="ui-stack">
         {specialties.map((specialty) => (
           <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
         ))}
@@ -545,24 +589,27 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
   }
 
   return (
-    <li className="account">
+    <li className="ui-card ui-card--plain">
       <h3>{specialty.labelFr}</h3>
-      <dl className="facts">
+      <dl className="ui-facts">
         <dt>En anglais</dt>
         <dd lang="en">{specialty.labelEn ?? '—'}</dd>
         <dt>Statut</dt>
         <dd>
-          <span className={`badge badge--${specialty.active ? 'actif' : 'suspendu'}`}>
+          <Badge tone={BADGE_TONES[specialty.active ? 'actif' : 'suspendu']}>
             {specialty.active ? 'Active' : 'Inactive'}
-          </span>
+          </Badge>
         </dd>
       </dl>
       <ErrorText error={error} />
       {editing ? (
-        <form className="form" onSubmit={onSubmit} noValidate>
-          <div className="field">
-            <label htmlFor={`${id}-fr`}>Libellé en français</label>
+        <form className="ui-form" onSubmit={onSubmit} noValidate>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-fr`}>
+              Libellé en français
+            </label>
             <input
+              className="ui-input"
               id={`${id}-fr`}
               required
               maxLength={80}
@@ -570,9 +617,12 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
               onChange={(e) => setLabelFr(e.target.value)}
             />
           </div>
-          <div className="field">
-            <label htmlFor={`${id}-en`}>Libellé en anglais (facultatif)</label>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-en`}>
+              Libellé en anglais (facultatif)
+            </label>
             <input
+              className="ui-input"
               id={`${id}-en`}
               lang="en"
               maxLength={80}
@@ -580,18 +630,22 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
               onChange={(e) => setLabelEn(e.target.value)}
             />
           </div>
-          <button type="submit" className="button button--primary" disabled={busy}>
+          <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
             Enregistrer
           </button>
         </form>
       ) : (
-        <button type="button" className="button button--outline" onClick={() => setEditing(true)}>
-          Modifier<span className="visually-hidden"> la spécialité {specialty.labelFr}</span>
+        <button
+          type="button"
+          className="ui-button ui-button--secondary"
+          onClick={() => setEditing(true)}
+        >
+          Modifier<span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
         </button>
       )}
       <button
         type="button"
-        className={`button ${next ? 'button--outline' : 'button--danger'}`}
+        className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
         disabled={busy}
         onClick={() =>
           run(
@@ -601,7 +655,7 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
         }
       >
         {next ? 'Activer' : 'Désactiver'}
-        <span className="visually-hidden"> la spécialité {specialty.labelFr}</span>
+        <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
       </button>
     </li>
   );
@@ -627,12 +681,20 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
   }
 
   return (
-    <form className="form card" onSubmit={onSubmit} aria-labelledby={`${id}-t`} noValidate>
+    <form
+      className="ui-form ui-card ui-card--plain"
+      onSubmit={onSubmit}
+      aria-labelledby={`${id}-t`}
+      noValidate
+    >
       <h3 id={`${id}-t`}>Ajouter une spécialité</h3>
       <ErrorText error={error} />
-      <div className="field">
-        <label htmlFor={`${id}-fr`}>Libellé en français</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-fr`}>
+          Libellé en français
+        </label>
         <input
+          className="ui-input"
           id={`${id}-fr`}
           required
           maxLength={80}
@@ -640,9 +702,12 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
           onChange={(e) => setForm({ ...form, labelFr: e.target.value })}
         />
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-en`}>Libellé en anglais (facultatif)</label>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-en`}>
+          Libellé en anglais (facultatif)
+        </label>
         <input
+          className="ui-input"
           id={`${id}-en`}
           lang="en"
           maxLength={80}
@@ -650,12 +715,15 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
           onChange={(e) => setForm({ ...form, labelEn: e.target.value })}
         />
       </div>
-      <div className="field">
-        <label htmlFor={`${id}-code`}>Code</label>
-        <span className="hint" id={`${id}-code-hint`}>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-code`}>
+          Code
+        </label>
+        <span className="ui-field__hint" id={`${id}-code-hint`}>
           Minuscules, chiffres et _, sans accent (ex. ophtalmologie).
         </span>
         <input
+          className="ui-input"
           id={`${id}-code`}
           required
           maxLength={40}
@@ -664,7 +732,7 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
           onChange={(e) => setForm({ ...form, code: e.target.value })}
         />
       </div>
-      <button type="submit" className="button button--primary" disabled={busy}>
+      <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
         Ajouter la spécialité
       </button>
     </form>

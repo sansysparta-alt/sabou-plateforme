@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Alert, Badge, PageHeader } from '@sabou/ui';
 import type {
   AccountReferences,
   AccountRole,
@@ -15,7 +16,7 @@ import {
   renewInvitation,
   suspendAccount,
 } from './accounts-api';
-import { ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
+import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
 
 const RIGHTS = [
   ['record', 'Enregistrer'],
@@ -49,17 +50,13 @@ export function AccountsPage() {
 
   return (
     <>
-      <h1>Comptes</h1>
+      <PageHeader title="Comptes" />
       <p>
         Invitez les membres des équipes, attribuez leur rôle, leur zone et leurs langues de travail.
         Une suspension coupe l’accès immédiatement.
       </p>
-      {loadError && (
-        <p role="alert" className="alert alert--error">
-          {loadError}
-        </p>
-      )}
-      <p role="status" className="sr-status">
+      {loadError && <Alert tone="error">{loadError}</Alert>}
+      <p role="status" className="ui-live-status">
         {notice}
       </p>
       {link && (
@@ -85,7 +82,7 @@ export function AccountsPage() {
         {accounts === null && !loadError && <p>Chargement…</p>}
         {accounts?.length === 0 && <p>Aucun compte.</p>}
         {accounts && accounts.length > 0 && (
-          <ul className="accounts">
+          <ul className="ui-stack">
             {accounts.map((account) => (
               <AccountItem
                 key={account.id}
@@ -123,7 +120,7 @@ function InvitationLinkPanel({ name, invitation }: { name: string; invitation: I
     <section
       ref={panel}
       tabIndex={-1}
-      className="card card--success"
+      className="ui-card ui-card--plain ui-card--success"
       aria-labelledby={`${id}-title`}
     >
       <h2 id={`${id}-title`}>Lien d’invitation pour {name}</h2>
@@ -131,24 +128,26 @@ function InvitationLinkPanel({ name, invitation }: { name: string; invitation: I
         Transmettez ce lien à la personne, par un moyen sûr. Il ne sert qu’une fois et expire le{' '}
         {expires}.
       </p>
-      <label htmlFor={`${id}-link`}>Lien</label>
+      <label className="ui-field__label" htmlFor={`${id}-link`}>
+        Lien
+      </label>
       <input
         id={`${id}-link`}
-        className="link-field"
+        className="ui-input ui-code"
         readOnly
         value={invitation.link}
         onFocus={(event) => event.target.select()}
       />
       <button
         type="button"
-        className="button button--outline"
+        className="ui-button ui-button--secondary"
         onClick={() =>
           void navigator.clipboard?.writeText(invitation.link).then(() => setCopied(true))
         }
       >
         Copier le lien
       </button>
-      <span role="status" className="copied">
+      <span role="status" className="ui-badge ui-badge--success">
         {copied ? 'Lien copié.' : ''}
       </span>
     </section>
@@ -184,9 +183,9 @@ function AccountItem({
   }
 
   return (
-    <li className="account">
+    <li className="ui-card ui-card--plain">
       <h3>{name}</h3>
-      <dl className="facts">
+      <dl className="ui-facts">
         <dt>Rôle</dt>
         <dd>{ROLE_LABELS[account.role]}</dd>
         <dt>Zone</dt>
@@ -208,42 +207,38 @@ function AccountItem({
         </dd>
         <dt>Statut</dt>
         <dd>
-          <span className={`badge badge--${account.status}`}>{STATUS_LABELS[account.status]}</span>
+          <Badge tone={BADGE_TONES[account.status]}>{STATUS_LABELS[account.status]}</Badge>
         </dd>
       </dl>
-      {error && (
-        <p role="alert" className="alert alert--error">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
       {account.status === 'actif' && !account.self && (
         <button
           type="button"
-          className="button button--danger"
+          className="ui-button ui-button--danger"
           disabled={busy}
           onClick={() => act(() => suspendAccount(account.id), `Compte de ${name} suspendu.`)}
         >
-          Suspendre<span className="visually-hidden"> le compte de {name}</span>
+          Suspendre<span className="ui-visually-hidden"> le compte de {name}</span>
         </button>
       )}
       {account.status === 'suspendu' && (
         <button
           type="button"
-          className="button button--outline"
+          className="ui-button ui-button--secondary"
           disabled={busy}
           onClick={() => act(() => reactivateAccount(account.id), `Compte de ${name} réactivé.`)}
         >
-          Réactiver<span className="visually-hidden"> le compte de {name}</span>
+          Réactiver<span className="ui-visually-hidden"> le compte de {name}</span>
         </button>
       )}
       {account.status === 'invite' && (
         <button
           type="button"
-          className="button button--outline"
+          className="ui-button ui-button--secondary"
           disabled={busy}
           onClick={() => act(() => renewInvitation(account.id), `Nouveau lien pour ${name}.`)}
         >
-          Nouveau lien<span className="visually-hidden"> d’invitation pour {name}</span>
+          Nouveau lien<span className="ui-visually-hidden"> d’invitation pour {name}</span>
         </button>
       )}
     </li>
@@ -285,7 +280,7 @@ function InviteForm({
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState<string>();
   const [sending, setSending] = useState(false);
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
@@ -342,17 +337,20 @@ function InviteForm({
 
   const voiceLanguages = references.languages.filter((language) => language.voice);
   return (
-    <section aria-labelledby={`${id}-title`} className="card">
+    <section aria-labelledby={`${id}-title`} className="ui-card ui-card--plain">
       <h2 id={`${id}-title`}>Inviter un compte</h2>
-      <form className="form" onSubmit={onSubmit} noValidate>
+      <form className="ui-form" onSubmit={onSubmit} noValidate>
         {error && (
-          <p ref={errorRef} tabIndex={-1} role="alert" className="alert alert--error">
+          <Alert tone="error" ref={errorRef}>
             {error}
-          </p>
+          </Alert>
         )}
-        <div className="field">
-          <label htmlFor={`${id}-first`}>Prénom</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-first`}>
+            Prénom
+          </label>
           <input
+            className="ui-input"
             id={`${id}-first`}
             autoComplete="off"
             required
@@ -361,9 +359,12 @@ function InviteForm({
             onChange={(event) => set('firstName', event.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor={`${id}-last`}>Nom</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-last`}>
+            Nom
+          </label>
           <input
+            className="ui-input"
             id={`${id}-last`}
             autoComplete="off"
             required
@@ -372,9 +373,12 @@ function InviteForm({
             onChange={(event) => set('lastName', event.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor={`${id}-email`}>Adresse e-mail (identifiant de connexion)</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-email`}>
+            Adresse e-mail (identifiant de connexion)
+          </label>
           <input
+            className="ui-input"
             id={`${id}-email`}
             type="email"
             autoComplete="off"
@@ -384,9 +388,12 @@ function InviteForm({
             onChange={(event) => set('email', event.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor={`${id}-role`}>Rôle</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-role`}>
+            Rôle
+          </label>
           <select
+            className="ui-select"
             id={`${id}-role`}
             required
             value={form.role}
@@ -401,9 +408,12 @@ function InviteForm({
           </select>
         </div>
         {form.role === 'regional' && (
-          <div className="field">
-            <label htmlFor={`${id}-region`}>Région</label>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-region`}>
+              Région
+            </label>
             <select
+              className="ui-select"
               id={`${id}-region`}
               required
               value={form.regionId}
@@ -419,9 +429,12 @@ function InviteForm({
           </div>
         )}
         {form.role === 'prefectoral' && (
-          <div className="field">
-            <label htmlFor={`${id}-prefecture`}>Préfecture</label>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-prefecture`}>
+              Préfecture
+            </label>
             <select
+              className="ui-select"
               id={`${id}-prefecture`}
               required
               value={form.prefectureId}
@@ -442,15 +455,15 @@ function InviteForm({
             </select>
           </div>
         )}
-        <fieldset className="field">
-          <legend>Langue de l’interface</legend>
+        <fieldset className="ui-fieldset">
+          <legend className="ui-fieldset__legend">Langue de l’interface</legend>
           {(
             [
               ['fr', 'Français'],
               ['en', 'Anglais'],
             ] as const
           ).map(([code, label]) => (
-            <label key={code} className="choice">
+            <label key={code} className="ui-choice">
               <input
                 type="radio"
                 name={`${id}-interface`}
@@ -462,9 +475,12 @@ function InviteForm({
             </label>
           ))}
         </fieldset>
-        <div className="field">
-          <label htmlFor={`${id}-listening`}>Langue d’écoute préférée (voix)</label>
+        <div className="ui-field">
+          <label className="ui-field__label" htmlFor={`${id}-listening`}>
+            Langue d’écoute préférée (voix)
+          </label>
           <select
+            className="ui-select"
             id={`${id}-listening`}
             value={form.listeningLanguage}
             onChange={(event) => set('listeningLanguage', event.target.value)}
@@ -477,14 +493,14 @@ function InviteForm({
             ))}
           </select>
         </div>
-        <fieldset className="field">
-          <legend>Langues de travail</legend>
-          <p className="hint">Cochez ce que la personne peut faire dans chaque langue.</p>
+        <fieldset className="ui-fieldset">
+          <legend className="ui-fieldset__legend">Langues de travail</legend>
+          <p className="ui-field__hint">Cochez ce que la personne peut faire dans chaque langue.</p>
           {voiceLanguages.map((language) => (
-            <fieldset key={language.code} className="rights">
-              <legend>{language.name}</legend>
+            <fieldset key={language.code} className="ui-fieldset ui-card ui-card--plain">
+              <legend className="ui-fieldset__legend">{language.name}</legend>
               {RIGHTS.map(([right, label]) => (
-                <label key={right} className="choice">
+                <label key={right} className="ui-choice">
                   <input
                     type="checkbox"
                     checked={form.languages[language.code]?.[right] ?? false}
@@ -496,7 +512,7 @@ function InviteForm({
             </fieldset>
           ))}
         </fieldset>
-        <button type="submit" className="button button--primary" disabled={sending}>
+        <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
           {sending ? 'Création…' : 'Créer l’invitation'}
         </button>
       </form>
