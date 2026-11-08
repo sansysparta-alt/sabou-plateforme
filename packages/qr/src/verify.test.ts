@@ -93,7 +93,9 @@ describe('QR signé : verdicts (R-QR-05)', () => {
         'rouge',
       );
     }
-  });
+    // Environ 400 vérifications Ed25519 : 6 s mesurées sur le serveur d'intégration (limite
+    // par défaut de 5 s dépassée le 8 novembre 2026). Test exhaustif gardé, limite explicite.
+  }, 30_000);
 
   it('rouge « clé inconnue » pour un QR signé par une autre clé', () => {
     const otherKey = generateTestSigningKey();
