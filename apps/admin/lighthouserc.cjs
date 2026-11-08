@@ -28,6 +28,28 @@ const mobile = {
 // mise en page large, accessibilité et bonnes pratiques vérifiées dans ce format aussi
 const desktop = { preset: 'desktop' };
 
+// Seuils bloquants, médiane des 3 mesures
+const budgets = {
+  'categories:performance': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
+  'categories:accessibility': ['error', { minScore: 1, aggregationMethod: 'median-run' }],
+  'categories:best-practices': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
+  // 3 s en 3G normale (300 ms, 700 kbit/s) : application à page unique, le contenu
+  // attend React (60 Ko compressés). Piste pour descendre à 2,5 s : pré-générer la page
+  // de connexion à la compilation (05_Choix_Techniques.md §2.20).
+  'largest-contentful-paint': ['error', { maxNumericValue: 3000, aggregationMethod: 'median-run' }],
+  'cumulative-layout-shift': ['error', { maxNumericValue: 0.1, aggregationMethod: 'median-run' }],
+  'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median-run' }],
+  'total-byte-weight': ['error', { maxNumericValue: 150 * 1024, aggregationMethod: 'median-run' }],
+};
+// Pages qui attendent des données (session, puis morceau de la page, puis API) : LCP de 4 s
+// et score de 0,80 en 3G, décision du maître d'œuvre du 8/11/2026, jusqu'au récit de
+// performance qui ramènera 3 s partout (05_Choix_Techniques.md §2.28, backlog)
+const DATA_PAGES = /localhost:\d+\/(invitation|comptes|referentiels|\?vue=)/;
+const dataPageBudgets = {
+  'categories:performance': ['error', { minScore: 0.8, aggregationMethod: 'median-run' }],
+  'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median-run' }],
+};
+
 module.exports = {
   ci: {
     collect: {
@@ -43,20 +65,10 @@ module.exports = {
       },
     },
     assert: {
-      // Médiane des 3 mesures
-      aggregationMethod: 'median-run',
-      assertions: {
-        'categories:performance': ['error', { minScore: 0.9 }],
-        'categories:accessibility': ['error', { minScore: 1 }],
-        'categories:best-practices': ['error', { minScore: 0.9 }],
-        // 3 s en 3G normale (300 ms, 700 kbit/s) : application à page unique, le contenu
-        // attend React (60 Ko compressés). Piste pour descendre à 2,5 s : pré-générer la page
-        // de connexion à la compilation (05_Choix_Techniques.md §2.20).
-        'largest-contentful-paint': ['error', { maxNumericValue: 3000 }],
-        'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
-        'total-blocking-time': ['error', { maxNumericValue: 200 }],
-        'total-byte-weight': ['error', { maxNumericValue: 150 * 1024 }],
-      },
+      assertMatrix: [
+        { matchingUrlPattern: DATA_PAGES.source, assertions: { ...budgets, ...dataPageBudgets } },
+        { matchingUrlPattern: `^(?!.*${DATA_PAGES.source})`, assertions: budgets },
+      ],
     },
     // Rapports gardés sur le poste ou dans le pipeline : aucun envoi à un service externe
     upload: { target: 'filesystem', outputDir: `.lighthouse/${formFactor}` },

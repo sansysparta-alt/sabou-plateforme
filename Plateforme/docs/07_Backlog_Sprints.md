@@ -20,6 +20,8 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
 
+Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; son sprint reste à fixer par le maître d’œuvre (proposé : S3).
+
 Ajout du 8 novembre 2026 (décision du maître d’œuvre) : US-016 (base de design et tableau de bord d’accueil, 5 points) entre en S2 ; pour ne pas le surcharger, US-041 (visites terrain, 5 points) passe en S3. S2 reste à 31 points, S3 passe de 23 à 28 points.
 
 Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limite à l’analyse Semgrep (1 point, fait) ; le déploiement automatique de la recette devient le récit US-015 (2 points), placé en fin de S1, juste avant la revue du sprint. S0 passe à 34 points, S1 à 31.
@@ -301,6 +303,8 @@ Critères d’acceptation :
 - Les textes anglais ou techniques des pages de connexion (« Warning alert », « code-barres », « Soumettre ») sont remplacés ; le nom de l’utilisateur n’est plus coupé dans le bandeau.
 - Chaque page passe axe (WCAG 2.2 AA) et Lighthouse CI (seuils de US-010), sur téléphone et sur ordinateur.
 
+Écart accepté le 8 novembre 2026 : LCP de 4 s et score de 0,80 en 3G pour les pages qui attendent des données (mesuré : 3,2 à 3,9 s), le temps de US-017. Seuils de US-010 tenus partout ailleurs, et sur ordinateur.
+
 #### US-031 · Être notifié par SMS à chaque étape de mon dossier
 *Audit et notifications* · **Must** · 5 points · cas : UC-72
 
@@ -362,6 +366,17 @@ Critères d’acceptation :
 - Étant donné un dossier à l’étape 4, quand je valide, alors il passe à l’étape 5 ; quand je rejette avec motif, il revient à l’étape 3.
 
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
+
+#### US-017 · Une application de gestion rapide en 3G sur chaque page
+*Socle* · **Should** · 3 points (environ 1 jour) · sprint à fixer par le maître d’œuvre (proposé : S3) · ajout du 8 novembre 2026
+
+> En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
+
+Critères d’acceptation :
+- Tableau de bord, Comptes, Référentiels et Invitation : LCP ≤ 3 s et score de performance ≥ 0,90 en 3G simulée (300 ms, 700 kbit/s, processeur divisé par 4), seuils de US-010 rétablis pour ces pages dans `apps/admin/lighthouserc.cjs`.
+- Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
+
+Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.
 
 #### US-041 · Planifier et réaliser les visites terrain
 *Certification et certificat* · **Must** · 5 points · cas : UC-30

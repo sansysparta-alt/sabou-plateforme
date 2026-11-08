@@ -527,6 +527,8 @@ Le niveau atteint (claim `acr`) n'est pas lu par l'API : seul `amr` dit si un co
 
 **Lighthouse sur toutes les pages, téléphone et ordinateur** (`apps/admin/scripts/lighthouse.mjs`) : une préparation Playwright (`apps/admin/lighthouse/prepare.spec.ts`) ouvre les sessions de comptes de test jetables ; Lighthouse mesure chaque groupe de pages avec les cookies de sa session (en-tête `Cookie`), d'abord en 3G sur téléphone, puis avec le préréglage « ordinateur », seuils vérifiés format par format. Pages : accueil sans session, connexion Keycloak, acceptation d'une invitation, tableau de bord, Comptes, Référentiels, saisie du code, activation du code, codes de secours.
 
+Seuils : ceux de US-010 (§2.20) pour chaque page, sauf, en 3G, les pages qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation) : LCP ≤ 4 s et performance ≥ 0,80, décision du maître d'œuvre du 8 novembre 2026, jusqu'à US-017. Mesures du 8 novembre 2026, téléphone : pages Keycloak 0,96 à 0,97, LCP 2,1 à 2,2 s ; accueil sans session LCP 2,84 s ; Référentiels 3,2 s, Comptes 3,2 s, Invitation 3,8 s, tableau de bord 3,9 s. Ordinateur : 1 partout, LCP ≤ 0,7 s. Accessibilité : 1 partout. Décalages corrigés au passage : grille des chiffres affichée d'emblée (valeurs « … »), activité récente en fin de page, page Comptes affichée d'un bloc (CLS 0,33 et 0,61 ramenés à 0). Essai écarté : télécharger le morceau de la page en même temps que la session aggrave le LCP simulé (accueil 2,84 → 3,27 s).
+
 ## 3. Architecture
 
 ```
