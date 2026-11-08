@@ -78,7 +78,9 @@ export class PractitionerGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<PractitionerRequest>();
     const authorization = req.headers.authorization;
     const identity =
-      authorization === undefined ? await this.fromCookie(req) : await this.fromBearer(authorization);
+      authorization === undefined
+        ? await this.fromCookie(req)
+        : await this.fromBearer(authorization);
     if (!identity.roles.includes(PRACTITIONER_ROLE)) throw new ForbiddenException();
     req.practitioner = { sub: identity.sub };
     return true;
@@ -156,7 +158,10 @@ export class DossiersController {
   @Post('dossier/pieces/:type')
   @HttpCode(201)
   @Header('Cache-Control', 'no-store')
-  async addPiece(@Param('type') type: string, @Req() req: PractitionerRequest): Promise<{ id: number }> {
+  async addPiece(
+    @Param('type') type: string,
+    @Req() req: PractitionerRequest,
+  ): Promise<{ id: number }> {
     const pieceType = pieceTypeSchema.safeParse(type);
     if (!pieceType.success) throw invalid('Type de pièce inconnu.');
     const contentType = (req.headers['content-type'] ?? '').split(';')[0]!.trim().toLowerCase();

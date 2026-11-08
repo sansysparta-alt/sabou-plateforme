@@ -376,7 +376,12 @@ describe('Accès', () => {
 // US-040b : l'application mobile agit avec son jeton d'accès, sans cookie ni origine
 describe('Application mobile (jeton « Bearer », US-040b)', () => {
   const mobile = (method: string, path: string, token: string, options = {}) =>
-    call(method, path, { cookie: null, origin: null, authorization: `Bearer ${token}`, ...options });
+    call(method, path, {
+      cookie: null,
+      origin: null,
+      authorization: `Bearer ${token}`,
+      ...options,
+    });
   const mobileUpload = (type: string, body: Buffer, contentType: string) =>
     mobile('POST', `dossier/pieces/${type}`, 'jeton.praticien.ok', {
       body: new Uint8Array(body),
@@ -393,7 +398,10 @@ describe('Application mobile (jeton « Bearer », US-040b)', () => {
 
     const blocked = await mobile('POST', 'dossier/soumission', 'jeton.praticien.ok');
     expect(blocked.status).toBe(422);
-    expect(await blocked.json()).toMatchObject({ error: 'missing_pieces', piecesManquantes: ['photo'] });
+    expect(await blocked.json()).toMatchObject({
+      error: 'missing_pieces',
+      piecesManquantes: ['photo'],
+    });
 
     expect((await mobileUpload('photo', JPEG, 'image/jpeg')).status).toBe(201);
     const receipt = await mobile('POST', 'dossier/soumission', 'jeton.praticien.ok');
