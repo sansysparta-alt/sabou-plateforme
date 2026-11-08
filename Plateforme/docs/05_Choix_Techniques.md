@@ -510,6 +510,8 @@ Décisions du maître d'œuvre du 8 novembre 2026 : une base posée une fois pou
 
 **Contrôles du pipeline** : `packages/ui/src/tokens.test.ts` (contraste AA de chaque couple employé, couleurs de la charte inchangées, aucun emoji, aucun trait latéral, aucune couleur en dur hors `tokens.css`, polices terminées par la famille générique) ; `packages/ui/src/components.test.tsx` (rôles, libellés, page courante, menu). Contre-épreuve faite : un trait latéral, une couleur en dur ou un gris trop clair font échouer les tests.
 
+**Pages de connexion (Keycloak)** : `tokens.css` copié dans le thème et chargé avant `sabou.css`, qui n'emploie que ces variables ; messages en encadré fin avec icône dessinée (mêmes tracés que `Icon.tsx`), `role="alert"` pour les erreurs. Libellés de Keycloak remplacés dans les fichiers de messages du thème (« Soumettre » devient « Valider », « code-barres » devient « QR code ») ; la page des codes de secours est surchargée, car son gabarit d'origine écrit « Warning alert » en dur. Contrôles : copie exacte de `tokens.css`, aucune couleur en dur ni variable inconnue, aucun de ces textes dans le thème (`tokens.test.ts`). Bandeau de l'application : le nom de l'utilisateur passe à la ligne au lieu d'être coupé.
+
 ## 3. Architecture
 
 ```

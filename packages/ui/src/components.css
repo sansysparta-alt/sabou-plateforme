@@ -330,7 +330,8 @@
 .ui-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: var(--sabou-topbar-height) 1fr;
+  /* Le bandeau grandit si le nom de l'utilisateur passe sur deux lignes (téléphone) */
+  grid-template-rows: minmax(var(--sabou-topbar-height), auto) 1fr;
   grid-template-columns: 1fr;
 }
 .ui-topbar {
@@ -340,7 +341,7 @@
   display: flex;
   align-items: center;
   gap: var(--sabou-space-3);
-  padding: 0 var(--sabou-space-4);
+  padding: var(--sabou-space-1) var(--sabou-space-4);
   background: var(--sabou-forest);
   color: var(--sabou-on-dark);
 }
@@ -388,14 +389,15 @@
   text-align: right;
   line-height: var(--sabou-leading-tight);
 }
-.ui-topbar__name,
 .ui-topbar__zone {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Le nom n'est jamais coupé (US-016) : il passe à la ligne, même sans espace */
 .ui-topbar__name {
   font-weight: var(--sabou-weight-semibold);
+  overflow-wrap: anywhere;
 }
 .ui-topbar__zone {
   font-size: var(--sabou-text-sm);

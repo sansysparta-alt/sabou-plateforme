@@ -108,3 +108,43 @@ describe('interdits de style', () => {
     expect(tokensCss).toMatch(/--sabou-font-text:[^;]*\bsans-serif;/);
   });
 });
+
+// Le thème de connexion Keycloak reprend la même charte (05_Choix_Techniques.md §2.27)
+describe('thème de connexion Keycloak', () => {
+  const themeDir = new URL('../../../infra/local/keycloak/themes/sabou/login/', import.meta.url);
+  const themeCss = readFileSync(new URL('resources/css/sabou.css', themeDir), 'utf8');
+  const themeFiles = readdirSync(themeDir, { recursive: true, encoding: 'utf8' })
+    .filter((file) => /\.(css|ftl|properties)$/.test(file))
+    .map((file) => [file, readFileSync(new URL(file, themeDir), 'utf8')] as const);
+
+  it('tokens.css du thème est une copie exacte de celui de @sabou/ui', () => {
+    expect(readFileSync(new URL('resources/css/tokens.css', themeDir), 'utf8')).toBe(tokensCss);
+  });
+
+  it('theme.properties charge tokens.css avant sabou.css', () => {
+    expect(readFileSync(new URL('theme.properties', themeDir), 'utf8')).toMatch(
+      /^styles=css\/tokens\.css css\/sabou\.css$/m,
+    );
+  });
+
+  it('sabou.css : aucune couleur en dur, aucun trait latéral', () => {
+    const code = themeCss.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(code).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(code).not.toMatch(/border-(left|inline-start)\s*:/);
+  });
+
+  it('sabou.css n’emploie que des variables définies dans tokens.css', () => {
+    const used = new Set([...themeCss.matchAll(/var\((--sabou-[a-z0-9-]+)\)/g)].map((m) => m[1]));
+    const missing = [...used].filter((name) => !tokensCss.includes(`${name}:`));
+    expect(missing).toEqual([]);
+  });
+
+  it.each(themeFiles)(
+    '%s : ni emoji, ni texte anglais ou technique laissé par Keycloak',
+    (_f, content) => {
+      expect(content).not.toMatch(/\p{Extended_Pictographic}/u);
+      const code = content.replace(/<#--[\s\S]*?-->/g, '');
+      expect(code).not.toMatch(/Warning alert|Soumettre|code-barres|pficon-/);
+    },
+  );
+});
