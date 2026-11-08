@@ -34,7 +34,10 @@ const mobile = {
 // mise en page large, accessibilité et bonnes pratiques vérifiées dans ce format aussi
 const desktop = { preset: 'desktop' };
 
-// Seuils bloquants, médiane des 3 mesures
+// Seuils bloquants. Scores : mesure médiane (« median-run », choisie sur le score de
+// performance). Valeurs mesurées (LCP, TBT…) : médiane des valeurs de toutes les mesures
+// (« median ») ; « median-run » vérifiait le TBT de la seule mesure retenue pour son score,
+// qui pouvait être la plus lente des cinq (226 ms sur Comptes dans le pipeline de main).
 const budgets = {
   'categories:performance': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
   'categories:accessibility': ['error', { minScore: 1, aggregationMethod: 'median-run' }],
@@ -42,10 +45,10 @@ const budgets = {
   // 3 s en 3G normale (300 ms, 700 kbit/s) : application à page unique, le contenu
   // attend React (60 Ko compressés). Piste pour descendre à 2,5 s : pré-générer la page
   // de connexion à la compilation (05_Choix_Techniques.md §2.20).
-  'largest-contentful-paint': ['error', { maxNumericValue: 3000, aggregationMethod: 'median-run' }],
-  'cumulative-layout-shift': ['error', { maxNumericValue: 0.1, aggregationMethod: 'median-run' }],
-  'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median-run' }],
-  'total-byte-weight': ['error', { maxNumericValue: 150 * 1024, aggregationMethod: 'median-run' }],
+  'largest-contentful-paint': ['error', { maxNumericValue: 3000, aggregationMethod: 'median' }],
+  'cumulative-layout-shift': ['error', { maxNumericValue: 0.1, aggregationMethod: 'median' }],
+  'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median' }],
+  'total-byte-weight': ['error', { maxNumericValue: 150 * 1024, aggregationMethod: 'median' }],
 };
 // Pages qui attendent des données (session, puis morceau de la page, puis API) : LCP de 4 s
 // et score de 0,80 en 3G, décision du maître d'œuvre du 8/11/2026, jusqu'au récit de
@@ -53,7 +56,7 @@ const budgets = {
 const DATA_PAGES = /localhost:\d+\/(invitation|comptes|referentiels|\?vue=)/;
 const dataPageBudgets = {
   'categories:performance': ['error', { minScore: 0.8, aggregationMethod: 'median-run' }],
-  'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median-run' }],
+  'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median' }],
 };
 
 module.exports = {

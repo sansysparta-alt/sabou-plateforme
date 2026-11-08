@@ -55,6 +55,22 @@ Indice de performance de la machine : ${Math.round(index)} ; processeur divisé 
   return slowdown;
 }
 
+// Valeurs de chaque mesure dans le journal : un écart du pipeline s'explique sans le reproduire
+function printRuns(formFactor) {
+  const lines = readdirSync('.lighthouseci')
+    .filter((f) => /^lhr-.*\.json$/.test(f))
+    .map((f) => JSON.parse(readFileSync(`.lighthouseci/${f}`, 'utf8')))
+    .map((lhr) => {
+      // Chemin et paramètres (« /?vue=tableau-de-bord » distinct de « / »), sans le fragment
+      const url = new URL(lhr.requestedUrl);
+      const page = `${url.host.split(':')[1]} ${url.pathname}${url.search}`.slice(0, 60);
+      const ms = (id) => Math.round(lhr.audits[id].numericValue);
+      return `${page}  LCP ${ms('largest-contentful-paint')} ms  TBT ${ms('total-blocking-time')} ms`;
+    })
+    .sort();
+  console.log(`\nMesures ${formFactor} :\n  ${lines.join('\n  ')}`);
+}
+
 const server = await serve();
 let ok = false;
 try {
@@ -72,6 +88,7 @@ try {
       const args = ['collect', ...(index > 0 ? ['--additive'] : [])];
       ok = run('lhci', args, { ...env, LH_GROUP: String(index) }) && ok;
     });
+    printRuns(formFactor);
     // Seuils vérifiés format par format : une même adresse n'est jamais mélangée entre deux
     ok = run('lhci', ['assert'], env) && ok;
     run('lhci', ['upload'], env);
