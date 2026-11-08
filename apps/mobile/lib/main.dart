@@ -5,7 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import 'audio_io.dart';
+import 'dossier/config.dart';
+import 'dossier/dossier_api.dart';
+import 'dossier/photo.dart';
+import 'dossier/practitioner_pages.dart';
+import 'dossier/session.dart';
+import 'sync/database_key.dart' show DeviceSecretStore;
 import 'essai_api.dart';
 import 'studio_page.dart';
 import 'sync/saisie_device.dart';
@@ -61,6 +69,11 @@ class AccueilPage extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             FilledButton(
+              onPressed: () => open(practitionerHome()),
+              child: const Text('Mon dossier de praticien'),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
               onPressed: () => open(const _SaisieLoader()),
               child: const Text('Dossiers de terrain'),
             ),
@@ -83,6 +96,21 @@ class AccueilPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Dossier du praticien (US-040b) avec les services du téléphone.
+Widget practitionerHome() {
+  final session = PractitionerSession(
+    store: DeviceSecretStore(),
+    launcher: AppAuthLoginLauncher(),
+  );
+  return PractitionerHome(
+    session: session,
+    api: DossierApi(baseUrl: Uri.parse(practitionerApiUrl), session: session),
+    picker: DevicePhotoPicker(),
+    openUrl: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+    signupUrl: Uri.parse('$publicSiteUrl/inscription'),
+  );
 }
 
 class _SaisieLoader extends StatelessWidget {

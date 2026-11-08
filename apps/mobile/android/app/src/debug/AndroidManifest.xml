@@ -6,4 +6,11 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Débogage : HTTP vers localhost seulement (banc d'essai de US-005) -->
     <application android:networkSecurityConfig="@xml/network_security_config" />
+    <!-- Poste local : page de connexion et site en HTTP sur localhost (adb reverse) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
+    </queries>
 </manifest>

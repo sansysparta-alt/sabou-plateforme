@@ -28,6 +28,9 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Retour de la page de connexion de Keycloak vers l'application (US-040b, RFC 8252) :
+        // schéma privé, déclaré dans le client « sabou-mobile »
+        manifestPlaceholders["appAuthRedirectScheme"] = "gn.sabou.mobile"
     }
 
     buildTypes {
