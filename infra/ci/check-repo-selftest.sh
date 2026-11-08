@@ -85,4 +85,21 @@ if [[ -d apps/mobile ]]; then
   }
 fi
 
+# 7. Description de client Keycloak trop longue (Keycloak refuserait de démarrer)
+node -e '
+  const fs = require("fs");
+  const realm = JSON.parse(fs.readFileSync("infra/local/keycloak/realm-sabou-public.json", "utf8"));
+  realm.clients[0].description = "x".repeat(256);
+  fs.writeFileSync(process.argv[1], JSON.stringify(realm));
+' "$workdir/realm.json"
+if KEYCLOAK_REALMS="$workdir/realm.json" bash infra/ci/check-repo.sh package.json 2>"$workdir/err"; then
+  echo "ÉCHEC : une description Keycloak de 256 caractères n'a pas été refusée." >&2
+  exit 1
+fi
+grep -q 'description, 256 caractères' "$workdir/err" || {
+  cat "$workdir/err" >&2
+  echo "ÉCHEC : check-repo.sh ne cite pas le texte trop long." >&2
+  exit 1
+}
+
 echo "Garde-fous du pipeline local : refusent ce qu'ils doivent refuser, acceptent le reste."
