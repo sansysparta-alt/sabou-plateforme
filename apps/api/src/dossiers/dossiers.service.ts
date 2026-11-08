@@ -3,6 +3,7 @@ import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/c
 import type {
   DossierError,
   PractitionerDossier,
+  PractitionerReferentials,
   PractitionerPieceType,
   PractitionerProfile,
   SubmissionReceipt,
@@ -75,6 +76,10 @@ export class DossiersService {
     @Inject(PIECE_STORAGE) private readonly storage: PieceStorage,
     @Inject(SMS_SENDER) private readonly sms: SmsSender,
   ) {}
+
+  referentials(): Promise<PractitionerReferentials> {
+    return this.repository.referentials();
+  }
 
   view(sub: string): Promise<PractitionerDossier | null> {
     return this.repository.view(sub);

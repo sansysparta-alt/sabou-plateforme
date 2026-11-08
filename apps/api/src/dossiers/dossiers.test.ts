@@ -7,6 +7,7 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { PractitionerPieceType, PractitionerProfile } from '@sabou/types';
 import { CITIZEN_SESSION_COOKIE } from '../auth/auth.controller';
+import { InvalidMobileTokenError, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-token';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { ENV } from '../config/env';
 import { ZoneContextError } from '../database/zone';
@@ -41,6 +42,9 @@ const missing = (): PractitionerPieceType[] =>
     (type) => ![...db.pieces.values()].some((piece) => piece.type === type),
   );
 const repository = {
+  async referentials() {
+    return referentials;
+  },
   async view(sub: string) {
     db.calls.push(`view:${sub}`);
     return db.profile
@@ -110,6 +114,28 @@ const sessions = {
   },
 };
 
+// Jetons de l'application mobile (US-040b) : la vérification réelle est prouvée par
+// auth/mobile-token.test.ts ; ici, le contrôle d'accès qui s'appuie dessus
+const TOKENS: Record<string, string[]> = {
+  'jeton.praticien.ok': ['praticien'],
+  'jeton.citoyen.ok': ['citoyen'],
+};
+const mobileTokens = {
+  outage: false,
+  async verify(token: string) {
+    if (this.outage) throw new Error('Keycloak injoignable');
+    const roles = TOKENS[token];
+    if (!roles) throw new InvalidMobileTokenError();
+    return { sub: SUB, roles };
+  },
+};
+const referentials = {
+  specialites: [{ id: 1, libelle: 'Herboristerie' }],
+  prefectures: [{ id: 4, nom: 'Labé' }],
+  sousPrefectures: [{ id: 40, nom: 'Garambé', prefectureId: 4 }],
+  langues: [{ code: 'pul', nom: 'Pular' }],
+};
+
 let app: INestApplication;
 let base: string;
 
@@ -123,6 +149,7 @@ beforeAll(async () => {
       { provide: PIECE_STORAGE, useValue: storage },
       { provide: SMS_SENDER, useValue: sms },
       { provide: SESSION_STORE, useValue: sessions },
+      { provide: MOBILE_TOKEN_VERIFIER, useValue: mobileTokens },
       { provide: ENV, useValue: { SITE_URL: SITE } },
     ],
   })
@@ -140,6 +167,7 @@ beforeEach(() => {
   db.submitted = false;
   db.failure = null;
   db.calls = [];
+  mobileTokens.outage = false;
   storage.objects.clear();
   sms.sent = [];
   sessions.data = new Map([
@@ -158,10 +186,17 @@ const PROFILE = {
 function call(
   method: string,
   path: string,
-  options: { cookie?: string | null; origin?: string | null; body?: BodyInit; type?: string } = {},
+  options: {
+    cookie?: string | null;
+    origin?: string | null;
+    body?: BodyInit;
+    type?: string;
+    authorization?: string;
+  } = {},
 ) {
-  const { cookie = 'praticien', origin = SITE, body, type } = options;
+  const { cookie = 'praticien', origin = SITE, body, type, authorization } = options;
   const headers: Record<string, string> = {};
+  if (authorization) headers['authorization'] = authorization;
   if (cookie) headers['cookie'] = `${CITIZEN_SESSION_COOKIE}=${cookie}`;
   if (origin) headers['origin'] = origin;
   if (type) headers['content-type'] = type;
@@ -335,5 +370,75 @@ describe('Accès', () => {
     await saveProfile();
     await call('POST', 'dossier/soumission');
     expect(new Set(db.calls.map((c) => c.split(':')[1]))).toEqual(new Set([SUB]));
+  });
+});
+
+// US-040b : l'application mobile agit avec son jeton d'accès, sans cookie ni origine
+describe('Application mobile (jeton « Bearer », US-040b)', () => {
+  const mobile = (method: string, path: string, token: string, options = {}) =>
+    call(method, path, { cookie: null, origin: null, authorization: `Bearer ${token}`, ...options });
+  const mobileUpload = (type: string, body: Buffer, contentType: string) =>
+    mobile('POST', `dossier/pieces/${type}`, 'jeton.praticien.ok', {
+      body: new Uint8Array(body),
+      type: contentType,
+    });
+
+  it('critère 3 : remplit et soumet le dossier comme depuis le site (manquantes, puis accusé)', async () => {
+    const fiche = await mobile('PUT', 'fiche', 'jeton.praticien.ok', {
+      body: JSON.stringify(PROFILE),
+      type: 'application/json',
+    });
+    expect(fiche.status).toBe(204);
+    expect((await mobileUpload('identite', JPEG, 'image/jpeg')).status).toBe(201);
+
+    const blocked = await mobile('POST', 'dossier/soumission', 'jeton.praticien.ok');
+    expect(blocked.status).toBe(422);
+    expect(await blocked.json()).toMatchObject({ error: 'missing_pieces', piecesManquantes: ['photo'] });
+
+    expect((await mobileUpload('photo', JPEG, 'image/jpeg')).status).toBe(201);
+    const receipt = await mobile('POST', 'dossier/soumission', 'jeton.praticien.ok');
+    expect(receipt.status).toBe(200);
+    expect(await receipt.json()).toEqual({
+      code: 'DS-2001',
+      etape: 2,
+      soumisLe: '2026-11-07T10:00:00.000Z',
+    });
+    expect(sms.sent).toHaveLength(1);
+    expect(new Set(db.calls.map((c) => c.split(':')[1]))).toEqual(new Set([SUB]));
+  });
+
+  it('lit les listes de la fiche, avec un cache privé', async () => {
+    const response = await mobile('GET', 'referentiels', 'jeton.praticien.ok');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, max-age=3600');
+    expect(await response.json()).toEqual(referentials);
+  });
+
+  it('refuse un jeton invalide (401), même accompagné d’un cookie de session valable', async () => {
+    expect((await mobile('GET', 'dossier', 'jeton.inconnu.x')).status).toBe(401);
+    const both = await call('GET', 'dossier', { authorization: 'Bearer jeton.inconnu.x' });
+    expect(both.status).toBe(401);
+    expect(db.calls).toEqual([]);
+  });
+
+  it('refuse un en-tête mal formé ou un autre schéma que Bearer', async () => {
+    for (const authorization of ['Bearer', 'Bearer pas-un-jwt', 'Basic YTpi', 'bearer a.b.c']) {
+      expect((await call('GET', 'dossier', { cookie: null, authorization })).status).toBe(401);
+    }
+  });
+
+  it('refuse le jeton d’un compte qui n’est pas praticien', async () => {
+    expect((await mobile('POST', 'dossier/soumission', 'jeton.citoyen.ok')).status).toBe(403);
+    expect(db.calls).toEqual([]);
+  });
+
+  it('répond 503 (et non 401) si les clés de Keycloak sont injoignables', async () => {
+    mobileTokens.outage = true;
+    expect((await mobile('GET', 'dossier', 'jeton.praticien.ok')).status).toBe(503);
+  });
+
+  it('refuse un compte suspendu entre-temps, même avec un jeton encore valable', async () => {
+    db.failure = new ZoneContextError();
+    expect((await mobile('POST', 'dossier/soumission', 'jeton.praticien.ok')).status).toBe(403);
   });
 });

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { keycloakMobileTokenVerifier, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-token';
 import { ENV, type Env } from '../config/env';
 import { JournalSmsSender, SMS_SENDER } from '../signup/sms';
 import { DossiersController, PractitionerGuard } from './dossiers.controller';
@@ -15,6 +16,8 @@ import { PIECE_STORAGE, S3PieceStorage } from './piece-storage';
     DossiersRepository,
     DossiersService,
     PractitionerGuard,
+    // Jetons de l'application mobile (US-040b, §2.29)
+    { provide: MOBILE_TOKEN_VERIFIER, inject: [ENV], useFactory: keycloakMobileTokenVerifier },
     {
       provide: PIECE_STORAGE,
       inject: [ENV],

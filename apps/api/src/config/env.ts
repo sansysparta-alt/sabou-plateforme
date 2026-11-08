@@ -41,6 +41,10 @@ const envSchema = z
     SITE_CLIENT_ID: z.string().min(1).default('sabou-site'),
     SITE_CLIENT_SECRET: z.string().min(32),
     SITE_URL: z.url({ protocol: /^https?$/ }),
+    // Application mobile (US-040b, §2.29) : client public « sabou-mobile » du domaine public ;
+    // l'API n'accepte que ses jetons d'accès émis pour l'audience « sabou-api »
+    MOBILE_CLIENT_ID: z.string().min(1).default('sabou-mobile'),
+    API_AUDIENCE: z.string().min(1).default('sabou-api'),
     // Compte de service « sabou-audit » du domaine public (view-events) : échecs de connexion
     // des citoyens versés au journal d'audit
     PUBLIC_AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),
