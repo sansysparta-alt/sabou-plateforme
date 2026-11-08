@@ -529,6 +529,8 @@ Le niveau atteint (claim `acr`) n'est pas lu par l'API : seul `amr` dit si un co
 
 Seuils : ceux de US-010 (§2.20) pour chaque page, sauf, en 3G, les pages qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation) : LCP ≤ 4 s et performance ≥ 0,80, décision du maître d'œuvre du 8 novembre 2026, jusqu'à US-017. Mesures du 8 novembre 2026, téléphone : pages Keycloak 0,96 à 0,97, LCP 2,1 à 2,2 s ; accueil sans session LCP 2,84 s ; Référentiels 3,2 s, Comptes 3,2 s, Invitation 3,8 s, tableau de bord 3,9 s. Ordinateur : 1 partout, LCP ≤ 0,7 s. Accessibilité : 1 partout. Décalages corrigés au passage : grille des chiffres affichée d'emblée (valeurs « … »), activité récente en fin de page, page Comptes affichée d'un bloc (CLS 0,33 et 0,61 ramenés à 0). Essai écarté : télécharger le morceau de la page en même temps que la session aggrave le LCP simulé (accueil 2,84 → 3,27 s).
 
+**Bridage du processeur calé sur la machine** : `scripts/lighthouse.mjs` lit d'abord l'indice de performance de la machine (`benchmarkIndex` de Lighthouse, une mesure de calibrage), puis fixe le multiplicateur à 4 × indice / 2 000, entre 1 et 4. Méthode recommandée par Lighthouse : un multiplicateur fixe de 4 suppose un ordinateur rapide (poste : indice 1 982, donc × 4) ; sur l'exécuteur GitHub, plus lent, il simulait un téléphone plus lent que la cible (temps de blocage de 273 ms sur Référentiels, contre 0 à 20 ms sur le poste). Le site public (`apps/site`) garde × 4 fixe : à reprendre avec US-118.
+
 ## 3. Architecture
 
 ```

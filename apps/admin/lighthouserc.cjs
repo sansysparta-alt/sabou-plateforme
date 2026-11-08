@@ -11,6 +11,7 @@ const { existsSync, readFileSync } = require('node:fs');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { chromium } = require('@playwright/test');
 
+const calibrating = process.env.LH_CALIBRATE === '1';
 const formFactor = process.env.LH_FORM_FACTOR === 'desktop' ? 'desktop' : 'mobile';
 const groups = existsSync('.lighthouse/pages.json')
   ? JSON.parse(readFileSync('.lighthouse/pages.json', 'utf8'))
@@ -22,7 +23,12 @@ const mobile = {
   screenEmulation: { mobile: true, width: 360, height: 640, deviceScaleFactor: 2 },
   // « 3G normale » de Lighthouse : 300 ms d'aller-retour, 700 kbit/s, processeur ÷ 4
   throttlingMethod: 'simulate',
-  throttling: { rttMs: 300, throughputKbps: 700, cpuSlowdownMultiplier: 4 },
+  // Processeur : ÷ 4 sur un ordinateur rapide, calé sur la machine par scripts/lighthouse.mjs
+  throttling: {
+    rttMs: 300,
+    throughputKbps: 700,
+    cpuSlowdownMultiplier: Number(process.env.LH_CPU_SLOWDOWN ?? 4),
+  },
 };
 // Préréglage « ordinateur » de Lighthouse (écran 1350 × 940, réseau et processeur peu bridés) :
 // mise en page large, accessibilité et bonnes pratiques vérifiées dans ce format aussi
@@ -53,8 +59,9 @@ const dataPageBudgets = {
 module.exports = {
   ci: {
     collect: {
-      url: group.urls,
-      numberOfRuns: 3,
+      // Calibrage : une seule mesure de la première page, pour lire l'indice de la machine
+      url: calibrating ? group.urls.slice(0, 1) : group.urls,
+      numberOfRuns: calibrating ? 1 : 3,
       chromePath: chromium.executablePath(),
       settings: {
         ...(formFactor === 'desktop' ? desktop : mobile),
