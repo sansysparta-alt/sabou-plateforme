@@ -61,7 +61,9 @@ module.exports = {
     collect: {
       // Calibrage : une seule mesure de la première page, pour lire l'indice de la machine
       url: calibrating ? group.urls.slice(0, 1) : group.urls,
-      numberOfRuns: calibrating ? 1 : 3,
+      // Médiane de 5 mesures sur téléphone (le temps de blocage varie sur l'exécuteur partagé
+      // du pipeline : 231 ms une fois sur l'accueil, contre 0 à 24 ms sur le poste), 3 sur ordinateur
+      numberOfRuns: calibrating ? 1 : formFactor === 'mobile' ? 5 : 3,
       chromePath: chromium.executablePath(),
       settings: {
         ...(formFactor === 'desktop' ? desktop : mobile),
