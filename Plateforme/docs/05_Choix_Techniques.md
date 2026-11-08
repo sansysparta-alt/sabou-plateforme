@@ -498,6 +498,16 @@ Décisions du maître d'œuvre du 8 novembre 2026 : une base posée une fois pou
 | **Navigation latérale groupée par rubriques** (maquette), menu repliable sur téléphone ; lien d'évitement | Maquette v1.3 ; WCAG 2.4.1 | — |
 | **Thème Keycloak sur les mêmes variables** : `sabou.css` reprend `tokens.css`, un contrôle du pipeline vérifie qu'ils restent identiques | Connexion et application ont le même aspect | Copie manuelle sans contrôle |
 
+**Tableau de bord d'accueil** (`GET /api/tableau-de-bord`, administrateurs avec second facteur) :
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| Praticiens, dossiers soumis (en cours, étape 2 ou plus) et activité récente lus dans le contexte de zone : les règles RLS filtrent | Le cloisonnement reste dans la base (US-011) ; un oubli ne fuit pas | Filtre de zone écrit dans l'API |
+| Comptes : comptes d'administration actifs de la zone (national pour la DG et le Comité, région avec ses préfectures, préfecture), filtre écrit dans la requête | La table des comptes n'est pas sous RLS ; seul un nombre est renvoyé, aucune identité | Comptes réservés à la DG : la zone des autres profils resterait vide |
+| Activité récente : les 5 dernières transitions de `dossier_historique` (cloisonnée) | Activité métier de la zone, sans données personnelles au-delà du nom du praticien déjà visible dans les listes | Journal d'audit : non cloisonné, contient adresses IP et événements de connexion |
+| Fonctions à venir annoncées par une liste et une carte « Sprint 3 », sans lien dans la navigation | Aucun lien vers une page qui n'existe pas | Entrées de menu grisées |
+| Refus de l'API (compte sans zone active) : message en français écrit par l'écran | Le message de l'API (« Forbidden ») est en anglais | — |
+
 **Contrôles du pipeline** : `packages/ui/src/tokens.test.ts` (contraste AA de chaque couple employé, couleurs de la charte inchangées, aucun emoji, aucun trait latéral, aucune couleur en dur hors `tokens.css`, polices terminées par la famille générique) ; `packages/ui/src/components.test.tsx` (rôles, libellés, page courante, menu). Contre-épreuve faite : un trait latéral, une couleur en dur ou un gris trop clair font échouer les tests.
 
 ## 3. Architecture
