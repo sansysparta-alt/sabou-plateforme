@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Alert, AppShell, Button, ButtonLink, Card, PageHeader, type NavGroup } from '@sabou/ui';
-import { Dashboard } from './Dashboard';
-
-// Pages chargées à la demande : l'accueil et la connexion restent légers en 3G
+// Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
+// (seuil de temps de blocage de Lighthouse, US-010)
+const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() =>
   import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
 );
@@ -165,10 +165,9 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const Page = isDirector(user) ? DIRECTOR_PAGES[path()] : undefined;
-  if (!Page) return <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
-      <Page />
+      {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}
     </Suspense>
   );
 }
