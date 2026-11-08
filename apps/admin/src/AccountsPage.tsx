@@ -43,6 +43,8 @@ export function AccountsPage() {
     }
   }, []);
 
+  const ready = accounts !== null && references !== null;
+
   useEffect(() => {
     listAccounts().then(setAccounts, (error: unknown) => setLoadError(message(error)));
     fetchReferences().then(setReferences, (error: unknown) => setLoadError(message(error)));
@@ -67,7 +69,10 @@ export function AccountsPage() {
           invitation={link.invitation}
         />
       )}
-      {references && (
+      {/* Formulaire et liste affichés ensemble, une fois les deux chargés : le formulaire
+          arrivé après la liste la pousserait vers le bas (CLS mesuré par Lighthouse) */}
+      {!ready && !loadError && <p>Chargement…</p>}
+      {ready && (
         <InviteForm
           references={references}
           onInvited={(name, invitation) => {
@@ -77,29 +82,30 @@ export function AccountsPage() {
           }}
         />
       )}
-      <section aria-labelledby="accounts-title">
-        <h2 id="accounts-title">Comptes d’administration</h2>
-        {accounts === null && !loadError && <p>Chargement…</p>}
-        {accounts?.length === 0 && <p>Aucun compte.</p>}
-        {accounts && accounts.length > 0 && (
-          <ul className="ui-stack">
-            {accounts.map((account) => (
-              <AccountItem
-                key={account.id}
-                account={account}
-                references={references}
-                onChanged={(text, invitation) => {
-                  setNotice(text);
-                  if (invitation) {
-                    setLink({ name: `${account.firstName} ${account.lastName}`, invitation });
-                  }
-                  void reload();
-                }}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+      {ready && (
+        <section aria-labelledby="accounts-title">
+          <h2 id="accounts-title">Comptes d’administration</h2>
+          {accounts.length === 0 && <p>Aucun compte.</p>}
+          {accounts.length > 0 && (
+            <ul className="ui-stack">
+              {accounts.map((account) => (
+                <AccountItem
+                  key={account.id}
+                  account={account}
+                  references={references}
+                  onChanged={(text, invitation) => {
+                    setNotice(text);
+                    if (invitation) {
+                      setLink({ name: `${account.firstName} ${account.lastName}`, invitation });
+                    }
+                    void reload();
+                  }}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </>
   );
 }

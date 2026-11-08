@@ -1,32 +1,43 @@
-// Lighthouse CI (US-010) : pages livrées mesurées en 3G et processeur bridés (téléphone
-// d'entrée de gamme), seuils bloquants. Chaque récit qui ajoute des pages les ajoute ici.
-// Prérequis : environnement local démarré et application compilée (infra/ci/e2e-admin.sh).
+// Lighthouse CI (US-010, étendu par US-016) : chaque page livrée, connectée ou non, mesurée
+// sur téléphone d'entrée de gamme en 3G et processeur bridés, puis sur ordinateur ; seuils
+// bloquants. Lancé par scripts/lighthouse.mjs, qui ouvre les sessions (lighthouse/
+// prepare.spec.ts) puis appelle Lighthouse groupe par groupe :
+//   LH_GROUP       indice du groupe de pages dans .lighthouse/pages.json
+//   LH_FORM_FACTOR « mobile » (défaut) ou « desktop »
+// Chaque récit qui ajoute des pages les ajoute à la préparation.
 // Fichier CommonJS : format de configuration lu par Lighthouse CI
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { existsSync, readFileSync } = require('node:fs');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { chromium } = require('@playwright/test');
 
-const app = `http://localhost:${process.env.ADMIN_PORT ?? 5173}`;
-const keycloak = `http://localhost:${process.env.KEYCLOAK_PORT ?? 8080}`;
-// Page de connexion Keycloak (thème SABOU) : demande d'autorisation sans session
-const keycloakLogin =
-  `${keycloak}/realms/sabou/protocol/openid-connect/auth?client_id=sabou-admin` +
-  `&response_type=code&scope=openid&redirect_uri=${encodeURIComponent(`${app}/auth/callback`)}` +
-  `&code_challenge=${'A'.repeat(43)}&code_challenge_method=S256&state=lighthouse`;
+const formFactor = process.env.LH_FORM_FACTOR === 'desktop' ? 'desktop' : 'mobile';
+const groups = existsSync('.lighthouse/pages.json')
+  ? JSON.parse(readFileSync('.lighthouse/pages.json', 'utf8'))
+  : [];
+const group = groups[Number(process.env.LH_GROUP ?? 0)] ?? { cookie: '', urls: [] };
+
+const mobile = {
+  formFactor: 'mobile',
+  screenEmulation: { mobile: true, width: 360, height: 640, deviceScaleFactor: 2 },
+  // « 3G normale » de Lighthouse : 300 ms d'aller-retour, 700 kbit/s, processeur ÷ 4
+  throttlingMethod: 'simulate',
+  throttling: { rttMs: 300, throughputKbps: 700, cpuSlowdownMultiplier: 4 },
+};
+// Préréglage « ordinateur » de Lighthouse (écran 1350 × 940, réseau et processeur peu bridés) :
+// mise en page large, accessibilité et bonnes pratiques vérifiées dans ce format aussi
+const desktop = { preset: 'desktop' };
 
 module.exports = {
   ci: {
     collect: {
-      url: [`${app}/`, keycloakLogin],
-      startServerCommand: 'node scripts/serve.mjs',
-      startServerReadyPattern: 'servie sur',
+      url: group.urls,
       numberOfRuns: 3,
       chromePath: chromium.executablePath(),
       settings: {
-        formFactor: 'mobile',
-        screenEmulation: { mobile: true, width: 360, height: 640, deviceScaleFactor: 2 },
-        // « 3G normale » de Lighthouse : 300 ms d'aller-retour, 700 kbit/s, processeur ÷ 4
-        throttlingMethod: 'simulate',
-        throttling: { rttMs: 300, throughputKbps: 700, cpuSlowdownMultiplier: 4 },
+        ...(formFactor === 'desktop' ? desktop : mobile),
+        // Session du groupe (comptes de test jetables) ; aucun cookie pour les pages publiques
+        ...(group.cookie ? { extraHeaders: { Cookie: group.cookie } } : {}),
         onlyCategories: ['performance', 'accessibility', 'best-practices'],
         chromeFlags: '--headless=new --no-sandbox',
       },
@@ -48,6 +59,6 @@ module.exports = {
       },
     },
     // Rapports gardés sur le poste ou dans le pipeline : aucun envoi à un service externe
-    upload: { target: 'filesystem', outputDir: '.lighthouseci' },
+    upload: { target: 'filesystem', outputDir: `.lighthouse/${formFactor}` },
   },
 };

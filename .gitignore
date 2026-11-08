@@ -34,3 +34,4 @@ apps/site/e2e/.generated/
 test-results/
 playwright-report/
 .lighthouseci/
+.lighthouse/

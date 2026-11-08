@@ -49,6 +49,9 @@ const UPCOMING: [label: string, sprint: string][] = [
   ['Tableaux de bord et rapports par profil', 'Sprint 9'],
 ];
 
+// Valeur affichée pendant le chargement des chiffres (lue « points de suspension »)
+const PENDING = '…';
+
 // Refus de l'API (compte sans zone active en base) : message en clair, jamais celui de l'API
 function errorMessage(error: Error): string {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
@@ -120,42 +123,35 @@ export function Dashboard({
       {canRead && (
         <section className="ui-section" aria-labelledby="chiffres" aria-busy={!data}>
           <h2 id="chiffres">Chiffres de votre zone</h2>
-          {load.status === 'error' && <Alert tone="error">{load.message}</Alert>}
-          {load.status === 'loading' && <p className="ui-muted">Chargement…</p>}
-          {data && (
+          {load.status === 'error' ? (
+            <Alert tone="error">{load.message}</Alert>
+          ) : (
+            // Grille affichée dès le départ, valeurs « … » en attendant : rien ne se décale à
+            // l'arrivée des chiffres (CLS mesuré par Lighthouse)
             <div className="ui-grid">
-              <StatCard label="Praticiens" value={data.praticiens} detail="Inscrits dans la zone" />
+              <StatCard
+                label="Praticiens"
+                value={data?.praticiens ?? PENDING}
+                detail="Inscrits dans la zone"
+              />
               <StatCard
                 label="Dossiers soumis"
-                value={data.dossiersSoumis}
+                value={data?.dossiersSoumis ?? PENDING}
                 detail="En cours de certification"
               />
               <StatCard
                 label="Comptes"
-                value={data.comptes}
+                value={data?.comptes ?? PENDING}
                 detail="Administrateurs actifs de la zone"
               />
               <StatCard
                 label="Spécialités"
-                value={data.specialites}
+                value={data?.specialites ?? PENDING}
                 detail="Référentiel de la DG"
               />
               <StatCard label="Certificats émis" value={null} upcoming="Sprint 3" />
             </div>
           )}
-        </section>
-      )}
-      {data && (
-        <section className="ui-section" aria-labelledby="activite">
-          <h2 id="activite">Activité récente</h2>
-          <DataTable
-            caption="Dernières étapes des dossiers de la zone"
-            captionHidden
-            columns={ACTIVITY_COLUMNS}
-            rows={data.activite}
-            rowKey={(e) => `${e.dossier}-${e.le}-${e.decision}`}
-            empty="Aucun dossier n’a encore changé d’étape dans votre zone."
-          />
         </section>
       )}
       {isDirector(user) && (
@@ -184,6 +180,20 @@ export function Dashboard({
           ))}
         </ul>
       </Card>
+      {/* En dernier : sa hauteur dépend des données, elle ne pousse donc aucun autre bloc */}
+      {data && (
+        <section className="ui-section" aria-labelledby="activite">
+          <h2 id="activite">Activité récente</h2>
+          <DataTable
+            caption="Dernières étapes des dossiers de la zone"
+            captionHidden
+            columns={ACTIVITY_COLUMNS}
+            rows={data.activite}
+            rowKey={(e) => `${e.dossier}-${e.le}-${e.decision}`}
+            empty="Aucun dossier n’a encore changé d’étape dans votre zone."
+          />
+        </section>
+      )}
     </>
   );
 }
