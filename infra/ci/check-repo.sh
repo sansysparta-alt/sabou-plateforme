@@ -101,6 +101,22 @@ if [[ -d apps/mobile ]]; then
   done
 fi
 
+# 8. Domaines Keycloak : nom et description des clients, rôles et portées tiennent dans les
+# colonnes de Keycloak (255 caractères) ; au-delà, Keycloak 26 refuse de démarrer à
+# l'import, sans message clair (US-016, US-040b).
+# Usage alternatif : KEYCLOAK_REALMS="fichier…" (contre-épreuve).
+for realm in ${KEYCLOAK_REALMS:-infra/local/keycloak/realm-*.json}; do
+  too_long="$(node -e '
+    const realm = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const items = [...(realm.clients ?? []), ...(realm.roles?.realm ?? []), ...(realm.clientScopes ?? [])];
+    for (const item of items)
+      for (const field of ["name", "description"])
+        if ((item[field] ?? "").length > 255)
+          console.log(`${item.clientId ?? item.name} (${field}, ${item[field].length} caractères)`);
+  ' "$realm")"
+  [[ -z "$too_long" ]] || fail "$realm : texte de plus de 255 caractères : $too_long"
+done
+
 if ((errors > 0)); then
   echo "$errors règle(s) non respectée(s)." >&2
   exit 1

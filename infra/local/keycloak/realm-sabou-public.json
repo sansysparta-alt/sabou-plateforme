@@ -25,6 +25,8 @@
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
   "accessTokenLifespan": 300,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
   "accessCodeLifespan": 60,
   "accessCodeLifespanLogin": 1800,
   "accessCodeLifespanUserAction": 300,
@@ -108,6 +110,58 @@
             "access.token.claim": "false",
             "userinfo.token.claim": "false",
             "introspection.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "sabou-mobile",
+      "name": "Application mobile SABOU",
+      "description": "Client public de l'application Flutter (US-040b, §2.29) : connexion par le navigateur du téléphone (code + PKCE), jeton hors ligne de 30 jours gardé dans le Keystore.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["gn.sabou.mobile:/oauth2redirect"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "gn.sabou.mobile:/oauth2redirect",
+        "use.refresh.tokens": "true",
+        "client.use.lightweight.access.token.enabled": "false",
+        "client.offline.session.idle.timeout": "2592000"
+      },
+      "defaultClientScopes": ["basic", "roles"],
+      "optionalClientScopes": ["offline_access"],
+      "protocolMappers": [
+        {
+          "name": "audience de l'API",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "sabou-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "roles (jeton d'accès)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
           }
         }
       ]

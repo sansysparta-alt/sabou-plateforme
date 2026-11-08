@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import type {
+  PractitionerReferentials,
   DossierPiece,
   PractitionerDossier,
   PractitionerPieceType,
@@ -48,6 +49,29 @@ export type SubmitResult =
 @Injectable()
 export class DossiersRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  // Référentiels communs à tous, sans zone : lus hors de inZone
+  async referentials(): Promise<PractitionerReferentials> {
+    const [specialites, prefectures, sousPrefectures, langues] = await Promise.all([
+      sql<PractitionerReferentials['specialites'][number]>`
+        SELECT id, libelle_fr AS libelle FROM sabou.specialite
+         WHERE active ORDER BY libelle_fr`.execute(this.db),
+      sql<PractitionerReferentials['prefectures'][number]>`
+        SELECT id, nom FROM sabou.prefecture ORDER BY nom`.execute(this.db),
+      sql<PractitionerReferentials['sousPrefectures'][number]>`
+        SELECT id, nom, prefecture_id AS "prefectureId" FROM sabou.sous_prefecture
+         ORDER BY nom`.execute(this.db),
+      sql<PractitionerReferentials['langues'][number]>`
+        SELECT code, nom_fr AS nom FROM sabou.langue
+         WHERE active ORDER BY ordre, code`.execute(this.db),
+    ]);
+    return {
+      specialites: specialites.rows,
+      prefectures: prefectures.rows,
+      sousPrefectures: sousPrefectures.rows,
+      langues: langues.rows,
+    };
+  }
 
   view(sub: string): Promise<PractitionerDossier | null> {
     return inZone(this.db, sub, async (trx) => {

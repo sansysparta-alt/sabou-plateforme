@@ -531,6 +531,35 @@ Seuils : ceux de US-010 (§2.20) pour chaque page, sauf, en 3G, les pages qui at
 
 **Bridage du processeur calé sur la machine** : `scripts/lighthouse.mjs` lit d'abord l'indice de performance de la machine (`benchmarkIndex` de Lighthouse, une mesure de calibrage), puis fixe le multiplicateur à 4 × indice / 2 000, entre 1 et 4 (méthode recommandée par Lighthouse : le multiplicateur fixe de 4 suppose un ordinateur rapide). Poste : indice 1 982, × 4 ; exécuteur GitHub : 1 917, × 3,8. Le temps de blocage plus élevé dans le pipeline (231 ms une fois sur l'accueil, 273 ms sur Référentiels, contre 0 à 24 ms sur le poste) ne vient donc pas d'une machine plus lente mais de l'exécuteur partagé, d'une mesure à l'autre : sur téléphone, la médiane porte sur 5 mesures au lieu de 3 (recommandation de Lighthouse contre la variabilité). Le site public (`apps/site`) garde × 4 fixe et 3 mesures : à reprendre avec US-118. Après la fusion, le pipeline de `main` a encore relevé 226 ms sur Comptes : avec « median-run », Lighthouse CI vérifie les valeurs de la seule mesure retenue pour son score de performance, qui peut être la plus lente. Les valeurs mesurées (LCP, TBT, CLS, poids) sont désormais jugées sur la médiane de leurs valeurs (« median ») ; les scores gardent « median-run ». Les valeurs de chaque mesure sont écrites dans le journal du pipeline.
 
+### 2.29 Dossier du praticien dans l'application mobile (US-040b, novembre 2026)
+
+Décisions validées par le maître d'œuvre le 8 novembre 2026 (questions posées au début du récit).
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Connexion par la page de Keycloak** ouverte dans le navigateur du téléphone (code + PKCE, RFC 8252, bibliothèque AppAuth par `flutter_appauth` 13.0.0) ; nouveau client **public** `sabou-mobile` du domaine `sabou-public`, retour par le schéma privé `gn.sabou.mobile:/oauth2redirect` | Le mot de passe n'est jamais saisi dans l'application ; même page, même politique et même blocage que le site ; norme des applications natives | Formulaire dans l'application (flux « mot de passe direct ») : déconseillé par OAuth 2.1 et ASVS |
+| **Session de 30 jours d'inactivité** : jeton de rafraîchissement **hors ligne** (portée `offline_access`), gardé dans le magasin sécurisé du téléphone (Keystore, `flutter_secure_storage`) ; jeton d'accès de 5 minutes en mémoire seulement ; « Se déconnecter » révoque le jeton auprès de Keycloak (`/revoke`) puis l'efface, même hors réseau | Usage peu fréquent (un dossier se remplit en plusieurs fois) ; le praticien ne voit que son propre dossier | Session courte : mot de passe redemandé à chaque ouverture |
+| **Inscription sur le site** : « Créer un compte » ouvre `/inscription` du site public (parcours de US-014 et US-040a) | Garde US-040b à 5 points ; un seul parcours d'inscription à tenir | Écrans d'inscription dans l'application (+2 à 3 points) |
+
+Décisions techniques prises pendant le récit (règles de l'art, sans question au maître d'œuvre) :
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **L'API accepte un jeton « Bearer »** sur `/api/praticien/*`, en plus du cookie du site (`apps/api/src/auth/mobile-token.ts`) : signature RS256 par les clés publiques du domaine (`jose`, lues par l'adresse interne de Keycloak, cache de 10 minutes), émetteur, **audience `sabou-api`** (mappeur d'audience du client), **client `azp = sabou-mobile`**, type `Bearer` ; un en-tête présent mais refusé donne 401 sans retomber sur le cookie ; clés injoignables : 503 | Un jeton d'un autre client (le site) ou d'un autre domaine ne passe pas ; « none » et HS256 refusés | Introspection à chaque requête : un aller-retour de plus vers Keycloak |
+| **Pas de contrôle d'origine pour le jeton** : rien n'est envoyé d'office par le navigateur, aucune requête forgée par une autre page ne le porte. Le compte est relu en base à chaque requête : un compte suspendu est refusé aussitôt, même avec un jeton encore valable | Le contrôle d'origine protège le cookie (§2.25), pas le jeton | — |
+| **Listes de la fiche pour le praticien** : `GET /api/praticien/referentiels` (spécialités et langues actives, préfectures, sous-préfectures ; cache privé d'une heure). Les référentiels complets restent réservés à la DG | L'application doit proposer des listes, pas des identifiants à taper | Ouvrir `/api/referentiels` à tous |
+| **Photo préparée sur le téléphone** (`apps/mobile/lib/dossier/photo.dart`) : réduction par le système à 2400 px (mémoire), puis en Dart (`image` 4.12.0, dans un isolat) : orientation appliquée, **plus grand côté 1600 px**, **JPEG qualité 80 abaissée jusqu'à 500 Ko au plus** (≈ 10 s à 400 kbit/s), **toutes les métadonnées retirées** (EXIF : position GPS, modèle, date) | Critère 2 (3G) ; la position du domicile ne quitte pas le téléphone ; calcul en Dart pur, donc prouvé par les tests du pipeline | `flutter_image_compress` : natif, non testable dans le pipeline |
+| **Pièces en photo seulement** depuis l'application (appareil photo ou galerie, `image_picker` 1.2.4) ; les PDF restent possibles par l'API | Le praticien photographie sa pièce d'identité ; pas de sélecteur de fichiers à ajouter | Sélecteur de fichiers |
+| **Poste local** : l'application parle à `localhost` (API 4000, Keycloak 8080, site 3000) relié au poste par `adb reverse` ; HTTP permis vers `localhost` dans la seule version de débogage (déjà le cas depuis US-005) | L'émetteur des jetons reste `http://localhost:8080/…`, celui qu'attend l'API | Adresse du poste sur le Wi-Fi : émetteur différent, jetons refusés |
+| **Garde-fou du pipeline** : `check-repo.sh` refuse un nom ou une description de plus de 255 caractères dans les domaines Keycloak | Keycloak 26 refuse alors de démarrer, sans message clair (rencontré deux fois) | — |
+
+**Limites connues et suites** :
+- Essai de bout en bout sur le téléphone (Redmi Note 15) : à faire par le maître d’œuvre (pas à pas dans `apps/mobile/README.md`) ; tant qu'il n'est pas fait, la connexion réelle depuis Android est **non vérifiée** (les tests prouvent l'API, Keycloak et les écrans séparément).
+- En recette et en production : adresses passées à la compilation (`--dart-define=SABOU_API_URL=…`, `SABOU_PUBLIC_ISSUER`, `SABOU_SITE_URL`), en HTTPS ; application signée (US-015 et suivants).
+- Le schéma privé peut, en théorie, être déclaré par une autre application du téléphone ; PKCE rend le code intercepté inutilisable. Liens d'application vérifiés (« App Links » en HTTPS) quand le domaine de production sera connu.
+
+**Contrôles du pipeline** : `apps/api/src/auth/mobile-token.test.ts` (signature, émetteur, audience, client, type, algorithmes), `apps/api/src/dossiers/dossiers.test.ts` (accès par jeton, critère 3 à travers l'API), `apps/site/e2e-compte/mobile.spec.ts` (connexion par la vraie page de Keycloak avec PKCE, session hors ligne de 30 jours, rafraîchissement et révocation, dossier soumis avec le jeton), `apps/mobile/test/dossier/` (session, client de l'API, photo, écrans et accessibilité), `infra/ci/check-repo-selftest.sh` (garde-fou des textes Keycloak).
+
 ## 3. Architecture
 
 ```

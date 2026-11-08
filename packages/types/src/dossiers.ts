@@ -63,6 +63,15 @@ export interface PractitionerDossier {
   } | null;
 }
 
+// Listes proposées au praticien pour remplir sa fiche (US-040b) : valeurs actives seulement.
+// Les noms des langues sont écrits en français (les langues nationales sont en voix).
+export interface PractitionerReferentials {
+  specialites: { id: number; libelle: string }[];
+  prefectures: { id: number; nom: string }[];
+  sousPrefectures: { id: number; nom: string; prefectureId: number }[];
+  langues: { code: string; nom: string }[];
+}
+
 // Accusé de réception de la soumission (critère 1 de US-040)
 export interface SubmissionReceipt {
   code: string;

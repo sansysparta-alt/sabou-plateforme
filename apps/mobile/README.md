@@ -30,3 +30,22 @@ setx FLUTTER_BIN D:\DEV\tools\flutter-3.47.7\flutter\bin\flutter
 Le job Flutter du pipeline (`.github/workflows/mobile.yml`) ne tourne que si `apps/mobile/` change. Il publie l'APK de débogage (`sabou-mobile-debug-apk`, gardé 14 jours).
 
 Sous Windows, la compilation Kotlin incrémentale est désactivée (`android/gradle.properties`) : elle échoue quand le projet et le cache des paquets Flutter sont sur deux lecteurs différents.
+
+## Essai du dossier du praticien sur le téléphone (US-040b)
+
+L'application parle à `localhost` ; `adb reverse` relie le `localhost` du téléphone au poste
+(câble USB, débogage USB activé). Environnement local démarré (`pnpm env:up`) et site public
+lancé (`pnpm --filter @sabou/site dev`, pour « Créer un compte »).
+
+```bash
+adb reverse tcp:4000 tcp:4000   # API
+adb reverse tcp:8080 tcp:8080   # Keycloak (page de connexion)
+adb reverse tcp:3000 tcp:3000   # site public (inscription)
+cd apps/mobile && flutter build apk --debug --split-per-abi
+adb push build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk /sdcard/Atest/
+```
+
+Installer l'APK depuis le gestionnaire de fichiers du téléphone (MIUI refuse l'installation
+par USB), puis : « Mon dossier de praticien » → « Créer un compte » (choisir « je suis
+praticien » ; code SMS dans `docker compose … logs api`) → « Se connecter » → fiche, photo de
+la pièce d'identité et du praticien → « Soumettre mon dossier ».

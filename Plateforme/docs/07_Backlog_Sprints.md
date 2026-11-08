@@ -338,6 +338,8 @@ Critères d’acceptation :
 - Étant donné les critères de US-040a, quand je soumets depuis l’application, alors ils sont tenus de la même façon (pièces manquantes affichées, accusé de réception).
 - Hors périmètre : saisie du dossier hors réseau (US-080, US-082).
 
+Décisions du maître d’œuvre (8 novembre 2026) : connexion par la page de Keycloak dans le navigateur du téléphone, session de 30 jours d’inactivité, inscription par le site public (lien depuis l’application) ; estimation gardée à 5 points (voir 05 §2.29).
+
 #### US-042 · Valider ou rejeter un dossier à l’étape 2
 *Certification et certificat* · **Must** · 5 points · cas : UC-31
 
