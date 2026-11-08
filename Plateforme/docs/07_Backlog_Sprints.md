@@ -20,7 +20,7 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
 
-Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; son sprint reste à fixer par le maître d’œuvre (proposé : S3).
+Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; placé en S3 par le maître d’œuvre (8 novembre 2026) : S3 passe de 28 à 31 points.
 
 Ajout du 8 novembre 2026 (décision du maître d’œuvre) : US-016 (base de design et tableau de bord d’accueil, 5 points) entre en S2 ; pour ne pas le surcharger, US-041 (visites terrain, 5 points) passe en S3. S2 reste à 31 points, S3 passe de 23 à 28 points.
 
@@ -37,7 +37,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008 | 28 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008, US-017 | 31 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -368,7 +368,7 @@ Critères d’acceptation :
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
 
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
-*Socle* · **Should** · 3 points (environ 1 jour) · sprint à fixer par le maître d’œuvre (proposé : S3) · ajout du 8 novembre 2026
+*Socle* · **Should** · 3 points (environ 1 jour) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre
 
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
 
