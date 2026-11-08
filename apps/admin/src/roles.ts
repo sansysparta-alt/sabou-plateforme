@@ -1,3 +1,4 @@
+import type { BadgeTone } from '@sabou/ui';
 import type { AccountRole, AccountStatus } from '@sabou/types';
 
 // Libellés définis ici plutôt qu'importés de @sabou/types : l'application n'en importe que
@@ -15,4 +16,11 @@ export const STATUS_LABELS: Record<AccountStatus, string> = {
   invite: 'Invitation en attente',
   actif: 'Actif',
   suspendu: 'Suspendu',
+};
+
+// Couleur de la pastille d'état ; le libellé dit toujours l'état (la couleur seule ne suffit pas)
+export const BADGE_TONES: Record<AccountStatus, BadgeTone> = {
+  invite: 'warning',
+  actif: 'success',
+  suspendu: 'error',
 };

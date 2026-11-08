@@ -26,6 +26,6 @@ export default defineConfig({
   preview: { port, strictPort: true, proxy },
   test: {
     environment: 'jsdom',
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['e2e/**', 'lighthouse/**', 'node_modules/**'],
   },
 });

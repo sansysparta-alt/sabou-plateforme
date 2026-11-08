@@ -71,3 +71,31 @@ test('US-011 : l’admin régional de Kankan ne voit que les dossiers des préfe
   expect(dossiers.map((d) => d.code)).toContain('DS-1043');
   for (const dossier of dossiers) expect(['Kankan', 'Siguiri']).toContain(dossier.prefecture);
 });
+
+test('US-016 : le tableau de bord de l’admin préfectoral de Labé ne compte que sa zone', async ({
+  page,
+}) => {
+  const user = await administrator('admin_prefectoral', { prefecture: 'Labé' });
+  await firstAdministratorLogin(page, user);
+
+  // Chiffres de l'API : les mêmes que les listes cloisonnées de la zone
+  const response = await page.request.get(`${APP}/api/tableau-de-bord`);
+  expect(response.status()).toBe(200);
+  const summary = (await response.json()) as {
+    zone: string;
+    praticiens: number;
+    activite: { dossier: string }[];
+  };
+  const practitioners = await list<{ code: string }>(page, '/api/praticiens?limite=100');
+  const dossiers = await list<{ code: string }>(page, '/api/dossiers?limite=100');
+  expect(summary.zone).toBe('Labé');
+  expect(summary.praticiens).toBe(practitioners.length);
+  const zoneDossiers = new Set(dossiers.map((d) => d.code));
+  for (const event of summary.activite) expect(zoneDossiers).toContain(event.dossier);
+
+  // Écran : zone affichée, navigation de son rôle, sans rubrique d'administration
+  await page.goto(APP);
+  await expect(page.getByText('Administrateur préfectoral · Labé')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chiffres de votre zone' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Comptes' })).toHaveCount(0);
+});

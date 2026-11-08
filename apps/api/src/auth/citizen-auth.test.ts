@@ -17,7 +17,7 @@ import {
   LOGIN_RECORDER,
   SESSION_COOKIE,
 } from './auth.controller';
-import { IDENTITY_PROVIDER, type IdentityProvider } from './identity-provider';
+import { IDENTITY_PROVIDER, type IdentityProvider, type LoginAction } from './identity-provider';
 import {
   newSessionId,
   SESSION_STORE,
@@ -62,7 +62,7 @@ function fakeIdp(username: string, roles: string[]) {
       claims: { sub: `${username}-sub`, username, name: 'Awa', roles, amr: ['pwd'] },
       refreshToken: 'jeton',
     })),
-    async startLogin(returnTo: string, _action?: 'configure-totp', loginHint?: string) {
+    async startLogin(returnTo: string, _action?: LoginAction, loginHint?: string) {
       this.hints.push(loginHint);
       const state = randomBytes(16).toString('base64url');
       return {

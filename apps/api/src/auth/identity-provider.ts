@@ -13,12 +13,15 @@ export interface IdentityClaims {
   amr: string[];
 }
 
+export type LoginAction = 'configure-totp' | 'step-up';
+
 export interface IdentityProvider {
   // Ouvre une connexion : PKCE, state et nonce tirés au hasard
   // loginHint : identifiant pré-rempli sur la page de connexion (citoyen après inscription)
+  // « step-up » : niveau 2 seul, sur la session Keycloak qui vient d'activer le second facteur
   startLogin(
     returnTo: string,
-    action?: 'configure-totp',
+    action?: LoginAction,
     loginHint?: string,
   ): Promise<{ url: string; tx: LoginTransaction }>;
   // Échange le code reçu sur /auth/callback ; le jeton d'identité est vérifié (signature,
@@ -109,7 +112,7 @@ export class KeycloakIdentityProvider implements IdentityProvider {
 
   async startLogin(
     returnTo: string,
-    action?: 'configure-totp',
+    action?: LoginAction,
     loginHint?: string,
   ): Promise<{ url: string; tx: LoginTransaction }> {
     const config = await this.configuration();
@@ -130,7 +133,10 @@ export class KeycloakIdentityProvider implements IdentityProvider {
       // Identification demandée à chaque connexion, sans reprise d'une session Keycloak
       // antérieure : le claim « amr » décrit toujours les facteurs réellement saisis, et
       // l'activation du double facteur exige de retaper le mot de passe.
-      prompt: 'login',
+      // Exception, la relance de niveau 2 (§2.28) : elle reprend la session ouverte à
+      // l'instant même par le mot de passe (niveau 1 valable 10 minutes) ; Keycloak ne demande
+      // que le second facteur, qu'il exige toujours, quel que soit le niveau demandé.
+      ...(action === 'step-up' ? { acr_values: '2' } : { prompt: 'login' }),
       // Action demandée par l'application (« activer le double facteur »)
       ...(action === 'configure-totp' ? { kc_action: 'CONFIGURE_TOTP' } : {}),
       ...(loginHint ? { login_hint: loginHint } : {}),

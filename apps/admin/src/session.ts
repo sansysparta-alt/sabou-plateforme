@@ -44,7 +44,7 @@ export function hasManagementAccess(user: SessionUser): boolean {
 export const LOGIN_ERRORS: Record<string, string> = {
   connexion: 'La connexion n’a pas abouti. Veuillez réessayer.',
   annulee: 'La connexion a été annulée.',
-  // Aussi affiché juste après l'activation : la première connexion vérifie le nouveau code
+  // Juste après l'activation, le code est demandé aussitôt (§2.28) : ce refus est un vrai échec
   'double-facteur':
-    'Les administrateurs se connectent avec le code de leur application d’authentification. Si vous venez de l’activer, reconnectez-vous et saisissez le code affiché.',
+    'Les administrateurs se connectent avec le code de leur application d’authentification. Reconnectez-vous et saisissez le code affiché.',
 };

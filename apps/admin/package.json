@@ -11,9 +11,10 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "lighthouse": "lhci autorun"
+    "lighthouse": "node scripts/lighthouse.mjs"
   },
   "dependencies": {
+    "@sabou/ui": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

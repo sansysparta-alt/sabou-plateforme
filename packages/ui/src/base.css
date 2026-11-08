@@ -1,0 +1,83 @@
+/* Socle commun (US-016) : remise à zéro légère, typographie, liens, focus. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  font-family: var(--sabou-font-text);
+  font-size: var(--sabou-text-md);
+  line-height: var(--sabou-leading);
+  color: var(--sabou-text);
+  background: var(--sabou-bg);
+}
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--sabou-leading-tight);
+  color: var(--sabou-text);
+}
+/* Titre de page : seul élément en Cambria (identité institutionnelle, §2.27) */
+h1 {
+  font-family: var(--sabou-font-title);
+  font-size: var(--sabou-text-2xl);
+  font-weight: var(--sabou-weight-bold);
+  color: var(--sabou-forest);
+}
+h2 {
+  font-size: var(--sabou-text-xl);
+  font-weight: var(--sabou-weight-semibold);
+}
+h3 {
+  font-size: var(--sabou-text-lg);
+  font-weight: var(--sabou-weight-semibold);
+}
+p {
+  margin: 0;
+}
+a {
+  color: var(--sabou-institution);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+a:hover {
+  color: var(--sabou-forest);
+}
+:focus-visible {
+  outline: 2px solid var(--sabou-focus);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--sabou-mint);
+}
+.ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ui-skip-link {
+  position: absolute;
+  left: var(--sabou-space-4);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sabou-space-2) var(--sabou-space-4);
+  background: var(--sabou-surface);
+  border-radius: var(--sabou-radius-sm);
+  box-shadow: var(--sabou-shadow-2);
+}
+.ui-skip-link:focus {
+  top: var(--sabou-space-2);
+}

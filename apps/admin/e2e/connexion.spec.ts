@@ -43,6 +43,10 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   // Pas d'accès tant que le second facteur n'est pas configuré
   await expect(page.locator('#kc-totp-settings')).toBeVisible();
   expect(await sessionStatus(page)).toBe(401);
+  // Encadré général du thème (template.ftl) : avertissement annoncé, icône dessinée décorative
+  const notice = page.getByRole('status').filter({ hasText: /authentification/i });
+  await expect(notice).toBeVisible();
+  await expect(notice.locator('svg.sabou-alert__icon[aria-hidden="true"]')).toBeVisible();
   await expectAccessible(page, 'Configuration du code à usage unique');
 
   const secret = await configureTotp(page);
@@ -53,15 +57,20 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   await page.locator('#kcRecoveryCodesConfirmationCheck').check();
   await page.locator('#saveRecoveryAuthnCodesBtn').click();
 
-  // La première connexion vérifie le code tout juste enregistré : sans lui, pas de session
-  await expect(page).toHaveURL(`${APP}/`);
-  await expect(page.getByRole('alert')).toContainText(
-    'Si vous venez de l’activer, reconnectez-vous',
-  );
+  // Le code tout juste enregistré est demandé aussitôt (niveau 2 seul, §2.28) : pas de
+  // mot de passe à retaper, pas de session sans lui
+  await expect(page.locator('#otp')).toBeVisible();
+  await expect(page.getByLabel('Mot de passe', { exact: true })).toBeHidden();
   expect(await sessionStatus(page)).toBe(401);
-  await expectAccessible(page, 'Reconnexion demandée');
+  await expectAccessible(page, 'Saisie du code juste après l’activation');
+  // Un code ne sert qu'une fois par période de 30 s
+  await page.waitForTimeout(msUntilNextPeriod());
+  await page.locator('#otp').fill(totp(secret));
+  await page.getByRole('button', { name: 'Connexion' }).click();
+  await expect(page.getByRole('status')).toContainText('Double facteur activé');
 
-  // Connexion : mot de passe, puis code de l'application d'authentification
+  // Connexion suivante : mot de passe, puis code de l'application d'authentification
+  await page.getByRole('button', { name: 'Se déconnecter' }).click();
   await startLogin(page);
   await submitPassword(page, dg);
   await expect(page.locator('#otp')).toBeVisible();
@@ -72,7 +81,9 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   await expect(page).toHaveURL(`${APP}/`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bonjour, Essai dg');
-  await expect(page.getByText('Direction Générale')).toBeVisible();
+  // Compte Keycloak de test sans ligne en base : profil dans le bandeau, chiffres refusés en clair
+  await expect(page.getByRole('banner').getByText('Direction Générale')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('rattaché à aucune zone active');
   expect(await sessionStatus(page)).toBe(200);
   await expectAccessible(page, 'Accueil connecté');
 
@@ -85,6 +96,15 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   expect(await sessionStatus(page)).toBe(401);
   await startLogin(page);
   await expect(page.getByLabel('Mot de passe', { exact: true })).toBeVisible();
+
+  // Niveau 1 demandé par une adresse forgée : Keycloak exige quand même le code (§2.28)
+  await page.goto(
+    `${KEYCLOAK}/realms/sabou/protocol/openid-connect/auth?client_id=sabou-admin` +
+      `&response_type=code&scope=openid&redirect_uri=${encodeURIComponent(`${APP}/auth/callback`)}` +
+      `&code_challenge=${'A'.repeat(43)}&code_challenge_method=S256&state=forge&acr_values=1`,
+  );
+  await submitPassword(page, dg);
+  await expect(page.locator('#otp')).toBeVisible();
 });
 
 test('praticien et citoyen : double facteur proposé, pas imposé', async ({ page }) => {
@@ -100,7 +120,13 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   // Mot de passe redemandé avant de modifier la sécurité du compte
   await submitPassword(page, praticien);
   const secret = await configureTotp(page);
+  // Code demandé aussitôt, sans retaper le mot de passe (§2.28)
+  await expect(page.locator('#otp')).toBeVisible();
+  await page.waitForTimeout(msUntilNextPeriod());
+  await page.locator('#otp').fill(totp(secret));
+  await page.getByRole('button', { name: 'Connexion' }).click();
   await expect(page.getByRole('status')).toContainText('Double facteur activé');
+  await expect(page.getByText('Double facteur actif')).toBeVisible();
   await expectAccessible(page, 'Double facteur activé');
 
   // Une fois activé, il lui est demandé à chaque connexion
@@ -111,7 +137,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   await page.waitForTimeout(msUntilNextPeriod());
   await page.locator('#otp').fill(totp(secret));
   await page.getByRole('button', { name: 'Connexion' }).click();
-  await expect(page.getByText('Oui', { exact: true })).toBeVisible();
+  await expect(page.getByText('Double facteur actif')).toBeVisible();
 
   const citoyen = await createUser('citoyen');
   await page.getByRole('button', { name: 'Se déconnecter' }).click();

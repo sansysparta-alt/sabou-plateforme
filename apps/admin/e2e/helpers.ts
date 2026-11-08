@@ -46,26 +46,29 @@ export async function sessionStatus(page: Page): Promise<number> {
 }
 
 // Première connexion d'un administrateur : mot de passe, configuration du TOTP et des codes
-// de secours, puis reconnexion avec le code (§2.20). Renvoie le secret TOTP.
+// de secours, puis saisie aussitôt du code (§2.20, §2.28). Renvoie le secret TOTP.
 export async function firstAdministratorLogin(page: Page, user: TestUser): Promise<string> {
   await startLogin(page);
   await submitPassword(page, user);
   const secret = await configureTotp(page);
   await page.locator('#kcRecoveryCodesConfirmationCheck').check();
   await page.locator('#saveRecoveryAuthnCodesBtn').click();
-  await expect(page).toHaveURL(`${APP}/`);
-  await loginWithCode(page, user, secret);
+  await submitCode(page, secret);
   return secret;
 }
 
 export async function loginWithCode(page: Page, user: TestUser, secret: string): Promise<void> {
   await startLogin(page);
   await submitPassword(page, user);
+  await submitCode(page, secret);
+}
+
+async function submitCode(page: Page, secret: string): Promise<void> {
   await expect(page.locator('#otp')).toBeVisible();
   // Un code ne sert qu'une fois par période de 30 s
   await page.waitForTimeout(msUntilNextPeriod());
   await page.locator('#otp').fill(totp(secret));
   await page.getByRole('button', { name: 'Connexion' }).click();
-  await expect(page).toHaveURL(`${APP}/`);
+  await expect(page).toHaveURL(new RegExp(`^${APP}/`));
   expect(await sessionStatus(page)).toBe(200);
 }

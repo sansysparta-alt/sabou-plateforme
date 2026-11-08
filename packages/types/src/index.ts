@@ -11,3 +11,4 @@ export * from './referentials.js';
 export * from './citizens.js';
 export * from './phone.js';
 export * from './dossiers.js';
+export * from './dashboard.js';

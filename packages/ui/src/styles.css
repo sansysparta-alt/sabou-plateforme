@@ -1,0 +1,4 @@
+/* Point d'entrée des styles SABOU (US-016) : variables de la charte, socle, composants. */
+@import './tokens.css';
+@import './base.css';
+@import './components.css';

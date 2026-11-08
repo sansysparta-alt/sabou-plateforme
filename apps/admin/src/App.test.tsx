@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { SessionUser } from '@sabou/types';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import type { DashboardSummary, SessionUser } from '@sabou/types';
 import { App } from './App';
 
 const dg: SessionUser = {
@@ -18,6 +18,28 @@ const praticien: SessionUser = {
   secondFactor: false,
 };
 
+const prefectoral: SessionUser = {
+  ...dg,
+  name: 'Ibrahima Sow',
+  roles: ['admin_prefectoral', 'administrateur'],
+};
+const SUMMARY: DashboardSummary = {
+  zone: 'Labé',
+  praticiens: 1240,
+  dossiersSoumis: 7,
+  comptes: 3,
+  specialites: 8,
+  activite: [
+    {
+      dossier: 'DS-2018',
+      praticienNom: 'Mariama Diallo',
+      decision: 'soumis',
+      etape: 2,
+      le: '2026-11-07T09:30:00Z',
+    },
+  ],
+};
+
 // Réponses de l'API, par adresse
 function mockApi(session: SessionUser | null | 'panne') {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -25,6 +47,7 @@ function mockApi(session: SessionUser | null | 'panne') {
       if (session === 'panne') return new Response(null, { status: 503 });
       return session ? Response.json(session) : new Response(null, { status: 401 });
     }
+    if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
     if (url === '/auth/logout' && init?.method === 'POST')
       return new Response(null, { status: 204 });
     return new Response(null, { status: 404 });
@@ -56,17 +79,63 @@ describe('App', () => {
     window.history.replaceState(null, '', '/?erreur=double-facteur');
     render(<App />);
     expect((await screen.findByRole('alert')).textContent).toMatch(
-      /Si vous venez de l’activer, reconnectez-vous/,
+      /Reconnectez-vous et saisissez le code affiché/,
     );
     expect(window.location.search).toBe('');
   });
 
-  it('administrateur connecté : profil affiché, pas de proposition de double facteur', async () => {
+  it('DG connectée : tableau de bord, navigation de son rôle, chiffres de sa zone (US-016)', async () => {
     mockApi(dg);
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Bonjour, Awa Camara' }));
-    expect(screen.getByText('Direction Générale'));
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(
+      within(nav).getByRole('link', { name: 'Tableau de bord' }).getAttribute('aria-current'),
+    ).toBe('page');
+    expect(within(nav).getByRole('link', { name: 'Comptes' }).getAttribute('href')).toBe(
+      '/comptes',
+    );
+    expect(within(nav).getByRole('link', { name: 'Référentiels' }));
+    expect(await screen.findByText('Direction Générale · Labé'));
+    expect(screen.getByText('1 240'));
+    expect(screen.getByText('Dossiers soumis').parentElement!.textContent).toMatch(/7/);
+    // Activité récente : heure de Conakry, libellé en clair
+    const row = screen.getByRole('row', { name: /DS-2018/ });
+    expect(row.textContent).toMatch(/Mariama Diallo.*Dossier soumis.*2 sur 6/);
+    expect(row.textContent).toMatch(/09:30/);
+    // Fonctions à venir annoncées, sans lien vers une page qui n'existe pas
+    expect(screen.getByText('Certificats émis').parentElement!.textContent).toMatch(/Sprint 3/);
+    expect(screen.getByRole('heading', { name: 'À venir' }));
     expect(screen.queryByRole('link', { name: 'Activer le double facteur' })).toBeNull();
+  });
+
+  it('administrateur préfectoral : pas de rubrique Administration (navigation selon le rôle)', async () => {
+    mockApi(prefectoral);
+    render(<App />);
+    expect(await screen.findByText('Administrateur préfectoral · Labé'));
+    expect(screen.queryByRole('link', { name: 'Comptes' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Administration' })).toBeNull();
+  });
+
+  it('compte sans zone active en base : refus de l’API dit en français', async () => {
+    const fetchMock = mockApi(dg);
+    fetchMock.mockImplementation(async (url: string) =>
+      url === '/auth/session'
+        ? Response.json(dg)
+        : Response.json({ message: 'Forbidden' }, { status: 403 }),
+    );
+    render(<App />);
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/rattaché à aucune zone active/);
+    expect(alert.textContent).not.toMatch(/Forbidden/);
+  });
+
+  it('praticien : pas de chiffres de zone (réservés aux administrateurs)', async () => {
+    const fetchMock = mockApi(praticien);
+    render(<App />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bonjour, Sékou Condé' }));
+    expect(screen.queryByRole('heading', { name: 'Chiffres de votre zone' })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/tableau-de-bord', expect.anything());
   });
 
   it('praticien sans double facteur : il lui est proposé, pas imposé', async () => {
