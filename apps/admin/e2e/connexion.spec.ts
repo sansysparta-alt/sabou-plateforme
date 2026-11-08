@@ -72,7 +72,9 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   await expect(page).toHaveURL(`${APP}/`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bonjour, Essai dg');
-  await expect(page.getByText('Direction Générale')).toBeVisible();
+  // Compte Keycloak de test sans ligne en base : profil dans le bandeau, chiffres refusés en clair
+  await expect(page.getByRole('banner').getByText('Direction Générale')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('rattaché à aucune zone active');
   expect(await sessionStatus(page)).toBe(200);
   await expectAccessible(page, 'Accueil connecté');
 
@@ -111,7 +113,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   await page.waitForTimeout(msUntilNextPeriod());
   await page.locator('#otp').fill(totp(secret));
   await page.getByRole('button', { name: 'Connexion' }).click();
-  await expect(page.getByText('Oui', { exact: true })).toBeVisible();
+  await expect(page.getByText('Double facteur actif')).toBeVisible();
 
   const citoyen = await createUser('citoyen');
   await page.getByRole('button', { name: 'Se déconnecter' }).click();

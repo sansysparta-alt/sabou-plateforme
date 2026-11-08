@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { Alert, AppShell, Button, ButtonLink, Card, PageHeader, type NavGroup } from '@sabou/ui';
+import { Dashboard } from './Dashboard';
 
 // Pages chargées à la demande : l'accueil et la connexion restent légers en 3G
 const AccountsPage = lazy(() =>
@@ -49,16 +51,11 @@ export function App() {
   // Acceptation d'une invitation : la personne n'a pas encore de compte ni de session
   if (path() === '/invitation') {
     return (
-      <>
-        <header className="topbar">
-          <span className="brand">SABOU</span>
-        </header>
-        <main className="page">
-          <Suspense fallback={<p>Chargement…</p>}>
-            <InvitationPage />
-          </Suspense>
-        </main>
-      </>
+      <PublicLayout>
+        <Suspense fallback={<p>Chargement…</p>}>
+          <InvitationPage />
+        </Suspense>
+      </PublicLayout>
     );
   }
   return <ConnectedApp />;
@@ -89,35 +86,75 @@ function ConnectedApp() {
     }
   }
 
+  if (state.status === 'connected' && hasManagementAccess(state.user)) {
+    const { user } = state;
+    return (
+      <AppShell
+        user={{ name: user.name, zone: profileLabel(user) }}
+        nav={navigation(user)}
+        currentPath={path()}
+        userActions={
+          <Button variant="secondary" icon="logout" onClick={onLogout}>
+            Se déconnecter
+          </Button>
+        }
+      >
+        <ConnectedPage user={user} mfaJustEnabled={mfaJustEnabled} />
+      </AppShell>
+    );
+  }
+
   return (
-    <>
-      <header className="topbar">
-        <a className="brand" href="/">
+    <PublicLayout busy={state.status === 'loading'}>
+      {state.status === 'loading' && <p>Chargement…</p>}
+      {state.status === 'error' && (
+        <Alert tone="error" title="Service indisponible">
+          Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
+        </Alert>
+      )}
+      {state.status === 'anonymous' && <LoginPage error={loginError} />}
+      {state.status === 'connected' && <Forbidden user={state.user} onLogout={onLogout} />}
+    </PublicLayout>
+  );
+}
+
+// Pages hors navigation (connexion, invitation, accès refusé) : bandeau seul
+function PublicLayout({ busy = false, children }: { busy?: boolean; children: ReactNode }) {
+  return (
+    <div className="ui-shell">
+      <a className="ui-skip-link" href="#contenu">
+        Aller au contenu
+      </a>
+      <header className="ui-topbar">
+        <a className="ui-topbar__brand" href="/">
+          <span className="ui-topbar__mark" aria-hidden="true">
+            S
+          </span>
           SABOU
         </a>
-        {state.status === 'connected' && (
-          <div className="topbar__user">
-            <span>{state.user.name}</span>
-            <button type="button" className="button button--secondary" onClick={onLogout}>
-              Se déconnecter
-            </button>
-          </div>
-        )}
       </header>
-      <main className="page" aria-busy={state.status === 'loading'}>
-        {state.status === 'loading' && <p>Chargement…</p>}
-        {state.status === 'error' && (
-          <p role="alert" className="alert alert--error">
-            Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
-          </p>
-        )}
-        {state.status === 'anonymous' && <LoginPage error={loginError} />}
-        {state.status === 'connected' && (
-          <ConnectedPage user={state.user} mfaJustEnabled={mfaJustEnabled} />
-        )}
+      <main id="contenu" className="ui-main" tabIndex={-1} aria-busy={busy}>
+        <div className="ui-main__inner">{children}</div>
       </main>
-    </>
+    </div>
   );
+}
+
+// Navigation selon le rôle ; l'API refuse aussi les pages de gestion aux autres profils
+function navigation(user: SessionUser): NavGroup[] {
+  const groups: NavGroup[] = [
+    { heading: 'Pilotage', items: [{ href: '/', label: 'Tableau de bord', icon: 'dashboard' }] },
+  ];
+  if (isDirector(user)) {
+    groups.push({
+      heading: 'Administration',
+      items: [
+        { href: '/comptes', label: 'Comptes', icon: 'users' },
+        { href: '/referentiels', label: 'Référentiels', icon: 'book' },
+      ],
+    });
+  }
+  return groups;
 }
 
 // Pages de la DG ; tout autre profil, ou toute autre adresse, mène à l'accueil
@@ -128,7 +165,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const Page = isDirector(user) ? DIRECTOR_PAGES[path()] : undefined;
-  if (!Page) return <HomePage user={user} mfaJustEnabled={mfaJustEnabled} />;
+  if (!Page) return <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       <Page />
@@ -139,78 +176,41 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
 function LoginPage({ error }: { error?: string }) {
   return (
     <>
-      <h1>Application de gestion</h1>
-      {error && (
-        <p role="alert" className="alert alert--error">
-          {error}
-        </p>
-      )}
-      <p>
-        Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du Comité
-        scientifique et aux tradipraticiens.
-      </p>
-      <a className="button button--primary" href="/auth/login">
-        Se connecter
-      </a>
-      <h2>Vos garanties de sécurité</h2>
-      <ul className="guarantees">
-        <li>Double facteur obligatoire pour tous les administrateurs.</li>
-        <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
-        <li>Session fermée après 30 minutes d’inactivité.</li>
-        <li>Chaque connexion est journalisée.</li>
-      </ul>
+      <PageHeader
+        title="Application de gestion"
+        lead="Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du Comité scientifique et aux tradipraticiens."
+      />
+      {error && <Alert tone="error">{error}</Alert>}
+      <div>
+        <ButtonLink variant="primary" href="/auth/login">
+          Se connecter
+        </ButtonLink>
+      </div>
+      <Card title="Vos garanties de sécurité">
+        <ul className="ui-list">
+          <li>Double facteur obligatoire pour tous les administrateurs.</li>
+          <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
+          <li>Session fermée après 30 minutes d’inactivité.</li>
+          <li>Chaque connexion est journalisée.</li>
+        </ul>
+      </Card>
     </>
   );
 }
 
-function HomePage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
-  if (!hasManagementAccess(user)) {
-    return (
-      <>
-        <h1>Accès non autorisé</h1>
-        <p>
-          Votre compte ({profileLabel(user)}) n’a pas accès à l’application de gestion. Vous pouvez
-          vous déconnecter.
-        </p>
-      </>
-    );
-  }
+function Forbidden({ user, onLogout }: { user: SessionUser; onLogout: () => void }) {
   return (
     <>
-      <h1>Bonjour, {user.name}</h1>
-      {mfaJustEnabled && (
-        <p role="status" className="alert alert--success">
-          Double facteur activé. Le code de votre application vous sera demandé à chaque connexion.
-        </p>
-      )}
-      <dl className="facts">
-        <dt>Profil</dt>
-        <dd>{profileLabel(user)}</dd>
-        <dt>Connexion protégée par double facteur</dt>
-        <dd>{user.secondFactor ? 'Oui' : 'Non'}</dd>
-      </dl>
-      {isDirector(user) && (
-        <nav aria-label="Gestion">
-          <a className="button button--primary" href="/comptes">
-            Gérer les comptes
-          </a>{' '}
-          <a className="button button--primary" href="/referentiels">
-            Gérer les référentiels
-          </a>
-        </nav>
-      )}
-      {!user.secondFactor && !mfaJustEnabled && (
-        <section aria-labelledby="mfa-title" className="card">
-          <h2 id="mfa-title">Protégez votre compte</h2>
-          <p>
-            Le double facteur demande, en plus du mot de passe, un code affiché par une application
-            de votre téléphone. Il est facultatif pour votre profil, mais recommandé.
-          </p>
-          <a className="button button--primary" href="/auth/login?action=configure-totp">
-            Activer le double facteur
-          </a>
-        </section>
-      )}
+      <PageHeader title="Accès non autorisé" />
+      <p>
+        Votre compte ({profileLabel(user)}) n’a pas accès à l’application de gestion. Vous pouvez
+        vous déconnecter.
+      </p>
+      <div>
+        <Button variant="secondary" icon="logout" onClick={onLogout}>
+          Se déconnecter
+        </Button>
+      </div>
     </>
   );
 }

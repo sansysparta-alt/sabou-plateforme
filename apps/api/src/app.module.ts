@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from './config/config.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
 import { DossiersModule } from './dossiers/dossiers.module';
 import { HealthController } from './health/health.controller';
@@ -20,6 +21,7 @@ import { SyncModule } from './sync/sync.module';
     AuthModule,
     AccountsModule,
     CertificationModule,
+    DashboardModule,
     DossiersModule,
     ReferentialsModule,
     SignupModule,
