@@ -20,6 +20,7 @@ import { IDENTITY_PROVIDER, type IdentityProvider } from './identity-provider';
 import {
   LOGIN_TRANSACTION_SECONDS,
   SESSION_STORE,
+  type LoginTransaction,
   type SessionData,
   type SessionStore,
 } from './session.store';
@@ -128,6 +129,10 @@ export abstract class OidcAuthController {
       action === 'configure-totp' ? 'configure-totp' : undefined,
       typeof hint === 'string' ? (this.space.loginHint?.(hint) ?? undefined) : undefined,
     );
+    await this.toKeycloak(res, url, tx);
+  }
+
+  private async toKeycloak(res: Response, url: string, tx: LoginTransaction): Promise<void> {
     await this.sessions.saveLogin(tx);
     // Lie la connexion à ce navigateur : un lien de retour forgé par un tiers est refusé
     res.cookie(this.space.loginCookie, tx.state, {
@@ -143,7 +148,8 @@ export abstract class OidcAuthController {
   @Get('callback')
   @Header('Cache-Control', 'no-store')
   async callback(@Req() req: Request, @Res() res: Response): Promise<void> {
-    res.clearCookie(this.space.loginCookie, COOKIE_OPTIONS);
+    // Le cookie de connexion est effacé à chaque sortie (fail, session ouverte) ; la relance
+    // de niveau 2 le remplace par celui de la nouvelle transaction
     const state = typeof req.query.state === 'string' ? req.query.state : undefined;
     const tx =
       state && state === readCookie(req, this.space.loginCookie)
@@ -169,9 +175,20 @@ export abstract class OidcAuthController {
     }
     const { claims, refreshToken } = result;
     const secondFactor = claims.amr.includes('otp');
+    const isAdministrator = claims.roles.includes(ADMINISTRATOR_ROLE);
+    // Second facteur activé pendant cette connexion (§2.28) : Keycloak l'a configuré sans le
+    // faire saisir, « amr » ne contient pas « otp ». Une seule relance, sur la même session
+    // Keycloak, demande le niveau 2 : seul le code est saisi. La session Keycloak reste donc
+    // ouverte ici ; si le code manque encore au retour, le refus ci-dessous s'applique.
+    const justEnabled = isAdministrator || req.query.kc_action_status === 'success';
+    if (!secondFactor && justEnabled && !tx.stepUp) {
+      const next = await this.idp.startLogin(tx.returnTo, 'step-up');
+      this.logger.log(`Connexion : ${claims.sub} relancé au niveau 2 (second facteur activé)`);
+      return this.toKeycloak(res, next.url, { ...next.tx, stepUp: true });
+    }
     // Défense en profondeur (R-ACC-03) : Keycloak impose déjà le second facteur aux
     // administrateurs ; l'API refuse quand même une connexion qui ne l'a pas utilisé.
-    if (claims.roles.includes(ADMINISTRATOR_ROLE) && !secondFactor) {
+    if (isAdministrator && !secondFactor) {
       this.logger.warn(`Connexion refusée : administrateur ${claims.sub} sans second facteur`);
       await this.idp.logout(refreshToken).catch(() => undefined);
       // Le refus tient même si le journal est indisponible ; l'échec est signalé
@@ -237,9 +254,10 @@ export abstract class OidcAuthController {
     this.logger.log(
       `Connexion : ${claims.sub} (${secondFactor ? 'second facteur' : 'mot de passe seul'})`,
     );
+    res.clearCookie(this.space.loginCookie, COOKIE_OPTIONS);
     const target = new URL(tx.returnTo, this.space.appUrl);
-    // Action demandée par l'application (activation du double facteur) menée à bien
-    if (req.query.kc_action_status === 'success') target.searchParams.set('info', 'double-facteur');
+    // Second facteur activé puis saisi (relance de niveau 2) : l'application le confirme
+    if (tx.stepUp) target.searchParams.set('info', 'double-facteur');
     res.redirect(303, target.href);
   }
 
@@ -285,6 +303,7 @@ export abstract class OidcAuthController {
   }
 
   private fail(res: Response, reason: 'connexion' | 'annulee' | 'double-facteur'): void {
+    res.clearCookie(this.space.loginCookie, COOKIE_OPTIONS);
     const target = new URL(this.space.errorPath, this.space.appUrl);
     target.searchParams.set('erreur', reason);
     res.redirect(303, target.href);

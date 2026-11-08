@@ -13,7 +13,12 @@ import {
   SESSION_COOKIE,
   safeReturnTo,
 } from './auth.controller';
-import { IDENTITY_PROVIDER, type IdentityClaims, type IdentityProvider } from './identity-provider';
+import {
+  IDENTITY_PROVIDER,
+  type IdentityClaims,
+  type IdentityProvider,
+  type LoginAction,
+} from './identity-provider';
 import {
   newSessionId,
   SESSION_STORE,
@@ -71,7 +76,7 @@ class FakeIdp implements IdentityProvider {
     claims: this.claims,
     refreshToken: 'jeton-de-rafraichissement',
   }));
-  async startLogin(returnTo: string, action?: 'configure-totp') {
+  async startLogin(returnTo: string, action?: LoginAction) {
     const state = randomBytes(16).toString('base64url');
     const tx = { state, nonce: 'n', codeVerifier: 'v', returnTo };
     return { url: `http://keycloak.test/auth?state=${state}&action=${action ?? ''}`, tx };
@@ -175,6 +180,16 @@ async function loginAs(roles: string[], amr: string[], returnTo = '/', extra = '
   });
 }
 
+// Suit la relance de niveau 2 : retour de Keycloak sur la nouvelle transaction
+async function followStepUp(step: Response, roles: string[], amr: string[], extra = '') {
+  idp.claims = identity(roles, amr);
+  const state = new URL(step.headers.get('location')!).searchParams.get('state')!;
+  return fetch(`${base}/auth/callback?code=abc&state=${state}${extra}`, {
+    redirect: 'manual',
+    headers: { cookie: `${LOGIN_COOKIE}=${cookieValue(step, LOGIN_COOKIE)!}` },
+  });
+}
+
 describe('GET /auth/login', () => {
   it('redirige vers Keycloak et lie la connexion au navigateur par un cookie protégé', async () => {
     const response = await fetch(`${base}/auth/login`, { redirect: 'manual' });
@@ -210,12 +225,36 @@ describe('GET /auth/callback', () => {
     expect([...store.sessions.values()][0]).toMatchObject({ sub: 'u-1', secondFactor: true });
   });
 
-  it('administrateur sans second facteur : refusé, session Keycloak fermée (R-ACC-03)', async () => {
-    const response = await loginAs(['comite', 'administrateur'], ['pwd']);
+  it('administrateur sans second facteur (il vient de l’activer) : relancé une fois au niveau 2, session Keycloak gardée (§2.28)', async () => {
+    const response = await loginAs(['comite', 'administrateur'], ['pwd'], '/dossiers');
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toMatch(
+      /^http:\/\/keycloak\.test\/auth\?.*action=step-up$/,
+    );
+    expect(cookieValue(response, SESSION_COOKIE)).toBeUndefined();
+    expect(cookieValue(response, LOGIN_COOKIE)).toBeDefined();
+    expect(store.sessions.size).toBe(0);
+    expect(idp.logout).not.toHaveBeenCalled();
+    // La nouvelle transaction garde la page demandée et marque la relance
+    expect([...store.logins.values()]).toEqual([
+      expect.objectContaining({ returnTo: '/dossiers', stepUp: true }),
+    ]);
+  });
+
+  it('administrateur toujours sans second facteur après la relance : refusé, session Keycloak fermée (R-ACC-03)', async () => {
+    const step = await loginAs(['comite', 'administrateur'], ['pwd']);
+    const response = await followStepUp(step, ['comite', 'administrateur'], ['pwd']);
     expect(response.headers.get('location')).toBe(`${APP}/?erreur=double-facteur`);
     expect(cookieValue(response, SESSION_COOKIE)).toBeUndefined();
     expect(store.sessions.size).toBe(0);
     expect(idp.logout).toHaveBeenCalledWith('jeton-de-rafraichissement');
+  });
+
+  it('administrateur qui saisit le code à la relance : session ouverte, activation confirmée', async () => {
+    const step = await loginAs(['comite', 'administrateur'], ['pwd'], '/dossiers');
+    const response = await followStepUp(step, ['comite', 'administrateur'], ['pwd', 'otp']);
+    expect(response.headers.get('location')).toBe(`${APP}/dossiers?info=double-facteur`);
+    expect([...store.sessions.values()][0]).toMatchObject({ secondFactor: true });
   });
 
   it('praticien ou citoyen sans second facteur : accepté (proposé, pas imposé)', async () => {
@@ -227,9 +266,25 @@ describe('GET /auth/callback', () => {
     expect([...store.sessions.values()].every((s) => !s.secondFactor)).toBe(true);
   });
 
-  it("signale à l'application la réussite de l'activation du double facteur", async () => {
-    const response = await loginAs(['praticien'], ['pwd'], '/?page=1', '&kc_action_status=success');
+  it('praticien qui vient d’activer le double facteur : code demandé aussitôt, puis activation confirmée', async () => {
+    const step = await loginAs(['praticien'], ['pwd'], '/?page=1', '&kc_action_status=success');
+    expect(step.headers.get('location')).toMatch(/action=step-up$/);
+    expect(store.sessions.size).toBe(0);
+    const response = await followStepUp(step, ['praticien'], ['pwd', 'otp']);
     expect(response.headers.get('location')).toBe(`${APP}/?page=1&info=double-facteur`);
+    expect([...store.sessions.values()][0]).toMatchObject({ secondFactor: true });
+  });
+
+  it('praticien qui abandonne la saisie du code : connecté au mot de passe seul, sans nouvelle relance', async () => {
+    const step = await loginAs(['praticien'], ['pwd'], '/', '&kc_action_status=success');
+    const response = await followStepUp(step, ['praticien'], ['pwd'], '&kc_action_status=success');
+    expect(response.headers.get('location')).toBe(`${APP}/?info=double-facteur`);
+    expect([...store.sessions.values()][0]).toMatchObject({ secondFactor: false });
+  });
+
+  it('activation annulée ou échouée dans Keycloak : pas de relance', async () => {
+    const response = await loginAs(['praticien'], ['pwd'], '/', '&kc_action_status=cancelled');
+    expect(response.headers.get('location')).toBe(`${APP}/`);
   });
 
   it('refuse un retour sans le cookie du navigateur qui a commencé la connexion', async () => {
@@ -335,8 +390,11 @@ describe('Journal d’audit des connexions', () => {
     ]);
   });
 
-  it('connexion refusée faute de second facteur : journalisée', async () => {
-    await loginAs(['comite', 'administrateur'], ['pwd']);
+  it('connexion refusée faute de second facteur, même après la relance : journalisée', async () => {
+    const step = await loginAs(['comite', 'administrateur'], ['pwd']);
+    // La relance elle-même n'est pas une connexion : rien au journal
+    expect(audit.entries).toEqual([]);
+    await followStepUp(step, ['comite', 'administrateur'], ['pwd']);
     expect(audit.entries).toMatchObject([
       {
         action: 'connexion.refusee',

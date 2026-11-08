@@ -79,7 +79,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/?erreur=double-facteur');
     render(<App />);
     expect((await screen.findByRole('alert')).textContent).toMatch(
-      /Si vous venez de l’activer, reconnectez-vous/,
+      /Reconnectez-vous et saisissez le code affiché/,
     );
     expect(window.location.search).toBe('');
   });

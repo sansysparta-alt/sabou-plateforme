@@ -249,11 +249,42 @@
     },
     {
       "alias": "sabou-browser-forms",
-      "description": "Formulaires de connexion",
+      "description": "Formulaires de connexion (§2.28) : niveau 1 = mot de passe, sauté quand il vient d'être saisi et que l'API demande le niveau 2 (acr_values=2) ; puis second facteur, toujours.",
       "providerId": "basic-flow",
       "topLevel": false,
       "builtIn": false,
       "authenticationExecutions": [
+        {
+          "flowAlias": "sabou-level-1",
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "authenticatorFlow": true,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "sabou-level-2",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": true,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "sabou-level-1",
+      "description": "Niveau 1 : mot de passe (valable 10 minutes pour une demande de niveau 2 qui suit)",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-level-of-authentication",
+          "authenticatorConfig": "sabou-loa-1",
+          "requirement": "REQUIRED",
+          "priority": 5,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
         {
           "authenticator": "auth-username-password-form",
           "authenticatorConfig": "sabou-amr-pwd",
@@ -261,7 +292,16 @@
           "priority": 10,
           "authenticatorFlow": false,
           "userSetupAllowed": false
-        },
+        }
+      ]
+    },
+    {
+      "alias": "sabou-level-2",
+      "description": "Niveau 2 : second facteur, toujours exécuté, quel que soit le niveau demandé. « Allow access » le clôt quand aucun second facteur ne s'applique (§2.28).",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
         {
           "flowAlias": "sabou-2fa-admin",
           "requirement": "CONDITIONAL",
@@ -274,6 +314,13 @@
           "requirement": "CONDITIONAL",
           "priority": 30,
           "authenticatorFlow": true,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "allow-access-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 40,
+          "authenticatorFlow": false,
           "userSetupAllowed": false
         }
       ]
@@ -439,6 +486,13 @@
     }
   ],
   "authenticatorConfig": [
+    {
+      "alias": "sabou-loa-1",
+      "config": {
+        "loa-condition-level": "1",
+        "loa-max-age": "600"
+      }
+    },
     {
       "alias": "sabou-amr-pwd",
       "config": {

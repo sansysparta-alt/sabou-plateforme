@@ -24,6 +24,9 @@ export interface LoginTransaction {
   nonce: string;
   codeVerifier: string;
   returnTo: string;
+  // Relance demandant le niveau 2 seul (second facteur juste activé, §2.28) : une seule par
+  // connexion ; au retour, l'application affiche « double facteur activé »
+  stepUp?: boolean;
 }
 
 export const SESSION_STORE = Symbol('SESSION_STORE');
