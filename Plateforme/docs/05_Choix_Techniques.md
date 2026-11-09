@@ -561,6 +561,22 @@ Décisions techniques prises pendant le récit (règles de l'art, sans question 
 
 **Contrôles du pipeline** : `apps/api/src/auth/mobile-token.test.ts` (signature, émetteur, audience, client, type, algorithmes), `apps/api/src/dossiers/dossiers.test.ts` (accès par jeton, critère 3 à travers l'API), `apps/site/e2e-compte/mobile.spec.ts` (connexion par la vraie page de Keycloak avec PKCE, session hors ligne de 30 jours, rafraîchissement et révocation, dossier soumis avec le jeton), `apps/mobile/test/dossier/` (session, client de l'API, photo, écrans et accessibilité), `infra/ci/check-repo-selftest.sh` (garde-fou des textes Keycloak).
 
+### 2.30 Socle de l'application mobile (US-018, novembre 2026)
+
+Décision du maître d'œuvre du 9 novembre 2026 : l'application est réservée au praticien et à l'agent préfectoral (CdC §1.3) ; la navigation des deux profils est construite dès US-018, la connexion des agents (client mobile dans le domaine Keycloak interne `sabou`) attend leur première rubrique (US-082, S8).
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Jetons de la charte recopiés en Dart** (`apps/mobile/lib/ui/tokens.dart`), contrôlés par `test/ui/tokens_test.dart` contre `packages/ui/src/tokens.css` ; le job Flutter se déclenche aussi sur ce fichier CSS | Une seule source (la base de design de US-016), sans outil de génération à maintenir ; toute divergence fait échouer le pipeline | Génération de code depuis le CSS (outil de plus pour une trentaine de valeurs) ; valeurs propres à l'application (deux chartes qui dérivent) |
+| **Polices du téléphone** : titres en police à empattements du système (Noto Serif sur Android), texte en police sans empattements du système (Roboto) | Cambria et Calibri ne sont pas sur Android et ne peuvent pas être embarquées (licence) ; aucune police téléchargée, en 3G ; même contraste titre et texte que la charte | Polices embarquées (poids de l'application, licences) |
+| **Cibles tactiles de 48 px** (contre 44 px sur le web) | Repère Android, contrôlé par `androidTapTargetGuideline` ; CdC §8 : 40 px au moins | — |
+| **Profil lu dans le jeton d'accès** (claim `roles` du client `sabou-mobile`), **gardé dans le magasin sécurisé** avec la session | L'application s'ouvre sans réseau sur les bonnes rubriques (exigence hors réseau, E3) ; le profil ne sert qu'à l'affichage, l'API vérifie le jeton et le rôle à chaque demande | Demander le profil à l'API à chaque ouverture (impossible hors réseau) |
+| **Compte citoyen : session révoquée aussitôt**, renvoi vers le site public | Aucune raison de garder sur le téléphone une session qui n'ouvre rien (minimisation) | Garder la session jusqu'à « Se déconnecter » |
+| **Registre de rubriques** (`apps/mobile/lib/app.dart`) : identifiant, libellé, icônes, profils, contenu ; barre de navigation du bas dès deux rubriques, `IndexedStack` construit à la première ouverture ; retour Android vers la première rubrique | Ajouter une rubrique = une entrée ; pas de requête pour un onglet jamais ouvert (3G) ; la saisie survit au changement d'onglet | Bibliothèque de routage (go_router) : utile pour des liens profonds, pas encore nécessaires ; à reconsidérer avec les notifications |
+| **Prototypes de S0** (Studio d'essai, dossiers de terrain hors réseau) accessibles par un bouton de la barre du haut **en version de développement seulement** (`kDebugMode`) | Garder les outils de mesure de US-004 et US-005 sans les montrer aux utilisateurs | Les supprimer (outils encore utiles) |
+
+**Contrôles du pipeline** : `test/ui/tokens_test.dart` (alignement sur la charte), `test/ui/widgets_test.dart` (composants, lecteurs d'écran, contrastes), `test/shell/app_shell_test.dart` (navigation selon le profil, registre de trois rubriques, accessibilité des barres), `test/shell/gate_test.dart` (citoyen, ouverture sans réseau, prototypes absents de la version publiée), `test/dossier/session_test.dart` (rôles gardés et effacés) ; `check-repo.sh` accepte `packages/ui/src/tokens.css` parmi les déclencheurs du job Flutter.
+
 ## 3. Architecture
 
 ```
