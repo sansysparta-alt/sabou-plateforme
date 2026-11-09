@@ -69,8 +69,8 @@ else
 fi
 
 # 7. Le job Flutter ne tourne que si l'application mobile change (US-005) : le workflow
-# mobile.yml filtre ses déclencheurs (pull_request et push) sur apps/mobile/ et sur ses
-# propres fichiers de pipeline ; aucun autre workflow ne lance mobile.sh.
+# mobile.yml filtre ses déclencheurs (pull_request et push) sur apps/mobile/, sur ses
+# propres fichiers de pipeline et sur les jetons de la charte que reprend le thème (US-018) ; aucun autre workflow ne lance mobile.sh.
 # Usage alternatif : MOBILE_WORKFLOW=fichier (contre-épreuve).
 mobile_workflow="${MOBILE_WORKFLOW:-.github/workflows/mobile.yml}"
 if [[ -d apps/mobile ]]; then
@@ -90,7 +90,7 @@ if [[ -d apps/mobile ]]; then
     while read -r trigger path; do
       [[ -z "$path" ]] && continue
       case "$path" in
-        apps/mobile/\*\* | infra/ci/mobile.sh | .github/workflows/mobile.yml) ;;
+        apps/mobile/\*\* | infra/ci/mobile.sh | .github/workflows/mobile.yml | packages/ui/src/tokens.css) ;;
         *) fail "$mobile_workflow : $trigger se déclenche aussi sur $path" ;;
       esac
     done <<<"$filters"

@@ -22,6 +22,8 @@ Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est dé
 
 Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; placé en S3 par le maître d’œuvre (8 novembre 2026) : S3 passe de 28 à 31 points.
 
+Ajout du 9 novembre 2026 (décision du maître d’œuvre) : nouveau récit US-018, socle de l’application mobile (thème de la charte, composants communs, navigation selon le profil), 3 points, en S3 : S3 passe de 31 à 34 points ; l’epic E08 passe à 5 récits et 27 points. La connexion des agents préfectoraux dans l’application arrive avec leur première rubrique (US-082, S8).
+
 Ajout du 8 novembre 2026 (décision du maître d’œuvre) : US-016 (base de design et tableau de bord d’accueil, 5 points) entre en S2 ; pour ne pas le surcharger, US-041 (visites terrain, 5 points) passe en S3. S2 reste à 31 points, S3 passe de 23 à 28 points.
 
 Découpage du 3 novembre 2026 (décision du maître d’œuvre) : US-007 se limite à l’analyse Semgrep (1 point, fait) ; le déploiement automatique de la recette devient le récit US-015 (2 points), placé en fin de S1, juste avant la revue du sprint. S0 passe à 34 points, S1 à 31.
@@ -37,7 +39,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008, US-017 | 31 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008, US-017, US-018 | 34 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -78,7 +80,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | E05 | Dictionnaire Impérial | 3 | 4 | 14 |
 | E06 | Traitements et circuit | 3 | 5 | 22 |
 | E07 | Voix et gouvernance linguistique | 3 | 6 | 24 |
-| E08 | Application mobile de terrain | 3 | 4 | 24 |
+| E08 | Application mobile de terrain | 3 | 5 | 27 |
 | E09 | Tableaux de bord et rapports | 3 | 2 | 8 |
 | E10 | Sécurité sanitaire, litiges, alertes | 3 | 3 | 11 |
 | E11 | Site public | 4 | 9 | 49 |
@@ -379,6 +381,22 @@ Critères d’acceptation :
 - Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.
+
+#### US-018 · Un socle commun pour l’application mobile
+*Application mobile de terrain* · **Must** · 3 points (environ 1 jour) · ajout du 9 novembre 2026, placé en S3 par le maître d’œuvre
+
+> En tant que praticien ou agent préfectoral de terrain, je veux une application aux repères constants, qui ne me montre que ce qui me concerne, afin de m’y retrouver tout de suite.
+
+Critères d’acceptation :
+1. Le thème de la charte (CdC §10) est posé une fois pour toutes dans l’application : couleurs, typographie, espacements, rayons, repris des jetons de `packages/ui/src/tokens.css` (US-016) ; un test échoue si les deux divergent. Composants réutilisables documentés (`apps/mobile/README.md`) : message d’état, chargement, titre de section, écran vide.
+2. L’application est réservée au praticien et à l’agent préfectoral : après la connexion, chacun ne voit que les rubriques de son profil (aujourd’hui : « Mon dossier » pour le praticien ; écran d’attente pour un profil sans rubrique).
+3. Ajouter une rubrique (Studio en S7, numérisation et agenda en S8) revient à ajouter une entrée au registre des rubriques ; dès deux rubriques, une barre de navigation paraît en bas ; changer d’onglet garde la saisie en cours ; une rubrique n’est construite qu’à sa première ouverture.
+4. Un compte citoyen qui se connecte n’accède à aucune rubrique : sa session est révoquée et il est renvoyé vers le site public.
+5. Une session gardée s’ouvre sans réseau sur les rubriques du profil (rôles gardés sur le téléphone).
+6. Accessibilité (WCAG 2.2 AA) : cibles de 48 px, libellés, contrastes, titres annoncés, vérifiés par les tests sur la barre du haut, la barre du bas et chaque écran du socle.
+7. Les prototypes de S0 (US-004, US-005) n’apparaissent pas dans la version publiée, seulement en version de développement.
+
+Décision du maître d’œuvre du 9 novembre 2026 : la navigation des deux profils est construite et testée ; la connexion des agents (client mobile dans le domaine Keycloak interne) attend leur première rubrique (US-082), pour n’ouvrir aucun accès inutile.
 
 #### US-041 · Planifier et réaliser les visites terrain
 *Certification et certificat* · **Must** · 5 points · cas : UC-30

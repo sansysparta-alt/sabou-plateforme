@@ -4,6 +4,9 @@
 // - jeton de rafraîchissement hors ligne (30 jours d'inactivité) gardé dans le magasin
 //   sécurisé du téléphone (Keystore) ; le jeton d'accès (5 minutes) reste en mémoire ;
 // - « Se déconnecter » révoque le jeton auprès de Keycloak puis l'efface du téléphone.
+// Rôles du compte (US-018) : lus dans le jeton d'accès et gardés sur le téléphone, pour
+// ouvrir les rubriques du bon profil même sans réseau. Ils ne servent qu'à l'affichage :
+// l'API vérifie elle-même le jeton et le rôle à chaque demande.
 import 'dart:async';
 import 'dart:convert';
 
@@ -75,6 +78,23 @@ class AppAuthLoginLauncher implements LoginLauncher {
 }
 
 const _refreshTokenName = 'sabou.praticien.refresh_token';
+const _rolesName = 'sabou.session.roles';
+
+/// Rôles du domaine Keycloak portés par un jeton d'accès (claim `roles`), sans vérifier sa
+/// signature : c'est le rôle de l'API. Ensemble vide si le jeton est illisible.
+Set<String> rolesFromAccessToken(String accessToken) {
+  final parts = accessToken.split('.');
+  if (parts.length != 3) return const {};
+  try {
+    final payload = jsonDecode(
+      utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+    );
+    final roles = payload is Map<String, dynamic> ? payload['roles'] : null;
+    return roles is List ? roles.whereType<String>().toSet() : const {};
+  } on FormatException {
+    return const {};
+  }
+}
 
 /// Session du praticien : fournit un jeton d'accès valable, rafraîchi au besoin.
 class PractitionerSession {
@@ -125,6 +145,15 @@ class PractitionerSession {
     // rafraîchissement, deux demandes simultanées se gêneraient
     _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
     return (await _refreshing!).accessToken;
+  }
+
+  /// Rôles du compte connecté : ceux gardés sur le téléphone, sinon ceux du jeton d'accès
+  /// (session ouverte avant US-018). Lève [SignedOutException] si la session n'est plus
+  /// valable, une exception réseau si les rôles ne sont pas connus et le réseau manque.
+  Future<Set<String>> roles() async {
+    final stored = await _store.read(_rolesName);
+    if (stored != null && stored.isNotEmpty) return stored.split(' ').toSet();
+    return rolesFromAccessToken(await accessToken());
   }
 
   Future<Tokens> _refresh() async {
@@ -190,10 +219,15 @@ class PractitionerSession {
   Future<void> _keep(Tokens tokens) async {
     _tokens = tokens;
     await _store.write(_refreshTokenName, tokens.refreshToken);
+    await _store.write(
+      _rolesName,
+      (rolesFromAccessToken(tokens.accessToken).toList()..sort()).join(' '),
+    );
   }
 
   Future<void> _forget() async {
     _tokens = null;
     await _store.write(_refreshTokenName, '');
+    await _store.write(_rolesName, '');
   }
 }

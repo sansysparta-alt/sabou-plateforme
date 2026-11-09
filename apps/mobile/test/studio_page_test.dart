@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sabou_mobile/audio_io.dart';
 import 'package:sabou_mobile/essai_api.dart';
-import 'package:sabou_mobile/main.dart';
+import 'package:sabou_mobile/ui/theme.dart';
 import 'package:sabou_mobile/recording_format.dart';
 import 'package:sabou_mobile/studio_page.dart';
 
@@ -67,7 +67,7 @@ void main() {
   tearDown(() => temp.deleteSync(recursive: true));
 
   Widget app({int sdk = 34}) => MaterialApp(
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: sabouGreen)),
+    theme: sabouTheme(),
     home: StudioPage(
       recorder: recorder,
       player: player,

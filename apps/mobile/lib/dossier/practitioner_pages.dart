@@ -1,198 +1,16 @@
-// Écrans du praticien (US-040b, UC-20) : connexion, puis fiche, pièces et soumission du
-// dossier. Textes en français ; cibles tactiles de 48 px ; messages d'état annoncés aux
+// Rubrique « Mon dossier » du praticien (US-040b, UC-20) : fiche, pièces et soumission du
+// dossier. La connexion et la barre du haut sont fournies par la coquille (US-018). Textes en français ; cibles tactiles de 48 px ; messages d'état annoncés aux
 // lecteurs d'écran (WCAG 2.2 AA, CdC §8).
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ui/tokens.dart';
+import '../ui/widgets.dart';
 import 'dossier_api.dart';
 import 'photo.dart';
 import 'session.dart';
-
-/// Ouvre une adresse dans le navigateur du téléphone ; remplaçable dans les tests.
-typedef OpenUrl = Future<void> Function(Uri url);
-
-/// Porte d'entrée : la connexion, ou le dossier si une session est gardée sur le téléphone.
-class PractitionerHome extends StatefulWidget {
-  const PractitionerHome({
-    super.key,
-    required this.session,
-    required this.api,
-    required this.picker,
-    required this.openUrl,
-    required this.signupUrl,
-    this.prepare = preparePhotoInBackground,
-  });
-
-  final PractitionerSession session;
-  final DossierApi api;
-  final PhotoPicker picker;
-  final OpenUrl openUrl;
-  final Uri signupUrl;
-  final Future<Uint8List> Function(Uint8List) prepare;
-
-  @override
-  State<PractitionerHome> createState() => _PractitionerHomeState();
-}
-
-class _PractitionerHomeState extends State<PractitionerHome> {
-  bool? _signedIn;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.session.hasSession().then((value) {
-      if (mounted) setState(() => _signedIn = value);
-    });
-  }
-
-  void _set(bool value) => setState(() => _signedIn = value);
-
-  @override
-  Widget build(BuildContext context) {
-    return switch (_signedIn) {
-      null => const _Loading(label: 'Ouverture…'),
-      false => LoginPage(
-        session: widget.session,
-        openUrl: widget.openUrl,
-        signupUrl: widget.signupUrl,
-        onSignedIn: () => _set(true),
-      ),
-      true => DossierPage(
-        api: widget.api,
-        picker: widget.picker,
-        prepare: widget.prepare,
-        onSignOut: () async {
-          await widget.session.signOut();
-          _set(false);
-        },
-        onSignedOut: () => _set(false),
-      ),
-    };
-  }
-}
-
-class _Loading extends StatelessWidget {
-  const _Loading({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Mon dossier')),
-    body: Center(
-      child: Semantics(label: label, child: const CircularProgressIndicator()),
-    ),
-  );
-}
-
-/// Message d'état annoncé par les lecteurs d'écran dès qu'il change.
-class _Status extends StatelessWidget {
-  const _Status(this.text, {this.error = false});
-  final String text;
-  final bool error;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Semantics(
-      liveRegion: true,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: error ? colors.errorContainer : colors.secondaryContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: error
-                ? colors.onErrorContainer
-                : colors.onSecondaryContainer,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({
-    super.key,
-    required this.session,
-    required this.openUrl,
-    required this.signupUrl,
-    required this.onSignedIn,
-  });
-
-  final PractitionerSession session;
-  final OpenUrl openUrl;
-  final Uri signupUrl;
-  final VoidCallback onSignedIn;
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  bool _busy = false;
-  String? _error;
-
-  Future<void> _signIn() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      if (await widget.session.signIn()) {
-        widget.onSignedIn();
-        return;
-      }
-    } on Exception {
-      _error =
-          'La connexion n’a pas abouti. Vérifiez le réseau, puis réessayez.';
-    }
-    if (mounted) setState(() => _busy = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mon dossier')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              'Dossier de certification',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Connectez-vous avec votre numéro de téléphone et votre mot de passe '
-              'pour remplir et envoyer votre dossier.',
-            ),
-            const SizedBox(height: 24),
-            if (_error != null) _Status(_error!, error: true),
-            FilledButton(
-              onPressed: _busy ? null : _signIn,
-              child: Text(_busy ? 'Connexion en cours…' : 'Se connecter'),
-            ),
-            const SizedBox(height: 24),
-            const Text('Pas encore de compte ?'),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => widget.openUrl(widget.signupUrl),
-              child: const Text('Créer un compte sur le site SABOU'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class DossierPage extends StatefulWidget {
   const DossierPage({
@@ -200,14 +18,12 @@ class DossierPage extends StatefulWidget {
     required this.api,
     required this.picker,
     required this.prepare,
-    required this.onSignOut,
     required this.onSignedOut,
   });
 
   final DossierApi api;
   final PhotoPicker picker;
   final Future<Uint8List> Function(Uint8List) prepare;
-  final Future<void> Function() onSignOut;
 
   /// La session a expiré (30 jours sans ouvrir l'application) ou a été révoquée.
   final VoidCallback onSignedOut;
@@ -256,6 +72,8 @@ class _DossierPageState extends State<DossierPage> {
         widget.api.view(),
       ]);
       final view = results[1] as PractitionerView?;
+      // Déconnexion possible pendant le chargement (bouton de la coquille)
+      if (!mounted) return;
       setState(() {
         _lists = results[0] as Referentials;
         _view = view;
@@ -355,16 +173,11 @@ class _DossierPageState extends State<DossierPage> {
   Widget build(BuildContext context) {
     final body = !_loaded
         ? (_loadError == null
-              ? Center(
-                  child: Semantics(
-                    label: 'Chargement du dossier',
-                    child: const CircularProgressIndicator(),
-                  ),
-                )
+              ? const LoadingView(label: 'Chargement du dossier')
               : ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(SabouSpace.s4),
                   children: [
-                    _Status(_loadError!, error: true),
+                    StatusMessage(_loadError!, kind: StatusKind.error),
                     FilledButton(
                       onPressed: _load,
                       child: const Text('Réessayer'),
@@ -372,63 +185,53 @@ class _DossierPageState extends State<DossierPage> {
                   ],
                 ))
         : _content(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mon dossier'),
-        actions: [
-          TextButton(
-            onPressed: _busy == null ? widget.onSignOut : null,
-            child: const Text('Se déconnecter'),
-          ),
-        ],
-      ),
-      body: SafeArea(child: body),
-    );
+    return body;
   }
 
   Widget _content(BuildContext context) {
     final receipt = _receipt;
     final dossier = _view?.dossier;
-    final title = Theme.of(context).textTheme.titleLarge;
     // Page courte : construite en entier (pas de liste paresseuse), défilement simple
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(SabouSpace.s4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (receipt != null)
-            _Status(
+            StatusMessage(
+              kind: StatusKind.success,
               'Dossier ${receipt.code} bien reçu le ${_date(receipt.submittedAt)}. '
               'Il passe à l’étape 2 : la vérification sur le terrain. '
               'Un SMS de confirmation vous est envoyé.',
             )
           else if (dossier != null && !dossier.editable)
-            _Status(
+            StatusMessage(
               'Dossier ${dossier.code} en cours d’examen (étape ${dossier.step}). '
               'Il ne peut plus être modifié.',
             ),
           if (_busy != null) ...[
             const LinearProgressIndicator(),
-            const SizedBox(height: 8),
-            _Status(_busy!),
+            const SizedBox(height: SabouSpace.s2),
+            StatusMessage(_busy!),
           ] else if (_message != null)
-            _Status(_message!, error: _messageIsError),
-          Text('Ma fiche', style: title),
-          const SizedBox(height: 8),
+            StatusMessage(
+              _message!,
+              kind: _messageIsError ? StatusKind.error : StatusKind.success,
+            ),
+          const SectionTitle('Ma fiche'),
           _profileForm(),
           if (_view != null) ...[
-            const SizedBox(height: 32),
-            Text('Mes pièces', style: title),
-            const SizedBox(height: 8),
+            const SizedBox(height: SabouSpace.s6),
+            const SectionTitle('Mes pièces'),
             if (_editable && _missing.isNotEmpty)
-              _Status(
+              StatusMessage(
+                kind: StatusKind.error,
                 'Pièces obligatoires manquantes : '
                 '${_missing.map((m) => pieceLabels[m]?.toLowerCase() ?? m).join(', ')}.',
-                error: true,
               ),
             for (final type in pieceLabels.keys) _pieceSection(type),
             if (_editable && receipt == null) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: SabouSpace.s5),
               FilledButton(
                 onPressed: _busy == null ? _submit : null,
                 child: const Text('Soumettre mon dossier'),
@@ -464,7 +267,7 @@ class _DossierPageState extends State<DossierPage> {
             onChanged: enabled ? (v) => setState(() => _specialty = v) : null,
             validator: required,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: SabouSpace.s3),
           DropdownButtonFormField<int>(
             initialValue: _prefecture,
             isExpanded: true,
@@ -481,7 +284,7 @@ class _DossierPageState extends State<DossierPage> {
                 : null,
             validator: required,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: SabouSpace.s3),
           DropdownButtonFormField<int?>(
             // Clé liée à la préfecture : la liste change avec elle
             key: ValueKey('sous-prefecture-$_prefecture'),
@@ -502,7 +305,7 @@ class _DossierPageState extends State<DossierPage> {
                 ? (v) => setState(() => _subPrefecture = v)
                 : null,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: SabouSpace.s3),
           DropdownButtonFormField<String>(
             initialValue: _language,
             isExpanded: true,
@@ -514,7 +317,7 @@ class _DossierPageState extends State<DossierPage> {
             onChanged: enabled ? (v) => setState(() => _language = v) : null,
             validator: required,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: SabouSpace.s3),
           TextFormField(
             controller: _years,
             enabled: enabled,
@@ -532,7 +335,7 @@ class _DossierPageState extends State<DossierPage> {
             },
           ),
           if (_editable) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: SabouSpace.s4),
             OutlinedButton(
               onPressed: enabled ? _saveProfile : null,
               child: const Text('Enregistrer la fiche'),
@@ -550,9 +353,9 @@ class _DossierPageState extends State<DossierPage> {
         .toList();
     final enabled = _editable && _busy == null && _receipt == null;
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: SabouSpace.s3),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(SabouSpace.s3),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -581,7 +384,7 @@ class _DossierPageState extends State<DossierPage> {
                     : null,
               ),
             if (enabled) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: SabouSpace.s2),
               OutlinedButton.icon(
                 onPressed: () => _addPhoto(type, PhotoOrigin.camera),
                 icon: const Icon(Icons.photo_camera),
@@ -590,7 +393,7 @@ class _DossierPageState extends State<DossierPage> {
                   semanticsLabel: 'Prendre une photo : $label',
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: SabouSpace.s2),
               OutlinedButton.icon(
                 onPressed: () => _addPhoto(type, PhotoOrigin.gallery),
                 icon: const Icon(Icons.photo_library),

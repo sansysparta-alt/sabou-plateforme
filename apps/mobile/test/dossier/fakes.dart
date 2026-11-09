@@ -10,6 +10,15 @@ import 'package:sabou_mobile/dossier/session.dart';
 import 'package:sabou_mobile/sync/database_key.dart';
 
 const issuer = 'http://kc.test/realms/sabou-public';
+
+/// Jeton d'accès simulé, au format JWT, portant les rôles du compte (claim `roles`, comme
+/// le client Keycloak `sabou-mobile`) ; [id] le distingue des autres jetons.
+String fakeAccess(String id, [List<String> roles = const ['praticien']]) {
+  String part(Object value) =>
+      base64Url.encode(utf8.encode(jsonEncode(value))).replaceAll('=', '');
+  return '${part({'alg': 'RS256'})}.${part({'jti': id, 'roles': roles})}.signature';
+}
+
 const oidc = '$issuer/protocol/openid-connect';
 
 class MemorySecretStore implements SecretStore {
@@ -24,7 +33,7 @@ class MemorySecretStore implements SecretStore {
 
 class FakeLauncher implements LoginLauncher {
   Tokens? next = Tokens(
-    accessToken: 'acces-1',
+    accessToken: fakeAccess('acces-1'),
     refreshToken: 'rafraichissement-1',
     expiresAt: DateTime.now().add(const Duration(minutes: 5)),
   );
@@ -44,8 +53,14 @@ class FakeServer {
   bool keycloakRejectsRefresh = false;
   bool offline = false;
 
+  /// Lenteur simulée des réponses de l'API (3G) ; Keycloak répond sans attendre.
+  Duration delay = Duration.zero;
+
   /// Jetons d'accès que l'API accepte (les autres reçoivent 401).
-  final validAccess = <String>{'acces-1'};
+  final validAccess = <String>{fakeAccess('acces-1')};
+
+  /// Rôles portés par les jetons rafraîchis.
+  List<String> roles = const ['praticien'];
 
   // État du dossier
   Map<String, Object?>? profile;
@@ -67,7 +82,7 @@ class FakeServer {
     if (url == '$oidc/token') {
       if (keycloakRejectsRefresh) return _json(400, {'error': 'invalid_grant'});
       refreshCount++;
-      final access = 'acces-${refreshCount + 1}';
+      final access = fakeAccess('acces-${refreshCount + 1}', roles);
       validAccess.add(access);
       return _json(200, {
         'access_token': access,
@@ -76,6 +91,7 @@ class FakeServer {
       });
     }
     if (url == '$oidc/revoke') return http.Response('', 200);
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
 
     final auth = request.headers['authorization'] ?? '';
     if (!validAccess.contains(auth.replaceFirst('Bearer ', ''))) {
