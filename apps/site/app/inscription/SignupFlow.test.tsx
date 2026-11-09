@@ -73,7 +73,7 @@ describe('Inscription du citoyen', () => {
     answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
     fill(/^code$/i, '042917');
     submit(/valider le code/i);
-    await screen.findByRole('heading', { name: /prénom et votre mot de passe/i });
+    await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
 
     answers.compte = [{ status: 200, body: { status: 'created' } }];
     fill(/^prénom$/i, 'Aïssatou');
@@ -82,11 +82,62 @@ describe('Inscription du citoyen', () => {
     await screen.findByRole('heading', { name: /compte est créé/i });
     expect(calls.at(-1)).toEqual({
       path: 'compte',
-      body: { ticket: 't'.repeat(43), firstName: 'Aïssatou', password: '40718293' },
+      body: {
+        ticket: 't'.repeat(43),
+        profile: 'citoyen',
+        firstName: 'Aïssatou',
+        password: '40718293',
+      },
     });
     expect(screen.getByRole('link', { name: /se connecter/i }).getAttribute('href')).toBe(
       '/auth/citoyen/login?returnTo=%2Fcompte&identifiant=621234567',
     );
+  });
+
+  it('inscrit un praticien avec son nom (US-040a), puis le renvoie vers l’application', async () => {
+    await reachCodeStep();
+    answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
+    fill(/^code$/i, '042917');
+    submit(/valider le code/i);
+    await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
+
+    expect(screen.queryByLabelText(/^nom$/i)).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: /praticien/i }));
+    fill(/^prénom$/i, 'Fanta');
+    fill(/^mot de passe$/i, '40718293');
+    submit(/créer mon compte/i);
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Indiquez votre nom.');
+
+    answers.compte = [{ status: 200, body: { status: 'created' } }];
+    fill(/^nom$/i, 'Camara');
+    submit(/créer mon compte/i);
+    await screen.findByRole('heading', { name: /compte est créé/i });
+    expect(calls.at(-1)).toEqual({
+      path: 'compte',
+      body: {
+        ticket: 't'.repeat(43),
+        profile: 'praticien',
+        firstName: 'Fanta',
+        lastName: 'Camara',
+        password: '40718293',
+      },
+    });
+    expect(screen.getByText(/revenez dans l’application mobile sabou/i)).toBeTruthy();
+  });
+
+  it('coche « Praticien » d’office quand l’application ouvre ?profil=praticien', async () => {
+    window.history.replaceState(null, '', '/inscription?profil=praticien');
+    try {
+      await reachCodeStep();
+      answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
+      fill(/^code$/i, '042917');
+      submit(/valider le code/i);
+      await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
+      expect(screen.getByRole('radio', { name: /praticien/i })).toHaveProperty('checked', true);
+      expect(screen.getByLabelText(/^nom$/i)).toBeTruthy();
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
   });
 
   it('propose de se connecter quand le numéro est déjà inscrit (critère 2)', async () => {

@@ -42,7 +42,7 @@ test('critère 1 : un numéro valide reçoit un code par SMS ; le compte est cr�
 
   await enterCode(page, phone);
   await expect(
-    page.getByRole('heading', { name: 'Votre prénom et votre mot de passe' }),
+    page.getByRole('heading', { name: 'Votre profil et votre mot de passe' }),
   ).toBeFocused();
   await expectAccessible(page, 'Inscription : prénom et mot de passe');
   await page.getByLabel('Prénom', { exact: true }).fill('Aïssatou');

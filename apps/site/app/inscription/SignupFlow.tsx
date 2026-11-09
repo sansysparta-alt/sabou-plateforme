@@ -6,8 +6,9 @@ import { citizenPasswordError, formatNationalMobile, toNationalMobile } from '@s
 import styles from '../Forms.module.css';
 import { loginHref } from '../links';
 
-// Inscription d'un citoyen (lot D : US-014) : numéro → code reçu par SMS → prénom et mot de
-// passe. Que le numéro ait déjà un compte n'est dit qu'après le bon code. L'API valide tout
+// Inscription d'un citoyen (lot D : US-014) ou d'un praticien (US-040a, écran ajouté avec
+// US-040b) : numéro → code reçu par SMS → profil, prénom (et nom du praticien), mot de
+// passe. « ?profil=praticien » (lien de l'application mobile) coche « Praticien » d'office. Que le numéro ait déjà un compte n'est dit qu'après le bon code. L'API valide tout
 // de nouveau ; les contrôles ici n'évitent que des allers-retours sur un réseau lent.
 
 type Step =
@@ -15,7 +16,9 @@ type Step =
   | { name: 'code'; phone: string }
   | { name: 'profile'; phone: string; ticket: string }
   | { name: 'existing'; phone: string }
-  | { name: 'created'; phone: string };
+  | { name: 'created'; phone: string; profile: Profile };
+
+type Profile = 'citoyen' | 'praticien';
 
 type Reply<T> = { ok: true; data: T } | { ok: false; error: SignupError & { retryAfter?: number } };
 
@@ -57,6 +60,7 @@ function errorText(error: SignupError & { retryAfter?: number }): string {
 
 export default function SignupFlow() {
   const [step, setStep] = useState<Step>({ name: 'phone' });
+  const [profile, setProfile] = useState<Profile>('citoyen');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -120,7 +124,14 @@ export default function SignupFlow() {
         return;
       }
       if (reply.data.status === 'existing') go({ name: 'existing', phone });
-      else go({ name: 'profile', phone, ticket: reply.data.ticket });
+      else {
+        // Lien de l'application mobile : « Praticien » coché d'office (lu ici, hors du rendu :
+        // la page reste statique, servie depuis le cache)
+        if (new URLSearchParams(window.location.search).get('profil') === 'praticien') {
+          setProfile('praticien');
+        }
+        go({ name: 'profile', phone, ticket: reply.data.ticket });
+      }
     });
   }
 
@@ -128,9 +139,14 @@ export default function SignupFlow() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const firstName = String(form.get('firstName') ?? '').trim();
+    const lastName = String(form.get('lastName') ?? '').trim();
     const password = String(form.get('password') ?? '');
     if (!firstName) {
       setError('Indiquez votre prénom.');
+      return;
+    }
+    if (profile === 'praticien' && !lastName) {
+      setError('Indiquez votre nom.');
       return;
     }
     const refused = citizenPasswordError(password, phone);
@@ -141,11 +157,17 @@ export default function SignupFlow() {
     void run(async () => {
       const reply = await send<{ status: 'created' | 'existing' }>('compte', {
         ticket,
+        profile,
         firstName,
+        ...(profile === 'praticien' ? { lastName } : {}),
         password,
       });
       if (reply.ok) {
-        go({ name: reply.data.status === 'created' ? 'created' : 'existing', phone });
+        go(
+          reply.data.status === 'created'
+            ? { name: 'created', phone, profile }
+            : { name: 'existing', phone },
+        );
       } else if (reply.error.error === 'ticket_invalid') {
         go({ name: 'phone' }, reply.error.message);
       } else {
@@ -263,13 +285,40 @@ export default function SignupFlow() {
       return (
         <section aria-labelledby="etape">
           <h2 id="etape" ref={heading} tabIndex={-1} className={styles.heading}>
-            Votre prénom et votre mot de passe
+            Votre profil et votre mot de passe
           </h2>
           <form
             className={styles.form}
             onSubmit={(event) => onProfile(event, step.phone, step.ticket)}
             noValidate
           >
+            <fieldset className={styles.choices}>
+              <legend className={styles.label}>Vous êtes</legend>
+              <label className={styles.choice}>
+                <input
+                  type="radio"
+                  name="profile"
+                  value="citoyen"
+                  checked={profile === 'citoyen'}
+                  onChange={() => setProfile('citoyen')}
+                />
+                Citoyen
+              </label>
+              <label className={styles.choice}>
+                <input
+                  type="radio"
+                  name="profile"
+                  value="praticien"
+                  checked={profile === 'praticien'}
+                  onChange={() => setProfile('praticien')}
+                />
+                Praticien de la médecine traditionnelle
+              </label>
+              <p className={styles.help}>
+                Le praticien remplit ensuite son dossier de certification dans l’application mobile
+                SABOU.
+              </p>
+            </fieldset>
             <div className={styles.field}>
               <label htmlFor="firstName" className={styles.label}>
                 Prénom
@@ -288,6 +337,22 @@ export default function SignupFlow() {
                 Affiché avec vos témoignages.
               </p>
             </div>
+            {profile === 'praticien' ? (
+              <div className={styles.field}>
+                <label htmlFor="lastName" className={styles.label}>
+                  Nom
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  maxLength={80}
+                  required
+                  className={styles.input}
+                />
+              </div>
+            ) : null}
             <div className={styles.field}>
               <label htmlFor="password" className={styles.label}>
                 Mot de passe
@@ -333,7 +398,14 @@ export default function SignupFlow() {
           <h2 id="etape" ref={heading} tabIndex={-1} className={styles.heading}>
             Votre compte est créé
           </h2>
-          <p>Connectez-vous avec votre numéro et votre mot de passe.</p>
+          {step.profile === 'praticien' ? (
+            <p>
+              Revenez dans l’application mobile SABOU et appuyez sur « Se connecter » pour remplir
+              votre dossier. Vous pouvez aussi vous connecter ici.
+            </p>
+          ) : (
+            <p>Connectez-vous avec votre numéro et votre mot de passe.</p>
+          )}
           <div className={styles.actions}>
             <a className={styles.link} href={loginHref(step.phone)}>
               Se connecter

@@ -109,7 +109,7 @@ Widget practitionerHome() {
     api: DossierApi(baseUrl: Uri.parse(practitionerApiUrl), session: session),
     picker: DevicePhotoPicker(),
     openUrl: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
-    signupUrl: Uri.parse('$publicSiteUrl/inscription'),
+    signupUrl: Uri.parse('$publicSiteUrl/inscription?profil=praticien'),
   );
 }
 
