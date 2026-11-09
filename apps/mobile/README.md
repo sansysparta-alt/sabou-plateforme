@@ -42,10 +42,10 @@ adb reverse tcp:4000 tcp:4000   # API
 adb reverse tcp:8080 tcp:8080   # Keycloak (page de connexion)
 adb reverse tcp:3000 tcp:3000   # site public (inscription)
 cd apps/mobile && flutter build apk --debug --split-per-abi
-adb push build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk /sdcard/Atest/
+adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
 ```
 
-Installer l'APK depuis le gestionnaire de fichiers du téléphone (MIUI refuse l'installation
-par USB), puis : « Mon dossier de praticien » → « Créer un compte » (choisir « je suis
-praticien » ; code SMS dans `docker compose … logs api`) → « Se connecter » → fiche, photo de
+Sous Git Bash, préfixer les commandes `adb` qui citent un chemin du téléphone par
+`MSYS_NO_PATHCONV=1` (sinon `/sdcard/…` est réécrit). Puis : « Mon dossier de praticien » →
+« Créer un compte » (« Praticien » est coché d'office ; code SMS dans `docker compose … logs api`) → « Se connecter » → fiche, photo de
 la pièce d'identité et du praticien → « Soumettre mon dossier ».
