@@ -29,7 +29,7 @@ void main() {
   });
 
   test('jeton refusé par l’API (horloge décalée) : un seul nouvel essai, jeton tout neuf', () async {
-    server.validAccess.remove('acces-1');
+    server.validAccess.remove(fakeAccess('acces-1'));
     expect(await api.view(), isNull);
     final calls = server.requests
         .map((r) => '${r.method} ${r.url.path}')
@@ -39,7 +39,10 @@ void main() {
       'POST /realms/sabou-public/protocol/openid-connect/token',
       'GET /api/praticien/dossier',
     ]);
-    expect(server.requests.last.headers['authorization'], 'Bearer acces-2');
+    expect(
+      server.requests.last.headers['authorization'],
+      'Bearer ${fakeAccess('acces-2')}',
+    );
   });
 
   test('jeton toujours refusé : reconnexion demandée', () async {

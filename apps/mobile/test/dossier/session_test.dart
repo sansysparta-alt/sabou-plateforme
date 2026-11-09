@@ -32,9 +32,9 @@ void main() {
     expect(await session.hasSession(), isFalse);
     expect(await session.signIn(), isTrue);
     expect(kept(), 'rafraichissement-1');
-    expect(store.values.values, isNot(contains('acces-1')));
+    expect(store.values.values, isNot(contains(fakeAccess('acces-1'))));
     expect(await session.hasSession(), isTrue);
-    expect(await session.accessToken(), 'acces-1');
+    expect(await session.accessToken(), fakeAccess('acces-1'));
     expect(server.refreshCount, 0);
   });
 
@@ -50,7 +50,7 @@ void main() {
   test('jeton d’accès bientôt expiré : rafraîchi, et le nouveau jeton de rafraîchissement gardé', () async {
     await session.signIn();
     now = now.add(const Duration(minutes: 5));
-    expect(await session.accessToken(), 'acces-2');
+    expect(await session.accessToken(), fakeAccess('acces-2'));
     expect(kept(), 'rafraichissement-2');
     final body = server.requests.last.bodyFields;
     expect(body, {
@@ -64,7 +64,7 @@ void main() {
     'l’application rouverte reprend la session gardée sur le téléphone',
     () async {
       store.values['sabou.praticien.refresh_token'] = 'rafraichissement-1';
-      expect(await session.accessToken(), 'acces-2');
+      expect(await session.accessToken(), fakeAccess('acces-2'));
       expect(launcher.calls, 0);
     },
   );
@@ -78,7 +78,7 @@ void main() {
         session.accessToken(),
         session.accessToken(),
       ]);
-      expect(tokens.toSet(), {'acces-2'});
+      expect(tokens.toSet(), {fakeAccess('acces-2')});
       expect(server.refreshCount, 1);
     },
   );
@@ -135,4 +135,38 @@ void main() {
       expect(await session.hasSession(), isFalse);
     },
   );
+
+  group('US-018 : rôles du compte', () {
+    test(
+      'lus dans le claim « roles » du jeton ; jeton illisible : aucun rôle',
+      () {
+        expect(rolesFromAccessToken(fakeAccess('a', ['praticien', 'x'])), {
+          'praticien',
+          'x',
+        });
+        expect(rolesFromAccessToken('opaque'), isEmpty);
+        expect(rolesFromAccessToken('a.!!!.c'), isEmpty);
+        expect(rolesFromAccessToken(fakeAccess('a', [])), isEmpty);
+      },
+    );
+
+    test('gardés à la connexion, effacés à la déconnexion', () async {
+      await session.signIn();
+      expect(store.values['sabou.session.roles'], 'praticien');
+      expect(await session.roles(), {'praticien'});
+      await session.signOut();
+      expect(store.values['sabou.session.roles'], '');
+    });
+
+    test('session expirée : rôles effacés avec le jeton', () async {
+      store.values['sabou.praticien.refresh_token'] = 'rafraichissement-1';
+      store.values['sabou.session.roles'] = 'praticien';
+      server.keycloakRejectsRefresh = true;
+      await expectLater(
+        session.accessToken(),
+        throwsA(isA<SignedOutException>()),
+      );
+      expect(store.values['sabou.session.roles'], '');
+    });
+  });
 }

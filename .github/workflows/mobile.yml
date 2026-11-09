@@ -3,16 +3,20 @@
 # minutes d'intégration continue (US-005, 05_Choix_Techniques §2.13). Actions épinglées par SHA.
 name: Application mobile
 
+# packages/ui/src/tokens.css : le thème de l'application reprend les jetons de la charte,
+# vérifiés par test/ui/tokens_test.dart (US-018).
 on:
   pull_request:
     paths:
       - 'apps/mobile/**'
+      - 'packages/ui/src/tokens.css'
       - 'infra/ci/mobile.sh'
       - '.github/workflows/mobile.yml'
   push:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - 'packages/ui/src/tokens.css'
       - 'infra/ci/mobile.sh'
       - '.github/workflows/mobile.yml'
 

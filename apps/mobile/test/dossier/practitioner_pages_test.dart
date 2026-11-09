@@ -1,14 +1,16 @@
-// US-040b : écrans du praticien, avec le vrai client de l'API et la vraie session, devant un
+// US-040b : écrans du praticien dans l'application complète (US-018), avec le vrai client de l'API et la vraie session, devant un
 // serveur simulé (fakes.dart). Critères 1 (connexion), 2 (photo compressée avant l'envoi) et
 // 3 (pièces manquantes affichées, accusé de réception), accessibilité des écrans.
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sabou_mobile/app.dart';
 import 'package:sabou_mobile/dossier/dossier_api.dart';
 import 'package:sabou_mobile/dossier/photo.dart';
-import 'package:sabou_mobile/dossier/practitioner_pages.dart';
 import 'package:sabou_mobile/dossier/session.dart';
+import 'package:sabou_mobile/shell/gate.dart';
+import 'package:sabou_mobile/ui/theme.dart';
 
 import 'fakes.dart';
 
@@ -47,30 +49,36 @@ void main() {
     return Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]);
   }
 
-  Future<void> pumpHome(WidgetTester tester) async {
+  // Application complète (US-018) : porte d'entrée, coquille et rubrique « Mon dossier »
+  Widget app({Future<Uint8List> Function(Uint8List)? prepareWith}) {
     final session = PractitionerSession(
       store: store,
       launcher: launcher,
       client: server.client,
       issuer: issuer,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(materialTapTargetSize: MaterialTapTargetSize.padded),
-        home: PractitionerHome(
-          session: session,
-          api: DossierApi(
+    return MaterialApp(
+      theme: sabouTheme(),
+      home: SabouGate(
+        session: session,
+        rubrics: appRubrics(
+          dossierApi: DossierApi(
             baseUrl: Uri.parse('http://api.test'),
             session: session,
             client: server.client,
           ),
           picker: picker,
-          openUrl: (url) async => opened.add(url),
-          signupUrl: Uri.parse('http://site.test/inscription'),
-          prepare: prepare,
+          prepare: prepareWith ?? prepare,
         ),
+        openUrl: (url) async => opened.add(url),
+        signupUrl: Uri.parse('http://site.test/inscription'),
+        siteUrl: Uri.parse('http://site.test'),
       ),
     );
+  }
+
+  Future<void> pumpHome(WidgetTester tester) async {
+    await tester.pumpWidget(app());
     await tester.pumpAndSettle();
   }
 
@@ -115,7 +123,7 @@ void main() {
               .where((r) => r.url.path == '/api/praticien/dossier')
               .single
               .headers['authorization'],
-          'Bearer acces-1',
+          'Bearer ${fakeAccess('acces-1')}',
         );
       },
     );
@@ -159,6 +167,27 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'US-018 : « Se déconnecter » pendant le chargement du dossier, sans erreur',
+    (tester) async {
+      await pumpHome(tester);
+      server.delay = const Duration(seconds: 2);
+      await tester.tap(find.text('Se connecter'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.bySemanticsLabel('Chargement du dossier'), findsOneWidget);
+      await tester.tap(find.text('Se déconnecter'));
+      // La coquille disparaît avant que l'API réponde
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Se connecter'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('Se connecter'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   group('Critères 2 et 3 : photo, pièces manquantes, accusé de réception', () {
     testWidgets('dossier rempli et soumis depuis l’application', (
@@ -248,27 +277,10 @@ void main() {
         await pumpHome(tester);
         await tapText(tester, 'Se connecter');
         await fillProfile(tester);
-        final session = PractitionerSession(
-          store: store,
-          launcher: launcher,
-          client: server.client,
-          issuer: issuer,
-        );
         await tester.pumpWidget(
-          MaterialApp(
-            home: PractitionerHome(
-              session: session,
-              api: DossierApi(
-                baseUrl: Uri.parse('http://api.test'),
-                session: session,
-                client: server.client,
-              ),
-              picker: picker,
-              openUrl: (_) async {},
-              signupUrl: Uri.parse('http://site.test/inscription'),
-              prepare: (_) async => throw const PhotoException(
-                'Cette image n’a pas pu être lue. Prenez une autre photo.',
-              ),
+          app(
+            prepareWith: (_) async => throw const PhotoException(
+              'Cette image n’a pas pu être lue. Prenez une autre photo.',
             ),
           ),
         );
