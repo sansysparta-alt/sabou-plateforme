@@ -1,7 +1,15 @@
 import { createRef } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { Alert, AppShell, DataTable, SelectField, StatCard, TextField } from './index';
+import {
+  Alert,
+  AppShell,
+  DataTable,
+  SelectField,
+  StatCard,
+  TextAreaField,
+  TextField,
+} from './index';
 
 afterEach(cleanup);
 
@@ -60,6 +68,19 @@ describe('champs de formulaire', () => {
     const select = screen.getByLabelText('Rôle');
     expect(select.hasAttribute('aria-invalid')).toBe(false);
     expect(select.hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('relie aussi libellé, aide et erreur à un champ multiligne', () => {
+    render(
+      <TextAreaField label="Motif du rejet" hint="Lu par le praticien" error="Motif obligatoire" />,
+    );
+    const area = screen.getByLabelText('Motif du rejet');
+    expect(area.tagName).toBe('TEXTAREA');
+    expect(area.getAttribute('aria-invalid')).toBe('true');
+    const described = (area.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => document.getElementById(id)?.textContent);
+    expect(described).toEqual(['Lu par le praticien', 'Motif obligatoire']);
   });
 });
 

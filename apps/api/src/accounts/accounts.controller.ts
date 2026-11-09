@@ -38,7 +38,7 @@ export type SessionRequest = Request & { session?: SessionData };
 
 // Requête qui modifie quelque chose : seule l'application de gestion peut l'envoyer
 // (protection contre la falsification de requête, en plus du cookie SameSite=Lax)
-function requireAppOrigin(req: Request, env: Env): void {
+export function requireAppOrigin(req: Request, env: Env): void {
   if (req.method !== 'GET' && req.headers.origin !== new URL(env.ADMIN_APP_URL).origin) {
     throw new ForbiddenException();
   }

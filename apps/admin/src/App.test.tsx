@@ -48,6 +48,8 @@ function mockApi(session: SessionUser | null | 'panne') {
       return session ? Response.json(session) : new Response(null, { status: 401 });
     }
     if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
+    if (url === '/api/dossiers/verification-terrain')
+      return Response.json({ elements: [], suivant: null });
     if (url === '/auth/logout' && init?.method === 'POST')
       return new Response(null, { status: 204 });
     return new Response(null, { status: 404 });
@@ -115,6 +117,24 @@ describe('App', () => {
     expect(await screen.findByText('Administrateur préfectoral · Labé'));
     expect(screen.queryByRole('link', { name: 'Comptes' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Administration' })).toBeNull();
+  });
+
+  it('administrateur préfectoral : rubrique Vérification terrain et sa page (US-042)', async () => {
+    mockApi(prefectoral);
+    window.history.replaceState(null, '', '/verification-terrain');
+    render(<App />);
+    const link = await screen.findByRole('link', { name: 'Vérification terrain' });
+    expect(link.getAttribute('href')).toBe('/verification-terrain');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Vérification terrain' }));
+  });
+
+  it('DG : ni rubrique ni page de vérification terrain (décision du seul préfectoral)', async () => {
+    mockApi(dg);
+    window.history.replaceState(null, '', '/verification-terrain');
+    render(<App />);
+    expect(await screen.findByRole('link', { name: 'Comptes' }));
+    expect(screen.queryByRole('link', { name: 'Vérification terrain' })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Vérification terrain' })).toBeNull();
   });
 
   it('compte sans zone active en base : refus de l’API dit en français', async () => {

@@ -1,7 +1,8 @@
 // Outils communs des tests de bout en bout de l'application de gestion
 import { expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { APP, KEYCLOAK, msUntilNextPeriod, totp, type TestUser } from './keycloak';
+import { psql } from './audit';
+import { APP, createUser, KEYCLOAK, msUntilNextPeriod, totp, type TestUser } from './keycloak';
 
 export async function expectAccessible(page: Page, screen: string): Promise<void> {
   // Page complète (feuilles de style comprises) : sinon un bouton pas encore mis en forme
@@ -71,4 +72,31 @@ async function submitCode(page: Page, secret: string): Promise<void> {
   await page.getByRole('button', { name: 'Connexion' }).click();
   await expect(page).toHaveURL(new RegExp(`^${APP}/`));
   expect(await sessionStatus(page)).toBe(200);
+}
+
+// Compte d'administration lié à un compte Keycloak neuf, avec sa zone en base
+export async function administrator(
+  keycloakRole: 'admin_prefectoral' | 'admin_regional',
+  zone: { prefecture: string } | { region: string },
+): Promise<TestUser> {
+  const user = await createUser(keycloakRole);
+  // Identifiant Keycloak et nom de test contrôlés : rien d'autre n'entre dans la requête
+  if (!/^[0-9a-f-]{36}$/.test(user.id) || !/^[a-z_]+-[0-9a-f]{8}$/.test(user.username)) {
+    throw new Error(`Compte de test invalide : ${user.username}`);
+  }
+  const [role, region, prefecture] =
+    'prefecture' in zone
+      ? [
+          'prefectoral',
+          'NULL',
+          `(SELECT id FROM sabou.prefecture WHERE nom = '${zone.prefecture}')`,
+        ]
+      : ['regional', `(SELECT id FROM sabou.region_admin WHERE nom = '${zone.region}')`, 'NULL'];
+  // Schéma en tête du search_path, comme pour l'API : les déclencheurs en dépendent
+  psql(`SET search_path = sabou, public;
+        INSERT INTO sabou.utilisateur (email, prenom, nom, role_code, region_admin_id, prefecture_id,
+          statut, keycloak_id)
+        VALUES ('${user.username}@exemple.invalid', 'Essai', 'Zone', '${role}', ${region}, ${prefecture},
+          'actif', '${user.id}')`);
+  return user;
 }

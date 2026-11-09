@@ -162,6 +162,13 @@
 .ui-select[aria-invalid='true'] {
   border-color: var(--sabou-error);
 }
+/* Hauteur de quatre lignes environ ; agrandissable en hauteur seulement (pas de défilement
+   horizontal de la page sur téléphone) */
+.ui-textarea {
+  min-height: calc(var(--sabou-target) * 2.5);
+  resize: vertical;
+  font: inherit;
+}
 .ui-fieldset {
   display: grid;
   gap: var(--sabou-space-2);

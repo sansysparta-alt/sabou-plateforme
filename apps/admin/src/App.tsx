@@ -12,10 +12,14 @@ const ReferentialsPage = lazy(() =>
 const InvitationPage = lazy(() =>
   import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
 );
+const FieldVerificationPage = lazy(() =>
+  import('./FieldVerificationPage').then((m) => ({ default: m.FieldVerificationPage })),
+);
 import {
   fetchSession,
   hasManagementAccess,
   isDirector,
+  isPrefectoral,
   LOGIN_ERRORS,
   logout,
   profileLabel,
@@ -145,6 +149,12 @@ function navigation(user: SessionUser): NavGroup[] {
   const groups: NavGroup[] = [
     { heading: 'Pilotage', items: [{ href: '/', label: 'Tableau de bord', icon: 'dashboard' }] },
   ];
+  if (isPrefectoral(user)) {
+    groups.push({
+      heading: 'Certification',
+      items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'folder' }],
+    });
+  }
   if (isDirector(user)) {
     groups.push({
       heading: 'Administration',
@@ -157,14 +167,21 @@ function navigation(user: SessionUser): NavGroup[] {
   return groups;
 }
 
-// Pages de la DG ; tout autre profil, ou toute autre adresse, mène à l'accueil
+// Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/comptes': AccountsPage,
   '/referentiels': ReferentialsPage,
 };
+const PREFECTORAL_PAGES: Record<string, ComponentType> = {
+  '/verification-terrain': FieldVerificationPage,
+};
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
-  const Page = isDirector(user) ? DIRECTOR_PAGES[path()] : undefined;
+  const Page = isDirector(user)
+    ? DIRECTOR_PAGES[path()]
+    : isPrefectoral(user)
+      ? PREFECTORAL_PAGES[path()]
+      : undefined;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}
