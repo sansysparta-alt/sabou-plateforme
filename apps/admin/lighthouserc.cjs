@@ -53,7 +53,8 @@ const budgets = {
 // Pages qui attendent des données (session, puis morceau de la page, puis API) : LCP de 4 s
 // et score de 0,80 en 3G, décision du maître d'œuvre du 8/11/2026, jusqu'au récit de
 // performance qui ramènera 3 s partout (05_Choix_Techniques.md §2.28, backlog)
-const DATA_PAGES = /localhost:\d+\/(invitation|comptes|referentiels|verification-terrain|\?vue=)/;
+const DATA_PAGES =
+  /localhost:\d+\/(invitation|comptes|referentiels|verification-terrain|consolidation|\?vue=)/;
 const dataPageBudgets = {
   'categories:performance': ['error', { minScore: 0.8, aggregationMethod: 'median-run' }],
   'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median' }],

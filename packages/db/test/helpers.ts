@@ -85,6 +85,21 @@ export async function inRolledBackTransaction(url: string, sql: string): Promise
   }
 }
 
+// Lignes de la dernière instruction, dans une transaction toujours annulée
+export async function lastRows(url: string, sql: string): Promise<Record<string, unknown>[]> {
+  const client = new pg.Client({ connectionString: url });
+  await client.connect();
+  try {
+    await client.query('BEGIN');
+    const results = (await client.query(`SET LOCAL search_path = sabou, public; ${sql}`)) as
+      pg.QueryResult | pg.QueryResult[];
+    return (Array.isArray(results) ? results.at(-1)! : results).rows;
+  } finally {
+    await client.query('ROLLBACK').catch(() => undefined);
+    await client.end();
+  }
+}
+
 // Ouvre, dans la transaction en cours, le contexte de zone d'un compte du jeu d'exemple
 // (identifiant Keycloak fictif tiré de l'adresse, voir seed/dev.sql)
 export const openContext = (email: string): string =>

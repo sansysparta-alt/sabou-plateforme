@@ -125,6 +125,8 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 
 **Décision (novembre 2026) : pas de GitHub Pro, fusion bloquée par convention jusqu'à US-008.** Le dépôt reste privé sur un compte gratuit, qui n'autorise ni protection de branche ni règles de fusion. Jusqu'à US-008, toute modification passe par une branche de récit et une demande de fusion, et le maître d'œuvre ne fusionne que si le pipeline est vert. Le blocage automatique sera configuré sur GitLab, où il est disponible sans frais (critère reporté de US-001 à US-008).
 
+**Décision du maître d'œuvre (12 novembre 2026) : pipeline en local jusqu'au 1er décembre 2026.** Le quota gratuit de GitHub Actions (2 000 minutes par mois pour un dépôt privé) est épuisé : GitHub ne lance plus les tâches. Plutôt qu'une dépense, un runner sur le poste de développement ou une bascule anticipée vers GitLab, le pipeline complet (`pnpm ci:local`, y compris le bout en bout, axe et Lighthouse) tourne en local, et sa preuve est jointe à chaque demande de fusion. La règle « vert sur GitHub » reprend dès le renouvellement du quota.
+
 ### 2.12 Qualité
 
 | Choix | Usage |
@@ -590,7 +592,9 @@ Décision du maître d'œuvre du 9 novembre 2026 : US-042 ne comprend pas la sai
 | **SMS au praticien mis en file** (table `notification`, écrite par la fonction dans la même transaction) ; l'envoi relève de US-031 | Un SMS ne part jamais pour une décision annulée (critère de US-031) | Envoi direct depuis l'API |
 | **Bouton « Valider » affiché seulement si la visite est réalisée** (ou non requise pour un renouvellement, R-QR-07) ; le rejet reste possible sans visite | Pas de bouton qui mène à coup sûr à un refus ; un dossier illisible peut être renvoyé sans déplacement | Bouton désactivé (raison non dite, peu accessible) |
 
-**Contrôles du pipeline** : `packages/db/test/decision-etape-2.test.ts` (les 4 critères sur un vrai PostgreSQL), `apps/api/src/certification/certification.test.ts` (accès, origine, paramètres, traduction des refus), `apps/admin/src/FieldVerificationPage.test.tsx` (écran), `apps/admin/e2e/verification-terrain.spec.ts` (de bout en bout, accessibilité axe), Lighthouse sur `/verification-terrain` (seuils provisoires des pages de données, §2.28).
+**US-043 (consolidation à l'étape 3, 12 novembre 2026)** : même appel de décision, aucune migration ; la base contrôle déjà que seul l'admin régional de la région du praticien décide (R-CER-02). Décision du maître d'œuvre du 12 novembre 2026 : **ni la DG ni un autre profil** ne décide à sa place à l'étape 3 ; motif obligatoire au rejet, qui renvoie le dossier à l'étape 2 (vérification terrain). Ajouts : liste `GET /api/dossiers/consolidation` (étape 3, préfecture du praticien affichée, une région en comptant plusieurs), page « Consolidation régionale » réservée au profil régional. L'écran de vérification terrain et celui de consolidation partagent la file de dossiers et le bloc « Valider / Rejeter avec motif » (`apps/admin/src/DossierDecision.tsx`) ; US-044 n'aura qu'une page de plus.
+
+**Contrôles du pipeline** : `packages/db/test/decision-etape-3.test.ts` (US-043 : critère, motif, régional de la région seul), `apps/admin/src/ConsolidationPage.test.tsx`, `apps/admin/e2e/consolidation.spec.ts`, Lighthouse sur `/consolidation` ; pour US-042 : `packages/db/test/decision-etape-2.test.ts` (les 4 critères sur un vrai PostgreSQL), `apps/api/src/certification/certification.test.ts` (accès, origine, paramètres, traduction des refus), `apps/admin/src/FieldVerificationPage.test.tsx` (écran), `apps/admin/e2e/verification-terrain.spec.ts` (de bout en bout, accessibilité axe), Lighthouse sur `/verification-terrain` (seuils provisoires des pages de données, §2.28).
 
 ## 3. Architecture
 
