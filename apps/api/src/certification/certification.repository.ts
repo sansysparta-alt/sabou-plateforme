@@ -1,8 +1,32 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
-import type { DossierSummary, PractitionerSummary, ZoneListQuery, ZonePage } from '@sabou/types';
+import type {
+  DossierDecision,
+  DossierDecisionResult,
+  DossierSummary,
+  FieldVerificationItem,
+  PractitionerSummary,
+  ZoneListQuery,
+  ZonePage,
+} from '@sabou/types';
+import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
 import { inZone } from '../database/zone';
+
+// Refus d'une décision, traduits en réponses par le contrôleur
+export class DossierNotFoundError extends Error {}
+export class DecisionNotAllowedError extends Error {}
+export class StaleDossierError extends Error {}
+export class FieldVisitRequiredError extends Error {}
+
+// Messages de dossier_transition (schéma initial) ; chaque branche est couverte par un test
+// sur un vrai PostgreSQL (packages/db/test/decision-etape-2.test.ts)
+function translateTransition(error: unknown): never {
+  const message = (error as { message?: string }).message ?? '';
+  if (message.includes('non habilité')) throw new DecisionNotAllowedError();
+  if (message.includes('visite terrain signée requise')) throw new FieldVisitRequiredError();
+  throw error;
+}
 
 // Page de « limite » éléments : une ligne de plus est lue pour savoir s'il en reste
 function page<T extends { code: string }>(rows: T[], limit: number): ZonePage<T> {
@@ -47,6 +71,64 @@ export class CertificationRepository {
          ORDER BY d.code
          LIMIT ${query.limite + 1}`.execute(trx);
       return page(rows, query.limite);
+    });
+  }
+
+  // Dossiers en attente de vérification terrain (étape 2) ; les plus anciens d'abord, pour
+  // tenir le délai de 3 jours par étape (R-CER-07)
+  listFieldVerification(
+    sub: string,
+    query: ZoneListQuery,
+  ): Promise<ZonePage<FieldVerificationItem>> {
+    return inZone(this.db, sub, async (trx) => {
+      const { rows } = await sql<FieldVerificationItem>`
+        SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
+               sp.libelle_fr AS specialite, d.type, d.visite_requise AS "visiteRequise",
+               to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "soumisLe",
+               EXISTS (SELECT 1 FROM sabou.visite_terrain vt
+                        WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee"
+          FROM sabou.dossier_certification d
+          JOIN sabou.praticien p   ON p.id = d.praticien_id
+          JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
+          JOIN sabou.specialite sp ON sp.id = p.specialite_id
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 2
+           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
+         ORDER BY d.code
+         LIMIT ${query.limite + 1}`.execute(trx);
+      return page(rows, query.limite);
+    });
+  }
+
+  // Décision sur un dossier, dans le contexte du compte connecté. La base vérifie le
+  // responsable de l'étape, sa zone, la visite et le motif (dossier_transition) et écrit
+  // l'historique, la notification au praticien et le journal d'audit dans la même transaction.
+  decide(
+    sub: string,
+    ip: string | undefined,
+    code: string,
+    input: DossierDecision,
+  ): Promise<DossierDecisionResult> {
+    return inZone(this.db, sub, async (trx) => {
+      await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      // Hors zone : le dossier est invisible (RLS) ; on ne dit pas s'il existe
+      const { rows } = await sql<{ id: number; etape: number; statut: string }>`
+        SELECT id::int, etape_courante::int AS etape, statut
+          FROM sabou.dossier_certification WHERE code = ${code} FOR UPDATE`.execute(trx);
+      const dossier = rows[0];
+      if (!dossier) throw new DossierNotFoundError();
+      if (dossier.statut !== 'en_cours' || dossier.etape !== input.etape) {
+        throw new StaleDossierError();
+      }
+      try {
+        const result = await sql<{ etape: number }>`
+          SELECT sabou.dossier_transition(${dossier.id}, ${input.decision},
+                   sabou.contexte_utilisateur(), ${input.motif ?? null})::int AS etape`.execute(
+          trx,
+        );
+        return { code, etape: result.rows[0]!.etape };
+      } catch (error) {
+        translateTransition(error);
+      }
     });
   }
 }

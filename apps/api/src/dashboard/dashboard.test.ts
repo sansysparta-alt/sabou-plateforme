@@ -8,6 +8,7 @@ import type { DashboardSummary } from '@sabou/types';
 import { SESSION_COOKIE } from '../auth/auth.controller';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { AdministratorGuard } from '../certification/certification.controller';
+import { ENV, type Env } from '../config/env';
 import { ZoneContextError } from '../database/zone';
 import { DashboardController } from './dashboard.controller';
 import { DashboardRepository } from './dashboard.repository';
@@ -57,6 +58,8 @@ beforeAll(async () => {
     providers: [
       { provide: DashboardRepository, useValue: repository },
       { provide: SESSION_STORE, useValue: sessions },
+      // Garde commune aux administrateurs : l'origine n'est contrôlée que hors GET
+      { provide: ENV, useValue: { ADMIN_APP_URL: 'http://localhost:5173/' } as Env },
       AdministratorGuard,
     ],
   })

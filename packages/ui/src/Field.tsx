@@ -1,4 +1,10 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type ComponentPropsWithRef,
+} from 'react';
 import { Icon } from './Icon';
 
 interface FieldFrameProps {
@@ -90,6 +96,29 @@ export function SelectField({
       >
         {children}
       </select>
+    </Frame>
+  );
+}
+
+// Texte libre sur plusieurs lignes (motif d'un rejet, US-042) ; même cadre que les autres champs
+export function TextAreaField({
+  label,
+  hint,
+  error,
+  id,
+  className,
+  ...rest
+}: FieldFrameProps & ComponentPropsWithRef<'textarea'>) {
+  const ids = useFieldIds(id, hint, error);
+  return (
+    <Frame {...ids} label={label} hint={hint} error={error}>
+      <textarea
+        id={ids.fieldId}
+        className={['ui-input', 'ui-textarea', className].filter(Boolean).join(' ')}
+        aria-describedby={ids.describedBy}
+        aria-invalid={error ? true : undefined}
+        {...rest}
+      />
     </Frame>
   );
 }

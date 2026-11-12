@@ -5,7 +5,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Browser, type BrowserContext } from '@playwright/test';
 import { psql } from '../e2e/audit';
-import { configureTotp, firstAdministratorLogin, startLogin, submitPassword } from '../e2e/helpers';
+import {
+  administrator,
+  configureTotp,
+  firstAdministratorLogin,
+  startLogin,
+  submitPassword,
+} from '../e2e/helpers';
 import { APP, createUser, KEYCLOAK, type TestUser } from '../e2e/keycloak';
 
 export interface PageGroup {
@@ -79,6 +85,13 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
   await submitPassword(codePage, dg);
   await expect(codePage.locator('#otp')).toBeVisible();
 
+  // Admin préfectoral de Labé connecté : page de vérification terrain (US-042)
+  const prefectoralContext = await browser.newContext();
+  await firstAdministratorLogin(
+    await prefectoralContext.newPage(),
+    await administrator('admin_prefectoral', { prefecture: 'Labé' }),
+  );
+
   const totp = await stoppedAt(browser, 'totp');
   const recovery = await stoppedAt(browser, 'codes-de-secours');
 
@@ -95,6 +108,11 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       cookie: await cookieHeader(dgContext),
       // « ?vue= » distingue l'accueil connecté de l'accueil sans session dans les rapports
       urls: [`${APP}/?vue=tableau-de-bord`, `${APP}/comptes`, `${APP}/referentiels`],
+    },
+    {
+      name: 'admin préfectoral connecté',
+      cookie: await cookieHeader(prefectoralContext),
+      urls: [`${APP}/verification-terrain`],
     },
     { name: 'saisie du code', cookie: await cookieHeader(codeContext), urls: [codePage.url()] },
     { name: 'activation du code', cookie: await cookieHeader(totp.context), urls: [totp.url] },

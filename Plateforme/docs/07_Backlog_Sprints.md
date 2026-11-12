@@ -353,6 +353,8 @@ Critères d’acceptation :
 - Étant donné un rejet, quand je ne saisis pas de motif, alors c’est refusé ; avec motif, le dossier revient à l’étape 1.
 - Étant donné un dossier d’une autre préfecture, quand je tente de décider, alors c’est refusé.
 
+Décision du maître d’œuvre (9 novembre 2026) : sans écran de saisie des visites, qui reste dans US-041 (S3) ; les visites des tests sont créées en base (voir 05 §2.31).
+
 #### US-043 · Consolider un dossier à l’étape 3
 *Certification et certificat* · **Must** · 3 points · cas : UC-40
 
@@ -377,7 +379,7 @@ Critères d’acceptation :
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
 
 Critères d’acceptation :
-- Tableau de bord, Comptes, Référentiels et Invitation : LCP ≤ 3 s et score de performance ≥ 0,90 en 3G simulée (300 ms, 700 kbit/s, processeur divisé par 4), seuils de US-010 rétablis pour ces pages dans `apps/admin/lighthouserc.cjs`.
+- Tableau de bord, Comptes, Référentiels, Invitation et Vérification terrain (ajoutée par US-042) : LCP ≤ 3 s et score de performance ≥ 0,90 en 3G simulée (300 ms, 700 kbit/s, processeur divisé par 4), seuils de US-010 rétablis pour ces pages dans `apps/admin/lighthouserc.cjs`.
 - Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.

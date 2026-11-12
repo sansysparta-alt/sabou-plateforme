@@ -1,4 +1,4 @@
-h1:P4N5TCTkj0SQQ9PGsPccJgjepELrnkFHn2/HrVP5rj8=
+h1:8X7dM80qQw/gSJiEMgKO0LVrdLHXQt4FAAtVuhBx9TU=
 20261102120000_schema_initial.sql h1:SkbRJGKbwnVSJU524ThzdDufeYqyUnNES01STvOOvos=
 20261102120100_droits_application.sql h1:Hz/550ksXcCqsvMhWRY2HmJCz76RJWcnLKUOa4h+hTM=
 20261103120000_saisie_terrain.sql h1:JFxrXzFoSjTqPMIMLsu1TDVLqsgpvX5wPR24gkeDShI=
@@ -11,3 +11,4 @@ h1:P4N5TCTkj0SQQ9PGsPccJgjepELrnkFHn2/HrVP5rj8=
 20261106210000_audit_keycloak_public.sql h1:GxypaB6VElLqIIdf0ixlgqibO7/DH66NHSqEcYTQy4o=
 20261107120000_dossier_praticien.sql h1:15SrQ5lamKVXo/06CGSE7wmwnBTsFPlJb2Y2Ar8AMhw=
 20261107130000_fiche_praticien_certifie.sql h1:XNzrEKz7orwTYHmEKfQLKxQ90Qw2rX9f0Y1GhZwXS7U=
+20261109120000_index_visite_dossier.sql h1:nApq5oi+U2lAaN99wW4ejjRMKstS9CUDmMKjaZmSFsM=

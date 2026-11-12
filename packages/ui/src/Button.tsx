@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ComponentPropsWithRef, ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger';
@@ -25,7 +25,7 @@ export function Button({
   className,
   type = 'button',
   ...rest
-}: CommonProps & ButtonHTMLAttributes<HTMLButtonElement>) {
+}: CommonProps & ComponentPropsWithRef<'button'>) {
   return (
     <button type={type} className={classes(variant, block, className)} {...rest}>
       {icon && <Icon name={icon} className="ui-button__icon" />}

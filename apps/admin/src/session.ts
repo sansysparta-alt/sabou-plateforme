@@ -36,6 +36,12 @@ export function isDirector(user: SessionUser): boolean {
   return user.roles.includes('dg');
 }
 
+// Vérification terrain (étape 2) réservée à l'admin préfectoral (R-CER-02) ; la base contrôle
+// aussi qu'il est responsable de l'étape et de la préfecture du dossier
+export function isPrefectoral(user: SessionUser): boolean {
+  return user.roles.includes('admin_prefectoral');
+}
+
 // L'application de gestion sert les 4 profils d'administration et les praticiens
 export function hasManagementAccess(user: SessionUser): boolean {
   return user.administrator || user.roles.includes('praticien');

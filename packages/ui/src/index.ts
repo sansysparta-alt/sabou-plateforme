@@ -3,7 +3,7 @@
 export { Icon, type IconName, type IconProps } from './Icon';
 export { Button, ButtonLink, type ButtonVariant } from './Button';
 export { Alert, type AlertProps, type AlertTone } from './Alert';
-export { TextField, SelectField } from './Field';
+export { TextField, SelectField, TextAreaField } from './Field';
 export { Card, StatCard, Badge, type CardProps, type StatCardProps, type BadgeTone } from './Card';
 export { DataTable, type Column, type DataTableProps } from './Table';
 export {

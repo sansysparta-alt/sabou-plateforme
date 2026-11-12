@@ -577,6 +577,21 @@ Décision du maître d'œuvre du 9 novembre 2026 : l'application est réservée 
 
 **Contrôles du pipeline** : `test/ui/tokens_test.dart` (alignement sur la charte), `test/ui/widgets_test.dart` (composants, lecteurs d'écran, contrastes), `test/shell/app_shell_test.dart` (navigation selon le profil, registre de trois rubriques, accessibilité des barres), `test/shell/gate_test.dart` (citoyen, ouverture sans réseau, prototypes absents de la version publiée), `test/dossier/session_test.dart` (rôles gardés et effacés) ; `check-repo.sh` accepte `packages/ui/src/tokens.css` parmi les déclencheurs du job Flutter.
 
+### 2.31 Décision sur un dossier aux étapes 2 à 5 (US-042, novembre 2026)
+
+Décision du maître d'œuvre du 9 novembre 2026 : US-042 ne comprend pas la saisie des visites terrain, qui reste dans US-041 (S3). Les tests créent les visites directement en base ; un admin préfectoral ne pourra valider un dossier réel qu'une fois US-041 livré.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Un seul appel pour toutes les étapes** : `POST /api/dossiers/:code/decision` (`valide` ou `rejete`, motif obligatoire au rejet), ouvert aux 4 profils d'administration | Qui décide, à quelle étape et dans quelle zone : la fonction `dossier_transition` le contrôle déjà (R-CER-01 à 03) ; US-043 et US-044 n'auront qu'un écran à ajouter | Un appel par étape (règles recopiées dans l'API, à garder alignées sur la base) |
+| **L'étape vue à l'écran est envoyée** ; si le dossier a changé d'étape, refus 409 | Une décision ne s'applique jamais à une autre étape que celle examinée (deux onglets, deux personnes) | Appliquer la décision à l'étape courante, quelle qu'elle soit |
+| **Dossier hors zone : 404**, sans dire s'il existe ; dossier visible mais hors de sa responsabilité (admin régional, DG à l'étape 2) : 403 | Le cloisonnement (RLS) rend le dossier invisible ; ne pas révéler l'existence d'un dossier d'une autre zone | 403 dans les deux cas (révèle l'existence du code) |
+| **Refus de la base traduits par leur message** (`non habilité`, `visite terrain signée requise`), chaque message couvert par un test sur un vrai PostgreSQL et par le test de bout en bout | Pas de migration pour réécrire la fonction de workflow du schéma initial ; même procédé que la soumission (US-040a) | Codes SQLSTATE propres (réécriture complète de `dossier_transition`) : à reconsidérer si les messages changent |
+| **SMS au praticien mis en file** (table `notification`, écrite par la fonction dans la même transaction) ; l'envoi relève de US-031 | Un SMS ne part jamais pour une décision annulée (critère de US-031) | Envoi direct depuis l'API |
+| **Bouton « Valider » affiché seulement si la visite est réalisée** (ou non requise pour un renouvellement, R-QR-07) ; le rejet reste possible sans visite | Pas de bouton qui mène à coup sûr à un refus ; un dossier illisible peut être renvoyé sans déplacement | Bouton désactivé (raison non dite, peu accessible) |
+
+**Contrôles du pipeline** : `packages/db/test/decision-etape-2.test.ts` (les 4 critères sur un vrai PostgreSQL), `apps/api/src/certification/certification.test.ts` (accès, origine, paramètres, traduction des refus), `apps/admin/src/FieldVerificationPage.test.tsx` (écran), `apps/admin/e2e/verification-terrain.spec.ts` (de bout en bout, accessibilité axe), Lighthouse sur `/verification-terrain` (seuils provisoires des pages de données, §2.28).
+
 ## 3. Architecture
 
 ```
