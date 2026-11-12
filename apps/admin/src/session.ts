@@ -48,6 +48,11 @@ export function isRegional(user: SessionUser): boolean {
   return user.roles.includes('admin_regional');
 }
 
+// Expertise (étape 4) réservée au Comité scientifique (R-CER-01) ; la base le contrôle aussi
+export function isCommittee(user: SessionUser): boolean {
+  return user.roles.includes('comite');
+}
+
 // L'application de gestion sert les 4 profils d'administration et les praticiens
 export function hasManagementAccess(user: SessionUser): boolean {
   return user.administrator || user.roles.includes('praticien');

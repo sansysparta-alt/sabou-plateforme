@@ -25,6 +25,7 @@ import {
   dossierDecisionSchema,
   zoneListQuerySchema,
   type ConsolidationItem,
+  type ExpertiseItem,
   type DossierDecisionResult,
   type DossierSummary,
   type FieldVerificationItem,
@@ -121,7 +122,7 @@ function decisionError(error: unknown): never {
   throw error;
 }
 
-// Listes cloisonnées par zone (US-011) et décisions du workflow de certification (US-042, US-043)
+// Listes cloisonnées par zone (US-011) et décisions du workflow de certification (US-042 à US-044)
 @Controller('api')
 @UseGuards(AdministratorGuard)
 export class CertificationController {
@@ -166,7 +167,15 @@ export class CertificationController {
     return inAccountZone(() => this.repository.listConsolidation(req.session!.sub, parsed));
   }
 
-  // Valider ou rejeter un dossier (US-042 à l'étape 2, US-043 à l'étape 3 ; US-044 ensuite)
+  // Dossiers en attente d'expertise du Comité (étape 4) ; le Comité est national
+  @Get('dossiers/expertise')
+  @Header('Cache-Control', 'no-store')
+  expertise(@Query() query: unknown, @Req() req: SessionRequest): Promise<ZonePage<ExpertiseItem>> {
+    const parsed = parseQuery(query);
+    return inAccountZone(() => this.repository.listExpertise(req.session!.sub, parsed));
+  }
+
+  // Valider ou rejeter un dossier (US-042 à l'étape 2, US-043 à l'étape 3, US-044 à l'étape 4)
   @Post('dossiers/:code/decision')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
