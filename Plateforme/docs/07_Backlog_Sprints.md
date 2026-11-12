@@ -373,7 +373,7 @@ Décision du maître d’œuvre (12 novembre 2026) : seul l’admin régional d�
 Critères d’acceptation :
 - Étant donné un dossier à l’étape 4, quand je valide, alors il passe à l’étape 5 ; quand je rejette avec motif, il revient à l’étape 3.
 
-Lecture retenue (12 novembre 2026) : un seul membre du Comité décide, pour les dossiers de toutes les régions ; motif obligatoire au rejet (voir 05 §2.31).
+Décision du maître d’œuvre (12 novembre 2026) : un seul membre du Comité décide, pour les dossiers de toutes les régions (pas de décision collégiale) ; motif obligatoire au rejet (voir 05 §2.31).
 
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
 
