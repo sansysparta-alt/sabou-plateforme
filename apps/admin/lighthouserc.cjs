@@ -4,6 +4,8 @@
 // prepare.spec.ts) puis appelle Lighthouse groupe par groupe :
 //   LH_GROUP       indice du groupe de pages dans .lighthouse/pages.json
 //   LH_FORM_FACTOR « mobile » (défaut) ou « desktop »
+//   LH_PAGES       expression régulière : seules les pages dont l'adresse y répond (ci:recit)
+//   LH_RUNS        nombre de mesures par page (ci:recit : 1 ; preuve de fusion : défaut)
 // Chaque récit qui ajoute des pages les ajoute à la préparation.
 // Fichier CommonJS : format de configuration lu par Lighthouse CI
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -17,6 +19,8 @@ const groups = existsSync('.lighthouse/pages.json')
   ? JSON.parse(readFileSync('.lighthouse/pages.json', 'utf8'))
   : [];
 const group = groups[Number(process.env.LH_GROUP ?? 0)] ?? { cookie: '', urls: [] };
+const pageFilter = process.env.LH_PAGES ? new RegExp(process.env.LH_PAGES) : null;
+const urls = pageFilter ? group.urls.filter((url) => pageFilter.test(url)) : group.urls;
 
 const mobile = {
   formFactor: 'mobile',
@@ -64,10 +68,12 @@ module.exports = {
   ci: {
     collect: {
       // Calibrage : une seule mesure de la première page, pour lire l'indice de la machine
-      url: calibrating ? group.urls.slice(0, 1) : group.urls,
+      url: calibrating ? group.urls.slice(0, 1) : urls,
       // Médiane de 5 mesures sur téléphone (le temps de blocage varie sur l'exécuteur partagé
       // du pipeline : 231 ms une fois sur l'accueil, contre 0 à 24 ms sur le poste), 3 sur ordinateur
-      numberOfRuns: calibrating ? 1 : formFactor === 'mobile' ? 5 : 3,
+      numberOfRuns: calibrating
+        ? 1
+        : Number(process.env.LH_RUNS ?? (formFactor === 'mobile' ? 5 : 3)),
       chromePath: chromium.executablePath(),
       settings: {
         ...(formFactor === 'desktop' ? desktop : mobile),

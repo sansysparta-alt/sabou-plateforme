@@ -2,6 +2,8 @@
 # Analyse du code par Semgrep (édition communautaire) : un résultat de gravité haute fait
 # échouer le pipeline ; les autres sont affichés sans bloquer.
 # Usage : semgrep.sh [dossier]  (par défaut, la racine du dépôt)
+# SEMGREP_FILES (pnpm ci:recit) : fichiers à analyser, relatifs au dossier et séparés par des
+# retours à la ligne ; vide : tous les fichiers du dossier (pipeline complet).
 
 # Dossier résolu avant env.sh, qui se place à la racine du dépôt
 target="$(cd "${1:-$(dirname "$0")/../..}" && pwd)"
@@ -20,25 +22,54 @@ RULES_DIRS=(bash dockerfile generic html javascript typescript yaml)
 I18NEXT_RULE="rules.typescript.react.portability.i18next.jsx-not-internationalized"
 
 workdir="$(mktemp -d)"
-trap 'rm -rf "$workdir"' EXIT
-mkdir "$workdir/rules" "$workdir/out"
+container=""
+cleanup() {
+  if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
+  rm -rf "$workdir"
+}
+trap cleanup EXIT
+mkdir "$workdir/rules"
 # Un commit désigné par son empreinte : le contenu des règles ne peut pas changer
 git -C "$workdir/rules" init -q
 git -C "$workdir/rules" fetch -q --depth 1 "$RULES_REPO" "$RULES_COMMIT"
 git -C "$workdir/rules" -c advice.detachedHead=false checkout -q FETCH_HEAD
 
-src="$target" rules="$workdir/rules" out="$workdir/out"
+# Fichiers analysés : SEMGREP_FILES (pnpm ci:recit), sinon tout le dossier
+targets=()
+while read -r file; do
+  [[ -n "$file" && -f "$target/$file" ]] && targets+=("$file")
+done <<<"${SEMGREP_FILES:-}"
+if [[ -n "${SEMGREP_FILES:-}" ]] && ((${#targets[@]} == 0)); then
+  echo "Semgrep : aucun fichier à analyser"
+  exit 0
+fi
+
+src="$target" out="$workdir"
 # Sous Git Bash (Windows), Docker attend des chemins Windows
 if command -v cygpath >/dev/null; then
-  src="$(cygpath -m "$src")" rules="$(cygpath -m "$rules")" out="$(cygpath -m "$out")"
+  src="$(cygpath -m "$src")" out="$(cygpath -m "$out")"
 fi
 configs=()
 for dir in "${RULES_DIRS[@]}"; do configs+=(--config "/rules/$dir"); done
 
-# --metrics=off : aucune donnée envoyée à Semgrep ; le code n'est jamais transmis
-MSYS_NO_PATHCONV=1 docker run --rm -v "$src:/src:ro" -v "$rules:/rules:ro" -v "$out:/out" \
-  -w /src "$SEMGREP_IMAGE" semgrep scan --metrics=off --disable-version-check --quiet \
-  "${configs[@]}" --exclude-rule "$I18NEXT_RULE" --text --json-output=/out/results.json
+# Le code est monté en lecture seule ; les règles (des milliers de petits fichiers) sont
+# copiées dans le conteneur par un flux tar : sous Windows, les lire à travers le dossier
+# partagé prenait 9 minutes, contre moins d'une ainsi. --metrics=off : aucune donnée envoyée
+# à Semgrep ; le code n'est jamais transmis.
+container=$(MSYS_NO_PATHCONV=1 docker create -v "$src:/src:ro" -v "$out:/out" -w /src \
+  "$SEMGREP_IMAGE" semgrep scan --metrics=off --disable-version-check --quiet \
+  "${configs[@]}" --exclude-rule "$I18NEXT_RULE" --text --json-output=/out/results.json \
+  "${targets[@]}")
+# Archive préfixée et déposée à la racine : docker cp n'accepte qu'une destination existante
+tar -C "$workdir/rules" --transform 's,^,rules/,' -cf - "${RULES_DIRS[@]}" |
+  MSYS_NO_PATHCONV=1 docker cp - "$container:/" >/dev/null
+status=0
+docker start -a "$container" || status=$?
+# Code de sortie de Semgrep : 0 sans résultat, 1 avec résultats (triés ci-dessous), > 1 erreur
+if ((status > 1)); then
+  echo "ÉCHEC : Semgrep s'est arrêté sur une erreur (code $status)" >&2
+  exit "$status"
+fi
 
 # Gravité haute : ERROR dans le classement historique de Semgrep, HIGH ou CRITICAL dans le nouveau
 node -e '
@@ -48,4 +79,4 @@ for (const e of errors) console.error(`Erreur d’analyse : ${e.path ?? ""} ${[]
 for (const r of high) console.error(`HAUTE : ${r.path}:${r.start.line} ${r.check_id}`);
 console.log(`Semgrep : ${results.length} résultat(s), dont ${high.length} de gravité haute ; ${errors.length} erreur(s) d’analyse.`);
 if (high.length > 0) process.exit(1);
-' "$workdir/out/results.json"
+' "$workdir/results.json"
