@@ -41,7 +41,7 @@ export interface NewPiece {
 
 export type SubmitResult =
   | { status: 'missing'; missing: PractitionerPieceType[] }
-  | { status: 'submitted'; code: string; submittedAt: string; phone: string | null };
+  | { status: 'submitted'; code: string; submittedAt: string };
 
 // Fiche, dossier et pièces du praticien connecté (US-040a). Toujours dans son contexte
 // (inZone) : la base n'expose que sa fiche et ses dossiers (US-011) et contrôle ce qu'il
@@ -163,15 +163,13 @@ export class DossiersRepository {
       } catch (error) {
         translate(error);
       }
-      const { rows } = await sql<{ submittedAt: Date; phone: string | null }>`
-        SELECT d.etape_entree_le AS "submittedAt", u.telephone AS phone
-          FROM sabou.dossier_certification d, sabou.utilisateur u
-         WHERE d.id = ${dossier.id} AND u.id = sabou.contexte_utilisateur()`.execute(trx);
+      const { rows } = await sql<{ submittedAt: Date }>`
+        SELECT etape_entree_le AS "submittedAt" FROM sabou.dossier_certification
+         WHERE id = ${dossier.id}`.execute(trx);
       return {
         status: 'submitted',
         code: dossier.code,
         submittedAt: rows[0]!.submittedAt.toISOString(),
-        phone: rows[0]!.phone,
       };
     });
   }

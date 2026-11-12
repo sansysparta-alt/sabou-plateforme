@@ -7,7 +7,6 @@ import { SignupController } from './signup.controller';
 import { SignupRepository } from './signup.repository';
 import { SignupService } from './signup.service';
 import { SIGNUP_STORE, ValkeySignupStore } from './signup.store';
-import { JournalSmsSender, SMS_SENDER } from './sms';
 
 // Inscription des citoyens par leur numéro de téléphone (lot D : US-014, §2.25)
 @Module({
@@ -22,8 +21,6 @@ import { JournalSmsSender, SMS_SENDER } from './sms';
       inject: [ENV],
       useFactory: (env: Env) => new KeycloakCitizenIdentity(env),
     },
-    // Un seul fournisseur pour l'instant (SMS_PROVIDER=journal) ; l'agrégateur viendra avec US-031
-    { provide: SMS_SENDER, useClass: JournalSmsSender },
   ],
 })
 export class SignupModule {}

@@ -11,7 +11,6 @@ import { InvalidMobileTokenError, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-t
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { ENV } from '../config/env';
 import { ZoneContextError } from '../database/zone';
-import { SMS_SENDER } from '../signup/sms';
 import { DossiersController, PractitionerGuard } from './dossiers.controller';
 import {
   DossierLockedError,
@@ -79,7 +78,6 @@ const repository = {
       status: 'submitted',
       code: 'DS-2001',
       submittedAt: '2026-11-07T10:00:00.000Z',
-      phone: '+224661234567',
     };
   },
 };
@@ -90,12 +88,6 @@ const storage = {
   },
   async remove(key: string) {
     storage.objects.delete(key);
-  },
-};
-const sms = {
-  sent: [] as { to: string; text: string }[],
-  async send(to: string, text: string) {
-    sms.sent.push({ to, text });
   },
 };
 const session = (roles: string[]): SessionData => ({
@@ -147,7 +139,6 @@ beforeAll(async () => {
       PractitionerGuard,
       { provide: DossiersRepository, useValue: repository },
       { provide: PIECE_STORAGE, useValue: storage },
-      { provide: SMS_SENDER, useValue: sms },
       { provide: SESSION_STORE, useValue: sessions },
       { provide: MOBILE_TOKEN_VERIFIER, useValue: mobileTokens },
       { provide: ENV, useValue: { SITE_URL: SITE } },
@@ -169,7 +160,6 @@ beforeEach(() => {
   db.calls = [];
   mobileTokens.outage = false;
   storage.objects.clear();
-  sms.sent = [];
   sessions.data = new Map([
     ['praticien', session(['praticien'])],
     ['citoyen', session(['citoyen'])],
@@ -208,7 +198,9 @@ const saveProfile = (profile: unknown = PROFILE) =>
   call('PUT', 'fiche', { body: JSON.stringify(profile), type: 'application/json' });
 
 describe('Critère 1 : un dossier complet soumis passe à l’étape 2, avec un accusé de réception', () => {
-  it('enregistre la fiche, les pièces, puis soumet : étape 2, accusé à l’écran et par SMS', async () => {
+  // L'accusé par SMS est mis en file par la base, dans la transaction de la soumission
+  // (US-031 : packages/db/test/notification-sms.test.ts, et de bout en bout par le site)
+  it('enregistre la fiche, les pièces, puis soumet : étape 2, accusé à l’écran', async () => {
     expect((await saveProfile()).status).toBe(204);
     expect((await upload('identite', PDF, 'application/pdf')).status).toBe(201);
     expect((await upload('photo', JPEG)).status).toBe(201);
@@ -220,12 +212,6 @@ describe('Critère 1 : un dossier complet soumis passe à l’étape 2, avec un 
       etape: 2,
       soumisLe: '2026-11-07T10:00:00.000Z',
     });
-    expect(sms.sent).toEqual([
-      {
-        to: '+224661234567',
-        text: expect.stringMatching(/^SABOU : votre dossier DS-2001 est bien reçu\./),
-      },
-    ]);
   });
 
   it('range chaque pièce sous une clé tirée au hasard, avec son format réel et son empreinte', async () => {
@@ -237,15 +223,14 @@ describe('Critère 1 : un dossier complet soumis passe à l’étape 2, avec un 
     expect(storage.objects.get(piece!.key)).toEqual({ body: JPEG, contentType: 'image/jpeg' });
   });
 
-  it('n’envoie pas de SMS si la soumission échoue', async () => {
+  it('refuse en 409 un dossier qui n’est plus à l’étape 1', async () => {
     db.failure = new DossierLockedError();
     expect((await call('POST', 'dossier/soumission')).status).toBe(409);
-    expect(sms.sent).toEqual([]);
   });
 });
 
 describe('Critère 2 : une pièce obligatoire manquante bloque la soumission', () => {
-  it('refuse en 422 avec la liste des pièces manquantes, sans SMS', async () => {
+  it('refuse en 422 avec la liste des pièces manquantes', async () => {
     await upload('identite', PDF, 'application/pdf');
     const response = await call('POST', 'dossier/soumission');
     expect(response.status).toBe(422);
@@ -255,7 +240,6 @@ describe('Critère 2 : une pièce obligatoire manquante bloque la soumission', (
       piecesManquantes: ['photo'],
     });
     expect(db.submitted).toBe(false);
-    expect(sms.sent).toEqual([]);
   });
 
   it('liste toutes les pièces manquantes, dans l’ordre', async () => {
@@ -411,7 +395,6 @@ describe('Application mobile (jeton « Bearer », US-040b)', () => {
       etape: 2,
       soumisLe: '2026-11-07T10:00:00.000Z',
     });
-    expect(sms.sent).toHaveLength(1);
     expect(new Set(db.calls.map((c) => c.split(':')[1]))).toEqual(new Set([SUB]));
   });
 

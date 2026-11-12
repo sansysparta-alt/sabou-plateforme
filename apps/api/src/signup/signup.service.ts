@@ -12,7 +12,7 @@ import { AUDIT_LOG, type AuditLog } from '../audit/audit.log';
 import { CITIZEN_IDENTITY, type CitizenIdentity } from './citizen-identity';
 import { SignupRepository } from './signup.repository';
 import { SIGNUP_CODE_SECONDS, SIGNUP_STORE, type SignupStore } from './signup.store';
-import { signupCodeMessage, SMS_SENDER, type SmsSender } from './sms';
+import { signupCodeMessage, SMS_SENDER, type SmsSender } from '../sms/sms';
 
 // Limites contre l'envoi de SMS en masse (coût) et la recherche du code (lot D, §2.25).
 // Par adresse IP, des limites larges : en Guinée, beaucoup d'abonnés mobiles partagent

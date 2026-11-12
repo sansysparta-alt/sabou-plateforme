@@ -21,6 +21,7 @@ const SUMMARY: DashboardSummary = {
   comptes: 2,
   specialites: 8,
   activite: [],
+  smsNonRemis: null,
 };
 
 const calls: string[] = [];

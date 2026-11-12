@@ -103,7 +103,7 @@ test('critères 1 et 2 : soumission bloquée sans photo, puis dossier complet à
   expect(receipt).toMatchObject({ code: expect.stringMatching(/^DS-\d+$/), etape: 2 });
   await expect
     .poll(() => lastSms(phone), { timeout: 15_000, intervals: [500] })
-    .toContain(`votre dossier ${receipt.code} est bien reçu`);
+    .toContain(`votre dossier ${receipt.code} est bien enregistré`);
 
   // Ce que la base et le stockage gardent réellement
   expect(

@@ -76,8 +76,8 @@ async function submitCode(page: Page, secret: string): Promise<void> {
 
 // Compte d'administration lié à un compte Keycloak neuf, avec sa zone en base
 export async function administrator(
-  keycloakRole: 'admin_prefectoral' | 'admin_regional' | 'comite',
-  // Le Comité scientifique est national : pas de zone
+  keycloakRole: 'admin_prefectoral' | 'admin_regional' | 'comite' | 'dg',
+  // Le Comité scientifique et la DG sont nationaux : pas de zone
   zone: { prefecture: string } | { region: string } | { national: true },
 ): Promise<TestUser> {
   const user = await createUser(keycloakRole);
@@ -87,7 +87,7 @@ export async function administrator(
   }
   const [role, region, prefecture] =
     'national' in zone
-      ? ['scientifique', 'NULL', 'NULL']
+      ? [keycloakRole === 'dg' ? 'dg' : 'scientifique', 'NULL', 'NULL']
       : 'prefecture' in zone
         ? [
             'prefectoral',

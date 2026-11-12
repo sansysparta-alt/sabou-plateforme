@@ -52,10 +52,13 @@ const envSchema = z
     // Compte de service « sabou-inscription » (manage-users, view-users de sabou-public)
     INSCRIPTION_CLIENT_ID: z.string().min(1).default('sabou-inscription'),
     INSCRIPTION_CLIENT_SECRET: z.string().min(32),
-    // Envoi des SMS : « journal » = faux fournisseur (code écrit dans le journal de l'API),
-    // pour le poste local et la recette ; le vrai agrégateur arrive avec US-031. Aucune
-    // valeur par défaut : la production doit choisir explicitement.
+    // Envoi des SMS : « journal » = faux fournisseur (message écrit dans le journal de l'API),
+    // pour le poste local et la recette ; l'API d'Orange Guinée sera ajoutée à la mise en
+    // service (05 §2.32). Aucune valeur par défaut : la production doit choisir explicitement.
     SMS_PROVIDER: z.enum(['journal']),
+    // File des SMS des décisions (US-031) relevée toutes les SMS_POLL_SECONDS (0 : jamais) ;
+    // 5 minutes au plus entre la décision et l'envoi
+    SMS_POLL_SECONDS: z.coerce.number().int().min(0).max(240).default(30),
     // Pièces des dossiers (US-040a, §2.26) : stockage objet S3 (SeaweedFS). Seau créé au
     // démarrage sur le poste local seulement ; ailleurs, il est préparé au déploiement.
     S3_ENDPOINT: z.url({ protocol: /^https?$/ }),

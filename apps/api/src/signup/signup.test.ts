@@ -19,7 +19,7 @@ import {
   type CodeCheck,
   type SignupStore,
 } from './signup.store';
-import { SMS_SENDER, type SmsSender } from './sms';
+import { SMS_SENDER, type SmsSender } from '../sms/sms';
 
 const SITE = 'http://localhost:3000';
 

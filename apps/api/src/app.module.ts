@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { CertificationModule } from './certification/certification.module';
 import { ReferentialsModule } from './referentials/referentials.module';
 import { SignupModule } from './signup/signup.module';
+import { SmsModule } from './sms/sms.module';
 import { SyncModule } from './sync/sync.module';
 
 // Module racine : chaque domaine (certification, dictionnaire, traitements…) y sera importé
@@ -25,6 +26,7 @@ import { SyncModule } from './sync/sync.module';
     DossiersModule,
     ReferentialsModule,
     SignupModule,
+    SmsModule,
     SyncModule,
   ],
   controllers: [HealthController],
