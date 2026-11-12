@@ -13,6 +13,17 @@ export interface DashboardEvent {
   le: string;
 }
 
+// SMS non remis au praticien après tous les essais (US-031) : affiché à la DG seule
+export interface SmsFailure {
+  // Code du dossier concerné (DS-…)
+  objet: string;
+  destinataire: string;
+  // Raison donnée par le fournisseur ou par l'API (ex. « Aucun numéro de téléphone »)
+  raison: string;
+  // Horodatage ISO 8601 en UTC
+  le: string;
+}
+
 export interface DashboardSummary {
   // Zone en clair : préfecture, région ou « National »
   zone: string;
@@ -24,4 +35,6 @@ export interface DashboardSummary {
   // Valeurs du référentiel des spécialités (paramétrées par la DG)
   specialites: number;
   activite: DashboardEvent[];
+  // DG seule (null pour les autres profils) : nombre total d'échecs et les plus récents
+  smsNonRemis: { total: number; derniers: SmsFailure[] } | null;
 }

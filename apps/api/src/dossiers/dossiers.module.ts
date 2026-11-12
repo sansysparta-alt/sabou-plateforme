@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { keycloakMobileTokenVerifier, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-token';
 import { ENV, type Env } from '../config/env';
-import { JournalSmsSender, SMS_SENDER } from '../signup/sms';
 import { DossiersController, PractitionerGuard } from './dossiers.controller';
 import { DossiersRepository } from './dossiers.repository';
 import { DossiersService } from './dossiers.service';
@@ -33,8 +32,6 @@ import { PIECE_STORAGE, S3PieceStorage } from './piece-storage';
         return storage;
       },
     },
-    // Même interface d'envoi que l'inscription (SMS_PROVIDER=journal) ; agrégateur avec US-031
-    { provide: SMS_SENDER, useClass: JournalSmsSender },
   ],
 })
 export class DossiersModule {}

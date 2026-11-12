@@ -38,6 +38,7 @@ describe('loadEnv', () => {
       ADMIN_CLIENT_ID: 'sabou-admin',
       AUDIT_CLIENT_ID: 'sabou-audit',
       AUDIT_POLL_SECONDS: 60,
+      SMS_POLL_SECONDS: 30,
       COMPTES_CLIENT_ID: 'sabou-comptes',
       INVITATION_HOURS: 72,
       SITE_CLIENT_ID: 'sabou-site',
@@ -58,6 +59,14 @@ describe('loadEnv', () => {
     );
     expect(() => loadEnv({ ...base, DATABASE_URL: 'mysql://localhost/sabou' })).toThrow(
       'DATABASE_URL',
+    );
+  });
+
+  // US-031 : un SMS part dans les 5 minutes ; la relève ne peut pas être plus espacée
+  it('refuse une relève des SMS espacée de plus de 4 minutes', () => {
+    expect(loadEnv({ ...base, SMS_POLL_SECONDS: '240' }).SMS_POLL_SECONDS).toBe(240);
+    expect(() => loadEnv({ ...base, SMS_POLL_SECONDS: '241' })).toThrow(
+      /^Configuration invalide : SMS_POLL_SECONDS$/,
     );
   });
 

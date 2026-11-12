@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DashboardDecision, DashboardEvent, DashboardSummary } from '@sabou/types';
+import type { DashboardDecision, DashboardEvent, DashboardSummary, SmsFailure } from '@sabou/types';
 import {
   Alert,
   Badge,
@@ -38,6 +38,14 @@ const ACTIVITY_COLUMNS: Column<DashboardEvent>[] = [
   { key: 'praticien', header: 'Praticien', render: (e) => e.praticienNom },
   { key: 'decision', header: 'Événement', render: (e) => DECISIONS[e.decision] },
   { key: 'etape', header: 'Étape', render: (e) => `${e.etape} sur 6`, numeric: true },
+];
+
+// SMS non remis au praticien après tous les essais (US-031) : la DG peut le prévenir autrement
+const SMS_FAILURE_COLUMNS: Column<SmsFailure>[] = [
+  { key: 'le', header: 'Date', render: (f) => dateFormat.format(new Date(f.le)) },
+  { key: 'objet', header: 'Dossier', render: (f) => f.objet },
+  { key: 'destinataire', header: 'Praticien', render: (f) => f.destinataire },
+  { key: 'raison', header: 'Raison', render: (f) => f.raison },
 ];
 
 // Fonctions annoncées, d'après le plan des sprints (07_Backlog_Sprints.md)
@@ -149,6 +157,14 @@ export function Dashboard({
                 value={data?.specialites ?? PENDING}
                 detail="Référentiel de la DG"
               />
+              {/* Carte présente dès le départ pour la DG : rien ne se décale (CLS) */}
+              {isDirector(user) && (
+                <StatCard
+                  label="SMS non remis"
+                  value={data?.smsNonRemis?.total ?? PENDING}
+                  detail="Après 4 essais d’envoi"
+                />
+              )}
               <StatCard label="Certificats émis" value={null} upcoming="Sprint 3" />
             </div>
           )}
@@ -191,6 +207,23 @@ export function Dashboard({
             rows={data.activite}
             rowKey={(e) => `${e.dossier}-${e.le}-${e.decision}`}
             empty="Aucun dossier n’a encore changé d’étape dans votre zone."
+          />
+        </section>
+      )}
+      {isDirector(user) && data?.smsNonRemis && data.smsNonRemis.total > 0 && (
+        <section className="ui-section" aria-labelledby="sms-non-remis">
+          <h2 id="sms-non-remis">SMS non remis</h2>
+          <p>
+            Ces praticiens n’ont pas reçu le SMS de l’étape de leur dossier. Prévenez-les par un
+            autre moyen et vérifiez leur numéro.
+          </p>
+          <DataTable
+            caption="Derniers SMS non remis"
+            captionHidden
+            columns={SMS_FAILURE_COLUMNS}
+            rows={data.smsNonRemis.derniers}
+            rowKey={(f) => `${f.objet}-${f.le}`}
+            empty=""
           />
         </section>
       )}

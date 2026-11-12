@@ -60,7 +60,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 
 | Tâche | Échéance | Lien | Statut (2 novembre 2026) |
 |---|---|---|---|
-| Agrégateur SMS (contrat, **nom d’expéditeur** « SABOU ») | Avant S2 | US-031 | **En cours** : décidé de partir sur un agrégateur avec nom d’expéditeur ; l’enregistrement du nom auprès des opérateurs peut prendre plusieurs semaines |
+| Agrégateur SMS (contrat, **nom d’expéditeur** « SABOU ») | Avant la mise en service | US-031 | **Décidé le 12 novembre 2026 : API SMS d’Orange Guinée**, branchée à la mise en service (US-031 livré avec l’envoi simulé, aucun achat d’ici là). À obtenir d’Orange par écrit : livraison vers MTN et Cellcom, contrat avec facture, accusés de réception ; nom « SABOU » par le formulaire d’Orange (environ 5 jours ouvrés) |
 | Hébergement de la recette (sprints 1 et 2, données fictives) | Avant la revue de S1 | US-015 | **Reporté** (décision du 3 novembre 2026) : serveur unique sous Docker Compose recommandé plutôt que Vercel (la recette a besoin de l’API et de la base) ; hébergeur, adresse, accès et clé de déploiement à trancher |
 | Prototype 3.4 — choisir l’hébergeur souverain (3 serveurs, sauvegarde hors site, coût) | Avant S3 | US-008, US-162 | À lancer |
 | Atelier linguistique : un référent par langue, voix et transcriptions des noms | Avant S4 | US-053, US-071 | Reporté (à revoir plus tard) |
@@ -316,6 +316,8 @@ Critères d’acceptation :
 - Étant donné une transition validée, quand la transaction est confirmée, alors un SMS part dans les 5 minutes.
 - Étant donné une transition annulée (erreur), quand la transaction échoue, alors aucun SMS ne part.
 - Étant donné un échec d’envoi, quand le service SMS répond en erreur, alors 3 nouvelles tentatives ont lieu puis l’échec est visible.
+
+Décisions du maître d’œuvre (12 novembre 2026) : API SMS d’Orange Guinée, branchée à la mise en service (envoi simulé d’ici là) ; l’échec est visible sur le tableau de bord de la DG ; le SMS de rejet ne contient pas le motif (05 §2.32).
 
 #### US-040a · Soumettre mon dossier de certification (API et base)
 *Certification et certificat* · **Must** · 5 points · cas : UC-20

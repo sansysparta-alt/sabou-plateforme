@@ -9,7 +9,6 @@ import type {
   SubmissionReceipt,
 } from '@sabou/types';
 import { PIECE_LABELS } from '@sabou/types';
-import { SMS_SENDER, type SmsSender } from '../signup/sms';
 import { inspectPiece } from './piece-content';
 import { PIECE_STORAGE, type PieceStorage } from './piece-storage';
 import {
@@ -25,11 +24,6 @@ export class DossierHttpError extends HttpException {
   constructor(status: HttpStatus, body: DossierError) {
     super(body, status);
   }
-}
-
-// Texte de l'accusé de réception : en français seulement (langues nationales en voix)
-export function receiptMessage(code: string): string {
-  return `SABOU : votre dossier ${code} est bien reçu. Il passe à la vérification sur le terrain ; l'administration de votre préfecture vous contactera.`;
 }
 
 function toHttp(error: unknown): never {
@@ -74,7 +68,6 @@ export class DossiersService {
   constructor(
     private readonly repository: DossiersRepository,
     @Inject(PIECE_STORAGE) private readonly storage: PieceStorage,
-    @Inject(SMS_SENDER) private readonly sms: SmsSender,
   ) {}
 
   referentials(): Promise<PractitionerReferentials> {
@@ -141,16 +134,9 @@ export class DossiersService {
         piecesManquantes: result.missing,
       });
     }
-    // Après la validation de la transaction : un SMS ne part jamais pour une soumission
-    // annulée. Un échec d'envoi n'annule pas la soumission (l'accusé est aussi à l'écran) ;
-    // les nouvelles tentatives arrivent avec US-031.
-    if (result.phone) {
-      await this.sms.send(result.phone, receiptMessage(result.code)).catch((cause: unknown) => {
-        this.logger.error(
-          `Accusé de réception de ${result.code} non envoyé : ${(cause as Error).message}`,
-        );
-      });
-    }
+    // L'accusé par SMS est mis en file par la transition, dans la même transaction (US-031) :
+    // il ne part jamais pour une soumission annulée, et un échec d'envoi est réessayé sans
+    // annuler la soumission (l'accusé est aussi à l'écran)
     return { code: result.code, etape: 2, soumisLe: result.submittedAt };
   }
 }

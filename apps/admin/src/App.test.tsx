@@ -48,6 +48,17 @@ const SUMMARY: DashboardSummary = {
       le: '2026-11-07T09:30:00Z',
     },
   ],
+  smsNonRemis: {
+    total: 2,
+    derniers: [
+      {
+        objet: 'DS-2011',
+        destinataire: 'Sékou Kourouma',
+        raison: 'Aucun numéro de téléphone',
+        le: '2026-11-12T08:15:00Z',
+      },
+    ],
+  },
 };
 
 // Réponses de l'API, par adresse
@@ -123,6 +134,25 @@ describe('App', () => {
     expect(screen.getByText('Certificats émis').parentElement!.textContent).toMatch(/Sprint 3/);
     expect(screen.getByRole('heading', { name: 'À venir' }));
     expect(screen.queryByRole('link', { name: 'Activer le double facteur' })).toBeNull();
+  });
+
+  it('DG : SMS non remis après tous les essais, avec le dossier et la raison (US-031)', async () => {
+    mockApi(dg);
+    render(<App />);
+    expect(await screen.findByText('Direction Générale · Labé'));
+    expect(screen.getByText('SMS non remis', { selector: 'p' }).parentElement!.textContent).toMatch(
+      /2.*Après 4 essais/,
+    );
+    expect(screen.getByRole('heading', { level: 2, name: 'SMS non remis' }));
+    const row = screen.getByRole('row', { name: /DS-2011/ });
+    expect(row.textContent).toMatch(/08:15.*Sékou Kourouma.*Aucun numéro de téléphone/);
+  });
+
+  it('administrateur préfectoral : pas de carte ni de liste des SMS non remis (DG seule)', async () => {
+    mockApi(prefectoral);
+    render(<App />);
+    expect(await screen.findByText('Administrateur préfectoral · Labé'));
+    expect(screen.queryByText('SMS non remis')).toBeNull();
   });
 
   it('administrateur préfectoral : pas de rubrique Administration (navigation selon le rôle)', async () => {
