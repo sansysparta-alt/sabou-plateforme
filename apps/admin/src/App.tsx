@@ -15,11 +15,15 @@ const InvitationPage = lazy(() =>
 const FieldVerificationPage = lazy(() =>
   import('./FieldVerificationPage').then((m) => ({ default: m.FieldVerificationPage })),
 );
+const ConsolidationPage = lazy(() =>
+  import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
+);
 import {
   fetchSession,
   hasManagementAccess,
   isDirector,
   isPrefectoral,
+  isRegional,
   LOGIN_ERRORS,
   logout,
   profileLabel,
@@ -155,6 +159,12 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'folder' }],
     });
   }
+  if (isRegional(user)) {
+    groups.push({
+      heading: 'Certification',
+      items: [{ href: '/consolidation', label: 'Consolidation régionale', icon: 'folder' }],
+    });
+  }
   if (isDirector(user)) {
     groups.push({
       heading: 'Administration',
@@ -175,13 +185,18 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
 const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/verification-terrain': FieldVerificationPage,
 };
+const REGIONAL_PAGES: Record<string, ComponentType> = {
+  '/consolidation': ConsolidationPage,
+};
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const Page = isDirector(user)
     ? DIRECTOR_PAGES[path()]
     : isPrefectoral(user)
       ? PREFECTORAL_PAGES[path()]
-      : undefined;
+      : isRegional(user)
+        ? REGIONAL_PAGES[path()]
+        : undefined;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}

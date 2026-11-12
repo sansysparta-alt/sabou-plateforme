@@ -2,32 +2,18 @@
 // de l'API (sabou_app), dans le contexte de chaque acteur, sur le jeu d'exemple ; chaque cas
 // part du même état (transaction annulée). Les messages vérifiés ici sont ceux que l'API
 // traduit en réponses (apps/api/src/certification/certification.repository.ts).
-import pg from 'pg';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createSeededDatabase,
   inRolledBackTransaction,
+  lastRows as rowsAt,
   openContext,
   type TestDatabase,
 } from './helpers.ts';
 
 let db: TestDatabase;
 const attempt = (sql: string) => inRolledBackTransaction(db.url.app, sql);
-
-// Lignes de la dernière instruction, dans une transaction toujours annulée
-async function lastRows(sql: string): Promise<Record<string, unknown>[]> {
-  const client = new pg.Client({ connectionString: db.url.app });
-  await client.connect();
-  try {
-    await client.query('BEGIN');
-    const results = (await client.query(`SET LOCAL search_path = sabou, public; ${sql}`)) as
-      pg.QueryResult | pg.QueryResult[];
-    return (Array.isArray(results) ? results.at(-1)! : results).rows;
-  } finally {
-    await client.query('ROLLBACK').catch(() => undefined);
-    await client.end();
-  }
-}
+const lastRows = (sql: string) => rowsAt(db.url.app, sql);
 
 // DS-1041 (praticien de Labé, pièces complètes) soumis par son praticien : il passe à
 // l'étape 2. Sa visite du jeu d'exemple est seulement planifiée.

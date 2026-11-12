@@ -23,6 +23,11 @@ const prefectoral: SessionUser = {
   name: 'Ibrahima Sow',
   roles: ['admin_prefectoral', 'administrateur'],
 };
+const regional: SessionUser = {
+  ...dg,
+  name: 'Alpha Barry',
+  roles: ['admin_regional', 'administrateur'],
+};
 const SUMMARY: DashboardSummary = {
   zone: 'Labé',
   praticiens: 1240,
@@ -48,7 +53,7 @@ function mockApi(session: SessionUser | null | 'panne') {
       return session ? Response.json(session) : new Response(null, { status: 401 });
     }
     if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
-    if (url === '/api/dossiers/verification-terrain')
+    if (url === '/api/dossiers/verification-terrain' || url === '/api/dossiers/consolidation')
       return Response.json({ elements: [], suivant: null });
     if (url === '/auth/logout' && init?.method === 'POST')
       return new Response(null, { status: 204 });
@@ -127,6 +132,33 @@ describe('App', () => {
     expect(link.getAttribute('href')).toBe('/verification-terrain');
     expect(await screen.findByRole('heading', { level: 1, name: 'Vérification terrain' }));
   });
+
+  it('administrateur régional : rubrique Consolidation régionale et sa page (US-043)', async () => {
+    mockApi(regional);
+    window.history.replaceState(null, '', '/consolidation');
+    render(<App />);
+    const link = await screen.findByRole('link', { name: 'Consolidation régionale' });
+    expect(link.getAttribute('href')).toBe('/consolidation');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Consolidation régionale' }));
+    expect(screen.queryByRole('link', { name: 'Vérification terrain' })).toBeNull();
+  });
+
+  it.each([
+    ['DG (niveau national)', dg],
+    ['préfectoral', prefectoral],
+  ])(
+    '%s : ni rubrique ni page de consolidation (décision du seul régional)',
+    async (_who, user) => {
+      mockApi(user);
+      window.history.replaceState(null, '', '/consolidation');
+      render(<App />);
+      expect(await screen.findByRole('heading', { level: 1 }));
+      expect(screen.queryByRole('link', { name: 'Consolidation régionale' })).toBeNull();
+      expect(
+        screen.queryByRole('heading', { level: 1, name: 'Consolidation régionale' }),
+      ).toBeNull();
+    },
+  );
 
   it('DG : ni rubrique ni page de vérification terrain (décision du seul préfectoral)', async () => {
     mockApi(dg);

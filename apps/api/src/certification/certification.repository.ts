@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import type {
+  ConsolidationItem,
   DossierDecision,
   DossierDecisionResult,
   DossierSummary,
@@ -92,6 +93,29 @@ export class CertificationRepository {
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
           JOIN sabou.specialite sp ON sp.id = p.specialite_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 2
+           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
+         ORDER BY d.code
+         LIMIT ${query.limite + 1}`.execute(trx);
+      return page(rows, query.limite);
+    });
+  }
+
+  // Dossiers en attente de consolidation régionale (étape 3) ; mêmes règles d'ordre et de
+  // pagination que la vérification terrain
+  listConsolidation(sub: string, query: ZoneListQuery): Promise<ZonePage<ConsolidationItem>> {
+    return inZone(this.db, sub, async (trx) => {
+      const { rows } = await sql<ConsolidationItem>`
+        SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
+               sp.libelle_fr AS specialite, pf.nom AS prefecture, d.type,
+               to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "verifieLe",
+               EXISTS (SELECT 1 FROM sabou.visite_terrain vt
+                        WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee"
+          FROM sabou.dossier_certification d
+          JOIN sabou.praticien p   ON p.id = d.praticien_id
+          JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
+          JOIN sabou.specialite sp ON sp.id = p.specialite_id
+          JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 3
            AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
          ORDER BY d.code
          LIMIT ${query.limite + 1}`.execute(trx);

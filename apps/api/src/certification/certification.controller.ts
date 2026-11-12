@@ -24,6 +24,7 @@ import {
   dossierCodeSchema,
   dossierDecisionSchema,
   zoneListQuerySchema,
+  type ConsolidationItem,
   type DossierDecisionResult,
   type DossierSummary,
   type FieldVerificationItem,
@@ -120,7 +121,7 @@ function decisionError(error: unknown): never {
   throw error;
 }
 
-// Listes cloisonnées par zone (US-011) et décisions du workflow de certification (US-042)
+// Listes cloisonnées par zone (US-011) et décisions du workflow de certification (US-042, US-043)
 @Controller('api')
 @UseGuards(AdministratorGuard)
 export class CertificationController {
@@ -154,7 +155,18 @@ export class CertificationController {
     return inAccountZone(() => this.repository.listFieldVerification(req.session!.sub, parsed));
   }
 
-  // Valider ou rejeter un dossier (US-042 à l'étape 2 ; US-043 et US-044 ensuite)
+  // Dossiers en attente de consolidation régionale (étape 3), dans la zone du compte
+  @Get('dossiers/consolidation')
+  @Header('Cache-Control', 'no-store')
+  consolidation(
+    @Query() query: unknown,
+    @Req() req: SessionRequest,
+  ): Promise<ZonePage<ConsolidationItem>> {
+    const parsed = parseQuery(query);
+    return inAccountZone(() => this.repository.listConsolidation(req.session!.sub, parsed));
+  }
+
+  // Valider ou rejeter un dossier (US-042 à l'étape 2, US-043 à l'étape 3 ; US-044 ensuite)
   @Post('dossiers/:code/decision')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')

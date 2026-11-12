@@ -42,6 +42,12 @@ export function isPrefectoral(user: SessionUser): boolean {
   return user.roles.includes('admin_prefectoral');
 }
 
+// Consolidation (étape 3) réservée à l'admin régional (R-CER-02, décision du maître d'œuvre du
+// 12 novembre 2026 : ni la DG ni un autre profil) ; la base contrôle aussi la région du dossier
+export function isRegional(user: SessionUser): boolean {
+  return user.roles.includes('admin_regional');
+}
+
 // L'application de gestion sert les 4 profils d'administration et les praticiens
 export function hasManagementAccess(user: SessionUser): boolean {
   return user.administrator || user.roles.includes('praticien');

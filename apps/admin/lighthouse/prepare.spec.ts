@@ -92,6 +92,13 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
     await administrator('admin_prefectoral', { prefecture: 'Labé' }),
   );
 
+  // Admin régional de Labé connecté : page de consolidation (US-043)
+  const regionalContext = await browser.newContext();
+  await firstAdministratorLogin(
+    await regionalContext.newPage(),
+    await administrator('admin_regional', { region: 'Labé' }),
+  );
+
   const totp = await stoppedAt(browser, 'totp');
   const recovery = await stoppedAt(browser, 'codes-de-secours');
 
@@ -113,6 +120,11 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       name: 'admin préfectoral connecté',
       cookie: await cookieHeader(prefectoralContext),
       urls: [`${APP}/verification-terrain`],
+    },
+    {
+      name: 'admin régional connecté',
+      cookie: await cookieHeader(regionalContext),
+      urls: [`${APP}/consolidation`],
     },
     { name: 'saisie du code', cookie: await cookieHeader(codeContext), urls: [codePage.url()] },
     { name: 'activation du code', cookie: await cookieHeader(totp.context), urls: [totp.url] },

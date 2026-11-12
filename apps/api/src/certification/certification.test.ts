@@ -1,4 +1,4 @@
-// Lot B (US-011) et US-042 : contrôles d'accès, paramètres des listes cloisonnées et des
+// Lot B (US-011), US-042 et US-043 : contrôles d'accès, paramètres des listes cloisonnées et des
 // décisions, traduction des refus de la base. Base simulée ;
 // le cloisonnement lui-même est prouvé sur un vrai PostgreSQL (packages/db/test/zones.test.ts)
 // et de bout en bout, par l'API réelle (apps/admin/e2e/zones.spec.ts).
@@ -30,6 +30,11 @@ let failure: Error | null = null;
 const repository = {
   async listFieldVerification(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers/verification-terrain', sub, query });
+    if (failure) throw failure;
+    return { elements: [], suivant: null };
+  },
+  async listConsolidation(sub: string, query: ZoneListQuery) {
+    calls.push({ list: 'dossiers/consolidation', sub, query });
     if (failure) throw failure;
     return { elements: [], suivant: null };
   },
@@ -103,55 +108,57 @@ const get = (path: string, cookie?: string) =>
     headers: cookie ? { cookie: `${SESSION_COOKIE}=${cookie}` } : {},
   });
 
-describe.each(['/api/praticiens', '/api/dossiers', '/api/dossiers/verification-terrain'])(
-  '%s',
-  (path) => {
-    it('refuse une requête sans session', async () => {
-      expect((await get(path)).status).toBe(401);
-      expect(calls).toEqual([]);
-    });
+describe.each([
+  '/api/praticiens',
+  '/api/dossiers',
+  '/api/dossiers/verification-terrain',
+  '/api/dossiers/consolidation',
+])('%s', (path) => {
+  it('refuse une requête sans session', async () => {
+    expect((await get(path)).status).toBe(401);
+    expect(calls).toEqual([]);
+  });
 
-    it('refuse un compte qui n’est pas administrateur', async () => {
-      expect((await get(path, 'praticien')).status).toBe(403);
-      expect(calls).toEqual([]);
-    });
+  it('refuse un compte qui n’est pas administrateur', async () => {
+    expect((await get(path, 'praticien')).status).toBe(403);
+    expect(calls).toEqual([]);
+  });
 
-    it('refuse un administrateur connecté sans second facteur (R-ACC-03)', async () => {
-      expect((await get(path, 'sans-facteur')).status).toBe(403);
-      expect(calls).toEqual([]);
-    });
+  it('refuse un administrateur connecté sans second facteur (R-ACC-03)', async () => {
+    expect((await get(path, 'sans-facteur')).status).toBe(403);
+    expect(calls).toEqual([]);
+  });
 
-    it('lit la zone du compte connecté, sans cache', async () => {
-      const response = await get(path, 'admin');
-      expect(response.status).toBe(200);
-      expect(response.headers.get('cache-control')).toBe('no-store');
-      expect(await response.json()).toEqual({ elements: [], suivant: null });
-      expect(calls).toEqual([{ list: path.slice(5), sub: SUB, query: { limite: 50 } }]);
-    });
+  it('lit la zone du compte connecté, sans cache', async () => {
+    const response = await get(path, 'admin');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({ elements: [], suivant: null });
+    expect(calls).toEqual([{ list: path.slice(5), sub: SUB, query: { limite: 50 } }]);
+  });
 
-    it('transmet la pagination', async () => {
-      await get(`${path}?limite=10&apres=PR-1041`, 'admin');
-      expect(calls[0]!.query).toEqual({ limite: 10, apres: 'PR-1041' });
-    });
+  it('transmet la pagination', async () => {
+    await get(`${path}?limite=10&apres=PR-1041`, 'admin');
+    expect(calls[0]!.query).toEqual({ limite: 10, apres: 'PR-1041' });
+  });
 
-    it.each([
-      ['limite=0'],
-      ['limite=101'],
-      ['apres=%27%20OR%201%3D1'],
-      // Aucun paramètre de zone n'est accepté : la zone vient du compte, jamais de la requête
-      ['prefecture_id=9'],
-      ['region=7'],
-    ])('refuse le paramètre %s', async (params) => {
-      expect((await get(`${path}?${params}`, 'admin')).status).toBe(400);
-      expect(calls).toEqual([]);
-    });
+  it.each([
+    ['limite=0'],
+    ['limite=101'],
+    ['apres=%27%20OR%201%3D1'],
+    // Aucun paramètre de zone n'est accepté : la zone vient du compte, jamais de la requête
+    ['prefecture_id=9'],
+    ['region=7'],
+  ])('refuse le paramètre %s', async (params) => {
+    expect((await get(`${path}?${params}`, 'admin')).status).toBe(400);
+    expect(calls).toEqual([]);
+  });
 
-    it('refuse un compte suspendu ou inconnu de la base, sans dire lequel', async () => {
-      failure = new ZoneContextError();
-      expect((await get(path, 'admin')).status).toBe(403);
-    });
-  },
-);
+  it('refuse un compte suspendu ou inconnu de la base, sans dire lequel', async () => {
+    failure = new ZoneContextError();
+    expect((await get(path, 'admin')).status).toBe(403);
+  });
+});
 
 const decide = (body: unknown, options: { cookie?: string; origin?: string; code?: string } = {}) =>
   fetch(`${base}/api/dossiers/${options.code ?? 'DS-2001'}/decision`, {
@@ -165,6 +172,28 @@ const decide = (body: unknown, options: { cookie?: string; origin?: string; code
     },
     body: JSON.stringify(body),
   });
+
+describe('US-043 : consolidation à l’étape 3, même appel', () => {
+  it('valide : le dossier passe à l’étape 4', async () => {
+    const response = await decide({ etape: 3, decision: 'valide' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ code: 'DS-2001', etape: 4 });
+  });
+
+  it('rejette avec motif : le dossier revient à l’étape 2', async () => {
+    const response = await decide({ etape: 3, decision: 'rejete', motif: 'Pièce illisible' });
+    expect(await response.json()).toEqual({ code: 'DS-2001', etape: 2 });
+  });
+
+  it.each([undefined, '', '  '])(
+    'refuse un rejet sans motif (%j), sans appeler la base',
+    async (motif) => {
+      const response = await decide({ etape: 3, decision: 'rejete', motif });
+      expect(response.status).toBe(400);
+      expect(decisions).toEqual([]);
+    },
+  );
+});
 
 describe('US-042 : décision sur un dossier', () => {
   it('valide : renvoie l’étape suivante, sans cache', async () => {
