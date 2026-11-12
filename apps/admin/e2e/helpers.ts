@@ -76,8 +76,9 @@ async function submitCode(page: Page, secret: string): Promise<void> {
 
 // Compte d'administration lié à un compte Keycloak neuf, avec sa zone en base
 export async function administrator(
-  keycloakRole: 'admin_prefectoral' | 'admin_regional',
-  zone: { prefecture: string } | { region: string },
+  keycloakRole: 'admin_prefectoral' | 'admin_regional' | 'comite',
+  // Le Comité scientifique est national : pas de zone
+  zone: { prefecture: string } | { region: string } | { national: true },
 ): Promise<TestUser> {
   const user = await createUser(keycloakRole);
   // Identifiant Keycloak et nom de test contrôlés : rien d'autre n'entre dans la requête
@@ -85,13 +86,15 @@ export async function administrator(
     throw new Error(`Compte de test invalide : ${user.username}`);
   }
   const [role, region, prefecture] =
-    'prefecture' in zone
-      ? [
-          'prefectoral',
-          'NULL',
-          `(SELECT id FROM sabou.prefecture WHERE nom = '${zone.prefecture}')`,
-        ]
-      : ['regional', `(SELECT id FROM sabou.region_admin WHERE nom = '${zone.region}')`, 'NULL'];
+    'national' in zone
+      ? ['scientifique', 'NULL', 'NULL']
+      : 'prefecture' in zone
+        ? [
+            'prefectoral',
+            'NULL',
+            `(SELECT id FROM sabou.prefecture WHERE nom = '${zone.prefecture}')`,
+          ]
+        : ['regional', `(SELECT id FROM sabou.region_admin WHERE nom = '${zone.region}')`, 'NULL'];
   // Schéma en tête du search_path, comme pour l'API : les déclencheurs en dépendent
   psql(`SET search_path = sabou, public;
         INSERT INTO sabou.utilisateur (email, prenom, nom, role_code, region_admin_id, prefecture_id,

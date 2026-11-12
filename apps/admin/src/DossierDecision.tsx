@@ -5,7 +5,7 @@ import { ApiError } from './accounts-api';
 import { decideDossier } from './certification-api';
 
 // Éléments communs aux écrans de décision du workflow de certification (US-042 à l'étape 2,
-// US-043 à l'étape 3) : file des dossiers de la zone, puis valider ou rejeter avec motif.
+// US-043 à l'étape 3, US-044 à l'étape 4) : file des dossiers de la zone, puis valider ou rejeter avec motif.
 
 // Défini ici plutôt qu'importé de @sabou/types : l'application n'en importe que des types,
 // pour ne pas embarquer zod dans le paquet téléchargé (réseau 3G)

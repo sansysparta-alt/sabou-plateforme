@@ -99,6 +99,13 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
     await administrator('admin_regional', { region: 'Labé' }),
   );
 
+  // Membre du Comité scientifique connecté : page d'expertise (US-044)
+  const committeeContext = await browser.newContext();
+  await firstAdministratorLogin(
+    await committeeContext.newPage(),
+    await administrator('comite', { national: true }),
+  );
+
   const totp = await stoppedAt(browser, 'totp');
   const recovery = await stoppedAt(browser, 'codes-de-secours');
 
@@ -125,6 +132,11 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       name: 'admin régional connecté',
       cookie: await cookieHeader(regionalContext),
       urls: [`${APP}/consolidation`],
+    },
+    {
+      name: 'Comité scientifique connecté',
+      cookie: await cookieHeader(committeeContext),
+      urls: [`${APP}/expertise`],
     },
     { name: 'saisie du code', cookie: await cookieHeader(codeContext), urls: [codePage.url()] },
     { name: 'activation du code', cookie: await cookieHeader(totp.context), urls: [totp.url] },

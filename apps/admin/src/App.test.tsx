@@ -28,6 +28,11 @@ const regional: SessionUser = {
   name: 'Alpha Barry',
   roles: ['admin_regional', 'administrateur'],
 };
+const committee: SessionUser = {
+  ...dg,
+  name: 'Aboubacar Diakité',
+  roles: ['comite', 'administrateur'],
+};
 const SUMMARY: DashboardSummary = {
   zone: 'Labé',
   praticiens: 1240,
@@ -53,7 +58,11 @@ function mockApi(session: SessionUser | null | 'panne') {
       return session ? Response.json(session) : new Response(null, { status: 401 });
     }
     if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
-    if (url === '/api/dossiers/verification-terrain' || url === '/api/dossiers/consolidation')
+    if (
+      url === '/api/dossiers/verification-terrain' ||
+      url === '/api/dossiers/consolidation' ||
+      url === '/api/dossiers/expertise'
+    )
       return Response.json({ elements: [], suivant: null });
     if (url === '/auth/logout' && init?.method === 'POST')
       return new Response(null, { status: 204 });
@@ -159,6 +168,27 @@ describe('App', () => {
       ).toBeNull();
     },
   );
+
+  it('Comité scientifique : rubrique Expertise des dossiers et sa page (US-044)', async () => {
+    mockApi(committee);
+    window.history.replaceState(null, '', '/expertise');
+    render(<App />);
+    const link = await screen.findByRole('link', { name: 'Expertise des dossiers' });
+    expect(link.getAttribute('href')).toBe('/expertise');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Expertise des dossiers' }));
+  });
+
+  it.each([
+    ['DG', dg],
+    ['régional', regional],
+  ])('%s : ni rubrique ni page d’expertise (décision du seul Comité)', async (_who, user) => {
+    mockApi(user);
+    window.history.replaceState(null, '', '/expertise');
+    render(<App />);
+    expect(await screen.findByRole('heading', { level: 1 }));
+    expect(screen.queryByRole('link', { name: 'Expertise des dossiers' })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Expertise des dossiers' })).toBeNull();
+  });
 
   it('DG : ni rubrique ni page de vérification terrain (décision du seul préfectoral)', async () => {
     mockApi(dg);

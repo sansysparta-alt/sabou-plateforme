@@ -5,6 +5,7 @@ import type {
   DossierDecision,
   DossierDecisionResult,
   DossierSummary,
+  ExpertiseItem,
   FieldVerificationItem,
   PractitionerSummary,
   ZoneListQuery,
@@ -116,6 +117,30 @@ export class CertificationRepository {
           JOIN sabou.specialite sp ON sp.id = p.specialite_id
           JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 3
+           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
+         ORDER BY d.code
+         LIMIT ${query.limite + 1}`.execute(trx);
+      return page(rows, query.limite);
+    });
+  }
+
+  // Dossiers en attente d'expertise du Comité scientifique (étape 4), toutes régions (le
+  // Comité est national, R-ACC) ; mêmes règles d'ordre et de pagination
+  listExpertise(sub: string, query: ZoneListQuery): Promise<ZonePage<ExpertiseItem>> {
+    return inZone(this.db, sub, async (trx) => {
+      const { rows } = await sql<ExpertiseItem>`
+        SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
+               sp.libelle_fr AS specialite, pf.nom AS prefecture, ra.nom AS region, d.type,
+               to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "consolideLe",
+               EXISTS (SELECT 1 FROM sabou.visite_terrain vt
+                        WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee"
+          FROM sabou.dossier_certification d
+          JOIN sabou.praticien p      ON p.id = d.praticien_id
+          JOIN sabou.utilisateur u    ON u.id = p.utilisateur_id
+          JOIN sabou.specialite sp    ON sp.id = p.specialite_id
+          JOIN sabou.prefecture pf    ON pf.id = p.prefecture_id
+          JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 4
            AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
          ORDER BY d.code
          LIMIT ${query.limite + 1}`.execute(trx);

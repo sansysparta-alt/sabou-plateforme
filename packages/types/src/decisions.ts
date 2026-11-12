@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Décisions du workflow de certification aux étapes 2 à 5 (US-042, US-043 ; US-044
-// reprend le même appel). Qui peut décider, à quelle étape et dans quelle zone : la base
+// Décisions du workflow de certification aux étapes 2 à 5 (US-042, US-043, US-044 : un
+// seul appel). Qui peut décider, à quelle étape et dans quelle zone : la base
 // le contrôle (dossier_transition, R-CER-01 à 03), jamais le client.
 
 // Code d'un dossier de certification (DS-1041)
@@ -65,6 +65,22 @@ export interface ConsolidationItem {
   type: 'initial' | 'renouvellement';
   // Arrivée à l'étape 3 (date de la vérification terrain)
   verifieLe: string;
+  // Une visite réalisée, avec son compte rendu signé, est enregistrée (R-CER-06)
+  visiteRealisee: boolean;
+}
+
+// Dossier en attente d'expertise du Comité scientifique (étape 4), toutes régions
+export interface ExpertiseItem {
+  code: string;
+  praticien: string;
+  praticienNom: string;
+  specialite: string;
+  // Le Comité est national : la préfecture et la région du praticien sont affichées
+  prefecture: string;
+  region: string;
+  type: 'initial' | 'renouvellement';
+  // Arrivée à l'étape 4 (date de la consolidation régionale)
+  consolideLe: string;
   // Une visite réalisée, avec son compte rendu signé, est enregistrée (R-CER-06)
   visiteRealisee: boolean;
 }

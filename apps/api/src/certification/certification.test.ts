@@ -1,4 +1,4 @@
-// Lot B (US-011), US-042 et US-043 : contrôles d'accès, paramètres des listes cloisonnées et des
+// Lot B (US-011), US-042 à US-044 : contrôles d'accès, paramètres des listes cloisonnées et des
 // décisions, traduction des refus de la base. Base simulée ;
 // le cloisonnement lui-même est prouvé sur un vrai PostgreSQL (packages/db/test/zones.test.ts)
 // et de bout en bout, par l'API réelle (apps/admin/e2e/zones.spec.ts).
@@ -35,6 +35,11 @@ const repository = {
   },
   async listConsolidation(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers/consolidation', sub, query });
+    if (failure) throw failure;
+    return { elements: [], suivant: null };
+  },
+  async listExpertise(sub: string, query: ZoneListQuery) {
+    calls.push({ list: 'dossiers/expertise', sub, query });
     if (failure) throw failure;
     return { elements: [], suivant: null };
   },
@@ -113,6 +118,7 @@ describe.each([
   '/api/dossiers',
   '/api/dossiers/verification-terrain',
   '/api/dossiers/consolidation',
+  '/api/dossiers/expertise',
 ])('%s', (path) => {
   it('refuse une requête sans session', async () => {
     expect((await get(path)).status).toBe(401);
@@ -172,6 +178,24 @@ const decide = (body: unknown, options: { cookie?: string; origin?: string; code
     },
     body: JSON.stringify(body),
   });
+
+describe('US-044 : expertise à l’étape 4, même appel', () => {
+  it('valide : le dossier passe à l’étape 5', async () => {
+    const response = await decide({ etape: 4, decision: 'valide' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ code: 'DS-2001', etape: 5 });
+  });
+
+  it('rejette avec motif : le dossier revient à l’étape 3', async () => {
+    const response = await decide({ etape: 4, decision: 'rejete', motif: 'Dosage à préciser' });
+    expect(await response.json()).toEqual({ code: 'DS-2001', etape: 3 });
+  });
+
+  it('refuse un rejet sans motif, sans appeler la base', async () => {
+    expect((await decide({ etape: 4, decision: 'rejete' })).status).toBe(400);
+    expect(decisions).toEqual([]);
+  });
+});
 
 describe('US-043 : consolidation à l’étape 3, même appel', () => {
   it('valide : le dossier passe à l’étape 4', async () => {

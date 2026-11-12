@@ -373,6 +373,8 @@ Décision du maître d’œuvre (12 novembre 2026) : seul l’admin régional d�
 Critères d’acceptation :
 - Étant donné un dossier à l’étape 4, quand je valide, alors il passe à l’étape 5 ; quand je rejette avec motif, il revient à l’étape 3.
 
+Lecture retenue (12 novembre 2026) : un seul membre du Comité décide, pour les dossiers de toutes les régions ; motif obligatoire au rejet (voir 05 §2.31).
+
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
 
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
@@ -381,7 +383,7 @@ Critères d’acceptation :
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
 
 Critères d’acceptation :
-- Tableau de bord, Comptes, Référentiels, Invitation, Vérification terrain (ajoutée par US-042) et Consolidation régionale (ajoutée par US-043) : LCP ≤ 3 s et score de performance ≥ 0,90 en 3G simulée (300 ms, 700 kbit/s, processeur divisé par 4), seuils de US-010 rétablis pour ces pages dans `apps/admin/lighthouserc.cjs`.
+- Tableau de bord, Comptes, Référentiels, Invitation, Vérification terrain (ajoutée par US-042) Consolidation régionale (ajoutée par US-043) et Expertise des dossiers (ajoutée par US-044) : LCP ≤ 3 s et score de performance ≥ 0,90 en 3G simulée (300 ms, 700 kbit/s, processeur divisé par 4), seuils de US-010 rétablis pour ces pages dans `apps/admin/lighthouserc.cjs`.
 - Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.

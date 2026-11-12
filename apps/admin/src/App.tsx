@@ -18,9 +18,13 @@ const FieldVerificationPage = lazy(() =>
 const ConsolidationPage = lazy(() =>
   import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
 );
+const ExpertisePage = lazy(() =>
+  import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
+);
 import {
   fetchSession,
   hasManagementAccess,
+  isCommittee,
   isDirector,
   isPrefectoral,
   isRegional,
@@ -165,6 +169,12 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/consolidation', label: 'Consolidation régionale', icon: 'folder' }],
     });
   }
+  if (isCommittee(user)) {
+    groups.push({
+      heading: 'Certification',
+      items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
+    });
+  }
   if (isDirector(user)) {
     groups.push({
       heading: 'Administration',
@@ -188,6 +198,9 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/consolidation': ConsolidationPage,
 };
+const COMMITTEE_PAGES: Record<string, ComponentType> = {
+  '/expertise': ExpertisePage,
+};
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const Page = isDirector(user)
@@ -196,7 +209,9 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
       ? PREFECTORAL_PAGES[path()]
       : isRegional(user)
         ? REGIONAL_PAGES[path()]
-        : undefined;
+        : isCommittee(user)
+          ? COMMITTEE_PAGES[path()]
+          : undefined;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}
