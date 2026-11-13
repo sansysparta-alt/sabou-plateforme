@@ -1,4 +1,7 @@
 import type {
+  ApprovalItem,
+  ApprovalResult,
+  CertificateView,
   ConsolidationItem,
   DossierDecision,
   DossierDecisionResult,
@@ -43,3 +46,15 @@ export const reportVisit = (code: string, report: FieldVisitReport) =>
 
 export const attachVisitPhoto = (code: string, visit: number, file: File) =>
   call<FieldVisit>(`${visitPath(code)}/${visit}/photo`, file);
+
+// Approbation par la DG et certificat signé (US-045)
+export const listApproval = (after?: string) =>
+  call<ZonePage<ApprovalItem>>(
+    `/api/dossiers/approbation${after ? `?apres=${encodeURIComponent(after)}` : ''}`,
+  );
+
+export const approveDossier = (code: string) =>
+  call<ApprovalResult>(`/api/dossiers/${encodeURIComponent(code)}/approbation`, {});
+
+export const fetchCertificate = (numero: string) =>
+  call<CertificateView>(`/api/certificats/${encodeURIComponent(numero)}`);

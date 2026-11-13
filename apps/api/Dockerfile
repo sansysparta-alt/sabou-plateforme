@@ -11,10 +11,12 @@ WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY packages/types/package.json packages/types/
+COPY packages/qr/package.json packages/qr/
 RUN pnpm install --frozen-lockfile --filter "@sabou/api..."
 
 COPY tsconfig.base.json ./
 COPY packages/types packages/types
+COPY packages/qr packages/qr
 COPY apps/api apps/api
 RUN pnpm --filter "@sabou/api..." run build \
   && pnpm --filter @sabou/api deploy --legacy --prod /out

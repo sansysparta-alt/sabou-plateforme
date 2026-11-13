@@ -17,6 +17,7 @@
     "@nestjs/common": "^12.3.2",
     "@nestjs/core": "^12.3.2",
     "@nestjs/platform-express": "^12.3.2",
+    "@sabou/qr": "workspace:*",
     "@sabou/types": "workspace:*",
     "aws4fetch": "1.0.20",
     "ioredis": "5.11.1",
@@ -24,6 +25,7 @@
     "kysely": "^0.29.8",
     "openid-client": "6.8.8",
     "pg": "^8.23.1",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.6.7"
@@ -32,6 +34,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
     "testcontainers": "^12.2.1",
     "vitest": "^5.0.5"
   }
