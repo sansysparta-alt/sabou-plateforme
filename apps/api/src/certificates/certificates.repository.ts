@@ -85,7 +85,12 @@ export class CertificatesRepository {
       if (!dossier) throw new DossierNotFoundError();
       if (dossier.statut !== 'en_cours' || dossier.etape !== 5) throw new StaleDossierError();
 
-      const prepared = await sql<{ numero: string; titulaire: string; emis: string; expire: string }>`
+      const prepared = await sql<{
+        numero: string;
+        titulaire: string;
+        emis: string;
+        expire: string;
+      }>`
         SELECT numero, titulaire, emis_le::text AS emis, expire_le::text AS expire
           FROM sabou.certificat_preparer(${dossier.id}, sabou.contexte_utilisateur())`
         .execute(trx)
@@ -129,7 +134,9 @@ export class CertificatesRepository {
   // Certificat à imprimer. Le praticien est cloisonné par zone (RLS) : hors zone, introuvable.
   get(sub: string, numero: string): Promise<CertificateView> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<Omit<CertificateView, 'autorite' | 'qrSvg'> & { qr: string | null }>`
+      const { rows } = await sql<
+        Omit<CertificateView, 'autorite' | 'qrSvg'> & { qr: string | null }
+      >`
         SELECT c.numero, c.statut, u.prenom || ' ' || u.nom AS titulaire, p.code AS praticien,
                sp.libelle_fr AS specialite, pf.nom AS prefecture,
                c.emis_le::text AS "emisLe", c.expire_le::text AS "expireLe", d.code AS dossier,

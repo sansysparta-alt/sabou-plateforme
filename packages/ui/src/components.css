@@ -675,7 +675,7 @@
 .ui-certificate__qr img {
   width: 200px;
   height: 200px;
-  background: #fff;
+  background: var(--sabou-surface);
 }
 .ui-certificate__footer {
   display: grid;
@@ -697,10 +697,10 @@
   }
   .ui-certificate {
     max-width: none;
-    border-color: #000;
-    color: #000;
+    border-color: var(--sabou-text);
+    color: var(--sabou-text);
   }
   .ui-certificate__footer {
-    color: #000;
+    color: var(--sabou-text);
   }
 }

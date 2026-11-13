@@ -630,6 +630,21 @@ Décision du maître d'œuvre (12 novembre 2026) : le compte rendu est **saisi e
 
 **Contrôles du pipeline** : `packages/db/test/visites-terrain.test.ts` (rappel, compte rendu, figement, habilitation, dates), `packages/types/src/visits.test.ts`, `apps/api/src/visits/*.test.ts` (empreinte, accès, refus), `apps/api/src/sms/sms.test.ts` (texte du rappel), `apps/admin/src/FieldVerificationPage.test.tsx`, `apps/admin/e2e/visites-terrain.spec.ts` (de bout en bout, empreinte recalculée).
 
+### 2.34 Approbation et certificat signé par le coffre (US-045, novembre 2026)
+
+Décision du maître d'œuvre (12 novembre 2026) : le certificat est une **page imprimable** de l'application de gestion (données, QR, empreinte) ; le PDF (Gotenberg) viendra en S9. Coffre : **OpenBao, moteur Transit, clé Ed25519 non exportable**.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Signature par OpenBao Transit** (`transit/sign/sabou-dg`) : l'API envoie les octets de la structure `Signature1` de COSE et reçoit la signature ; clé créée avec `exportable=false` et `allow_plaintext_backup=false` | Critère 2 : la clé privée n'est jamais lue par l'application, même compromise | Clé dans un fichier ou une variable d'environnement de l'API |
+| **Jeton de l'API limité** à deux droits (signer avec `sabou-dg`, lire ses clés publiques), lu dans un fichier monté (`OPENBAO_TOKEN_FILE`), relu à chaque appel ; le jeton racine ne sert qu'à préparer le coffre (`infra/local/openbao/init.sh`) | Moindre privilège ; un jeton renouvelé est pris sans redémarrer l'API | Jeton racine passé à l'API |
+| **Partage base / API** : la base fixe le numéro et les dates (`certificat_preparer`), puis `certificat_emettre` vérifie ces données, enregistre la clé publique à sa première utilisation, fait passer l'ancien certificat actif à « expiré » (renouvellement, R-QR-07), écrit le certificat et le journal, et approuve le dossier (étape 5 → 6) **en une transaction** ; un déclencheur refuse toute approbation à l'étape 5 sans certificat actif | Pas de dossier approuvé sans certificat, ni de certificat sans approbation, quel que soit le chemin d'écriture | Logique dans l'API seule |
+| **Identifiant de clé** (`kid`) = « dg- » + 8 caractères de l'empreinte SHA3-256 de la clé publique, dans l'en-tête signé du QR ; la version de clé du coffre est contrôlée à la signature | La rotation de clé (nouvelle version Transit) reste vérifiable hors ligne avec l'ancienne clé publique | Numéro de version seul (ambigu entre deux coffres) |
+| **Coffre injoignable ou réponse inattendue : l'approbation n'a pas lieu** (délai de 5 s, corps d'erreur du coffre jamais recopié) | Aucun certificat non signé | Signature différée par une file |
+| **Poste de développement** : OpenBao en mode développement (mémoire), clé et jeton recréés au démarrage | Simple ; aucune donnée réelle | Le stockage persistant, le scellement et la sauvegarde du coffre de production relèvent de l'hébergement souverain (US-008, US-162) |
+
+**Contrôles du pipeline** : `packages/db/test/certificat-signe.test.ts` (dates, numéro, renouvellement, clé révoquée, approbation sans certificat refusée), `packages/qr/src/sign-with.test.ts` (signature par un signataire externe vérifiée hors ligne), `apps/api/src/certificates/certificates.test.ts` (approbation, coffre injoignable, droits), `apps/admin/src/ApprovalPage.test.tsx`, `apps/admin/e2e/approbation.spec.ts` (de bout en bout avec le vrai coffre, QR vérifié par la clé publique).
+
 ## 3. Architecture
 
 ```

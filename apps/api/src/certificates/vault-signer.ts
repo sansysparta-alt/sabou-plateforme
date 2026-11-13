@@ -62,12 +62,14 @@ export class VaultSigner implements CertificateSigner {
     });
     const signature = (body as { data?: { signature?: unknown } }).data?.signature;
     // Format de Transit : « vault:v<version>:<base64> » ; la version doit être celle demandée
-    const match = typeof signature === 'string' ? /^vault:v(\d+):([A-Za-z0-9+/=]+)$/.exec(signature) : null;
+    const match =
+      typeof signature === 'string' ? /^vault:v(\d+):([A-Za-z0-9+/=]+)$/.exec(signature) : null;
     if (!match || Number(match[1]) !== version) {
       throw new SignerUnavailableError('Signature du coffre : format ou version inattendus');
     }
     const bytes = Buffer.from(match[2]!, 'base64');
-    if (bytes.length !== 64) throw new SignerUnavailableError('Signature du coffre : taille inattendue');
+    if (bytes.length !== 64)
+      throw new SignerUnavailableError('Signature du coffre : taille inattendue');
     return new Uint8Array(bytes);
   }
 

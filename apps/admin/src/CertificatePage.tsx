@@ -74,7 +74,9 @@ export function CertificatePage({ numero }: { numero: string }) {
               width={200}
               height={200}
             />
-            <figcaption>Vérifiez ce certificat sur le site SABOU, page « Vérifier un certificat ».</figcaption>
+            <figcaption>
+              Vérifiez ce certificat sur le site SABOU, page « Vérifier un certificat ».
+            </figcaption>
           </figure>
         ) : (
           <p className="ui-muted">Certificat d’exemple, sans QR signé.</p>

@@ -70,8 +70,7 @@ function mockApi() {
 }
 
 beforeEach(() => {
-  approval = () =>
-    Response.json({ code: 'DS-4001', etape: 6, certificat: 'SAB-2026-PR4001-K7Q' });
+  approval = () => Response.json({ code: 'DS-4001', etape: 6, certificat: 'SAB-2026-PR4001-K7Q' });
   assign.mockReset();
   mockApi();
 });
@@ -98,23 +97,25 @@ describe('Approbation des dossiers (étape 5)', () => {
     render(<ApprovalPage />);
     const dossier = within(await item('DS-4001'));
     fireEvent.click(
-      dossier.getByRole('button', { name: /Approuver et émettre le certificat du dossier DS-4001/ }),
+      dossier.getByRole('button', {
+        name: /Approuver et émettre le certificat du dossier DS-4001/,
+      }),
     );
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/certificats/SAB-2026-PR4001-K7Q'));
     expect(posts).toEqual(['/api/dossiers/DS-4001/approbation']);
   });
 
-  it('coffre indisponible : message de l’API, aucun certificat, bouton de nouveau actif', async () => {
+  it('coffre indisponible : rien n’a été émis, bouton de nouveau actif', async () => {
     approval = () =>
       Response.json(
-        { error: 'signer_unavailable', message: 'Le service de signature est indisponible.' },
+        { error: 'signer_unavailable', message: 'Texte de l’API, non affiché (5xx).' },
         { status: 503 },
       );
     render(<ApprovalPage />);
     const dossier = within(await item('DS-4001'));
     const button = dossier.getByRole('button', { name: /Approuver et émettre/ });
     fireEvent.click(button);
-    expect(await dossier.findByText('Le service de signature est indisponible.')).toBeTruthy();
+    expect(await dossier.findByText(/aucun certificat n’a été émis/)).toBeTruthy();
     expect(assign).not.toHaveBeenCalled();
     expect((button as HTMLButtonElement).disabled).toBe(false);
   });

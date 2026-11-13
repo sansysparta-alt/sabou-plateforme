@@ -30,7 +30,8 @@ function translateTransition(error: unknown): never {
   if (message.includes('non habilité')) throw new DecisionNotAllowedError();
   if (message.includes('visite terrain signée requise')) throw new FieldVisitRequiredError();
   // US-045 : à l'étape 5, la validation passe par l'approbation, qui émet le certificat
-  if (message.includes('certificat signé requis pour approuver')) throw new CertificateRequiredError();
+  if (message.includes('certificat signé requis pour approuver'))
+    throw new CertificateRequiredError();
   throw error;
 }
 

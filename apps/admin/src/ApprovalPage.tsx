@@ -72,6 +72,9 @@ function DossierItem({ dossier, onDecided }: { dossier: ApprovalItem; onDecided:
   );
 }
 
+const SIGNER_UNAVAILABLE =
+  'Le service de signature est indisponible : aucun certificat n’a été émis. Réessayez dans quelques minutes.';
+
 // Une fois le certificat émis, la page à imprimer s'ouvre (décision du 12 novembre 2026)
 function ApproveAction({ code, label }: { code: string; label: string }) {
   const [busy, setBusy] = useState(false);
@@ -84,7 +87,15 @@ function ApproveAction({ code, label }: { code: string; label: string }) {
       const result = await approveDossier(code);
       window.location.assign(certificatePath(result.certificat));
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.message : 'Une erreur est survenue.');
+      // 503 = coffre de signature indisponible : le client masque les messages 5xx, l'écran
+      // rassure la DG sur l'essentiel (rien n'a été émis)
+      setError(
+        failure instanceof ApiError
+          ? failure.status === 503
+            ? SIGNER_UNAVAILABLE
+            : failure.message
+          : 'Une erreur est survenue.',
+      );
       setBusy(false);
     }
   }
@@ -94,8 +105,8 @@ function ApproveAction({ code, label }: { code: string; label: string }) {
       {error && <Alert tone="error">{error}</Alert>}
       <div className="ui-form__actions">
         <Button variant="primary" icon="success" disabled={busy} onClick={approve}>
-          {busy ? 'Signature en cours…' : 'Approuver et émettre le certificat'}
-          <span className="ui-visually-hidden"> du dossier {label}</span>
+          {busy ? 'Signature en cours… ' : 'Approuver et émettre le certificat '}
+          <span className="ui-visually-hidden">du dossier {label}</span>
         </Button>
       </div>
     </>

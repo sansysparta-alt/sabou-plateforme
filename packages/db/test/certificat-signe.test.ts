@@ -110,12 +110,17 @@ describe('Critère 1 : à l’étape 5, l’approbation crée un certificat de 1
                 WHERE action IN ('certificat.emis', 'dossier.valide')
                   AND (objet_id = 'DS-1041' OR details->>'dossier' = 'DS-1041')) AS audit;`);
     expect(rows).toEqual([
-      { historique: '(5,6,valide)', sms: 4, audit: 'dossier.valide,dossier.valide,dossier.valide,certificat.emis,dossier.valide' },
+      {
+        historique: '(5,6,valide)',
+        sms: 4,
+        audit: 'dossier.valide,dossier.valide,dossier.valide,certificat.emis,dossier.valide',
+      },
     ]);
   });
 
   it('une clé déjà connue est réutilisée, sans doublon', async () => {
-    const rows = await lastRows(`${atStep5} ${emit(DG, { kid: `'exemple-2026'`, key: `'MCowBQYDK2VwAyEA-exemple-cle-publique-DG-SABOU-2026'` })}
+    const rows =
+      await lastRows(`${atStep5} ${emit(DG, { kid: `'exemple-2026'`, key: `'MCowBQYDK2VwAyEA-exemple-cle-publique-DG-SABOU-2026'` })}
       SELECT count(*)::int AS cles, (SELECT cle_id FROM certificat WHERE dossier_id = 1) AS cle
         FROM cle_signature;`);
     expect(rows).toEqual([{ cles: 1, cle: 1 }]);
@@ -153,8 +158,16 @@ describe('Seule la DG approuve, à l’étape 5 seulement, et jamais sans certif
 describe('Le certificat enregistré est celui qui a été préparé et signé', () => {
   it.each([
     ['date d’émission d’hier', { emis: `${TODAY} - 1` }, /dates du certificat périmées/],
-    ['validité de plus de 12 mois', { expire: `${IN_12_MONTHS} + 1` }, /dates du certificat périmées/],
-    ['numéro d’un autre praticien', { numero: `'SAB-2026-PR1042-ABC'` }, /numéro de certificat invalide/],
+    [
+      'validité de plus de 12 mois',
+      { expire: `${IN_12_MONTHS} + 1` },
+      /dates du certificat périmées/,
+    ],
+    [
+      'numéro d’un autre praticien',
+      { numero: `'SAB-2026-PR1042-ABC'` },
+      /numéro de certificat invalide/,
+    ],
     ['QR absent', { qr: 'NULL' }, /QR du certificat manquant/],
     ['identifiant d’une autre clé', { kid: `'exemple-2026'` }, /inconnue ou révoquée/],
   ])('%s : refusé', async (_, change, message) => {

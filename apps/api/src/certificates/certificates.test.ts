@@ -116,7 +116,6 @@ describe.each([
     expect((await request(method, path, { cookie: 'inconnue' })).status).toBe(401);
     expect(calls).toEqual([]);
   });
-
 });
 
 it('refuse une approbation venue d’une autre origine (écriture)', async () => {
@@ -187,11 +186,23 @@ describe('VaultSigner (Transit)', () => {
 
   const transit = (req: IncomingMessage, body: Record<string, unknown>): [number, unknown] => {
     if (req.method === 'GET' && req.url === '/v1/transit/keys/sabou-dg') {
-      return [200, { data: { type: 'ed25519', latest_version: 1, keys: { '1': { public_key: raw.toString('base64') } } } }];
+      return [
+        200,
+        {
+          data: {
+            type: 'ed25519',
+            latest_version: 1,
+            keys: { '1': { public_key: raw.toString('base64') } },
+          },
+        },
+      ];
     }
     if (req.method === 'POST' && req.url === '/v1/transit/sign/sabou-dg') {
       const signature = sign(null, Buffer.from(body.input as string, 'base64'), privateKey);
-      return [200, { data: { signature: `vault:v1:${signature.toString('base64')}`, key_version: 1 } }];
+      return [
+        200,
+        { data: { signature: `vault:v1:${signature.toString('base64')}`, key_version: 1 } },
+      ];
     }
     return [404, { errors: [] }];
   };
@@ -202,7 +213,12 @@ describe('VaultSigner (Transit)', () => {
       req.on('data', (chunk: Buffer) => (text += chunk.toString()));
       req.on('end', () => {
         const body = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-        requests.push({ method: req.method!, url: req.url!, token: req.headers['x-vault-token'], body });
+        requests.push({
+          method: req.method!,
+          url: req.url!,
+          token: req.headers['x-vault-token'],
+          body,
+        });
         const [status, payload] = (reply ?? transit)(req, body);
         res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(payload));
       });
@@ -251,17 +267,32 @@ describe('VaultSigner (Transit)', () => {
 
   it.each([
     ['refus du coffre', () => [403, { errors: ['permission denied'] }]],
-    ['signature d’une autre version', () => [200, { data: { signature: `vault:v2:${'A'.repeat(86)}==` } }]],
+    [
+      'signature d’une autre version',
+      () => [200, { data: { signature: `vault:v2:${'A'.repeat(86)}==` } }],
+    ],
     ['signature tronquée', () => [200, { data: { signature: 'vault:v1:AAAA' } }]],
     ['réponse sans signature', () => [200, { data: {} }]],
   ] as const)('%s : signature refusée', async (_, answer) => {
     reply = answer as unknown as typeof reply;
-    await expect(signer.sign(new Uint8Array([1]), 1)).rejects.toBeInstanceOf(SignerUnavailableError);
+    await expect(signer.sign(new Uint8Array([1]), 1)).rejects.toBeInstanceOf(
+      SignerUnavailableError,
+    );
   });
 
   it.each([
-    ['une clé qui n’est pas Ed25519', { type: 'rsa-2048', latest_version: 1, keys: { '1': { public_key: raw.toString('base64') } } }],
-    ['une clé publique tronquée', { type: 'ed25519', latest_version: 1, keys: { '1': { public_key: 'AAAA' } } }],
+    [
+      'une clé qui n’est pas Ed25519',
+      {
+        type: 'rsa-2048',
+        latest_version: 1,
+        keys: { '1': { public_key: raw.toString('base64') } },
+      },
+    ],
+    [
+      'une clé publique tronquée',
+      { type: 'ed25519', latest_version: 1, keys: { '1': { public_key: 'AAAA' } } },
+    ],
   ])('refuse %s', async (_, data) => {
     reply = () => [200, { data }];
     await expect(signer.currentKey()).rejects.toBeInstanceOf(SignerUnavailableError);
@@ -282,7 +313,9 @@ describe('VaultSigner (Transit)', () => {
 
   it('refuse des données à signer vides ou trop longues, sans appel', async () => {
     await expect(signer.sign(new Uint8Array(0), 1)).rejects.toBeInstanceOf(SignerUnavailableError);
-    await expect(signer.sign(new Uint8Array(4096), 1)).rejects.toBeInstanceOf(SignerUnavailableError);
+    await expect(signer.sign(new Uint8Array(4096), 1)).rejects.toBeInstanceOf(
+      SignerUnavailableError,
+    );
     expect(requests).toEqual([]);
   });
 });

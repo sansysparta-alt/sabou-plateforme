@@ -299,7 +299,12 @@ describe('US-042 : décision sur un dossier', () => {
     ['non responsable', new DecisionNotAllowedError(), 403, 'not_allowed'],
     // Critère 2 : dossier initial sans visite réalisée
     ['sans visite', new FieldVisitRequiredError(), 409, 'visit_required'],
-    ['à l’étape 5, sans certificat (US-045)', new CertificateRequiredError(), 409, 'certificate_required'],
+    [
+      'à l’étape 5, sans certificat (US-045)',
+      new CertificateRequiredError(),
+      409,
+      'certificate_required',
+    ],
     ['étape changée', new StaleDossierError(), 409, 'stale'],
   ])('traduit le refus « %s »', async (_case, error, status, code) => {
     failure = error;
