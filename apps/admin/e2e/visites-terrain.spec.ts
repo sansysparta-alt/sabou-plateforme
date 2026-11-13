@@ -42,7 +42,9 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await card.getByRole('button', { name: 'Enregistrer la date' }).click();
   await expect(page.getByRole('status')).toContainText('Le praticien sera prévenu la veille.');
   expect(
-    visitRow(`statut || ' ' || to_char(prevue_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI')`),
+    visitRow(
+      `vt.statut || ' ' || to_char(vt.prevue_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI')`,
+    ),
   ).toBe(`planifiee ${when}`);
 
   // Critère 1 : le rappel part au praticien (mis en file puis envoyé par la relève des SMS)
@@ -77,7 +79,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
     },
   });
   expect(unsigned.status()).toBe(400);
-  expect(visitRow('statut')).toBe('planifiee');
+  expect(visitRow('vt.statut')).toBe('planifiee');
 
   // Signé : la visite est réalisée, le texte figé avec son empreinte, son auteur, l'heure
   await card.getByLabel(/Je certifie avoir réalisé cette visite/).check();
@@ -87,7 +89,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   );
   await expect(card.getByText('Réalisée, compte rendu signé')).toBeVisible();
   const [statut, author, stored, fingerprint] = visitRow(
-    `statut || '|' || signe_par || '|' || constats || '|' || empreinte_sha3`,
+    `vt.statut || '|' || vt.signe_par || '|' || vt.constats || '|' || vt.empreinte_sha3`,
   ).split('|');
   expect(statut).toBe('realisee');
   // L'empreinte enregistrée est bien le SHA3-256 du texte signé, recalculé ici
@@ -127,7 +129,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
     .setInputFiles({ name: 'fiche.jpg', mimeType: 'image/jpeg', buffer: JPEG });
   await card.getByRole('button', { name: /^Joindre la photo/ }).click();
   await expect(card.getByText('Jointe')).toBeVisible();
-  expect(visitRow('compte_rendu_piece_id IS NOT NULL')).toBe('t');
+  expect(visitRow('vt.compte_rendu_piece_id IS NOT NULL')).toBe('t');
 
   // La visite enregistrée rend la validation possible (US-042)
   await card.getByRole('button', { name: /^Valider/ }).click();
