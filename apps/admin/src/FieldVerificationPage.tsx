@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { Badge } from '@sabou/ui';
 import type { FieldVerificationItem } from '@sabou/types';
 import { listFieldVerification } from './certification-api';
-import { DecisionActions, DossierQueuePage, longDate, type OnDecided } from './DossierDecision';
+import {
+  DecisionActions,
+  DossierQueuePage,
+  longDate,
+  type Announce,
+  type OnDecided,
+} from './DossierDecision';
+import { FieldVisitPanel } from './FieldVisitPanel';
 
 // Vérification terrain par l'admin préfectoral (US-042, UC-31) : dossiers de sa préfecture
-// à l'étape 2, validation après la visite, ou rejet motivé qui renvoie le dossier au praticien
+// à l'étape 2, visite planifiée puis réalisée avec compte rendu signé (US-041, UC-30),
+// validation après la visite, ou rejet motivé qui renvoie le dossier au praticien
 export function FieldVerificationPage() {
   return (
     <DossierQueuePage
@@ -21,10 +30,14 @@ export function FieldVerificationPage() {
 function DossierItem({
   dossier,
   onDecided,
+  announce,
 }: {
   dossier: FieldVerificationItem;
   onDecided: OnDecided;
+  announce: Announce;
 }) {
+  // Une visite enregistrée sur cet écran rend la validation possible sans recharger la liste
+  const [visitDone, setVisitDone] = useState(dossier.visiteRealisee);
   return (
     <li className="ui-card ui-card--plain">
       <h3>
@@ -41,7 +54,7 @@ function DossierItem({
         <dd>{longDate(dossier.soumisLe)}</dd>
         <dt>Visite sur place</dt>
         <dd>
-          {dossier.visiteRealisee ? (
+          {visitDone ? (
             <Badge tone="success">Réalisée, compte rendu signé</Badge>
           ) : dossier.visiteRequise ? (
             <Badge tone="warning">À réaliser</Badge>
@@ -50,12 +63,20 @@ function DossierItem({
           )}
         </dd>
       </dl>
+      {(dossier.visiteRequise || dossier.visite) && (
+        <FieldVisitPanel
+          code={dossier.code}
+          visit={dossier.visite}
+          announce={announce}
+          onChange={(visit) => setVisitDone((done) => done || visit.statut === 'realisee')}
+        />
+      )}
       <DecisionActions
         code={dossier.code}
         label={`${dossier.code}, ${dossier.praticienNom}`}
         etape={2}
         // Un dossier initial exige toujours une visite ; un renouvellement, selon le risque (R-QR-07)
-        canValidate={dossier.visiteRealisee || !dossier.visiteRequise}
+        canValidate={visitDone || !dossier.visiteRequise}
         blockedReason="La validation sera possible une fois la visite réalisée et son compte rendu signé."
         validatedNotice={`Dossier ${dossier.code} validé : il passe à la consolidation régionale.`}
         rejectedNotice={`Dossier ${dossier.code} rejeté : il revient au praticien.`}

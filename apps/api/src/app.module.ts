@@ -12,6 +12,7 @@ import { ReferentialsModule } from './referentials/referentials.module';
 import { SignupModule } from './signup/signup.module';
 import { SmsModule } from './sms/sms.module';
 import { SyncModule } from './sync/sync.module';
+import { VisitsModule } from './visits/visits.module';
 
 // Module racine : chaque domaine (certification, dictionnaire, traitements…) y sera importé
 @Module({
@@ -22,6 +23,7 @@ import { SyncModule } from './sync/sync.module';
     AuthModule,
     AccountsModule,
     CertificationModule,
+    VisitsModule,
     DashboardModule,
     DossiersModule,
     ReferentialsModule,

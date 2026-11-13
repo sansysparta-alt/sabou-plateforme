@@ -78,9 +78,14 @@ INSERT INTO dossier_piece (dossier_id, type, fichier_url, sha256, depose_par, de
  (3,'identite',           'pieces/ds1043/identite.pdf',     encode(sha256(convert_to('ds1043-identite','UTF8')),'hex'), 8, now() - interval '55 days'),  -- 6
  (3,'photo',              'pieces/ds1043/photo.jpg',        encode(sha256(convert_to('ds1043-photo','UTF8')),'hex'),    8, now() - interval '55 days');  -- 7
 
-INSERT INTO visite_terrain (dossier_id, admin_id, prevue_le, rappel_envoye_le, realisee_le, compte_rendu_piece_id, statut) VALUES
- (2, 3, now() - interval '56 days', now() - interval '57 days', now() - interval '55 days', 2,    'realisee'),
- (1, 3, now() + interval '3 days',  NULL,                       NULL,                       NULL, 'planifiee');
+-- Compte rendu signé (US-041) : empreinte d'exemple, l'API la calcule sur le texte réel
+INSERT INTO visite_terrain (dossier_id, admin_id, prevue_le, rappel_envoye_le, realisee_le, compte_rendu_piece_id, statut,
+                            constats, avis, empreinte_sha3, signe_par, signe_le) VALUES
+ (2, 3, now() - interval '56 days', now() - interval '57 days', now() - interval '55 days', 2,    'realisee',
+  'Lieu d''exercice conforme à la fiche ; plantes séchées à l''abri, registre des patients tenu.', 'favorable',
+  encode(sha256(convert_to('ds1042-compte-rendu','UTF8')),'hex'), 3, now() - interval '55 days'),
+ (1, 3, now() + interval '3 days',  NULL,                       NULL,                       NULL, 'planifiee',
+  NULL, NULL, NULL, NULL, NULL);
 
 INSERT INTO dossier_historique (dossier_id, etape_depart, etape_arrivee, decision, motif, acteur_id, decide_le) VALUES
  (1,1,2,'soumis', NULL, 6, now() - interval '12 days'),

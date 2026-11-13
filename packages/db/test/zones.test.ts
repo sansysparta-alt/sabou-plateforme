@@ -253,6 +253,8 @@ describe('Garde-fous du schéma', () => {
       'saisie_terrain_recevoir',
       'trg_temoignage_notes',
       'verifier_certificat',
+      // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)
+      'visite_rappels_mettre_en_file',
     ]);
     const unsafe = rows.filter(
       (r) =>

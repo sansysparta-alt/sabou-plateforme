@@ -1,4 +1,6 @@
+import type { Provider } from '@nestjs/common';
 import { AwsClient } from 'aws4fetch';
+import { ENV, type Env } from '../config/env';
 
 export const PIECE_STORAGE = Symbol('PIECE_STORAGE');
 
@@ -65,3 +67,21 @@ export class S3PieceStorage implements PieceStorage {
     return `${this.settings.endpoint.replace(/\/$/, '')}/${this.settings.bucket}/${path}`;
   }
 }
+
+// Fournisseur Nest du stockage des pièces, partagé par les dossiers du praticien (US-040a)
+// et les visites terrain (US-041, photo de la fiche papier)
+export const pieceStorageProvider: Provider = {
+  provide: PIECE_STORAGE,
+  inject: [ENV],
+  useFactory: async (env: Env) => {
+    const storage = new S3PieceStorage({
+      endpoint: env.S3_ENDPOINT,
+      bucket: env.S3_PIECES_BUCKET,
+      accessKey: env.S3_ACCESS_KEY,
+      secretKey: env.S3_SECRET_KEY,
+      region: env.S3_REGION,
+    });
+    if (env.S3_CREATE_BUCKET) await storage.ensureBucket();
+    return storage;
+  },
+};

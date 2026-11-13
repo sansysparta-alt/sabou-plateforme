@@ -13,3 +13,4 @@ export * from './phone.js';
 export * from './dossiers.js';
 export * from './dashboard.js';
 export * from './decisions.js';
+export * from './visits.js';
