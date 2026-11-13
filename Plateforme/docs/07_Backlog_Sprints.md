@@ -544,6 +544,7 @@ Critères d’acceptation :
 - Maladie, 1 à n plantes ordonnées avec partie utilisée, cycle (durée, prises, pause).
 - 4 sections obligatoires + conservation facultative, texte français (et anglais facultatif).
 - Consentement et niveau de visibilité obligatoires avant soumission.
+- Étant donné un traitement resté « expertisé » à la publication de mon dossier (US-046), quand j’ouvre le Studio, alors je vois la raison : formule gratuite limitée à 3 traitements certifiés, ou plante ou section à compléter. *Ajout du 13 novembre 2026, demandé par le maître d’œuvre à la livraison de US-046 ; le SMS est déjà envoyé par US-046. Estimation inchangée, à confirmer.*
 
 #### US-061 · Faire avancer un traitement (soumettre, transmettre, expertiser, certifier, rejeter)
 *Traitements et circuit* · **Must** · 5 points · cas : UC-22, UC-42, UC-51, UC-62

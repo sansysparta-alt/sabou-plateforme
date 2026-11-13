@@ -32,13 +32,30 @@ export interface QueuedMessage {
   objet: string;
   // Données figées à la mise en file : étape d'arrivée d'une décision, date et heure d'une
   // visite (heure de Conakry, 2026-11-20T09:30)
-  parametres: { etape?: number; prevueLe?: string };
+  parametres: { etape?: number; prevueLe?: string; quota?: number; contenu?: number };
 }
 
 // « 2026-11-20T09:30 » → « 20/11/2026 à 09h30 » ; null si la donnée est mal formée
 function visitDate(value: string | undefined): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? '');
   return match ? `${match[3]}/${match[2]}/${match[1]} à ${match[4]}h${match[5]}` : null;
+}
+
+// « 2 traitements de votre dossier … ne sont pas encore certifiés : formule gratuite… » ; null
+// si les nombres sont mal formés (erreur définitive)
+function pendingTreatmentsText(objet: string, quota: number, contenu: number): string | null {
+  const valid = (n: number) => Number.isInteger(n) && n >= 0 && n < 1000;
+  if (!valid(quota) || !valid(contenu) || quota + contenu === 0) return null;
+  const total = quota + contenu;
+  const reasons = [
+    quota > 0 ? 'formule gratuite limitée à 3' : null,
+    contenu > 0 ? 'plante ou section à compléter' : null,
+  ].filter(Boolean);
+  const subject =
+    total === 1
+      ? `1 traitement de votre dossier ${objet} n'est pas encore certifié`
+      : `${total} traitements de votre dossier ${objet} ne sont pas encore certifiés`;
+  return `SABOU : ${subject} : ${reasons.join(' ; ')}.`;
 }
 
 // Texte d'un message de la file, ou null si le modèle est inconnu (erreur définitive)
@@ -67,6 +84,9 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
         ? `SABOU : rappel, l'administration de votre préfecture vous rend visite le ${date} pour votre dossier ${objet}. Merci de vous rendre disponible.`
         : null;
     }
+    case 'dossier.traitements_en_attente':
+      // US-046 : traitements restés « expertisés » à la publication (nombre et raison)
+      return pendingTreatmentsText(objet, parametres.quota ?? 0, parametres.contenu ?? 0);
     case 'dossier.publie':
       return `SABOU : félicitations, votre certification est publiée (dossier ${objet}). Votre fiche de praticien certifié est visible sur SABOU.`;
     default:

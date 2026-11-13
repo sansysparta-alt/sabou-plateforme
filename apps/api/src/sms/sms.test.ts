@@ -53,6 +53,33 @@ describe('Textes : un seul SMS par message, en français', () => {
     }
   });
 
+  it('US-046 : traitements en attente, nombre et raison, en un SMS', () => {
+    const text = (quota: number, contenu: number, objet = 'DS-1041') =>
+      notificationText({
+        modele: 'dossier.traitements_en_attente',
+        objet,
+        parametres: { etape: 6, quota, contenu },
+      });
+    expect(text(1, 0)).toBe(
+      "SABOU : 1 traitement de votre dossier DS-1041 n'est pas encore certifié : formule gratuite limitée à 3.",
+    );
+    expect(text(0, 2)).toBe(
+      'SABOU : 2 traitements de votre dossier DS-1041 ne sont pas encore certifiés : plante ou section à compléter.',
+    );
+    // Le plus long : deux raisons, 999 traitements, code de dossier le plus long
+    const longest = text(500, 499, CODE)!;
+    expect(longest).toContain('limitée à 3 ; plante ou section');
+    expect(isSingleGsm7Sms(longest)).toBe(true);
+    for (const [quota, contenu] of [
+      [0, 0],
+      [-1, 2],
+      [1.5, 0],
+      [1000, 0],
+    ] as const) {
+      expect(text(quota, contenu)).toBe(null);
+    }
+  });
+
   it('le code d’inscription tient aussi en un SMS', () => {
     expect(isSingleGsm7Sms(signupCodeMessage('123456', 10))).toBe(true);
   });

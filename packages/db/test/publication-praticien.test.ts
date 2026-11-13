@@ -20,13 +20,13 @@ const DG = 'dg@sabou-sante.gn';
 // Traitements joints au dossier DS-1041 (PR-1041, formule gratuite), expertisés à l'étape 4 :
 // plante validée (Néré), sections obligatoires et cycle renseignés. Un traitement non joint
 // et un traitement joint mais encore « transmis » servent de témoins.
-const joinRecipes = (count: number) => `
+const joinRecipes = (count: number, praticien = '1', dossier = '1') => `
   INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, cycle_duree_jours,
                        cycle_prises_par_jour, dossier_id)
-  SELECT 'REC-90' || lpad(g::text, 2, '0'), 1, 1, 'Essai ' || g, 3, 2, 1
+  SELECT 'REC-90' || lpad(g::text, 2, '0'), ${praticien}, 1, 'Essai ' || g, 3, 2, ${dossier}
     FROM generate_series(1, ${count}) g
-  UNION ALL SELECT 'REC-9090', 1, 1, 'Non joint', 3, 2, NULL
-  UNION ALL SELECT 'REC-9091', 1, 1, 'Encore à l''expertise', 3, 2, 1;
+  UNION ALL SELECT 'REC-9090', ${praticien}, 1, 'Non joint', 3, 2, NULL
+  UNION ALL SELECT 'REC-9091', ${praticien}, 1, 'Encore à l''expertise', 3, 2, ${dossier};
   INSERT INTO recette_plante (recette_id, plante_id, ordre, partie_utilisee)
   SELECT id, 3, 1, 'gousses' FROM recette WHERE code LIKE 'REC-90%';
   INSERT INTO recette_section (recette_id, type_code, texte_fr)
@@ -96,7 +96,8 @@ describe('Critère : certificat actif ⇒ praticien « certifié », traitements
                 FROM dossier_historique WHERE dossier_id = 1 AND etape_arrivee = 6) AS historique,
              (SELECT string_agg(modele, ',' ORDER BY id) FROM notification
                 WHERE objet_id = 'DS-1041' AND (parametres->>'etape')::int = 6) AS sms,
-             (SELECT string_agg(action || ' ' || objet_id, ',' ORDER BY id) FROM journal_audit
+             (SELECT string_agg(action || ' ' || objet_id || ' ' || (details->>'automatique'),
+                                ',' ORDER BY id) FROM journal_audit
                 WHERE action IN ('dossier.publie', 'recette.certifiee')
                   AND (objet_id = 'DS-1041' OR objet_id LIKE 'REC-90%')) AS audit,
              (SELECT string_agg(row(statut_depart, statut_arrivee)::text || ' ' || u.email, ',')
@@ -107,7 +108,8 @@ describe('Critère : certificat actif ⇒ praticien « certifié », traitements
       {
         historique: '(5,6,valide),(6,6,publie)',
         sms: 'dossier.publie',
-        audit: 'recette.certifiee REC-9001,dossier.publie DS-1041',
+        // Demande du maître d'œuvre (13 novembre 2026) : publication marquée automatique
+        audit: 'recette.certifiee REC-9001 true,dossier.publie DS-1041 true',
         recette: `(expertisee,certifiee) ${DG}`,
       },
     ]);
@@ -117,7 +119,8 @@ describe('Critère : certificat actif ⇒ praticien « certifié », traitements
 describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la publication', () => {
   it('formule gratuite : 3 traitements certifiés, le 4e reste « expertisé » (R-REC-11)', async () => {
     const rows = await lastRows(`${joinRecipes(4)} ${approved}
-      SELECT r.code, r.statut, (SELECT j.details->>'motif' FROM journal_audit j
+      SELECT r.code, r.statut, (SELECT j.details->>'raison' || ' : ' || (j.details->>'motif')
+                                  FROM journal_audit j
                                  WHERE j.action = 'recette.certification_differee'
                                    AND j.objet_id = r.code) AS motif
         FROM recette r WHERE r.code BETWEEN 'REC-9001' AND 'REC-9004' ORDER BY r.code;`);
@@ -128,8 +131,55 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
       {
         code: 'REC-9004',
         statut: 'expertisee',
-        motif: 'Traitement REC-9004 : la formule gratuite est limitée à 3 traitements certifiés',
+        motif:
+          'quota : Traitement REC-9004 : la formule gratuite est limitée à 3 traitements certifiés',
       },
+    ]);
+  });
+
+  it('règle de choix : les 3 plus anciens par création, quel que soit leur code (§2.35)', async () => {
+    // REC-9000 est créé après REC-9001 à 9003 : c'est lui qui attend
+    const rows = await lastRows(`${joinRecipes(3)}
+      INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, cycle_duree_jours,
+                           cycle_prises_par_jour, dossier_id)
+      VALUES ('REC-9000', 1, 1, 'Créé en dernier', 3, 2, 1);
+      INSERT INTO recette_plante (recette_id, plante_id, ordre, partie_utilisee)
+      SELECT id, 3, 1, 'gousses' FROM recette WHERE code = 'REC-9000';
+      INSERT INTO recette_section (recette_id, type_code, texte_fr)
+      SELECT r.id, t.code, 'Essai' FROM recette r CROSS JOIN section_type t
+       WHERE r.code = 'REC-9000' AND t.obligatoire;
+      UPDATE recette SET statut = 'expertisee' WHERE code = 'REC-9000';
+      ${approved}
+      SELECT string_agg(code, ',' ORDER BY code) AS attente FROM recette
+       WHERE code BETWEEN 'REC-9000' AND 'REC-9003' AND statut = 'expertisee';`);
+    expect(rows).toEqual([{ attente: 'REC-9000' }]);
+  });
+
+  it('règle de choix : le quota compte les traitements déjà certifiés (renouvellement)', async () => {
+    // PR-1044 (formule gratuite) a déjà REC-2044 certifié : 2 places pour 3 traitements joints
+    const renewal = `(SELECT id FROM dossier_certification WHERE praticien_id = 4 AND statut = 'en_cours')`;
+    const rows = await lastRows(`${openContext(DG)}
+      INSERT INTO dossier_certification (praticien_id, type, visite_requise, etape_courante)
+      VALUES (4, 'renouvellement', false, 5);
+      ${joinRecipes(3, '4', renewal)}
+      SELECT certificat_emettre(${renewal}, contexte_utilisateur(), p.numero, p.emis_le,
+                                p.expire_le, '${'d'.repeat(64)}', 'c2lnbmF0dXJl', 'dg-0a1b2c3d',
+                                'uJK0ULaCKFo8CWZMA56e05Df5nq8-N-px4dnGxsiI4w', 'SB1:EXEMPLE')
+        FROM certificat_preparer(${renewal}, contexte_utilisateur()) p;
+      SELECT string_agg(code || ' ' || statut, ',' ORDER BY code) AS traitements FROM recette
+       WHERE code BETWEEN 'REC-9001' AND 'REC-9003';`);
+    expect(rows).toEqual([
+      { traitements: 'REC-9001 certifiee,REC-9002 certifiee,REC-9003 expertisee' },
+    ]);
+  });
+
+  it('le praticien est informé par SMS : nombre et raison (quota)', async () => {
+    const rows = await lastRows(`${joinRecipes(4)} ${approved}
+      SELECT modele, parametres FROM notification
+       WHERE objet_id = 'DS-1041' AND (parametres->>'etape')::int = 6 ORDER BY id;`);
+    expect(rows).toEqual([
+      { modele: 'dossier.publie', parametres: { etape: 6 } },
+      { modele: 'dossier.traitements_en_attente', parametres: { etape: 6, quota: 1, contenu: 0 } },
     ]);
   });
 
@@ -140,9 +190,18 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
       ${approved}
       SELECT (SELECT statut FROM praticien WHERE id = 1) AS praticien,
              (SELECT string_agg(code || ' ' || statut, ',' ORDER BY code) FROM recette
-               WHERE code IN ('REC-9001', 'REC-9002')) AS traitements;`);
+               WHERE code IN ('REC-9001', 'REC-9002')) AS traitements,
+             (SELECT details->>'raison' FROM journal_audit
+               WHERE action = 'recette.certification_differee' AND objet_id = 'REC-9001') AS raison,
+             (SELECT parametres FROM notification
+               WHERE modele = 'dossier.traitements_en_attente' AND objet_id = 'DS-1041') AS sms;`);
     expect(rows).toEqual([
-      { praticien: 'certifie', traitements: 'REC-9001 expertisee,REC-9002 certifiee' },
+      {
+        praticien: 'certifie',
+        traitements: 'REC-9001 expertisee,REC-9002 certifiee',
+        raison: 'contenu',
+        sms: { etape: 6, quota: 0, contenu: 1 },
+      },
     ]);
   });
 

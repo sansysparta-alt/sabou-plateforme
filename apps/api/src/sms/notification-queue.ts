@@ -14,7 +14,7 @@ export interface QueuedSms {
   telephone: string | null;
   modele: string;
   objet: string;
-  parametres: { etape?: number; prevueLe?: string };
+  parametres: { etape?: number; prevueLe?: string; quota?: number; contenu?: number };
 }
 
 export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';
