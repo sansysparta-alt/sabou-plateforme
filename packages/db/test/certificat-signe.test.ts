@@ -75,7 +75,7 @@ describe('Critère 1 : à l’étape 5, l’approbation crée un certificat de 1
     expect(check).toEqual([{ emis: true, expire: true }]);
   });
 
-  it('enregistre le certificat actif et fait passer le dossier à l’étape 6', async () => {
+  it('enregistre le certificat actif ; le dossier passe à l’étape 6, publié aussitôt (US-046)', async () => {
     const rows = await lastRows(`${atStep5} ${emit(DG)}
       SELECT d.etape_courante AS etape, d.statut AS dossier, c.statut, c.empreinte_sha3 = '${HASH}' AS empreinte,
              c.signature, c.qr, k.kid, k.cle_publique, u.email AS emis_par,
@@ -86,7 +86,7 @@ describe('Critère 1 : à l’étape 5, l’approbation crée un certificat de 1
     expect(rows).toEqual([
       {
         etape: 6,
-        dossier: 'en_cours',
+        dossier: 'approuve',
         statut: 'actif',
         empreinte: true,
         signature: SIGNATURE,
@@ -103,16 +103,17 @@ describe('Critère 1 : à l’étape 5, l’approbation crée un certificat de 1
   it('trace l’approbation : historique, SMS au praticien, journal d’audit (R-CER-05)', async () => {
     const rows = await lastRows(`${atStep5} ${emit(DG)}
       SELECT (SELECT row(etape_depart, etape_arrivee, decision)::text FROM dossier_historique
-                WHERE dossier_id = 1 ORDER BY id DESC LIMIT 1) AS historique,
+                WHERE dossier_id = 1 AND decision <> 'publie' ORDER BY id DESC LIMIT 1) AS historique,
              (SELECT count(*)::int FROM notification
                 WHERE modele = 'dossier.valide' AND objet_id = 'DS-1041') AS sms,
              (SELECT string_agg(action, ',' ORDER BY id) FROM journal_audit
                 WHERE action IN ('certificat.emis', 'dossier.valide')
                   AND (objet_id = 'DS-1041' OR details->>'dossier' = 'DS-1041')) AS audit;`);
+    // L'approbation ne met pas de SMS en file : celui de la publication l'annonce (US-046)
     expect(rows).toEqual([
       {
         historique: '(5,6,valide)',
-        sms: 4,
+        sms: 3,
         audit: 'dossier.valide,dossier.valide,dossier.valide,certificat.emis,dossier.valide',
       },
     ]);
