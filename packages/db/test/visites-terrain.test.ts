@@ -3,11 +3,16 @@
 // d'exemple ; chaque cas part du même état (transaction annulée). Les messages vérifiés ici
 // sont ceux que l'API traduit en réponses (apps/api/src/visits/visits.repository.ts).
 import { beforeAll, describe, expect, it } from 'vitest';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import {
+  copyMigrations,
+  createDatabase,
   createSeededDatabase,
   inRolledBackTransaction,
   lastRows as rowsAt,
   openContext,
+  runSql,
   type TestDatabase,
 } from './helpers.ts';
 
@@ -265,5 +270,33 @@ describe('Habilitation : la visite est l’affaire du préfectoral de la préfec
     await expect(attempt(plan(LABE, "now() + interval '2 days'"))).rejects.toThrow(
       'visite possible seulement à l’étape 2'.replace('’', "'"),
     );
+  });
+});
+
+describe('Migration sur une base qui a déjà des visites réalisées', () => {
+  it('garde les visites réalisées avant US-041 (compte rendu en pièce jointe), sans les rendre modifiables', async () => {
+    const copy = copyMigrations();
+    try {
+      rmSync(join(copy.dir, '20261113120000_visites_terrain.sql'));
+      copy.rehash();
+      const legacy = await createDatabase();
+      await legacy.migrate(copy.dir);
+      // Visite réalisée à l'ancienne ; clés étrangères suspendues pour ne créer que cette ligne
+      await runSql(
+        legacy.url.postgres,
+        `SET session_replication_role = replica;
+         INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, realisee_le, compte_rendu_piece_id, statut)
+         VALUES (1, 1, now() - interval '2 days', now() - interval '1 day', 1, 'realisee');`,
+      );
+      await legacy.migrate();
+      await expect(
+        runSql(
+          legacy.url.migrator,
+          `UPDATE sabou.visite_terrain SET constats = 'Ajout' WHERE id = 1`,
+        ),
+      ).rejects.toThrow('compte rendu figé');
+    } finally {
+      copy.cleanup();
+    }
   });
 });

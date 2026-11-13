@@ -13,11 +13,13 @@ ALTER TABLE visite_terrain
   ADD COLUMN signe_par      bigint REFERENCES utilisateur(id),
   ADD COLUMN signe_le       timestamptz,
   DROP CONSTRAINT ck_visite_realisee,
-  -- Une visite réalisée porte toujours son compte rendu signé (critère 2 de US-041)
+  -- Une visite réalisée porte toujours son compte rendu signé (critère 2 de US-041).
+  -- NOT VALID : vérifiée à chaque écriture, sans rejeter les visites réalisées avant US-041
+  -- (bases de recette et des postes : compte rendu en pièce jointe), figées ci-dessous.
   ADD CONSTRAINT ck_visite_realisee CHECK (
     statut <> 'realisee' OR (realisee_le IS NOT NULL AND constats IS NOT NULL AND avis IS NOT NULL
                              AND empreinte_sha3 IS NOT NULL AND signe_par IS NOT NULL
-                             AND signe_le IS NOT NULL));
+                             AND signe_le IS NOT NULL)) NOT VALID;
 
 COMMENT ON COLUMN visite_terrain.rappel_envoye_le IS
   'Heure de mise en file du rappel au praticien (la veille de la visite) ; NULL tant qu''il n''est pas parti.';
