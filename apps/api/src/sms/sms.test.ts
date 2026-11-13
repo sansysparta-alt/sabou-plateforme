@@ -61,7 +61,7 @@ describe('Textes : un seul SMS par message, en français', () => {
         parametres: { etape: 6, quota, contenu },
       });
     expect(text(1, 0)).toBe(
-      "SABOU : 1 traitement du dossier DS-1041 est en attente : formule gratuite limitée à 3, certifié au passage à GOLD.",
+      'SABOU : 1 traitement du dossier DS-1041 est en attente : formule gratuite limitée à 3, certifié au passage à GOLD.',
     );
     expect(text(0, 2)).toBe(
       'SABOU : 2 traitements du dossier DS-1041 sont en attente : plante ou section à compléter.',
