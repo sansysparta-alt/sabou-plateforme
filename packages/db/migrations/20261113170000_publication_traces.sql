@@ -6,8 +6,35 @@
 --   - règle de choix en formule gratuite (R-REC-11 prime sur R-REC-08) : le quota de 3 compte
 --     les traitements déjà certifiés du praticien ; les places restantes vont aux traitements
 --     joints au dossier dans l'ordre de leur création (le plus ancien d'abord).
--- Seule dossier_transition change ; le reste est celui de 20261113160000_publication_praticien.sql.
+--   - la raison de l'attente est aussi enregistrée sur le traitement (recette.attente_raison),
+--     lue directement par le Studio (US-060) ; le journal d'audit garde la trace.
+-- dossier_transition change ; le reste est celui de 20261113160000_publication_praticien.sql.
 SET search_path = sabou, public;
+
+-- Raison pour laquelle un traitement expertisé attend sa certification : NULL hors attente
+ALTER TABLE recette ADD COLUMN attente_raison text
+  CHECK (attente_raison IN ('quota','contenu')),
+  ADD CONSTRAINT ck_recette_attente_expertisee
+  CHECK (attente_raison IS NULL OR statut = 'expertisee');
+COMMENT ON COLUMN recette.attente_raison IS
+  'Traitement resté « expertisé » à la publication du dossier : quota de la formule gratuite (R-REC-11) ou contenu à compléter (R-REC-06). Effacée dès que le statut change.';
+
+-- Tout changement de statut (certification au passage en GOLD, contenu complété, retrait)
+-- efface la raison : aucun chemin de certification n'a à y penser
+CREATE OR REPLACE FUNCTION trg_recette_attente() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.statut IS DISTINCT FROM OLD.statut THEN NEW.attente_raison := NULL; END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_recette_attente BEFORE UPDATE OF statut ON recette
+  FOR EACH ROW EXECUTE FUNCTION trg_recette_attente();
+
+-- Rattrapage : dossiers publiés par la migration précédente (bases de développement)
+UPDATE recette r SET attente_raison = j.raison
+  FROM (SELECT DISTINCT ON (objet_id) objet_id, details->>'raison' AS raison
+          FROM journal_audit WHERE action = 'recette.certification_differee'
+         ORDER BY objet_id, id DESC) j
+ WHERE r.code = j.objet_id AND r.statut = 'expertisee';
 
 CREATE OR REPLACE FUNCTION dossier_transition(p_dossier bigint, p_decision text, p_acteur bigint, p_motif text DEFAULT NULL)
 RETURNS smallint LANGUAGE plpgsql AS $$
@@ -100,6 +127,7 @@ BEGIN
           v_raison := 'contenu';
           v_contenu := v_contenu + 1;
         END IF;
+        UPDATE recette SET attente_raison = v_raison WHERE id = v_rec.id;
         INSERT INTO journal_audit (utilisateur_id, action, objet_type, objet_id, details)
         VALUES (p_acteur, 'recette.certification_differee', 'recette', v_rec.code,
                 jsonb_build_object('dossier', v_dos.code, 'automatique', true,

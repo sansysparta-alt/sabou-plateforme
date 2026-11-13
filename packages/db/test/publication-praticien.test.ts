@@ -119,22 +119,40 @@ describe('Critère : certificat actif ⇒ praticien « certifié », traitements
 describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la publication', () => {
   it('formule gratuite : 3 traitements certifiés, le 4e reste « expertisé » (R-REC-11)', async () => {
     const rows = await lastRows(`${joinRecipes(4)} ${approved}
-      SELECT r.code, r.statut, (SELECT j.details->>'raison' || ' : ' || (j.details->>'motif')
+      SELECT r.code, r.statut, r.attente_raison,
+             (SELECT j.details->>'raison' || ' : ' || (j.details->>'motif')
                                   FROM journal_audit j
                                  WHERE j.action = 'recette.certification_differee'
                                    AND j.objet_id = r.code) AS motif
         FROM recette r WHERE r.code BETWEEN 'REC-9001' AND 'REC-9004' ORDER BY r.code;`);
     expect(rows).toEqual([
-      { code: 'REC-9001', statut: 'certifiee', motif: null },
-      { code: 'REC-9002', statut: 'certifiee', motif: null },
-      { code: 'REC-9003', statut: 'certifiee', motif: null },
+      { code: 'REC-9001', statut: 'certifiee', attente_raison: null, motif: null },
+      { code: 'REC-9002', statut: 'certifiee', attente_raison: null, motif: null },
+      { code: 'REC-9003', statut: 'certifiee', attente_raison: null, motif: null },
       {
         code: 'REC-9004',
         statut: 'expertisee',
+        attente_raison: 'quota',
         motif:
           'quota : Traitement REC-9004 : la formule gratuite est limitée à 3 traitements certifiés',
       },
     ]);
+  });
+
+  it('la raison de l’attente, lue par le Studio, s’efface au passage en GOLD (US-060, US-141)', async () => {
+    const rows = await lastRows(`${joinRecipes(4)} ${approved}
+      INSERT INTO abonnement (praticien_id, formule, debut, montant_gnf)
+      VALUES (1, 'gold', current_date, 15000);
+      UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-9004';
+      SELECT statut, attente_raison FROM recette WHERE code = 'REC-9004';`);
+    expect(rows).toEqual([{ statut: 'certifiee', attente_raison: null }]);
+  });
+
+  it('une raison d’attente sur un traitement qui n’est pas « expertisé » : refusée', async () => {
+    await expect(
+      attempt(`UPDATE recette SET attente_raison = 'quota'
+                WHERE id = (SELECT min(id) FROM recette WHERE statut <> 'expertisee');`),
+    ).rejects.toThrow(/ck_recette_attente_expertisee/);
   });
 
   it('règle de choix : les 3 plus anciens par création, quel que soit leur code (§2.35)', async () => {
@@ -193,6 +211,7 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
                WHERE code IN ('REC-9001', 'REC-9002')) AS traitements,
              (SELECT details->>'raison' FROM journal_audit
                WHERE action = 'recette.certification_differee' AND objet_id = 'REC-9001') AS raison,
+             (SELECT attente_raison FROM recette WHERE code = 'REC-9001') AS attente,
              (SELECT parametres FROM notification
                WHERE modele = 'dossier.traitements_en_attente' AND objet_id = 'DS-1041') AS sms;`);
     expect(rows).toEqual([
@@ -200,6 +219,7 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
         praticien: 'certifie',
         traitements: 'REC-9001 expertisee,REC-9002 certifiee',
         raison: 'contenu',
+        attente: 'contenu',
         sms: { etape: 6, quota: 0, contenu: 1 },
       },
     ]);

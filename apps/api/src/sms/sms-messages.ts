@@ -41,20 +41,23 @@ function visitDate(value: string | undefined): string | null {
   return match ? `${match[3]}/${match[2]}/${match[1]} à ${match[4]}h${match[5]}` : null;
 }
 
-// « 2 traitements de votre dossier … ne sont pas encore certifiés : formule gratuite… » ; null
+// « 2 traitements du dossier … sont en attente : formule gratuite… » ; null
 // si les nombres sont mal formés (erreur définitive)
 function pendingTreatmentsText(objet: string, quota: number, contenu: number): string | null {
   const valid = (n: number) => Number.isInteger(n) && n >= 0 && n < 1000;
   if (!valid(quota) || !valid(contenu) || quota + contenu === 0) return null;
   const total = quota + contenu;
+  // Quota : la promesse « certifié au passage à GOLD » est tenue par US-141 (critère du 13/11)
   const reasons = [
-    quota > 0 ? 'formule gratuite limitée à 3' : null,
+    quota > 0
+      ? `formule gratuite limitée à 3, ${quota === 1 ? 'certifié' : 'certifiés'} au passage à GOLD`
+      : null,
     contenu > 0 ? 'plante ou section à compléter' : null,
   ].filter(Boolean);
   const subject =
     total === 1
-      ? `1 traitement de votre dossier ${objet} n'est pas encore certifié`
-      : `${total} traitements de votre dossier ${objet} ne sont pas encore certifiés`;
+      ? `1 traitement du dossier ${objet} est en attente`
+      : `${total} traitements du dossier ${objet} sont en attente`;
   return `SABOU : ${subject} : ${reasons.join(' ; ')}.`;
 }
 
