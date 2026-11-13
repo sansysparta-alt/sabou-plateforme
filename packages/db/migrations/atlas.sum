@@ -1,4 +1,4 @@
-h1:q0QWtJ3tE8kojr/qMnGgkI0qN3PA3wVww+qqA2Z5eVw=
+h1:yv1YoNlvLzoMUkleLuzXtglH14fJ/F0efMEV2D5wBQI=
 20261102120000_schema_initial.sql h1:SkbRJGKbwnVSJU524ThzdDufeYqyUnNES01STvOOvos=
 20261102120100_droits_application.sql h1:Hz/550ksXcCqsvMhWRY2HmJCz76RJWcnLKUOa4h+hTM=
 20261103120000_saisie_terrain.sql h1:JFxrXzFoSjTqPMIMLsu1TDVLqsgpvX5wPR24gkeDShI=
@@ -15,3 +15,4 @@ h1:q0QWtJ3tE8kojr/qMnGgkI0qN3PA3wVww+qqA2Z5eVw=
 20261112120000_notification_envoi.sql h1:tV+so9buSLobDhWEqFZT+U16aTDeAHvQDTu/+LUdcvw=
 20261113120000_visites_terrain.sql h1:UQ+ysggP84K3NAeyE+CR1ITwY8KwgZu26SUCQVpNUBc=
 20261113140000_certificat_signe.sql h1:6MC4iOCfffAlH/s5veWxtccUZHy9bOAmKo5LWT0a2Qo=
+20261113160000_publication_praticien.sql h1:9nVHT9H33PtZ07lHAFrvbXp/jvFDy0C83TH1QDt2tmY=

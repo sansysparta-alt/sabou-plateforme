@@ -645,6 +645,18 @@ Décision du maître d'œuvre (12 novembre 2026) : le certificat est une **page 
 
 **Contrôles du pipeline** : `packages/db/test/certificat-signe.test.ts` (dates, numéro, renouvellement, clé révoquée, approbation sans certificat refusée), `packages/qr/src/sign-with.test.ts` (signature par un signataire externe vérifiée hors ligne), `apps/api/src/certificates/certificates.test.ts` (approbation, coffre injoignable, droits), `apps/admin/src/ApprovalPage.test.tsx`, `apps/admin/e2e/approbation.spec.ts` (de bout en bout avec le vrai coffre, QR vérifié par la clé publique).
 
+### 2.35 Publication du praticien à l'étape 6 (US-046, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Publication dans la transaction de l'approbation** : `certificat_emettre` enchaîne l'étape 5 → 6 puis la publication (`dossier_transition(…, 'publie')`) | Étape 6 « automatique » (R-CER-01) ; aucun dossier ne reste approuvé sans être publié, aucune file ni tâche planifiée à surveiller | Tâche planifiée qui relève les dossiers à l'étape 6 (délai, un composant de plus) |
+| **Publication enregistrée au nom de la DG qui approuve** | L'historique exige un auteur (R-CER-05) ; la publication est la conséquence directe de sa décision | Compte « système » à créer dans `utilisateur` |
+| **Un seul SMS** : l'approbation (5 → 6) n'en met plus en file, celui de la publication annonce la certification | Deux SMS à la même seconde coûtent double et disent la même chose | Garder les deux |
+| **Traitements certifiés un par un, dans l'ordre où ils ont été joints** ; un traitement refusé par `trg_recette_publiable` (quota de 3 de la formule gratuite, R-REC-11 ; plante non validée ou section manquante, R-REC-06) reste « expertisé », la raison est écrite au journal d'audit (`recette.certification_differee`) | La certification du praticien ne dépend pas d'un traitement ; R-REC-11 prime sur R-REC-08 au-delà de 3 traitements gratuits | Refuser toute l'approbation ; certifier sans contrôle |
+| **Rattrapage** : la migration publie les dossiers déjà à l'étape 6 avec un certificat actif | Bases de développement où US-045 a approuvé des dossiers | — |
+
+**Contrôles du pipeline** : `packages/db/test/publication-praticien.test.ts` (critère, quota, plante non validée, traces, double publication refusée), `packages/db/test/certificat-signe.test.ts` (un SMS de moins), `apps/admin/e2e/approbation.spec.ts` (praticien certifié et dossier clos après l'approbation).
+
 ## 3. Architecture
 
 ```

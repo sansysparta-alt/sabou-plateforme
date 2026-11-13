@@ -1,7 +1,7 @@
 // US-045 : la DG approuve un dossier à l'étape 5 ; le certificat signé par le vrai coffre
 // (OpenBao Transit) est émis et sa page s'ouvre, de bout en bout. Vrai Keycloak (second
 // facteur), vraie API, vrai coffre, vraie base. Le QR est vérifié hors ligne avec la clé
-// publique enregistrée, comme le fera le site public.
+// publique enregistrée, comme le fera le site public. US-046 : la publication suit aussitôt.
 import { verifyCertificateQr } from '@sabou/qr';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
@@ -37,6 +37,14 @@ test('US-045 : approuver émet un certificat de 12 mois signé par le coffre, QR
   ).toBeVisible();
   await expectAccessible(page, 'certificat à imprimer');
   expect(stepOf(code)).toBe(6);
+
+  // US-046 : la publication suit aussitôt, le praticien est certifié et le dossier clos
+  expect(
+    psql(
+      `SELECT p.statut || '|' || d.statut FROM sabou.dossier_certification d
+         JOIN sabou.praticien p ON p.id = d.praticien_id WHERE d.code = '${code}'`,
+    ).trim(),
+  ).toBe('certifie|approuve');
 
   // Critère 1 : 12 mois, actif, empreinte SHA3-256 et signature Ed25519 de 64 octets
   const [statut, months, digest, signatureLength, kid, publicKey, qr] = psql(
