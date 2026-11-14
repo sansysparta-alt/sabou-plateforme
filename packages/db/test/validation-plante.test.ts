@@ -1,5 +1,5 @@
 // US-051 : valider une fiche plante (UC-52, R-PLA-05). Jeu d'exemple : PL-001 à PL-004
-// validées, PL-005 (Neem) en revue ; REC-2041 associe PL-001 et PL-002. Chaque cas part du
+// validées, PL-005 (Neem) en revue ; REC-2045 (brouillon) n'a que le néré (PL-003). Chaque cas part du
 // même état (transaction annulée).
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createSeededDatabase, lastRows, openContext, type TestDatabase } from './helpers.ts';
@@ -93,8 +93,9 @@ describe('Critère : la validation enregistre le valideur et la date', () => {
 describe('Critère : une plante « en revue » ne peut pas entrer dans un traitement certifié', () => {
   const certifyWithNeem = `
     INSERT INTO recette_plante (recette_id, plante_id, ordre, partie_utilisee)
-    VALUES (1, (SELECT id FROM plante WHERE code = 'PL-005'), 3, 'feuilles');
-    UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-2041';`;
+    VALUES ((SELECT id FROM recette WHERE code = 'REC-2045'),
+            (SELECT id FROM plante WHERE code = 'PL-005'), 2, 'feuilles');
+    UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-2045';`;
 
   it('certifier un traitement qui contient une plante en revue est refusé', async () => {
     await expect(asOwner(certifyWithNeem)).rejects.toThrow(
