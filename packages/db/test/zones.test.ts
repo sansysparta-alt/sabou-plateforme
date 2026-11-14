@@ -250,6 +250,13 @@ describe('Garde-fous du schéma', () => {
     );
     expect(rows.map((r) => r.name)).toEqual([
       'contexte_ouvrir',
+      // US-050 : fiches plantes écrites seulement par ces fonctions (rôle vérifié, journal
+      // d'audit), l'API n'écrit plus en direct dans plante et plante_image (05 §2.40)
+      'plante_creer',
+      'plante_image_ajouter',
+      'plante_image_modifier',
+      'plante_image_retirer',
+      'plante_modifier',
       'saisie_terrain_recevoir',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
