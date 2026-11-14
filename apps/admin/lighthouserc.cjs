@@ -54,15 +54,9 @@ const budgets = {
   'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median' }],
   'total-byte-weight': ['error', { maxNumericValue: 150 * 1024, aggregationMethod: 'median' }],
 };
-// Pages qui attendent des données (session, puis morceau de la page, puis API) : LCP de 4 s
-// et score de 0,80 en 3G, décision du maître d'œuvre du 8/11/2026, jusqu'au récit de
-// performance qui ramènera 3 s partout (05_Choix_Techniques.md §2.28, backlog)
-const DATA_PAGES =
-  /localhost:\d+\/(invitation|comptes|referentiels|verification-terrain|consolidation|expertise|approbation|rejet-definitif|entonnoir|certificats\/|\?vue=)/;
-const dataPageBudgets = {
-  'categories:performance': ['error', { minScore: 0.8, aggregationMethod: 'median-run' }],
-  'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median' }],
-};
+// Pages qui attendent des données : mêmes seuils depuis US-017 (session préchargée par
+// index.html, données de la page demandées en même temps que son morceau). Le seuil provisoire
+// de 4 s et 0,80 (décision du maître d'œuvre du 8/11/2026) est levé.
 
 module.exports = {
   ci: {
@@ -83,12 +77,7 @@ module.exports = {
         chromeFlags: '--headless=new --no-sandbox',
       },
     },
-    assert: {
-      assertMatrix: [
-        { matchingUrlPattern: DATA_PAGES.source, assertions: { ...budgets, ...dataPageBudgets } },
-        { matchingUrlPattern: `^(?!.*${DATA_PAGES.source})`, assertions: budgets },
-      ],
-    },
+    assert: { assertions: budgets },
     // Rapports gardés sur le poste ou dans le pipeline : aucun envoi à un service externe
     upload: { target: 'filesystem', outputDir: `.lighthouse/${formFactor}` },
   },

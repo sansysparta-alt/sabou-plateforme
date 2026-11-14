@@ -43,6 +43,7 @@ import {
   profileLabel,
   type SessionUser,
 } from './session';
+import { prefetch } from './prefetch';
 
 type State =
   | { status: 'loading' }
@@ -69,9 +70,22 @@ function takeLoginError(): string | undefined {
 // Pages de l'application ; toute autre adresse mène à l'accueil
 const path = () => window.location.pathname.replace(/\/+$/, '') || '/';
 
+// Consultation de l'invitation demandée en même temps que le morceau de la page (US-017) ;
+// le jeton reste dans le fragment, que la page lit puis efface (InvitationPage)
+let invitationPrefetched = false;
+function prefetchInvitation(): void {
+  if (invitationPrefetched) return;
+  invitationPrefetched = true;
+  const token = window.location.hash.slice(1);
+  if (/^[\w-]{43}$/.test(token)) {
+    prefetch('/api/invitation/consultation', { method: 'POST', body: { token } });
+  }
+}
+
 export function App() {
   // Acceptation d'une invitation : la personne n'a pas encore de compte ni de session
   if (path() === '/invitation') {
+    prefetchInvitation();
     return (
       <PublicLayout>
         <Suspense fallback={<p>Chargement…</p>}>
@@ -91,7 +105,11 @@ function ConnectedApp() {
   useEffect(() => {
     let active = true;
     fetchSession().then(
-      (user) => active && setState(user ? { status: 'connected', user } : { status: 'anonymous' }),
+      (user) => {
+        if (!active) return;
+        if (user) prefetchPageData(user);
+        setState(user ? { status: 'connected', user } : { status: 'anonymous' });
+      },
       () => active && setState({ status: 'error' }),
     );
     return () => {
@@ -210,26 +228,59 @@ function navigation(user: SessionUser): NavGroup[] {
   return groups;
 }
 
-// Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
-const DIRECTOR_PAGES: Record<string, ComponentType> = {
-  '/entonnoir': FunnelPage,
-  '/approbation': ApprovalPage,
-  '/rejet-definitif': RejectionPage,
-  '/comptes': AccountsPage,
-  '/referentiels': ReferentialsPage,
+// Pages de chaque profil, avec les lectures que la page fait à son ouverture (demandées en
+// avance, US-017) ; tout autre profil, ou toute autre adresse, mène à l'accueil
+interface Route {
+  Page: ComponentType;
+  data: string[];
+}
+const DIRECTOR_PAGES: Record<string, Route> = {
+  '/entonnoir': { Page: FunnelPage, data: ['/api/entonnoir'] },
+  '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
+  '/rejet-definitif': { Page: RejectionPage, data: [] },
+  '/comptes': { Page: AccountsPage, data: ['/api/comptes', '/api/comptes/referentiels'] },
+  '/referentiels': { Page: ReferentialsPage, data: ['/api/referentiels'] },
 };
-const PREFECTORAL_PAGES: Record<string, ComponentType> = {
-  '/verification-terrain': FieldVerificationPage,
+const PREFECTORAL_PAGES: Record<string, Route> = {
+  '/verification-terrain': {
+    Page: FieldVerificationPage,
+    data: ['/api/dossiers/verification-terrain'],
+  },
 };
-const REGIONAL_PAGES: Record<string, ComponentType> = {
-  '/consolidation': ConsolidationPage,
+const REGIONAL_PAGES: Record<string, Route> = {
+  '/consolidation': { Page: ConsolidationPage, data: ['/api/dossiers/consolidation'] },
 };
-const COMMITTEE_PAGES: Record<string, ComponentType> = {
-  '/expertise': ExpertisePage,
+const COMMITTEE_PAGES: Record<string, Route> = {
+  '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
 const CERTIFICATE_PATH = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+
+function routeFor(user: SessionUser): Route | undefined {
+  const pages = isDirector(user)
+    ? DIRECTOR_PAGES
+    : isPrefectoral(user)
+      ? PREFECTORAL_PAGES
+      : isRegional(user)
+        ? REGIONAL_PAGES
+        : isCommittee(user)
+          ? COMMITTEE_PAGES
+          : {};
+  return pages[path()];
+}
+
+// Lectures de la page qui va s'ouvrir, lancées dès la session connue, en même temps que le
+// téléchargement de son morceau (US-017) : elles en suivent exactement les conditions
+export function prefetchPageData(user: SessionUser): void {
+  if (!hasManagementAccess(user)) return;
+  const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
+  if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  const route = routeFor(user);
+  if (route) return route.data.forEach((url) => prefetch(url));
+  // Tableau de bord : chiffres réservés aux administrateurs connectés avec leur second facteur
+  if (user.administrator && user.secondFactor) prefetch('/api/tableau-de-bord');
+}
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
@@ -240,15 +291,7 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
       </Suspense>
     );
   }
-  const Page = isDirector(user)
-    ? DIRECTOR_PAGES[path()]
-    : isPrefectoral(user)
-      ? PREFECTORAL_PAGES[path()]
-      : isRegional(user)
-        ? REGIONAL_PAGES[path()]
-        : isCommittee(user)
-          ? COMMITTEE_PAGES[path()]
-          : undefined;
+  const Page = routeFor(user)?.Page;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}

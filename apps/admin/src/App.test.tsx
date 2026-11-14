@@ -2,6 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
 import { App } from './App';
+import { clearPrefetched } from './prefetch';
 
 const dg: SessionUser = {
   username: 'awa.camara',
@@ -98,6 +99,7 @@ beforeAll(async () => {
 beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(() => {
   cleanup();
+  clearPrefetched();
   vi.unstubAllGlobals();
 });
 
@@ -269,6 +271,35 @@ describe('App', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/rattaché à aucune zone active/);
     expect(alert.textContent).not.toMatch(/Forbidden/);
+  });
+
+  it('session demandée comme la précharge index.html, pour que le navigateur la reprenne (US-017)', async () => {
+    const fetchMock = mockApi(dg);
+    render(<App />);
+    expect(await screen.findByRole('link', { name: 'Comptes' }));
+    expect(fetchMock).toHaveBeenCalledWith('/auth/session', { credentials: 'include' });
+  });
+
+  it('données de la page demandées dès la session connue, une seule fois (US-017)', async () => {
+    const fetchMock = mockApi(committee);
+    window.history.replaceState(null, '', '/expertise');
+    render(<App />);
+    // Demandée avant même que le morceau de la page soit chargé
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/dossiers/expertise', expect.anything()),
+    );
+    expect(await screen.findByRole('heading', { level: 1, name: 'Expertise des dossiers' }));
+    expect(await screen.findByText(/Aucun dossier/));
+    const calls = fetchMock.mock.calls.filter(([url]) => url === '/api/dossiers/expertise');
+    expect(calls).toHaveLength(1);
+  });
+
+  it('tableau de bord : chiffres demandés en avance une seule fois (US-017)', async () => {
+    const fetchMock = mockApi(dg);
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Chiffres de votre zone' }));
+    const calls = fetchMock.mock.calls.filter(([url]) => url === '/api/tableau-de-bord');
+    expect(calls).toHaveLength(1);
   });
 
   it('praticien : pas de chiffres de zone (réservés aux administrateurs)', async () => {
