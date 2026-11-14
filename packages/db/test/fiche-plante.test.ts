@@ -12,12 +12,16 @@ const as = (email: string, sql: string) => lastRows(db.url.app, `${openContext(e
 const create = (name: string, fr = 'Kinkéliba', en: string | null = null) =>
   `SELECT * FROM plante_creer('${name}', 'Combretaceae', '${fr}', ${en === null ? 'NULL' : `'${en}'`});`;
 const SHA = 'a'.repeat(64);
+// Code d'une fiche : littéral (PL-001) ou expression SQL ; la séquence des codes n'est pas
+// annulée avec la transaction du test, le code d'une fiche créée se relit donc par son nom
+const codeOf = (code: string) => (code.startsWith('(') ? code : `'${code}'`);
+const CREATED = `(SELECT code FROM plante WHERE nom_scientifique = 'Combretum micranthum')`;
 const addImage = (code: string, key: string, principal = false, alt = 'Feuilles séchées') =>
-  `SELECT * FROM plante_image_ajouter('${code}', '${key}', '${SHA}', 'image/jpeg', 1000,
+  `SELECT * FROM plante_image_ajouter(${codeOf(code)}, '${key}', '${SHA}', 'image/jpeg', 1000,
      '${alt}', NULL, 'feuille', ${principal});`;
 const images = (code: string) =>
   `SELECT image_url, principale FROM plante_image i JOIN plante p ON p.id = i.plante_id
-    WHERE p.code = '${code}' ORDER BY ordre, i.id;`;
+    WHERE p.code = ${codeOf(code)} ORDER BY ordre, i.id;`;
 
 beforeAll(async () => {
   db = await createSeededDatabase();
@@ -34,7 +38,7 @@ describe('Critère : nom scientifique unique, famille, nom français obligatoire
     );
     expect(rows).toEqual([
       {
-        code: 'PL-006',
+        code: expect.stringMatching(/^PL-\d{3,}$/),
         statut: 'en_revue',
         nom_en: 'Kinkeliba',
         action: 'plante.creee',
@@ -127,7 +131,7 @@ describe('Critère : une seule photo principale, texte alternatif obligatoire', 
     ]);
     const created = await as(
       DG,
-      `${create('Combretum micranthum')} ${addImage('PL-006', 'plantes/b.jpg')} ${images('PL-006')}`,
+      `${create('Combretum micranthum')} ${addImage(CREATED, 'plantes/b.jpg')} ${images(CREATED)}`,
     );
     expect(created).toEqual([{ image_url: 'plantes/b.jpg', principale: true }]);
   });
