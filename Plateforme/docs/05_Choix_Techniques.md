@@ -692,6 +692,19 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 
 **Contrôles du pipeline** : `packages/db/test/entonnoir-certification.test.ts` (6 étapes, délai moyen du jeu d'exemple, fenêtre de 12 mois, blocage à plus de 15 jours, étape 1 exclue, tri, zones, droits) ; `apps/api/src/dashboard/funnel.test.ts` (DG seule, second facteur, sans cache) ; `apps/admin/src/FunnelPage.test.tsx` et `App.test.tsx` (écran, rubrique réservée) ; `apps/admin/e2e/entonnoir.spec.ts` (bout en bout, accessibilité, refus d'un autre rôle) ; mesure Lighthouse de `/entonnoir`.
 
+### 2.39 Application de gestion en 3 s sur chaque page en 3G (US-017, novembre 2026)
+
+Constat (§2.28) : sur une page qui attend des données, la chaîne était page → code de l'application (60 Ko compressés) → session → morceau de la page → données, un aller-retour de 300 ms à chaque étape en 3G. Deux de ces attentes sont supprimées, sans changer de bibliothèque.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Session préchargée par `index.html`** : `<link rel="preload" href="/auth/session" as="fetch" crossorigin="use-credentials">`, et `fetchSession` demande la session avec `credentials: 'include'` (même origine) pour que le navigateur reprenne ce préchargement | La session arrive pendant le téléchargement du code ; réponse de quelques centaines d'octets, sans concurrence notable pour la bande passante. Aucun script en ligne : la politique de sécurité du contenu (`script-src 'self'`) reste inchangée | Script en ligne avec empreinte dans la CSP : une exception de plus à tenir à jour |
+| **Données de la page demandées dès la session connue** (`apps/admin/src/prefetch.ts`), en même temps que le morceau de la page ; la page les reçoit par `call()` sans changer son code. Table des lectures de chaque page dans `App.tsx`, avec les mêmes conditions que la page (rôle, second facteur pour les chiffres du tableau de bord) ; consultation d'une invitation demandée au démarrage | Le morceau de la page et ses données ne s'attendent plus ; aucune requête de plus qu'avant | Bibliothèque de chargement des données (TanStack Query, routeur à « loaders ») : une dépendance pour un seul besoin. Télécharger le morceau de la page en même temps que la session : déjà essayé, aggrave la mesure (§2.28) |
+| **Réponse servie une seule fois, et dans les 10 secondes** ; seules des lectures sont demandées en avance (GET, ou la consultation d'une invitation, sans effet) | Un rechargement après une décision repart toujours vers l'API : jamais de donnée périmée | Cache de lecture partagé : risque d'afficher un état d'avant la décision |
+| **Seuils de US-010 rétablis pour toutes les pages** dans `apps/admin/lighthouserc.cjs` (LCP ≤ 3 s, performance ≥ 0,90 en 3G) ; le seuil provisoire de 4 s et 0,80 est levé | Critère de US-017 | — |
+
+**Contrôles du pipeline** : `apps/admin/src/prefetch.test.ts` (une seule requête, réponse servie une fois, expiration à 10 s, jeton d'invitation, lecture et écriture distinctes, panne réseau rendue à la page, préchargement présent dans `index.html`) ; `App.prefetch.test.tsx` (données déjà demandées quand le morceau de la page s’affiche) ; `App.test.tsx` (session demandée comme la précharge `index.html`, données d'une page et du tableau de bord demandées une seule fois, pas de chiffres demandés pour un praticien) ; les seuils Lighthouse de toutes les pages. Mesure : au pipeline complet de fin de sprint (règle du 14 novembre 2026, §2.40).
+
 ## 3. Architecture
 
 ```
