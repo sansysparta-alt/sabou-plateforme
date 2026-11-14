@@ -745,6 +745,19 @@ La validation par le Comité (statut « validée ») est l'objet de US-051.
 
 **Contrôles du pipeline** : `packages/db/test/fiches-maladies.test.ts` (création tracée, nom français unique normalisé, champs facultatifs, dénominations en langue nationale refusées, doublons ignorés, modification tracée et refus d'une fiche changée, autres profils refusés, écriture directe interdite, « fievre palustre » trouve le paludisme, dénomination ajoutée aussitôt trouvée) ; `zones.test.ts` ; `packages/types/src/diseases.test.ts` ; `apps/api/src/diseases/diseases.test.ts` ; `apps/admin/src/DiseasesPage.test.tsx`.
 
+### 2.43 Traitement des voix déposées (US-070, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Traitement dans l'API**, à partir d'une **file en base** (`voix_depot`, relevée toutes les 10 s, une voix à la fois, `FOR UPDATE SKIP LOCKED`), sur le modèle de la relève des SMS (§2.32) | Pas de service ni de bibliothèque de plus ; plusieurs instances de l'API ne prennent jamais la même voix ; un traitement interrompu est repris après 10 minutes | pg-boss (prévu au §2.17) : un schéma et des droits de plus pour le seul besoin d'une file ; service de traitement séparé : une image et un déploiement de plus |
+| **FFmpeg 9.0.2 statique** (image `mwader/static-ffmpeg`, épinglée par empreinte), binaire copié dans l'image de l'API ; les tests de l'API lancent la même image par Docker | Un seul binaire, sans bibliothèque du système : fonctionne sur l'image Debian de l'API ; même version que le prototype ; analysé par Trivy | Image `jrottenberg/ffmpeg` du prototype : bâtie sur Alpine (musl), son binaire ne tourne pas sur Debian ; FFmpeg des paquets Debian : version plus ancienne, des dizaines de bibliothèques. Coût : +141 Mo dans l'image de l'API (pas dans ce que télécharge l'utilisateur) |
+| **Un seul passage FFmpeg, deux sorties** : RNNoise à mi-force (modèle `cb`), volume à -16 LUFS, puis Opus mono 24 kbit/s (WebM, index en tête, trames de 60 ms) et **secours AAC** mono 32 kbit/s à 24 kHz (MP4 « faststart ») ; métadonnées de l'appareil retirées ; 300 s au plus | Réglages mesurés en US-005 (§2.17) ; les deux versions viennent du même son nettoyé ; l'AAC se lit dès les premiers octets | Deux passages : deux fois le calcul |
+| **Durée** lue dans le journal de FFmpeg (dernière position atteinte), **taille** et **empreinte SHA-256** calculées sur le fichier Opus publié ; enregistrées dans `audio_fichier` avec le dépositaire et son **consentement** (R-LNG-11) | Critère du récit ; la publication sans consentement reste refusée par la base (`trg_voix_publiable`) | ffprobe : un binaire de 141 Mo de plus pour une valeur que FFmpeg donne déjà |
+| **Dépôt** `POST /api/voix?consentement=true|false` (administrateurs avec second facteur), fichier brut de 3 Mo au plus, **WebM, Ogg, M4A, WAV ou MP3 reconnus à leur contenu**, original gardé sous une clé tirée au hasard ; état par `GET /api/voix/depots/:id`, pour le seul dépositaire | Formats des téléphones et des navigateurs ; consentement explicite à chaque dépôt | Dépôt par le praticien : avec l'application mobile (Studio, S7) |
+| **Trois essais** au plus, raison de l'échec gardée (sans chemin du poste) | Un fichier illisible ne bloque pas la file | — |
+
+**Contrôles du pipeline** : `packages/db/test/traitement-voix.test.ts` (voix publiée avec durée, taille, empreinte, dépositaire et consentement ; sans consentement ; état réservé au dépositaire ; un seul preneur ; échec au troisième essai ; reprise après interruption ; profils et écriture directe) ; `apps/api/src/voices/voice-processing.test.ts` (vrai FFmpeg : 90 s bruitées → WebM Opus de 300 Ko au plus et MP4 AAC « faststart », durée, empreinte ; fichier illisible ; formats reconnus) ; `voices.test.ts` (dépôt, consentement, format, taille, accès, traitement, échec) ; `zones.test.ts` ; l'image de l'API (construction et Trivy) au pipeline complet.
+
 ## 3. Architecture
 
 ```

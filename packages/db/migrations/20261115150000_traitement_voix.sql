@@ -84,6 +84,8 @@ $$;
 CREATE FUNCTION voix_depots_prendre(p_nombre integer)
 RETURNS TABLE (id bigint, cle_originale text, type_mime text, tentatives smallint)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = sabou, public, pg_temp AS $$
+-- Colonnes de la table prioritaires sur les colonnes de résultat de même nom
+#variable_conflict use_column
 BEGIN
   -- Interrompu au troisième essai : échec, plutôt qu'un quatrième essai
   UPDATE voix_depot SET statut = 'echec', erreur = 'Traitement interrompu à chaque essai',
