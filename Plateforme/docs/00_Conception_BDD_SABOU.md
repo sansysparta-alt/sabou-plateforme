@@ -80,6 +80,8 @@ Notation : **PK**, *FK*, `?` = facultatif. Clés techniques `bigint` identité +
 - visite_terrain(**id**, *dossier_id*, *admin_id*, prevue_le, rappel_envoye_le?, realisee_le?, *compte_rendu_piece_id*?, statut {planifiee, realisee, annulee})
 - dossier_historique(**id**, *dossier_id*, etape_depart, etape_arrivee, decision {soumis, valide, rejete, rejet_definitif}, motif?, *acteur_id*, decide_le, signature?)
   - motif obligatoire si rejet ; rejet ⇒ etape_arrivee = etape_depart − 1 (R-CER-03)
+- rejet_definitif(**id**, *praticien_id*, *dossier_id*?, *certificat_id*?, motif {fraude_documentaire, usurpation_identite, pratique_dangereuse}, motif_detail, avis_comite_le?, avis_comite_reference?, *decide_par*, decide_le, recours_jusquau) — US-047
+  - avis du Comité exigé pour une pratique dangereuse ; recours_jusquau = date du rejet + 30 jours ; non modifiable par l'API ; un rejet clôt le dossier en cours, révoque le certificat actif et suspend les traitements certifiés (R-CER-04, R-QR-06)
 - cle_signature(**id**, algorithme 'ed25519', cle_publique, active_depuis, revoquee_le?)
 - certificat(**id**, numero, *praticien_id*, *dossier_id*, *emis_par*, emis_le, expire_le (≤ emis_le + 12 mois), empreinte_sha3 (64 hex), signature (base64), *cle_id*, statut {actif, expire, revoque}, motif_revocation?, revoque_le?)
   - un seul certificat actif par praticien (R-QR-01)

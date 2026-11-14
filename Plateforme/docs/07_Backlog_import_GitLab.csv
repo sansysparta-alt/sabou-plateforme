@@ -277,14 +277,14 @@ Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et 
 /weight 3"
 [US-047] Prononcer un rejet définitif,"En tant que DG, je veux prononcer un rejet définitif, afin d’écarter un praticien frauduleux ou dangereux.
 
-**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 3 · **Cas** : UC-61
+**Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Must · **Points** : 5 · **Cas** : UC-61
 
 **Critères d’acceptation**
 - [ ] Étant donné un autre rôle que la DG, quand il tente un rejet définitif, alors c’est refusé.
 - [ ] Étant donné un rejet définitif motivé, quand il est prononcé, alors le praticien passe « rejeté », son certificat est révoqué et il est informé de son recours de 30 jours.
 
 /label ~""E04"" ~""Must"" ~""S3""
-/weight 3"
+/weight 5"
 [US-048] L’entonnoir des 6 étapes et les dossiers bloqués,"En tant que DG, je veux l’entonnoir des 6 étapes et les dossiers bloqués, afin de piloter les délais.
 
 **Epic** : E04 Certification et certificat · **Sprint** : S3 · **Priorité** : Should · **Points** : 3 · **Cas** : UC-67
@@ -396,6 +396,7 @@ Périmètre : crée le squelette de l’application Flutter (`apps/mobile/`) et 
 - [ ] Seul le rôle prévu, dans sa zone, peut faire chaque transition.
 - [ ] Un rejet exige un motif et renvoie à l’étape précédente.
 - [ ] Chaque transition est historisée et notifiée.
+- [ ] Étant donné un praticien rejeté définitivement, quand un régional ou le Comité ouvre sa file, alors les traitements de ce praticien n’y figurent pas (ils ne peuvent déjà plus progresser, US-047).
 
 /label ~""E06"" ~""Must"" ~""S5""
 /weight 5"

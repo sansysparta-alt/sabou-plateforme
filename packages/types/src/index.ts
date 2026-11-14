@@ -15,3 +15,4 @@ export * from './dashboard.js';
 export * from './decisions.js';
 export * from './visits.js';
 export * from './certificates.js';
+export * from './rejections.js';
