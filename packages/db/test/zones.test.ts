@@ -260,6 +260,10 @@ describe('Garde-fous du schéma', () => {
       'plante_image_modifier',
       'plante_image_retirer',
       'plante_modifier',
+      // US-053 : noms locaux, réservés au référent de la langue (05 §2.44)
+      'plante_nom_local_ajouter',
+      'plante_nom_local_principal',
+      'plante_nom_local_retirer',
       // US-051 : validation par le seul Comité (05 §2.41)
       'plante_valider',
       'saisie_terrain_recevoir',
