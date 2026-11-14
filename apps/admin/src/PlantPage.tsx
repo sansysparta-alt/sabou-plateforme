@@ -326,8 +326,8 @@ function ImageItem({
                   )
                 }
               >
-                Choisir comme photo principale
-                <span className="ui-visually-hidden"> : {image.alt}</span>
+                Choisir comme photo principale{' '}
+                <span className="ui-visually-hidden">: {image.alt}</span>
               </Button>
             )}
             <Button variant="tertiary" disabled={busy} onClick={() => setEditing(true)}>
@@ -486,7 +486,8 @@ function AddImageForm({
             hint="JPEG, PNG ou WebP, 5 Mo au plus."
             type="file"
             accept={ACCEPTED}
-            required
+            // Contrôlé par l'écran (message clair) plutôt que par le navigateur
+            aria-required="true"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         }
