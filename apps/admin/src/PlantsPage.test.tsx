@@ -178,12 +178,10 @@ describe('Fiche plante', () => {
     const form = (await screen.findByRole('heading', { name: 'Ajouter une photo' })).closest(
       'form',
     )!;
-    const alt = within(form).getByLabelText('Texte alternatif', {
-      exact: false,
-    }) as HTMLInputElement;
+    const alt = within(form).getByLabelText(/^Texte alternatif(?! en anglais)/) as HTMLInputElement;
     expect(alt.required).toBe(true);
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' });
-    fireEvent.change(within(form).getByLabelText('Photo', { exact: false }), {
+    fireEvent.change(within(form).getByLabelText(/^Photo(?! principale)/), {
       target: { files: [file] },
     });
     fireEvent.change(alt, { target: { value: 'Feuilles' } });
