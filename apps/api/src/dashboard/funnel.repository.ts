@@ -32,7 +32,19 @@ export class FunnelRepository {
         etapes,
         bloques: {
           total: rows[0]?.total ?? 0,
-          dossiers: rows.map(({ total: _total, ...dossier }) => dossier),
+          // Liste blanche des champs exposés (le total de la fenêtre reste interne)
+          dossiers: rows.map(
+            ({ dossier, praticien, nom, etape, prefecture, region, jours, depuis }) => ({
+              dossier,
+              praticien,
+              nom,
+              etape,
+              prefecture,
+              region,
+              jours,
+              depuis,
+            }),
+          ),
         },
       };
     });
