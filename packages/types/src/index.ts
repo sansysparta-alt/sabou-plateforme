@@ -17,3 +17,4 @@ export * from './visits.js';
 export * from './certificates.js';
 export * from './rejections.js';
 export * from './plants.js';
+export * from './diseases.js';

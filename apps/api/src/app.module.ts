@@ -9,6 +9,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { CertificationModule } from './certification/certification.module';
+import { DiseasesModule } from './diseases/diseases.module';
 import { PlantsModule } from './plants/plants.module';
 import { ReferentialsModule } from './referentials/referentials.module';
 import { RejectionsModule } from './rejections/rejections.module';
@@ -29,6 +30,7 @@ import { VisitsModule } from './visits/visits.module';
     CertificatesModule,
     RejectionsModule,
     PlantsModule,
+    DiseasesModule,
     VisitsModule,
     DashboardModule,
     DossiersModule,

@@ -733,6 +733,18 @@ La validation par le Comité (statut « validée ») est l'objet de US-051.
 
 **Contrôles du pipeline** : `packages/db/test/validation-plante.test.ts` (valideur, date et journal ; Comité seul ; fiche déjà validée ou changée ; noms corrigés sans perte de validation ; retour en revue si l'identité change ; certification refusée avec une plante en revue, plus refusée pour ce motif une fois la plante validée) ; `zones.test.ts` ; `apps/api/src/plants/plants.test.ts` (validation) ; `apps/admin/src/PlantsPage.test.tsx` (valideur et date affichés, bouton du seul Comité).
 
+### 2.42 Fiches maladies (US-052, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Même construction que les fiches plantes** (§2.40) : `maladie_creer` et `maladie_modifier`, SECURITY DEFINER, DG ou Comité, acteur du contexte, journal d'audit ; l'API n'écrit plus en direct dans `maladie` ni `maladie_denomination` | Une seule règle à comprendre et à vérifier pour le Dictionnaire | — |
+| **Nom français unique à la casse, aux accents et aux espaces près** ; nom anglais et symptômes (français, anglais) facultatifs ; codes MA-001… | R-MAL-01 ; « Paludisme » et « paludisme » sont la même maladie | — |
+| **Dénominations remplacées en bloc** à chaque enregistrement (liste de 30 au plus, doublons ignorés), **en français ou en anglais seulement** (contrôle de la langue « texte » du schéma initial) ; le journal garde l'avant et l'après | Écran simple (une liste) ; R-LNG-02 : aucun texte en langue nationale, les noms locaux sont des voix | Ajout et retrait un par un : plus d'appels, sans gain |
+| **Recherche par `rechercher_maladie`** (schéma initial) : nom français, anglais ou dénomination, sans accents et tolérante aux fautes ; l'écran de gestion l'utilise aussi | Le critère « dénominations trouvées sans accents » est tenu par la recherche même du public | Une seconde recherche propre à la gestion |
+| **Mêmes profils que les fiches plantes** (garde `PlantEditorGuard`) | UC-05 : DG ou Comité | — |
+
+**Contrôles du pipeline** : `packages/db/test/fiches-maladies.test.ts` (création tracée, nom français unique normalisé, champs facultatifs, dénominations en langue nationale refusées, doublons ignorés, modification tracée et refus d'une fiche changée, autres profils refusés, écriture directe interdite, « fievre palustre » trouve le paludisme, dénomination ajoutée aussitôt trouvée) ; `zones.test.ts` ; `packages/types/src/diseases.test.ts` ; `apps/api/src/diseases/diseases.test.ts` ; `apps/admin/src/DiseasesPage.test.tsx`.
+
 ## 3. Architecture
 
 ```

@@ -250,6 +250,9 @@ describe('Garde-fous du schéma', () => {
     );
     expect(rows.map((r) => r.name)).toEqual([
       'contexte_ouvrir',
+      // US-052 : fiches maladies, même règle que les fiches plantes (05 §2.42)
+      'maladie_creer',
+      'maladie_modifier',
       // US-050 : fiches plantes écrites seulement par ces fonctions (rôle vérifié, journal
       // d'audit), l'API n'écrit plus en direct dans plante et plante_image (05 §2.40)
       'plante_creer',

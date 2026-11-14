@@ -30,6 +30,10 @@ const RejectionPage = lazy(() =>
 const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
 const PlantsPage = lazy(() => import('./PlantsPage').then((m) => ({ default: m.PlantsPage })));
 const PlantPage = lazy(() => import('./PlantPage').then((m) => ({ default: m.PlantPage })));
+const DiseasesPage = lazy(() =>
+  import('./DiseasesPage').then((m) => ({ default: m.DiseasesPage })),
+);
+const DiseasePage = lazy(() => import('./DiseasesPage').then((m) => ({ default: m.DiseasePage })));
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -209,7 +213,11 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isDirector(user) || isCommittee(user)) {
     groups.push({
       heading: 'Dictionnaire',
-      items: [{ href: '/plantes', label: 'Fiches plantes', icon: 'book' }],
+      items: [
+        { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
+        // US-052
+        { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
+      ],
     });
   }
   if (isDirector(user)) {
@@ -248,6 +256,7 @@ const DIRECTOR_PAGES: Record<string, Route> = {
   '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
   '/rejet-definitif': { Page: RejectionPage, data: [] },
   '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
+  '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },
   '/comptes': { Page: AccountsPage, data: ['/api/comptes', '/api/comptes/referentiels'] },
   '/referentiels': { Page: ReferentialsPage, data: ['/api/referentiels'] },
 };
@@ -263,6 +272,7 @@ const REGIONAL_PAGES: Record<string, Route> = {
 const COMMITTEE_PAGES: Record<string, Route> = {
   '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
   '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
+  '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
@@ -271,6 +281,10 @@ const CERTIFICATE_PATH = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
 const plantOf = (user: SessionUser) =>
   isDirector(user) || isCommittee(user) ? PLANT_PATH.exec(path()) : null;
+// Fiche maladie (US-052) : /maladies/MA-001, pour la DG et le Comité
+const DISEASE_PATH = /^\/maladies\/(MA-\d{3,10})$/;
+const diseaseOf = (user: SessionUser) =>
+  isDirector(user) || isCommittee(user) ? DISEASE_PATH.exec(path()) : null;
 
 function routeFor(user: SessionUser): Route | undefined {
   const pages = isDirector(user)
@@ -293,6 +307,8 @@ export function prefetchPageData(user: SessionUser): void {
   if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
   const plant = plantOf(user);
   if (plant) return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
+  const disease = diseaseOf(user);
+  if (disease) return prefetch(`/api/maladies/${encodeURIComponent(disease[1]!)}`);
   const route = routeFor(user);
   if (route) return route.data.forEach((url) => prefetch(url));
   // Tableau de bord : chiffres réservés aux administrateurs connectés avec leur second facteur
@@ -313,6 +329,14 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
     return (
       <Suspense fallback={<p>Chargement…</p>}>
         <PlantPage code={plant[1]!} canValidate={isCommittee(user)} />
+      </Suspense>
+    );
+  }
+  const disease = diseaseOf(user);
+  if (disease) {
+    return (
+      <Suspense fallback={<p>Chargement…</p>}>
+        <DiseasePage code={disease[1]!} />
       </Suspense>
     );
   }
