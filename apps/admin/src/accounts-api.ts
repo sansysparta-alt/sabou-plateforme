@@ -25,7 +25,11 @@ const GENERIC = 'Le service est momentanément indisponible. Veuillez réessayer
 
 // Appel de l'API ; sans corps : GET, avec corps : POST, sauf méthode donnée. Un fichier
 // (Blob) part tel quel, sans formulaire multipart ; tout autre corps part en JSON.
-export async function call<T>(path: string, body?: unknown, method?: 'PATCH'): Promise<T> {
+export async function call<T>(
+  path: string,
+  body?: unknown,
+  method?: 'PATCH' | 'DELETE',
+): Promise<T> {
   let response: Response;
   const file = body instanceof Blob;
   const verb = method ?? (body === undefined ? 'GET' : 'POST');

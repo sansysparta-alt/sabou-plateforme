@@ -28,6 +28,8 @@ const RejectionPage = lazy(() =>
   import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
 );
 const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
+const PlantsPage = lazy(() => import('./PlantsPage').then((m) => ({ default: m.PlantsPage })));
+const PlantPage = lazy(() => import('./PlantPage').then((m) => ({ default: m.PlantPage })));
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -203,6 +205,13 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
     });
   }
+  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique
+  if (isDirector(user) || isCommittee(user)) {
+    groups.push({
+      heading: 'Dictionnaire',
+      items: [{ href: '/plantes', label: 'Fiches plantes', icon: 'book' }],
+    });
+  }
   if (isDirector(user)) {
     // Pilotage de la DG : entonnoir des 6 étapes (US-048)
     groups[0]!.items.push({
@@ -238,6 +247,7 @@ const DIRECTOR_PAGES: Record<string, Route> = {
   '/entonnoir': { Page: FunnelPage, data: ['/api/entonnoir'] },
   '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
   '/rejet-definitif': { Page: RejectionPage, data: [] },
+  '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
   '/comptes': { Page: AccountsPage, data: ['/api/comptes', '/api/comptes/referentiels'] },
   '/referentiels': { Page: ReferentialsPage, data: ['/api/referentiels'] },
 };
@@ -252,10 +262,15 @@ const REGIONAL_PAGES: Record<string, Route> = {
 };
 const COMMITTEE_PAGES: Record<string, Route> = {
   '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
+  '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
 const CERTIFICATE_PATH = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+// Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
+const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
+const plantOf = (user: SessionUser) =>
+  isDirector(user) || isCommittee(user) ? PLANT_PATH.exec(path()) : null;
 
 function routeFor(user: SessionUser): Route | undefined {
   const pages = isDirector(user)
@@ -276,6 +291,8 @@ export function prefetchPageData(user: SessionUser): void {
   if (!hasManagementAccess(user)) return;
   const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
   if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  const plant = plantOf(user);
+  if (plant) return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
   const route = routeFor(user);
   if (route) return route.data.forEach((url) => prefetch(url));
   // Tableau de bord : chiffres réservés aux administrateurs connectés avec leur second facteur
@@ -288,6 +305,14 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
     return (
       <Suspense fallback={<p>Chargement…</p>}>
         <CertificatePage numero={certificate[1]!} />
+      </Suspense>
+    );
+  }
+  const plant = plantOf(user);
+  if (plant) {
+    return (
+      <Suspense fallback={<p>Chargement…</p>}>
+        <PlantPage code={plant[1]!} />
       </Suspense>
     );
   }

@@ -302,6 +302,25 @@ describe('App', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('DG et Comité : rubrique Fiches plantes et sa page ; pas pour le préfectoral (US-050)', async () => {
+    for (const user of [dg, committee]) {
+      mockApi(user);
+      window.history.replaceState(null, '', '/plantes');
+      render(<App />);
+      expect(await screen.findByRole('heading', { level: 1, name: 'Fiches plantes' }));
+      expect(screen.getByRole('link', { name: 'Fiches plantes' }).getAttribute('href')).toBe(
+        '/plantes',
+      );
+      cleanup();
+    }
+    mockApi(prefectoral);
+    window.history.replaceState(null, '', '/plantes');
+    render(<App />);
+    expect(await screen.findByRole('link', { name: 'Vérification terrain' }));
+    expect(screen.queryByRole('link', { name: 'Fiches plantes' })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Fiches plantes' })).toBeNull();
+  });
+
   it('praticien : pas de chiffres de zone (réservés aux administrateurs)', async () => {
     const fetchMock = mockApi(praticien);
     render(<App />);
