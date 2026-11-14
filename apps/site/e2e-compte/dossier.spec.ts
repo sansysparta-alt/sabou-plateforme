@@ -128,12 +128,19 @@ test('critère 3 : moins de 12 mois après un rejet définitif, un nouveau dossi
   const praticien = api(page.request);
   expect((await praticien.saveProfile()).status()).toBe(204);
 
-  // Rejet définitif prononcé par la DG (compte du jeu d'exemple), il y a un mois
+  // Rejet définitif prononcé par la DG (compte du jeu d'exemple) par praticien_rejeter, seule
+  // voie depuis US-047, puis reporté d'un mois en arrière (décision, recours et dossier)
   psql(`BEGIN; SET LOCAL search_path = sabou, public;
     SELECT sabou.contexte_ouvrir(md5('sabou:dg@sabou-sante.gn')::uuid);
-    SELECT sabou.dossier_transition(d.id, 'rejet_definitif', 1, 'Fraude documentaire')
-      FROM sabou.dossier_certification d JOIN sabou.praticien p ON p.id = d.praticien_id
-      JOIN sabou.utilisateur u ON u.id = p.utilisateur_id WHERE u.telephone = '+224${phone}';
+    SELECT sabou.praticien_rejeter(p.id, sabou.contexte_utilisateur(), 'fraude_documentaire',
+                                   'Pièce d''identité falsifiée.')
+      FROM sabou.praticien p JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
+     WHERE u.telephone = '+224${phone}';
+    UPDATE sabou.rejet_definitif r
+       SET decide_le = r.decide_le - interval '1 month',
+           recours_jusquau = ((r.decide_le - interval '1 month') AT TIME ZONE 'Africa/Conakry')::date + 30
+      FROM sabou.praticien p JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
+     WHERE r.praticien_id = p.id AND u.telephone = '+224${phone}';
     UPDATE sabou.dossier_certification d SET cloture_le = now() - interval '1 month'
       FROM sabou.praticien p JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
      WHERE d.praticien_id = p.id AND u.telephone = '+224${phone}';
