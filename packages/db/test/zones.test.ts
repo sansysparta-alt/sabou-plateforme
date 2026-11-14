@@ -257,6 +257,8 @@ describe('Garde-fous du schéma', () => {
       'plante_image_modifier',
       'plante_image_retirer',
       'plante_modifier',
+      // US-051 : validation par le seul Comité (05 §2.41)
+      'plante_valider',
       'saisie_terrain_recevoir',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)

@@ -722,6 +722,17 @@ La validation par le Comité (statut « validée ») est l'objet de US-051.
 
 **Contrôles du pipeline** : `packages/db/test/fiche-plante.test.ts` (création par la DG et le Comité, refus des autres profils, unicité normalisée, champs obligatoires, modification tracée et refus d'une fiche changée entre-temps, écriture directe interdite, photo principale unique, texte alternatif obligatoire, remplacement de la principale retirée) ; `zones.test.ts` (fonctions SECURITY DEFINER listées) ; `packages/types/src/plants.test.ts` ; `apps/api/src/plants/plants.test.ts` (accès, origine, saisie, refus traduits, formats et taille des photos, fichier retiré si la base refuse, en-têtes de la photo servie) ; `apps/admin/src/PlantsPage.test.tsx` et `App.test.tsx` (écrans, rubrique réservée).
 
+### 2.41 Validation d'une fiche plante par le Comité (US-051, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **`plante_valider`**, SECURITY DEFINER, **Comité scientifique seul** (pas la DG) ; fiche « en revue » lue à jour (date de dernière modification) ; valideur, date et journal d'audit | R-PLA-05 : seul le Comité valide ; critère « la validation enregistre le valideur et la date » | Validation par la DG |
+| **Retour « en revue » quand l'identité botanique change** (nom scientifique ou famille, à la casse et aux accents près) ; les noms français et anglais se corrigent sans perdre la validation ; le journal le signale (`retourEnRevue`) | La validation portait sur une identité botanique ; une faute de frappe dans le nom français ne remet pas en cause l'expertise | Garder la validation quoi qu'il arrive ; tout retour en revue à la moindre modification |
+| **Plante « en revue » hors des traitements certifiés** : contrôle `trg_recette_publiable` du schéma initial, gardé tel quel | Il bloque déjà la certification ; le récit le prouve par des tests | Nouveau contrôle à l'ajout de la plante au traitement : le brouillon d'un praticien peut citer une plante encore en revue |
+| **Fiches validées avant ce récit** (jeu d'exemple, reprise) : date de validation prise à la création | La contrainte « validée ⇔ valideur et date » s'applique à toutes les fiches | — |
+
+**Contrôles du pipeline** : `packages/db/test/validation-plante.test.ts` (valideur, date et journal ; Comité seul ; fiche déjà validée ou changée ; noms corrigés sans perte de validation ; retour en revue si l'identité change ; certification refusée avec une plante en revue, plus refusée pour ce motif une fois la plante validée) ; `zones.test.ts` ; `apps/api/src/plants/plants.test.ts` (validation) ; `apps/admin/src/PlantsPage.test.tsx` (valideur et date affichés, bouton du seul Comité).
+
 ## 3. Architecture
 
 ```
