@@ -11,6 +11,8 @@
 --     l'annuaire dès l'émission du nouveau certificat.
 -- Voir 05_Choix_Techniques.md §2.37.
 
+SET search_path = sabou, public;
+
 -- Date de la relance, une seule par certificat ; NULL tant qu'elle n'est pas partie
 ALTER TABLE certificat ADD COLUMN relance_renouvellement_le timestamptz;
 COMMENT ON COLUMN certificat.relance_renouvellement_le IS
