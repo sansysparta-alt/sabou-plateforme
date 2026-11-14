@@ -96,3 +96,36 @@ export const decide = (page: Page, code: string, body: unknown) =>
     headers: { origin: APP },
     data: body,
   });
+
+// US-047 : praticien neuf de Kankan, déjà certifié, sans dossier en cours (dossier approuvé,
+// certificat actif factice : seule sa révocation est vérifiée ici, sa signature l'est par
+// approbation.spec.ts). Renvoie les codes du praticien et du certificat.
+export function certifiedPractitioner(): { praticien: string; certificat: string } {
+  const phone = `+224666${String(randomInt(0, 1_000_000)).padStart(6, '0')}`;
+  const suffix = String(randomInt(0, 1_000)).padStart(3, '0').replace(/[01]/g, 'K');
+  const output = psql(`SET search_path = sabou, public;
+    WITH u AS (
+      INSERT INTO sabou.utilisateur (telephone, prenom, nom, role_code, statut, keycloak_id)
+      VALUES ('${phone}', 'Essai', 'Certifié', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
+    p AS (
+      INSERT INTO sabou.praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale,
+                                   annees_experience, statut)
+      SELECT u.id, 1, (SELECT id FROM sabou.prefecture WHERE nom = 'Kankan'), 'mal', 8, 'certifie'
+        FROM u RETURNING id, code),
+    d AS (
+      INSERT INTO sabou.dossier_certification (praticien_id, etape_courante, statut, cloture_le)
+      SELECT id, 6, 'approuve', now() FROM p RETURNING id, praticien_id),
+    c AS (
+      INSERT INTO sabou.certificat (numero, praticien_id, dossier_id, emis_par, emis_le, expire_le,
+                                    empreinte_sha3, signature, cle_id)
+      SELECT 'SAB-' || extract(year FROM current_date) || '-' || replace(p.code, '-', '') || '-${suffix}',
+             p.id, d.id, (SELECT id FROM sabou.utilisateur WHERE role_code = 'dg' ORDER BY id LIMIT 1),
+             current_date, current_date + 360, repeat('e', 64), 'ZmFjdGljZQ==',
+             (SELECT id FROM sabou.cle_signature ORDER BY id LIMIT 1)
+        FROM p JOIN d ON d.praticien_id = p.id RETURNING numero, praticien_id)
+    SELECT p.code || ' ' || c.numero FROM p JOIN c ON c.praticien_id = p.id;`);
+  const [praticien, certificat] = output.trim().split('\n').at(-1)!.trim().split(' ');
+  expect(praticien).toMatch(/^PR-\d+$/);
+  expect(certificat).toMatch(/^SAB-\d{4}-PR\d+-[A-Z2-9]{3}$/);
+  return { praticien: praticien!, certificat: certificat! };
+}

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import { DATABASE, type Database } from '../database/database';
+import type { QueuedMessage } from './sms-messages';
 
 export const NOTIFICATION_QUEUE = Symbol('NOTIFICATION_QUEUE');
 
@@ -14,7 +15,7 @@ export interface QueuedSms {
   telephone: string | null;
   modele: string;
   objet: string;
-  parametres: { etape?: number; prevueLe?: string; quota?: number; contenu?: number };
+  parametres: QueuedMessage['parametres'];
 }
 
 export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';

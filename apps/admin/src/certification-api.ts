@@ -10,6 +10,9 @@ import type {
   FieldVisit,
   FieldVisitPlan,
   FieldVisitReport,
+  Rejection,
+  RejectionCandidate,
+  RejectionResult,
   ZonePage,
 } from '@sabou/types';
 import { call } from './accounts-api';
@@ -58,3 +61,10 @@ export const approveDossier = (code: string) =>
 
 export const fetchCertificate = (numero: string) =>
   call<CertificateView>(`/api/certificats/${encodeURIComponent(numero)}`);
+
+// Rejet définitif d'un praticien par la DG (US-047)
+export const searchPractitioners = (q: string) =>
+  call<RejectionCandidate[]>(`/api/praticiens/recherche?q=${encodeURIComponent(q)}`);
+
+export const rejectPractitioner = (code: string, rejection: Rejection) =>
+  call<RejectionResult>(`/api/praticiens/${encodeURIComponent(code)}/rejet-definitif`, rejection);

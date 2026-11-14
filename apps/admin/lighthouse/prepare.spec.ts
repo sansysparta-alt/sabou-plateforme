@@ -121,13 +121,15 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       name: 'DG connectée',
       cookie: await cookieHeader(dgContext),
       // « ?vue= » distingue l'accueil connecté de l'accueil sans session dans les rapports
-      // Approbation et certificat à imprimer (US-045) : certificat du jeu d'exemple
+      // Approbation et certificat à imprimer (US-045) : certificat du jeu d'exemple ;
+      // rejet définitif (US-047)
       urls: [
         `${APP}/?vue=tableau-de-bord`,
         `${APP}/comptes`,
         `${APP}/referentiels`,
         `${APP}/approbation`,
         `${APP}/certificats/SAB-2026-PR1042-KX7`,
+        `${APP}/rejet-definitif`,
       ],
     },
     {

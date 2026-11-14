@@ -24,6 +24,9 @@ const ApprovalPage = lazy(() =>
 const CertificatePage = lazy(() =>
   import('./CertificatePage').then((m) => ({ default: m.CertificatePage })),
 );
+const RejectionPage = lazy(() =>
+  import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
+);
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -184,7 +187,10 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isDirector(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/approbation', label: 'Approbation des dossiers', icon: 'shield' }],
+      items: [
+        { href: '/approbation', label: 'Approbation des dossiers', icon: 'shield' },
+        { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'error' },
+      ],
     });
     groups.push({
       heading: 'Administration',
@@ -200,6 +206,7 @@ function navigation(user: SessionUser): NavGroup[] {
 // Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/approbation': ApprovalPage,
+  '/rejet-definitif': RejectionPage,
   '/comptes': AccountsPage,
   '/referentiels': ReferentialsPage,
 };

@@ -83,6 +83,30 @@ describe('Textes : un seul SMS par message, en français', () => {
     }
   });
 
+  it('US-047 : rejet définitif, date limite du recours et orientation vers la préfecture', () => {
+    const text = (parametres: { dossier?: string; recoursJusquau?: string }) =>
+      notificationText({ modele: 'praticien.rejet_definitif', objet: 'PR-1042', parametres });
+    // Texte validé par le maître d'œuvre le 14 novembre 2026
+    expect(text({ recoursJusquau: '2026-12-14' })).toBe(
+      "SABOU : rejet définitif de votre certification. Vous pouvez contester cette décision jusqu'au 14/12/2026 auprès de l'administration de votre préfecture.",
+    );
+    expect(text({ dossier: 'DS-1041', recoursJusquau: '2026-12-14' })).toBe(
+      "SABOU : rejet définitif de votre dossier DS-1041. Vous pouvez contester cette décision jusqu'au 14/12/2026 auprès de l'administration de votre préfecture.",
+    );
+    // Le plus long : code de dossier le plus long envisagé
+    const longest = text({ dossier: CODE, recoursJusquau: '2026-12-14' })!;
+    expect(longest.length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
+    expect(isSingleGsm7Sms(longest)).toBe(true);
+    // Donnée mal formée : erreur définitive plutôt qu'un SMS faux
+    for (const parametres of [
+      {},
+      { recoursJusquau: '14/12/2026' },
+      { dossier: 'DS-1; drop', recoursJusquau: '2026-12-14' },
+    ]) {
+      expect(text(parametres)).toBe(null);
+    }
+  });
+
   it('le code d’inscription tient aussi en un SMS', () => {
     expect(isSingleGsm7Sms(signupCodeMessage('123456', 10))).toBe(true);
   });
