@@ -44,7 +44,8 @@ async function main(command: string | undefined): Promise<void> {
       console.log(
         await migrate({
           url,
-          network: 'sabou_default',
+          // Réseau du projet Docker local (« sabou », ou COMPOSE_PROJECT_NAME : voir up.mjs)
+          network: `${process.env.COMPOSE_PROJECT_NAME || 'sabou'}_default`,
           atlasUrl: `postgres://sabou_migrator:${password}@postgres:5432/sabou?sslmode=disable`,
         }),
       );
