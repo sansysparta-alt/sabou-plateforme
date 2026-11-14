@@ -15,7 +15,8 @@ const create = (nomFr: string, denominations = den()) =>
      'Fièvre prolongée, maux de ventre.', NULL, ${denominations});`;
 const denominationsOf = (code: string) =>
   `SELECT d.langue_code AS langue, d.denomination FROM maladie_denomination d
-     JOIN maladie m ON m.id = d.maladie_id WHERE m.code = '${code}' ORDER BY 1, 2;`;
+     JOIN maladie m ON m.id = d.maladie_id
+    WHERE m.code = ${code.startsWith('(') ? code : `'${code}'`} ORDER BY 1, 2;`;
 const seen = (code: string) => `(SELECT updated_at FROM maladie WHERE code = '${code}')`;
 
 beforeAll(async () => {
@@ -33,7 +34,7 @@ describe('Critère : nom français unique, nom anglais, dénominations, symptôm
     );
     expect(rows).toEqual([
       {
-        code: 'MA-006',
+        code: expect.stringMatching(/^MA-\d{3,}$/),
         nom_en: 'Typhoid fever',
         symptomes_fr: 'Fièvre prolongée, maux de ventre.',
         details: { nomFr: 'Fièvre typhoïde', denominations: 2 },
@@ -64,7 +65,7 @@ describe('Critère : nom français unique, nom anglais, dénominations, symptôm
     const rows = await as(
       DG,
       `${create('Fièvre typhoïde', den(['fr', 'Typhoïde'], ['fr', 'typhoide'], ['en', 'Typhoid']))}
-       ${denominationsOf('MA-006')}`,
+       ${denominationsOf("(SELECT code FROM maladie WHERE nom_fr = 'Fièvre typhoïde')")}`,
     );
     expect(rows).toHaveLength(2);
   });
@@ -116,12 +117,16 @@ describe('Critère : les dénominations sont trouvées par la recherche sans acc
   });
 
   it('une dénomination ajoutée est aussitôt trouvée, accents ou pas', async () => {
+    // Même transaction : la fiche créée et la recherche (la séquence des codes n'est pas
+    // annulée entre les tests, le code est relu par le nom) ; recherche tolérante aux
+    // fautes, d'autres fièvres peuvent remonter aussi
     const rows = await as(
       DG,
       `${create('Fièvre typhoïde', den(['fr', 'Fièvre entérique']))}
-       ${search('fievre enterique')}`,
+       SELECT bool_or(r.maladie_code = m.code) AS trouvee
+         FROM rechercher_maladie('fievre enterique') r,
+              (SELECT code FROM maladie WHERE nom_fr = 'Fièvre typhoïde') m;`,
     );
-    // Recherche tolérante aux fautes : d'autres fièvres peuvent remonter aussi
-    expect(rows).toContainEqual({ maladie_code: 'MA-006' });
+    expect(rows).toEqual([{ trouvee: true }]);
   });
 });
