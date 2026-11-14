@@ -127,6 +127,16 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 
 **Décision du maître d'œuvre (12 novembre 2026) : pipeline en local jusqu'au 1er décembre 2026.** Le quota gratuit de GitHub Actions (2 000 minutes par mois pour un dépôt privé) est épuisé : GitHub ne lance plus les tâches. Plutôt qu'une dépense, un runner sur le poste de développement ou une bascule anticipée vers GitLab, le pipeline complet (`pnpm ci:local`, y compris le bout en bout, axe et Lighthouse) tourne en local, et sa preuve est jointe à chaque demande de fusion. La règle « vert sur GitHub » reprend dès le renouvellement du quota.
 
+**Décision du maître d'œuvre (14 novembre 2026) : pipeline complet une fois par sprint.** Le passage complet en local dure une à deux heures sur le poste (7 Go de RAM : Lighthouse sur 15 pages et 2 formats ≈ 45 min, bout en bout ≈ 15 min, Semgrep, audit et application mobile en parallèle ≈ 45 min), et Docker tombe parfois en cours de route. Désormais :
+
+| Moment | Contrôles |
+|---|---|
+| Chaque récit, pendant le sprint | Lint et format des fichiers touchés ; tests unitaires des paquets touchés et de leurs dépendants ; tests de la base au complet (droits, cloisonnement par zone) ; contre-épreuves |
+| Fin de sprint, avant la fusion dans `main` | Pipeline complet (`pnpm ci:local`), une fois, sur l'état qui arrivera dans `main` : bout en bout et axe, Lighthouse (5 mesures), Semgrep, audit des dépendances et des images, application mobile |
+| Fin de sprint | Liste des vérifications que le maître d'œuvre fait lui-même dans le navigateur (rendu) |
+
+Ce qu'on accepte : une régression d'une page ou d'un parcours que le récit ne touche pas, ou une faille de dépendance, est découverte en fin de sprint et non au récit. Parade : le pipeline complet reste bloquant avant `main`, et les tests de la base (le cœur des règles métier et des droits) tournent à chaque récit. `pnpm ci:recit` reste disponible pour vérifier un récit plus largement quand c'est utile. Au retour du quota GitHub (1er décembre 2026), le pipeline de GitHub tourne sur chaque demande de fusion sans coût pour le poste ; la règle sera revue à ce moment.
+
 ### 2.12 Qualité
 
 | Choix | Usage |

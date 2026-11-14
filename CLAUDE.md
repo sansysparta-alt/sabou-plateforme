@@ -36,6 +36,12 @@ On s'inspire des pratiques des meilleures équipes du numérique en corrigeant l
 - Chaque critère d'acceptation est prouvé par au moins un test automatisé.
 - Une exigence de qualité n'est considérée comme tenue que si le pipeline la vérifie. Tant qu'elle ne l'est pas, le compte rendu le dit.
 
+### Contrôles pendant le sprint (décision du maître d'œuvre du 14 novembre 2026)
+
+- **Pendant le sprint, à chaque récit** : lint et tests unitaires des paquets touchés (et de ceux qui en dépendent), plus les tests de la base au complet. Commande : `pnpm exec turbo run lint test "--filter=...[<base du récit>]" --filter=@sabou/db`, plus `prettier --check` des fichiers touchés. Ni Semgrep, ni Lighthouse, ni bout en bout complet à chaque récit.
+- **Une seule fois, avant la fusion dans `main`** : le pipeline complet (`pnpm ci:local`) sur l'état qui arrivera dans `main` (tous les récits du sprint réunis).
+- **En fin de sprint** : Claude rédige la liste détaillée des vérifications que le maître d'œuvre fait lui-même dans le navigateur pour valider le rendu (adresse, compte, action, résultat attendu).
+
 ### Autonomie
 
 - Claude tranche seul les questions techniques courantes, selon les règles de l'art, et inscrit dans `05_Choix_Techniques.md` toute décision structurante.
@@ -52,7 +58,7 @@ On s'inspire des pratiques des meilleures équipes du numérique en corrigeant l
 
 ### Avant de rendre la main
 
-- Pipeline complet vert, en local puis sur GitHub.
+- Contrôles du sprint verts (lint, tests unitaires des paquets touchés, tests de la base) ; le pipeline complet, une fois par sprint, avant la fusion dans `main` (en local puis sur GitHub).
 - Contre-épreuves : une erreur volontaire doit faire échouer l'étape concernée.
 - Relecture de son propre diff : sécurité, performance sur réseau faible, accessibilité, lisibilité.
 - Il corrige ce qu'il trouve sans attendre qu'on le lui signale.
@@ -92,12 +98,12 @@ Deux limites : une fenêtre de 5 heures et une limite par semaine. Objectif : en
 2. Claude relit tous les récits du sprint, leurs critères d'acceptation et les règles liées. Il pose en une seule fois les questions qui relèvent du maître d'œuvre pour tout le sprint, et propose l'ordre des récits (dépendances d'abord).
 3. Pour chaque récit, dans cet ordre :
    1. Claude crée la branche du récit (ex. `us-045-certificat-signe`), à partir de `main`, ou de la branche du récit précédent si celui-ci n'est pas encore fusionné et que le nouveau en dépend.
-   2. Il code, teste et se relit selon la section « Exigence de qualité et autonomie », commite, pousse et ouvre la demande de fusion : vers `main`, ou vers la branche du récit précédent dont il dépend, pour que le diff ne montre que le récit.
+   2. Il code, lance les contrôles du sprint et se relit selon la section « Exigence de qualité et autonomie », commite, pousse et ouvre la demande de fusion : vers `main`, ou vers la branche du récit précédent dont il dépend, pour que le diff ne montre que le récit.
    3. Il donne le point d'étape et passe au récit suivant sans attendre la fusion.
    4. Quand le récit précédent est fusionné, Claude fusionne `main` dans la branche qui en dépendait (sans réécriture d'historique), ramène la base de sa demande vers `main` et vérifie que le pipeline reste vert.
-4. Le maître d'œuvre relit les diffs, en suivant le guide de lecture, et fusionne à son rythme, uniquement si le pipeline est vert. Tant que l'équipe ne compte qu'un seul développeur, cette relecture tient lieu de relecture par un autre développeur (Definition of Done).
+4. Le maître d'œuvre relit les diffs, en suivant le guide de lecture, et fusionne à son rythme : dans `main`, uniquement après le pipeline complet vert du sprint. Tant que l'équipe ne compte qu'un seul développeur, cette relecture tient lieu de relecture par un autre développeur (Definition of Done).
 5. Après chaque fusion et pipeline de `main` vert, Claude supprime la branche du récit, en local et sur GitHub, puis met `main` à jour en local.
-6. En fin de sprint, Claude envoie son compte rendu unique et demande `/clear`.
+6. En fin de sprint, Claude lance le pipeline complet une fois, sur l'état qui arrivera dans `main`, puis envoie son compte rendu unique, avec la liste des vérifications à faire dans le navigateur, et demande `/clear`.
 
 Une question du maître d'œuvre qui surgit en cours de sprint arrête le récit concerné ; Claude la pose aussitôt et avance, si possible, sur un récit qui n'en dépend pas.
 
