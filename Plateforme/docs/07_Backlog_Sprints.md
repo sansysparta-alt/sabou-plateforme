@@ -394,6 +394,8 @@ Critères d’acceptation :
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.
 
+Mesure du 14 novembre 2026 (pipeline complet, 5 mesures, téléphone) : session préchargée et données demandées dès la session connue ne suffisent pas. LCP médian de 3,5 s sur les pages connectées, y compris « Rejet définitif », qui ne charge aucune donnée à l'ouverture : le temps part dans l'enchaînement code principal → morceau de la page avant le premier affichage. Comptes : 4,1 s. Décision du maître d'œuvre (14 novembre 2026) : US-017 est retravaillé (ossature pré-générée à la compilation, code plus léger), estimation portée de 3 à 5 points, et sort de la fusion du sprint 3 ; le reste du sprint fusionne sans lui.
+
 #### US-018 · Un socle commun pour l’application mobile
 *Application mobile de terrain* · **Must** · 3 points (environ 1 jour) · ajout du 9 novembre 2026, placé en S3 par le maître d’œuvre
 
