@@ -27,6 +27,7 @@ const CertificatePage = lazy(() =>
 const RejectionPage = lazy(() =>
   import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
 );
+const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -185,6 +186,12 @@ function navigation(user: SessionUser): NavGroup[] {
     });
   }
   if (isDirector(user)) {
+    // Pilotage de la DG : entonnoir des 6 étapes (US-048)
+    groups[0]!.items.push({
+      href: '/entonnoir',
+      label: 'Entonnoir de certification',
+      icon: 'clock',
+    });
     groups.push({
       heading: 'Certification',
       items: [
@@ -205,6 +212,7 @@ function navigation(user: SessionUser): NavGroup[] {
 
 // Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
+  '/entonnoir': FunnelPage,
   '/approbation': ApprovalPage,
   '/rejet-definitif': RejectionPage,
   '/comptes': AccountsPage,

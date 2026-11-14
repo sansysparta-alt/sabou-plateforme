@@ -58,7 +58,7 @@ const budgets = {
 // et score de 0,80 en 3G, décision du maître d'œuvre du 8/11/2026, jusqu'au récit de
 // performance qui ramènera 3 s partout (05_Choix_Techniques.md §2.28, backlog)
 const DATA_PAGES =
-  /localhost:\d+\/(invitation|comptes|referentiels|verification-terrain|consolidation|expertise|approbation|rejet-definitif|certificats\/|\?vue=)/;
+  /localhost:\d+\/(invitation|comptes|referentiels|verification-terrain|consolidation|expertise|approbation|rejet-definitif|entonnoir|certificats\/|\?vue=)/;
 const dataPageBudgets = {
   'categories:performance': ['error', { minScore: 0.8, aggregationMethod: 'median-run' }],
   'largest-contentful-paint': ['error', { maxNumericValue: 4000, aggregationMethod: 'median' }],

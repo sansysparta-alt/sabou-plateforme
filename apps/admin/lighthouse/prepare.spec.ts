@@ -122,7 +122,7 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       cookie: await cookieHeader(dgContext),
       // « ?vue= » distingue l'accueil connecté de l'accueil sans session dans les rapports
       // Approbation et certificat à imprimer (US-045) : certificat du jeu d'exemple ;
-      // rejet définitif (US-047)
+      // rejet définitif (US-047) ; entonnoir des 6 étapes (US-048)
       urls: [
         `${APP}/?vue=tableau-de-bord`,
         `${APP}/comptes`,
@@ -130,6 +130,7 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
         `${APP}/approbation`,
         `${APP}/certificats/SAB-2026-PR1042-KX7`,
         `${APP}/rejet-definitif`,
+        `${APP}/entonnoir`,
       ],
     },
     {

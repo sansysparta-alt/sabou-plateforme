@@ -38,3 +38,37 @@ export interface DashboardSummary {
   // DG seule (null pour les autres profils) : nombre total d'échecs et les plus récents
   smsNonRemis: { total: number; derniers: SmsFailure[] } | null;
 }
+
+// Entonnoir des 6 étapes (US-048, R-CER-07) : écran de la DG
+export interface FunnelStep {
+  etape: number;
+  // Dossiers en cours à cette étape
+  enCours: number;
+  // Dont sans décision depuis plus de 15 jours (étapes 2 à 5)
+  bloques: number;
+  // Passages terminés sur 12 mois glissants, et leur délai moyen en jours (null sans passage)
+  passages: number;
+  delaiMoyenJours: number | null;
+}
+
+// Dossier sans décision depuis plus de 15 jours
+export interface BlockedDossier {
+  dossier: string;
+  praticien: string;
+  nom: string;
+  etape: number;
+  prefecture: string;
+  region: string;
+  // Entrée dans l'étape, horodatage ISO 8601 en UTC, et nombre de jours écoulés
+  depuis: string;
+  jours: number;
+}
+
+export interface CertificationFunnel {
+  // Délai cible par étape (R-CER-07) et seuil du blocage, en jours
+  delaiCibleJours: number;
+  seuilBlocageJours: number;
+  etapes: FunnelStep[];
+  // Les plus anciens d'abord ; au plus BLOCKED_LIMIT, le total est toujours donné
+  bloques: { total: number; dossiers: BlockedDossier[] };
+}

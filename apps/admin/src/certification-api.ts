@@ -1,6 +1,7 @@
 import type {
   ApprovalItem,
   ApprovalResult,
+  CertificationFunnel,
   CertificateView,
   ConsolidationItem,
   DossierDecision,
@@ -61,6 +62,9 @@ export const approveDossier = (code: string) =>
 
 export const fetchCertificate = (numero: string) =>
   call<CertificateView>(`/api/certificats/${encodeURIComponent(numero)}`);
+
+// Entonnoir des 6 étapes et dossiers bloqués (US-048)
+export const fetchFunnel = () => call<CertificationFunnel>('/api/entonnoir');
 
 // Rejet définitif d'un praticien par la DG (US-047)
 export const searchPractitioners = (q: string) =>
