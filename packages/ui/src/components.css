@@ -230,7 +230,14 @@
 .ui-stat {
   display: grid;
   gap: var(--sabou-space-1);
-  padding: var(--sabou-space-4) var(--sabou-space-5);
+  padding: var(--sabou-space-3) var(--sabou-space-4);
+  background: var(--sabou-mist);
+  border-color: var(--sabou-mint);
+  box-shadow: none;
+}
+/* Le chiffre d'abord, son libellé dessous (maquette v1.3) */
+.ui-stat .ui-stat__value {
+  order: -1;
 }
 .ui-stat__label {
   font-size: var(--sabou-text-xs);
@@ -240,10 +247,10 @@
   color: var(--sabou-text-muted);
 }
 .ui-stat__value {
-  font-size: var(--sabou-text-3xl);
+  font-size: var(--sabou-text-xl);
   font-weight: var(--sabou-weight-bold);
   line-height: 1.1;
-  color: var(--sabou-forest);
+  color: var(--sabou-institution);
   font-variant-numeric: tabular-nums;
 }
 .ui-stat__detail {
@@ -271,7 +278,7 @@
 .ui-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--sabou-text-md);
+  font-size: var(--sabou-text-sm);
 }
 .ui-table caption {
   padding: var(--sabou-space-3) var(--sabou-space-4);
@@ -280,17 +287,23 @@
 }
 .ui-table th,
 .ui-table td {
-  padding: var(--sabou-space-3) var(--sabou-space-4);
+  padding: var(--sabou-space-2) var(--sabou-space-3);
   text-align: left;
   vertical-align: middle;
   border-bottom: 1px solid var(--sabou-border);
 }
 .ui-table thead th {
-  background: var(--sabou-bg);
+  background: var(--sabou-institution);
   font-size: var(--sabou-text-sm);
   font-weight: var(--sabou-weight-semibold);
-  color: var(--sabou-text-muted);
+  color: var(--sabou-on-dark);
   white-space: nowrap;
+}
+.ui-table tbody tr:nth-child(even) > * {
+  background: #f4f9f6;
+}
+.ui-table tbody a {
+  font-weight: var(--sabou-weight-semibold);
 }
 .ui-table tbody tr:last-child > * {
   border-bottom: 0;
@@ -422,13 +435,13 @@
   display: inline-flex;
 }
 .ui-sidebar {
-  background: var(--sabou-surface);
-  border-right: 1px solid var(--sabou-border);
+  background: var(--sabou-mist);
+  border-right: 1px solid var(--sabou-mint);
   padding: var(--sabou-space-4) var(--sabou-space-3);
 }
 .ui-nav {
   display: grid;
-  gap: var(--sabou-space-5);
+  gap: var(--sabou-space-4);
 }
 .ui-nav__group {
   display: grid;
@@ -457,16 +470,20 @@
   padding: 0 var(--sabou-space-3);
   border-radius: var(--sabou-radius-sm);
   color: var(--sabou-text);
+  font-size: var(--sabou-text-sm);
   text-decoration: none;
 }
 .ui-nav__link:hover {
-  background: var(--sabou-bg);
-  color: var(--sabou-text);
+  background: var(--sabou-mint);
+  color: var(--sabou-forest);
 }
 .ui-nav__link[aria-current='page'] {
-  background: var(--sabou-mist);
-  color: var(--sabou-forest);
+  background: var(--sabou-institution);
+  color: var(--sabou-on-dark);
   font-weight: var(--sabou-weight-semibold);
+}
+.ui-nav__link[aria-current='page'] .ui-nav__count {
+  color: var(--sabou-on-dark);
 }
 .ui-nav__count {
   margin-left: auto;
@@ -482,7 +499,7 @@
   max-width: var(--sabou-content-max);
   margin: 0 auto;
   display: grid;
-  gap: var(--sabou-space-5);
+  gap: var(--sabou-space-4);
 }
 
 /* Téléphone : la navigation s'ouvre sous le bandeau par le bouton « Menu » */
@@ -497,6 +514,12 @@
 @media (min-width: 60rem) {
   .ui-shell__body {
     grid-template-columns: var(--sabou-sidebar-width) 1fr;
+    /* Colonne de navigation « brume » jusqu'en bas, même sur une page longue */
+    background: linear-gradient(
+      to right,
+      var(--sabou-mist) var(--sabou-sidebar-width),
+      transparent var(--sabou-sidebar-width)
+    );
   }
   .ui-sidebar,
   .ui-sidebar[data-open='false'] {
@@ -510,7 +533,7 @@
     display: none;
   }
   .ui-main {
-    padding: var(--sabou-space-6) var(--sabou-space-6) var(--sabou-space-7);
+    padding: var(--sabou-space-5) var(--sabou-space-6) var(--sabou-space-7);
   }
 }
 @media (max-width: 30rem) {
@@ -535,6 +558,11 @@
 }
 .ui-page-header__lead {
   color: var(--sabou-text-muted);
+  font-size: var(--sabou-text-sm);
+}
+.ui-page-header {
+  padding-bottom: var(--sabou-space-3);
+  border-bottom: 1px solid var(--sabou-border);
 }
 .ui-grid {
   display: grid;
@@ -703,4 +731,200 @@
   .ui-certificate__footer {
     color: var(--sabou-text);
   }
+}
+
+/* ---------- Connexion (maquette v1.3, US-019) ----------
+   Téléphone : panneau vert puis garanties, l'un sous l'autre. Ordinateur : deux colonnes,
+   le panneau vert à gauche, sur toute la hauteur, l'illustration en bas. */
+.ui-login {
+  min-height: 100vh;
+  background: var(--sabou-bg);
+}
+.ui-login__main {
+  display: grid;
+  min-height: 100vh;
+}
+.ui-login__hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sabou-space-3);
+  padding: var(--sabou-space-6) var(--sabou-space-4) var(--sabou-space-5);
+  background: var(--sabou-forest);
+  color: var(--sabou-on-dark);
+}
+.ui-login__hero h1 {
+  color: var(--sabou-on-dark);
+  font-size: var(--sabou-text-2xl);
+}
+/* Téléphone : l'illustration sous le texte, en bandeau ; ordinateur : en bas du panneau */
+.ui-login__art {
+  order: 1;
+  width: calc(100% + 2 * var(--sabou-space-4));
+  max-width: none;
+  height: 8rem;
+  margin: var(--sabou-space-3) calc(-1 * var(--sabou-space-4)) calc(-1 * var(--sabou-space-5));
+  object-fit: cover;
+  object-position: center 35%;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.ui-login__hero > :not(.ui-login__art) {
+  position: relative;
+  max-width: 28rem;
+}
+.ui-login__hero > .ui-login__art {
+  max-width: none;
+}
+.ui-login__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sabou-space-2);
+  font-weight: var(--sabou-weight-bold);
+  letter-spacing: 0.04em;
+}
+.ui-login__kicker {
+  margin-top: var(--sabou-space-5);
+  font-size: var(--sabou-text-xs);
+  font-weight: var(--sabou-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sabou-gold);
+}
+.ui-login__lead {
+  color: var(--sabou-on-dark-muted);
+  font-size: var(--sabou-text-sm);
+}
+/* Bouton doré sur vert forêt (texte vert forêt : contraste de la charte) */
+.ui-login__action.ui-button--primary {
+  justify-self: start;
+  align-self: flex-start;
+  background: var(--sabou-gold);
+  border-color: var(--sabou-gold);
+  color: var(--sabou-forest);
+}
+.ui-login__action.ui-button--primary:hover {
+  background: #d8b23a;
+  color: var(--sabou-forest);
+}
+.ui-login__note {
+  font-size: var(--sabou-text-xs);
+  color: var(--sabou-on-dark-muted);
+}
+.ui-login__panel {
+  display: grid;
+  align-content: center;
+  gap: var(--sabou-space-3);
+  padding: var(--sabou-space-5) var(--sabou-space-4);
+}
+.ui-login__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border);
+  border-radius: var(--sabou-radius-md);
+}
+.ui-login__list > li {
+  padding: var(--sabou-space-3) var(--sabou-space-4);
+  font-size: var(--sabou-text-sm);
+  border-bottom: 1px solid var(--sabou-border);
+}
+.ui-login__list > li:last-child {
+  border-bottom: 0;
+}
+@media (min-width: 60rem) {
+  .ui-login__main {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+  .ui-login__hero {
+    justify-content: center;
+    padding: var(--sabou-space-7) var(--sabou-space-7) 18rem;
+  }
+  .ui-login__art {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 15rem;
+    margin: 0;
+  }
+  .ui-login__panel {
+    justify-self: center;
+    width: min(100%, 30rem);
+    padding: var(--sabou-space-7) var(--sabou-space-5);
+  }
+}
+
+/* ---------- File de dossiers à décider (US-019) ----------
+   Une ligne par dossier, comme les tableaux de la maquette ; ouverte, le détail et les décisions. */
+.ui-dossiers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border);
+  border-radius: var(--sabou-radius-md);
+  overflow: hidden;
+}
+.ui-dossier + .ui-dossier {
+  border-top: 1px solid var(--sabou-border);
+}
+.ui-dossier:nth-child(even) > details > .ui-dossier__summary {
+  background: #f4f9f6;
+}
+.ui-dossier__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-1) var(--sabou-space-4);
+  min-height: var(--sabou-target);
+  padding: var(--sabou-space-2) var(--sabou-space-4);
+  cursor: pointer;
+  list-style: none;
+}
+.ui-dossier__summary::-webkit-details-marker {
+  display: none;
+}
+.ui-dossier__summary:hover {
+  background: var(--sabou-mist);
+}
+.ui-dossier__title {
+  margin: 0;
+  font-family: var(--sabou-font-text);
+  font-size: var(--sabou-text-sm);
+  font-weight: var(--sabou-weight-semibold);
+  color: var(--sabou-forest);
+}
+.ui-dossier__meta {
+  flex: 1 1 16rem;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-2);
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+}
+/* Chevron : vers le bas fermé, vers le haut ouvert */
+.ui-dossier__toggle {
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-left: auto;
+  border-right: 2px solid var(--sabou-institution);
+  border-bottom: 2px solid var(--sabou-institution);
+  transform: rotate(45deg);
+  transition: transform var(--sabou-transition);
+}
+details[open] > .ui-dossier__summary .ui-dossier__toggle {
+  transform: rotate(-135deg);
+}
+details[open] > .ui-dossier__summary {
+  background: var(--sabou-mist);
+  border-bottom: 1px solid var(--sabou-mint);
+}
+.ui-dossier__body {
+  display: grid;
+  gap: var(--sabou-space-4);
+  padding: var(--sabou-space-4);
 }

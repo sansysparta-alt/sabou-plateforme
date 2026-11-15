@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import { Alert, AppShell, Button, ButtonLink, Card, PageHeader, type NavGroup } from '@sabou/ui';
+import { Alert, AppShell, Button, ButtonLink, PageHeader, type NavGroup } from '@sabou/ui';
 // Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
 // (seuil de temps de blocage de Lighthouse, US-010)
 const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -43,6 +43,8 @@ import {
   profileLabel,
   type SessionUser,
 } from './session';
+// Illustration de la connexion (maquette v1.3), 8 Ko en WebP
+import illustration from './assets/connexion.webp';
 
 type State =
   | { status: 'loading' }
@@ -126,6 +128,9 @@ function ConnectedApp() {
     );
   }
 
+  // Sans session : écran de connexion en deux panneaux (maquette v1.3, US-019)
+  if (state.status === 'anonymous') return <LoginPage error={loginError} />;
+
   return (
     <PublicLayout busy={state.status === 'loading'}>
       {state.status === 'loading' && <p>Chargement…</p>}
@@ -134,7 +139,6 @@ function ConnectedApp() {
           Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
         </Alert>
       )}
-      {state.status === 'anonymous' && <LoginPage error={loginError} />}
       {state.status === 'connected' && <Forbidden user={state.user} onLogout={onLogout} />}
     </PublicLayout>
   );
@@ -256,28 +260,54 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
   );
 }
 
+// Connexion (maquette v1.3) : panneau vert à gauche (marque, illustration, accès), garanties de
+// sécurité à droite ; les deux s'empilent sur téléphone. Le formulaire lui-même est celui de
+// Keycloak, ouvert par le bouton.
 function LoginPage({ error }: { error?: string }) {
   return (
-    <>
-      <PageHeader
-        title="Application de gestion"
-        lead="Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du Comité scientifique et aux tradipraticiens."
-      />
-      {error && <Alert tone="error">{error}</Alert>}
-      <div>
-        <ButtonLink variant="primary" href="/auth/login">
-          Se connecter
-        </ButtonLink>
-      </div>
-      <Card title="Vos garanties de sécurité">
-        <ul className="ui-list">
-          <li>Double facteur obligatoire pour tous les administrateurs.</li>
-          <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
-          <li>Session fermée après 30 minutes d’inactivité.</li>
-          <li>Chaque connexion est journalisée.</li>
-        </ul>
-      </Card>
-    </>
+    <div className="ui-login">
+      <a className="ui-skip-link" href="#contenu">
+        Aller au contenu
+      </a>
+      <main id="contenu" className="ui-login__main" tabIndex={-1}>
+        <section className="ui-login__hero" aria-labelledby="connexion-titre">
+          <img
+            className="ui-login__art"
+            src={illustration}
+            alt=""
+            width={960}
+            height={480}
+            decoding="async"
+          />
+          <p className="ui-login__brand">
+            <span className="ui-topbar__mark" aria-hidden="true">
+              S
+            </span>
+            SABOU
+          </p>
+          <p className="ui-login__kicker">Accès sécurisé</p>
+          <h1 id="connexion-titre">Application de gestion</h1>
+          <p className="ui-login__lead">
+            Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du
+            Comité scientifique et aux tradipraticiens.
+          </p>
+          {error && <Alert tone="error">{error}</Alert>}
+          <ButtonLink variant="primary" href="/auth/login" className="ui-login__action">
+            Se connecter
+          </ButtonLink>
+          <p className="ui-login__note">Double facteur obligatoire pour les administrateurs</p>
+        </section>
+        <section className="ui-login__panel" aria-labelledby="garanties-titre">
+          <h2 id="garanties-titre">Vos garanties de sécurité</h2>
+          <ul className="ui-login__list">
+            <li>Double facteur obligatoire pour tous les administrateurs.</li>
+            <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
+            <li>Session fermée après 30 minutes d’inactivité.</li>
+            <li>Chaque connexion est journalisée.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
   );
 }
 

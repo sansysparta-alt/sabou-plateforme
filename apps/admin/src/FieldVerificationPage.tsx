@@ -8,6 +8,7 @@ import {
   longDate,
   type Announce,
   type OnDecided,
+  DossierRow,
 } from './DossierDecision';
 import { FieldVisitPanel } from './FieldVisitPanel';
 
@@ -39,10 +40,20 @@ function DossierItem({
   // Une visite enregistrée sur cet écran rend la validation possible sans recharger la liste
   const [visitDone, setVisitDone] = useState(dossier.visiteRealisee);
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>
-        {dossier.code} · {dossier.praticienNom}
-      </h3>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticienNom}
+      meta={
+        <>
+          {dossier.specialite} · soumis le {longDate(dossier.soumisLe)}{' '}
+          {visitDone ? (
+            <Badge tone="success">Visite faite</Badge>
+          ) : dossier.visiteRequise ? (
+            <Badge tone="warning">Visite à réaliser</Badge>
+          ) : null}
+        </>
+      }
+    >
       <dl className="ui-facts">
         <dt>Praticien</dt>
         <dd>{dossier.praticien}</dd>
@@ -83,6 +94,6 @@ function DossierItem({
         rejectHint="Le dossier revient au praticien. Le motif est conservé dans l’historique du dossier."
         onDecided={onDecided}
       />
-    </li>
+    </DossierRow>
   );
 }

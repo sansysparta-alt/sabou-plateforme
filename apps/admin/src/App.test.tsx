@@ -143,8 +143,11 @@ describe('App', () => {
     expect(row.textContent).toMatch(/Mariama Diallo.*Dossier soumis.*2 sur 6/);
     expect(row.textContent).toMatch(/09:30/);
     // Fonctions à venir annoncées, sans lien vers une page qui n'existe pas
-    expect(screen.getByText('Certificats émis').parentElement!.textContent).toMatch(/Sprint 3/);
-    expect(screen.getByRole('heading', { name: 'À venir' }));
+    // Plus de calendrier des sprints sur l'accueil (US-019) ; accès directs dans l'en-tête
+    expect(screen.queryByRole('heading', { name: 'À venir' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Gérer les comptes' }).getAttribute('href')).toBe(
+      '/comptes',
+    );
     expect(screen.queryByRole('link', { name: 'Activer le double facteur' })).toBeNull();
   });
 

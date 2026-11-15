@@ -27,12 +27,13 @@ h4 {
 /* Titre de page : seul élément en Cambria (identité institutionnelle, §2.27) */
 h1 {
   font-family: var(--sabou-font-title);
-  font-size: var(--sabou-text-2xl);
+  /* Titre de page sobre (maquette v1.3 : 15 pt) ; 28 px réservés au certificat */
+  font-size: var(--sabou-text-xl);
   font-weight: var(--sabou-weight-bold);
   color: var(--sabou-forest);
 }
 h2 {
-  font-size: var(--sabou-text-xl);
+  font-size: var(--sabou-text-lg);
   font-weight: var(--sabou-weight-semibold);
 }
 h3 {
