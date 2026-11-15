@@ -27,6 +27,23 @@ test('comptes et dossiers d’essai', async () => {
   psql(`UPDATE sabou.dossier_certification SET etape_entree_le = now() - interval '20 days'
          WHERE code = '${blocked}'`);
   const certified = certifiedPractitioner();
+  // Langues de travail (sprint 4 : noms locaux, voix des noms) : comme dans le jeu d'exemple,
+  // le préfectoral de Kankan enregistre et traduit en malinké, le régional de Kankan valide
+  const languages: [
+    user: { id: string },
+    record: boolean,
+    translate: boolean,
+    validate: boolean,
+  ][] = [
+    [prefectoral, true, true, false],
+    [regional, false, false, true],
+  ];
+  for (const [user, record, translate, validate] of languages) {
+    psql(`INSERT INTO sabou.utilisateur_langue
+            (utilisateur_id, langue_code, peut_enregistrer, peut_traduire, peut_valider)
+          SELECT id, 'mal', ${record}, ${translate}, ${validate}
+            FROM sabou.utilisateur WHERE keycloak_id = '${user.id}'`);
+  }
 
   const text = [
     `Application de gestion : ${APP}`,
@@ -38,6 +55,9 @@ test('comptes et dossiers d’essai', async () => {
     `  Admin préfectoral Kankan ${prefectoral.username} / ${prefectoral.password}`,
     `  Admin régional Kankan   ${regional.username} / ${regional.password}`,
     `  Comité scientifique     ${committee.username} / ${committee.password}`,
+    '',
+    'Langues (sprint 4) : le préfectoral enregistre et traduit en malinké, le régional valide',
+    'le malinké ; la DG publie.',
     '',
     'Dossiers (préfecture de Kankan) :',
     `  Étape 2, visite réalisée (décision du préfectoral)        ${step2Done}`,
