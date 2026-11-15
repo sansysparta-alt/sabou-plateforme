@@ -768,6 +768,17 @@ La validation par le Comité (statut « validée ») est l'objet de US-051.
 | **Transcription de recherche seulement** : affichée au référent dans l'application de gestion, jamais renvoyée par la recherche publique (testé en base) | R-LNG-02, R-LNG-13 | — |
 | **Voix du nom = dépôt traité du même compte** (US-070) : l'écran dépose la voix, attend son traitement (relève toutes les 2 s, 90 s au plus), puis enregistre le nom avec le dépôt ; consentement demandé dès qu'une voix est jointe | Le référent qui saisit est celui qui a enregistré : pas de voix d'un tiers rattachée par erreur | Voix obligatoire : la transcription seule sert déjà la recherche, la voix peut suivre |
 
+### 2.47 Voix du nom des plantes et des maladies, avec ses statuts (US-071, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Sens des statuts pour la voix d'un nom** : *brouillon* = enregistrée par le référent de la langue ; *traduit* = celui qui a enregistré, ou un traducteur de la langue, la déclare fidèle au nom français et la présente à la validation ; *validé* = un valideur de la langue l'a écoutée ; *publié* = la DG la publie | R-LNG-10 appliqué à un nom, sans texte en langue nationale (R-LNG-02) ; R-GOV-03 (le valideur écoute), R-GOV-05 (la DG publie) | « Traduit » donné par un tiers seulement : pour un nom, celui qui l'enregistre le traduit |
+| **Valideur jamais celui qui a enregistré**, même s'il a le droit de valider (contrainte déjà en base, message clair) ; **renvoi en brouillon avec motif** par un valideur | R-GOV-07, R-GOV-03 (renvoi motivé) | — |
+| **Publication refusée sans consentement** de la personne qui parle (trigger `trg_voix_publiable`, déjà en base) | R-LNG-11 | — |
+| **Un nouvel enregistrement remplace la voix et la ramène en brouillon**, même publiée | La voix publiée doit toujours être celle qui a été validée | Garder l'ancienne voix publiée en parallèle : deux voix par langue à gérer |
+| **Gestes par fonctions SQL** (`voix_nom_enregistrer`, `voix_nom_statut`, `SECURITY DEFINER`), plus d'écriture directe dans `plante_voix` et `maladie_voix` ; chaque geste au journal d'audit | Même principe que les fiches (§2.40) | — |
+| **Écoute dans l'application de gestion** : l'API sert l'Opus (WebM) et le secours AAC (MP4) après contrôle de la session ; balise `<audio>` à deux sources, `preload="none"` | Le valideur doit écouter ; rien n'est téléchargé tant qu'il n'appuie pas sur lecture (3G) | — |
+
 ## 3. Architecture
 
 ```

@@ -34,6 +34,9 @@ const DiseasesPage = lazy(() =>
   import('./DiseasesPage').then((m) => ({ default: m.DiseasesPage })),
 );
 const DiseasePage = lazy(() => import('./DiseasesPage').then((m) => ({ default: m.DiseasePage })));
+const NameVoicesPage = lazy(() =>
+  import('./NameVoicesPage').then((m) => ({ default: m.NameVoicesPage })),
+);
 const LocalNamesPage = lazy(() =>
   import('./LocalNamesPage').then((m) => ({ default: m.LocalNamesPage })),
 );
@@ -213,10 +216,15 @@ function navigation(user: SessionUser): NavGroup[] {
     });
   }
   // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
-  // locaux (US-053) pour tout administrateur, saisis par le référent de chaque langue
+  // locaux (US-053) et voix des noms (US-071) pour tout administrateur, chaque geste selon ses
+  // droits dans la langue
   const dictionary: NavGroup = {
     heading: 'Dictionnaire',
-    items: [{ href: '/noms-locaux', label: 'Noms locaux', icon: 'book' }],
+    items: [
+      { href: '/noms-locaux', label: 'Noms locaux', icon: 'book' },
+      // US-071 : voix du nom des plantes et des maladies, par langue
+      { href: '/voix-des-noms', label: 'Voix des noms', icon: 'book' },
+    ],
   };
   if (isDirector(user) || isCommittee(user)) {
     dictionary.items.unshift(
@@ -262,6 +270,7 @@ interface Route {
 }
 const DIRECTOR_PAGES: Record<string, Route> = {
   '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
+  '/voix-des-noms': { Page: NameVoicesPage, data: ['/api/voix-des-noms'] },
   '/entonnoir': { Page: FunnelPage, data: ['/api/entonnoir'] },
   '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
   '/rejet-definitif': { Page: RejectionPage, data: [] },
@@ -272,6 +281,7 @@ const DIRECTOR_PAGES: Record<string, Route> = {
 };
 const PREFECTORAL_PAGES: Record<string, Route> = {
   '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
+  '/voix-des-noms': { Page: NameVoicesPage, data: ['/api/voix-des-noms'] },
   '/verification-terrain': {
     Page: FieldVerificationPage,
     data: ['/api/dossiers/verification-terrain'],
@@ -279,10 +289,12 @@ const PREFECTORAL_PAGES: Record<string, Route> = {
 };
 const REGIONAL_PAGES: Record<string, Route> = {
   '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
+  '/voix-des-noms': { Page: NameVoicesPage, data: ['/api/voix-des-noms'] },
   '/consolidation': { Page: ConsolidationPage, data: ['/api/dossiers/consolidation'] },
 };
 const COMMITTEE_PAGES: Record<string, Route> = {
   '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
+  '/voix-des-noms': { Page: NameVoicesPage, data: ['/api/voix-des-noms'] },
   '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
   '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
   '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },

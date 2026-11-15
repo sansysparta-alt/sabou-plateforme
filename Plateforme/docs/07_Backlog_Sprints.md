@@ -539,6 +539,8 @@ Critères d’acceptation :
 - Statuts Brouillon → Traduit → Validé → Publié par langue.
 - Publication impossible sans consentement ; le valideur n’est jamais celui qui a enregistré.
 
+Réalisation (15 novembre 2026, 05 §2.47) : brouillon = enregistrée par le référent ; traduit = présentée à la validation par celui qui a enregistré (ou un traducteur de la langue) ; validé = un valideur de la langue, jamais celui qui a enregistré, l’a écoutée (renvoi en brouillon avec motif possible) ; publié = la DG. Écran « Voix des noms » avec écoute (Opus, secours AAC).
+
 ### Sprint 5 — Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification.
 
 #### US-060 · Créer un traitement depuis le Studio web
