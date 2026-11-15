@@ -15,5 +15,10 @@ export default defineConfig({
       { find: /^@testing-library\/react$/, replacement: '@testing-library/preact' },
     ],
   },
-  test: { environment: 'jsdom' },
+  test: {
+    environment: 'jsdom',
+    // Poste chargé (tous les paquets testés ensemble) : délai d'un test plus large que les
+    // 5 s par défaut, comme dans apps/admin
+    testTimeout: 15_000,
+  },
 });
