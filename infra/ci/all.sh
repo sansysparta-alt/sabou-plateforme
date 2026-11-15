@@ -4,7 +4,11 @@
 source "$(dirname "$0")/env.sh"
 # Aucun réglage de ci:recit ne doit alléger la preuve : pages, mesures et specs au complet
 unset RECIT_ADMIN_SPECS RECIT_SITE_SPECS RECIT_LIGHTHOUSE LH_PAGES LH_RUNS LH_FORM_FACTORS
+# Pas pendant un essai dans le navigateur ; arrêt propre à la première étape en échec
+browser_session_guard
+pipeline_guard
 started=$SECONDS
+step "Arrêt propre (contre-épreuve)" bash infra/ci/pipeline-selftest.sh
 step "Contrôles du dépôt" bash infra/ci/check-repo.sh
 step "Contrôles du dépôt (contre-épreuve)" bash infra/ci/check-repo-selftest.sh
 step "Installation" bash infra/ci/install.sh
