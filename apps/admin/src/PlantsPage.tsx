@@ -1,5 +1,17 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, DataTable, PageHeader, TextField } from '@sabou/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  DataTable,
+  ListToolbar,
+  PageHeader,
+  SearchBox,
+  SegmentedFilter,
+  StatCard,
+  TextField,
+  useDebounced,
+} from '@sabou/ui';
 import type { PlantFields, PlantStatus, PlantSummary } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { createPlant, listPlants } from './plants-api';
@@ -13,6 +25,8 @@ export const SCIENTIFIC_NAME_MAX_LENGTH = 150;
 export const FAMILY_MAX_LENGTH = 100;
 export const NAME_MAX_LENGTH = 150;
 const SEARCH_MAX_LENGTH = 100;
+// Plafond de la liste renvoyée par l'API (PLANT_LIST_LIMIT, plants.repository.ts)
+const PLANT_LIST_LIMIT = 200;
 
 export const STATUS: Record<PlantStatus, [label: string, tone: 'warning' | 'success']> = {
   en_revue: ['En revue', 'warning'],
@@ -22,67 +36,108 @@ export const STATUS: Record<PlantStatus, [label: string, tone: 'warning' | 'succ
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
+type StatusFilter = 'toutes' | PlantStatus;
+
+// Gabarit de liste (05 §2.45) : en-tête et action, chiffres, recherche et filtre, tableau
+// paginé. La recherche part vers l'API une fois la frappe arrêtée (accents, noms
+// scientifiques et anglais : la base sait chercher) ; le filtre de statut trie la réponse.
 export function PlantsPage() {
   const [plants, setPlants] = useState<PlantSummary[] | null>(null);
+  // Dictionnaire entier, lu à l'ouverture : base des chiffres clés
+  const [all, setAll] = useState<PlantSummary[] | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [query, setQuery] = useState('');
-  const [searched, setSearched] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('toutes');
+  const [creating, setCreating] = useState(false);
+  const searched = useDebounced(query.trim());
 
   useEffect(() => {
     let active = true;
-    listPlants().then(
-      (rows) => active && setPlants(rows),
+    listPlants(searched).then(
+      (rows) => {
+        if (!active) return;
+        setPlants(rows);
+        if (searched === '') setAll(rows);
+        setLoadError(undefined);
+      },
       (error: unknown) => active && setLoadError(errorMessage(error)),
     );
     return () => {
       active = false;
     };
-  }, []);
+  }, [searched]);
 
-  async function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    try {
-      setPlants(await listPlants(q));
-      setSearched(q);
-      setLoadError(undefined);
-    } catch (error) {
-      setLoadError(errorMessage(error));
-    }
-  }
+  const count = (rows: PlantSummary[] | null, wanted: StatusFilter) =>
+    (rows ?? []).filter((plant) => wanted === 'toutes' || plant.statut === wanted).length;
+  const rows = (plants ?? []).filter((plant) => status === 'toutes' || plant.statut === status);
 
   return (
     <>
       <PageHeader
         title="Fiches plantes"
-        lead="Dictionnaire des plantes : une fiche par plante, commune à toutes les langues. Les fiches nouvelles ou modifiées sont « en revue » jusqu’à la validation du Comité scientifique."
+        lead="Une fiche par plante, commune à toutes les langues. Une fiche nouvelle ou modifiée reste « en revue » jusqu’à la validation du Comité scientifique."
+        actions={
+          <Button
+            variant="primary"
+            icon="plus"
+            aria-expanded={creating}
+            onClick={() => setCreating((value) => !value)}
+          >
+            Nouvelle fiche plante
+          </Button>
+        }
       />
-      <NewPlantForm />
-      <section className="ui-section" aria-labelledby="fiches-titre">
-        <h2 id="fiches-titre">Fiches</h2>
-        <form className="ui-form__actions" role="search" onSubmit={onSearch}>
-          <TextField
-            label="Rechercher une plante"
-            hint="Nom français, scientifique ou anglais, ou code (PL-001)."
-            type="search"
-            value={query}
-            maxLength={SEARCH_MAX_LENGTH}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <div>
-            <Button type="submit" variant="secondary">
-              Rechercher
-            </Button>
-          </div>
-        </form>
-        {loadError && <Alert tone="error">{loadError}</Alert>}
-        {plants === null && !loadError && <p>Chargement…</p>}
-        {plants && (
+      {creating && <NewPlantForm onCancel={() => setCreating(false)} />}
+      {loadError && <Alert tone="error">{loadError}</Alert>}
+      {all && (
+        <div className="ui-grid ui-grid--stats" role="group" aria-label="Chiffres des fiches">
+          <StatCard label="Fiches" value={all.length} />
+          <StatCard label="En revue" value={count(all, 'en_revue')} />
+          <StatCard label="Validées" value={count(all, 'validee')} />
+          <StatCard label="Sans photo principale" value={all.filter((p) => !p.image).length} />
+        </div>
+      )}
+      {plants === null && !loadError && <p>Chargement…</p>}
+      {plants && (
+        <section className="ui-section" aria-labelledby="fiches-titre">
+          <h2 id="fiches-titre" className="ui-visually-hidden">
+            Fiches
+          </h2>
+          <ListToolbar>
+            <SearchBox
+              label="Rechercher une plante"
+              placeholder="Nom français, scientifique ou anglais, ou code (PL-001)"
+              value={query}
+              maxLength={SEARCH_MAX_LENGTH}
+              onChange={setQuery}
+            />
+            <SegmentedFilter
+              label="Filtrer par statut"
+              value={status}
+              onChange={setStatus}
+              options={[
+                { value: 'toutes', label: 'Toutes', count: count(plants, 'toutes') },
+                { value: 'en_revue', label: 'En revue', count: count(plants, 'en_revue') },
+                { value: 'validee', label: 'Validées', count: count(plants, 'validee') },
+              ]}
+            />
+          </ListToolbar>
+          {plants.length >= PLANT_LIST_LIMIT && (
+            <p className="ui-muted">
+              Seules les {PLANT_LIST_LIMIT} premières fiches sont listées : précisez la recherche.
+            </p>
+          )}
           <DataTable
             caption={searched ? `Fiches trouvées pour « ${searched} »` : 'Toutes les fiches'}
-            rows={plants}
+            captionHidden
+            rows={rows}
             rowKey={(plant) => plant.code}
-            empty={searched ? 'Aucune fiche ne correspond.' : 'Aucune fiche pour l’instant.'}
+            empty={
+              searched || status !== 'toutes'
+                ? 'Aucune fiche ne correspond.'
+                : 'Aucune fiche pour l’instant.'
+            }
+            paginate={{ key: 'plantes', noun: ['fiche', 'fiches'], resetOn: [searched, status] }}
             columns={[
               {
                 key: 'nom',
@@ -113,8 +168,8 @@ export function PlantsPage() {
               },
             ]}
           />
-        )}
-      </section>
+        </section>
+      )}
     </>
   );
 }
@@ -165,17 +220,17 @@ export function PlantFieldInputs({
 
 const EMPTY: PlantFields = { nomScientifique: '', famille: '', nomFr: '', nomEn: '' };
 
-function NewPlantForm() {
+// Formulaire de création, ouvert sous l'en-tête à la demande ; le focus va au premier champ
+function NewPlantForm({ onCancel }: { onCancel: () => void }) {
   const titleId = useId();
-  const [open, setOpen] = useState(false);
   const [fields, setFields] = useState<PlantFields>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const firstField = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (open) firstField.current?.querySelector('input')?.focus();
-  }, [open]);
+    firstField.current?.querySelector('input')?.focus();
+  }, []);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -191,15 +246,6 @@ function NewPlantForm() {
     }
   }
 
-  if (!open) {
-    return (
-      <div>
-        <Button variant="primary" icon="plus" onClick={() => setOpen(true)}>
-          Nouvelle fiche plante
-        </Button>
-      </div>
-    );
-  }
   return (
     <form
       ref={firstField}
@@ -214,15 +260,7 @@ function NewPlantForm() {
         <Button type="submit" variant="primary" disabled={busy}>
           {busy ? 'Création…' : 'Créer la fiche'}
         </Button>
-        <Button
-          variant="tertiary"
-          disabled={busy}
-          onClick={() => {
-            setOpen(false);
-            setFields(EMPTY);
-            setError(undefined);
-          }}
-        >
+        <Button variant="tertiary" disabled={busy} onClick={onCancel}>
           Annuler
         </Button>
       </div>

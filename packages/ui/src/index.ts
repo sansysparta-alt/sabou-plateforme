@@ -17,6 +17,13 @@ export {
 } from './Pagination';
 export { Tabs, type Tab } from './Tabs';
 export {
+  ListToolbar,
+  SearchBox,
+  SegmentedFilter,
+  useDebounced,
+  SEARCH_DELAY_MS,
+} from './Toolbar';
+export {
   AppShell,
   PageHeader,
   type AppShellProps,

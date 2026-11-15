@@ -2,7 +2,7 @@
 // scientifique unique, photo principale) sont prouvées par la base
 // (packages/db/test/fiche-plante.test.ts) et l'API (apps/api/src/plants/plants.test.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { PlantDetail, PlantSummary } from '@sabou/types';
 import { PlantPage } from './PlantPage';
 import { PlantsPage } from './PlantsPage';
@@ -70,15 +70,61 @@ describe('Liste des fiches plantes', () => {
     expect(within(table).getByText('Khaya senegalensis').tagName).toBe('I');
   });
 
-  it('recherche : la saisie part à l’API, la légende du tableau la reprend', async () => {
+  it('recherche : la saisie part à l’API une fois la frappe arrêtée, sans bouton', async () => {
     render(<PlantsPage />);
     await screen.findByRole('table');
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher une plante' }), {
-      target: { value: ' néré ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
+    const box = screen.getByRole('searchbox', { name: 'Rechercher une plante' });
+    fireEvent.change(box, { target: { value: ' né' } });
+    fireEvent.change(box, { target: { value: ' néré ' } });
     expect(await screen.findByRole('table', { name: 'Fiches trouvées pour « néré »' }));
-    expect(lastCall()[0]).toBe('/api/plantes?q=n%C3%A9r%C3%A9');
+    // Une seule recherche envoyée : la frappe intermédiaire n'est pas partie
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+        '/api/plantes',
+        '/api/plantes?q=n%C3%A9r%C3%A9',
+      ]),
+    );
+  });
+
+  it('gabarit de liste : chiffres clés, filtre de statut avec son nombre (US-019b)', async () => {
+    render(<PlantsPage />);
+    const stats = await screen.findByRole('group', { name: 'Chiffres des fiches' });
+    expect(stats.textContent).toMatch(/Fiches\s*2/);
+    expect(stats.textContent).toMatch(/En revue\s*1/);
+    expect(stats.textContent).toMatch(/Sans photo principale\s*1/);
+    fireEvent.click(screen.getByRole('button', { name: 'En revue (1)' }));
+    const table = screen.getByRole('table');
+    expect(within(table).queryByRole('row', { name: /Caïlcédrat/ })).toBeNull();
+    expect(within(table).getByRole('row', { name: /Neem/ }));
+  });
+
+  it('formulaire de création ouvert à la demande depuis l’en-tête, refermé par Annuler', async () => {
+    render(<PlantsPage />);
+    const open = await screen.findByRole('button', { name: 'Nouvelle fiche plante' });
+    expect(screen.queryByLabelText('Famille', { exact: false })).toBeNull();
+    fireEvent.click(open);
+    expect(open.getAttribute('aria-expanded')).toBe('true');
+    expect(document.activeElement).toBe(
+      screen.getByLabelText('Nom scientifique', { exact: false }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByLabelText('Famille', { exact: false })).toBeNull();
+  });
+
+  it('au-delà de 10 fiches : pagination commune, retour à la page 1 au changement de filtre', async () => {
+    const many: PlantSummary[] = Array.from({ length: 12 }, (_, i) => ({
+      ...LIST[1]!,
+      code: `PL-${String(100 + i)}`,
+      nomFr: `Plante ${100 + i}`,
+    }));
+    handler = () => Response.json(many);
+    render(<PlantsPage />);
+    const pages = await screen.findByRole('navigation', { name: 'Pages : Toutes les fiches' });
+    expect(pages.textContent).toContain('1–10 sur 12 fiches');
+    fireEvent.click(within(pages).getByRole('button', { name: 'Page 2' }));
+    expect(screen.getByRole('row', { name: /Plante 111/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'En revue (12)' }));
+    expect(screen.getByRole('row', { name: /Plante 100/ }));
   });
 
   it('critère : nom scientifique, famille et nom français obligatoires, anglais facultatif', async () => {
