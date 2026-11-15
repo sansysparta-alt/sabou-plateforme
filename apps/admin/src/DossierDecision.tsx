@@ -7,7 +7,17 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
-import { Alert, Button, PageHeader, Pagination, TextAreaField, usePageSize } from '@sabou/ui';
+import {
+  Alert,
+  Button,
+  ListToolbar,
+  PageHeader,
+  Pagination,
+  SearchBox,
+  TextAreaField,
+  useDebounced,
+  usePageSize,
+} from '@sabou/ui';
 import type { ZonePage } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { decideDossier } from './certification-api';
@@ -49,11 +59,20 @@ export function DossierQueuePage<T extends { code: string }>({
   listTitle: string;
   empty: string;
   queue: QueuePath;
-  load: (page: number, size: number) => Promise<ZonePage<T>>;
+  load: (page: number, size: number, q?: string) => Promise<ZonePage<T>>;
   item: ComponentType<{ dossier: T; onDecided: OnDecided; announce: Announce }>;
 }) {
   const [pageSize, setPageSize] = usePageSize(queueKey(queue));
   const [page, setPage] = useState(0);
+  // Recherche par code ou nom du praticien, envoyée à l'API une fois la frappe arrêtée ; une
+  // nouvelle recherche ramène à la première page (calculé pendant le rendu, sans effet)
+  const [query, setQuery] = useState('');
+  const searched = useDebounced(query.trim());
+  const [lastSearched, setLastSearched] = useState(searched);
+  if (lastSearched !== searched) {
+    setLastSearched(searched);
+    setPage(0);
+  }
   // Compteur de relectures : une décision relit la page courante
   const [reads, setReads] = useState(0);
   const [result, setResult] = useState<ZonePage<T> | null>(null);
@@ -65,7 +84,7 @@ export function DossierQueuePage<T extends { code: string }>({
   useEffect(() => {
     let current = true;
     setLoading(true);
-    load(page, pageSize).then(
+    load(page, pageSize, searched).then(
       (next) => {
         if (!current) return;
         // Page devenue vide (derniers dossiers décidés) : retour à la dernière page qui existe
@@ -88,7 +107,7 @@ export function DossierQueuePage<T extends { code: string }>({
       current = false;
     };
     // `load` est une fonction du module certification-api, stable
-  }, [load, page, pageSize, reads]);
+  }, [load, page, pageSize, searched, reads]);
 
   function onDecided(code: string, text: string) {
     setResult(
@@ -131,7 +150,17 @@ export function DossierQueuePage<T extends { code: string }>({
               <span className="ui-visually-hidden"> dossier{total > 1 ? 's' : ''}</span>
             </span>
           </div>
-          {total === 0 && <p>{empty}</p>}
+          {(total > 0 || searched) && (
+            <ListToolbar>
+              <SearchBox
+                label="Rechercher un dossier"
+                placeholder="Code du dossier (DS-2001) ou nom du praticien"
+                value={query}
+                onChange={setQuery}
+              />
+            </ListToolbar>
+          )}
+          {total === 0 && <p>{searched ? 'Aucun dossier ne correspond.' : empty}</p>}
           {dossiers.length > 0 && (
             <ul className="ui-dossiers">
               {dossiers.map((dossier) => (

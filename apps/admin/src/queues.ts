@@ -16,10 +16,12 @@ export type QueuePath = (typeof QUEUES)[keyof typeof QUEUES];
 // Nom de la liste pour la taille de page mémorisée : « file-consolidation »…
 export const queueKey = (path: QueuePath) => `file-${path.slice(path.lastIndexOf('/') + 1)}`;
 
-// Page `page` (à partir de 0) de `size` dossiers
-export function queuePagePath(path: QueuePath, page: number, size: number): string {
+// Page `page` (à partir de 0) de `size` dossiers, parmi ceux que trouve la recherche `q`
+// (code du dossier ou nom du praticien)
+export function queuePagePath(path: QueuePath, page: number, size: number, q = ''): string {
   const query = new URLSearchParams({ limite: String(size) });
   if (page > 0) query.set('decalage', String(page * size));
+  if (q) query.set('q', q);
   return `${path}?${query}`;
 }
 

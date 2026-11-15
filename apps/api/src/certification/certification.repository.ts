@@ -55,6 +55,7 @@ export class CertificationRepository {
           JOIN sabou.prefecture pf    ON pf.id = p.prefecture_id
           JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id`,
         query,
+        ['prenom', 'nom'],
       );
     });
   }
@@ -72,6 +73,7 @@ export class CertificationRepository {
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
           JOIN sabou.prefecture pf ON pf.id = p.prefecture_id`,
         query,
+        ['praticienNom'],
       );
     });
   }
@@ -97,6 +99,7 @@ export class CertificationRepository {
           JOIN sabou.specialite sp ON sp.id = p.specialite_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 2`,
         query,
+        ['praticienNom'],
       );
     });
   }
@@ -120,6 +123,7 @@ export class CertificationRepository {
           JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 3`,
         query,
+        ['praticienNom'],
       );
     });
   }
@@ -144,6 +148,7 @@ export class CertificationRepository {
           JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 4`,
         query,
+        ['praticienNom'],
       );
     });
   }

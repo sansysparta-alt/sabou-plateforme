@@ -63,6 +63,7 @@ export class CertificatesRepository {
           JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
          WHERE d.statut = 'en_cours' AND d.etape_courante = 5`,
         query,
+        ['praticienNom'],
       );
     });
   }

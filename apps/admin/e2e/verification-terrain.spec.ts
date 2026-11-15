@@ -4,7 +4,7 @@
 // visites-terrain.spec.ts (US-041).
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
-import { decide, dossierAtStep2, stepOf } from './dossiers';
+import { decide, dossierAtStep2, showRunDossiers, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
@@ -21,6 +21,7 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
 
   await page.goto(APP);
   await page.getByRole('link', { name: 'Vérification terrain' }).click();
+  await showRunDossiers(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Vérification terrain' })).toBeVisible();
   const card = (code: string) =>
     page

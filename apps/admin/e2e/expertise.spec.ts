@@ -3,7 +3,7 @@
 // (e2e/dossiers.ts). Le Comité est national : il voit les dossiers de toutes les régions.
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
-import { decide, dossierAtStep, stepOf } from './dossiers';
+import { decide, dossierAtStep, showRunDossiers, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
@@ -21,6 +21,7 @@ test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), to
 
   await page.goto(APP);
   await page.getByRole('link', { name: 'Expertise des dossiers' }).click();
+  await showRunDossiers(page);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Expertise des dossiers' }),
   ).toBeVisible();

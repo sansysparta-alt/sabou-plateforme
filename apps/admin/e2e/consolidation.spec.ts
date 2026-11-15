@@ -2,7 +2,7 @@
 // (second facteur), vraie API, vraie base ; dossiers créés en base (e2e/dossiers.ts).
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
-import { decide, dossierAtStep, stepOf } from './dossiers';
+import { decide, dossierAtStep, showRunDossiers, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
@@ -19,6 +19,7 @@ test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ;
 
   await page.goto(APP);
   await page.getByRole('link', { name: 'Consolidation régionale' }).click();
+  await showRunDossiers(page);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Consolidation régionale' }),
   ).toBeVisible();

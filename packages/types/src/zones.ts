@@ -9,6 +9,7 @@ import { z } from 'zod';
 // - par numéro de page (`decalage` : nombre d'éléments à sauter), pour les écrans de gestion
 //   qui affichent « Page 3 sur 8 » (US-019b). Les files de dossiers restent courtes.
 export const ZONE_LIST_MAX_OFFSET = 100_000;
+export const ZONE_LIST_SEARCH_MAX_LENGTH = 100;
 export const zoneListQuerySchema = z
   .object({
     limite: z.coerce.number().int().min(1).max(100).default(50),
@@ -17,6 +18,8 @@ export const zoneListQuerySchema = z
       .regex(/^[A-Z]{2}-\d{1,10}$/)
       .optional(),
     decalage: z.coerce.number().int().min(0).max(ZONE_LIST_MAX_OFFSET).optional(),
+    // Recherche dans le code et le nom du praticien (files de dossiers, US-019b)
+    q: z.string().trim().min(1).max(ZONE_LIST_SEARCH_MAX_LENGTH).optional(),
   })
   .strict()
   .refine((query) => query.apres === undefined || query.decalage === undefined, {

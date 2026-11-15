@@ -5,6 +5,15 @@ import { expect, type Page } from '@playwright/test';
 import { psql } from './audit';
 import { APP } from './keycloak';
 
+// Les files de dossiers sont paginées (US-019b) et la base locale garde les dossiers des essais
+// précédents : chaque essai donne à ses praticiens un nom qui lui est propre, et ne garde à
+// l'écran que ses dossiers en le cherchant dans la file.
+export const RUN = String(randomInt(100_000, 1_000_000));
+
+export async function showRunDossiers(page: Page) {
+  await page.getByRole('searchbox', { name: 'Rechercher un dossier' }).fill(RUN);
+}
+
 const PREFECTURES = ['Koubia', 'Labé', 'Kankan'] as const;
 
 // Praticien neuf de la préfecture donnée et son dossier à l'étape donnée (3 à 5), visite
@@ -25,7 +34,7 @@ export function dossierAtStep(
   const output = psql(`SET search_path = sabou, public;
     WITH u AS (
       INSERT INTO sabou.utilisateur (telephone, prenom, nom, role_code, statut, keycloak_id)
-      VALUES ('${phone}', 'Essai', 'Workflow', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
+      VALUES ('${phone}', 'Essai', 'Workflow ${RUN}', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
     p AS (
       INSERT INTO sabou.praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale, annees_experience)
       SELECT u.id, 1, (SELECT id FROM sabou.prefecture WHERE nom = '${prefecture}'), 'pul', 5 FROM u RETURNING id),
@@ -73,7 +82,7 @@ export function dossierAtStep2(
   const output = psql(`SET search_path = sabou, public;
     WITH u AS (
       INSERT INTO sabou.utilisateur (telephone, prenom, nom, role_code, statut, keycloak_id)
-      VALUES ('${phone}', 'Essai', 'Terrain', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
+      VALUES ('${phone}', 'Essai', 'Terrain ${RUN}', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
     p AS (
       INSERT INTO sabou.praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale, annees_experience)
       SELECT u.id, 1, (SELECT id FROM sabou.prefecture WHERE nom = '${prefecture}'), 'pul', 5 FROM u RETURNING id),

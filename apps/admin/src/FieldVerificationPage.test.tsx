@@ -176,6 +176,36 @@ describe('Liste des dossiers à l’étape 2', () => {
       );
     });
 
+    it('recherche par code ou nom : envoyée à l’API, retour à la première page', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&decalage=10`]: pageOf(10, 10),
+        [`${LIST}?limite=10&q=DS-2123`]: { elements: [many[22]!], total: 1 },
+      });
+      render(<FieldVerificationPage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Page 2' }));
+      expect(await item('DS-2111'));
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher un dossier' }), {
+        target: { value: ' DS-2123 ' },
+      });
+      expect(await item('DS-2123'));
+      expect(screen.queryByRole('heading', { level: 3, name: /DS-2111/ })).toBeNull();
+      expect(screen.queryByRole('navigation', { name: 'Pages : Dossiers à vérifier' })).toBeNull();
+    });
+
+    it('recherche sans résultat : message propre à la recherche', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&q=inconnu`]: { elements: [], total: 0 },
+      });
+      render(<FieldVerificationPage />);
+      await item('DS-2101');
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher un dossier' }), {
+        target: { value: 'inconnu' },
+      });
+      expect(await screen.findByText('Aucun dossier ne correspond.'));
+    });
+
     it('taille de page choisie : demandée à l’API et mémorisée pour cette file', async () => {
       window.localStorage.clear();
       mockApi({ [FIRST]: pageOf(0, 10), [`${LIST}?limite=25`]: pageOf(0, 25) });

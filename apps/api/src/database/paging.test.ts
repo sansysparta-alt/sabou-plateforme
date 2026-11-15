@@ -35,11 +35,17 @@ beforeAll(async () => {
     `postgres://postgres:test@${container.getHost()}:${container.getMappedPort(5432)}/sabou`,
   );
   await sql`CREATE SCHEMA sabou`.execute(db);
-  await sql`CREATE TABLE sabou.dossier (code text PRIMARY KEY, ouvert boolean NOT NULL)`.execute(
-    db,
-  );
+  // Même normalisation que la base (schéma initial)
+  await sql`CREATE EXTENSION unaccent`.execute(db);
+  await sql`CREATE FUNCTION sabou.f_norm(t text) RETURNS text LANGUAGE sql IMMUTABLE AS
+            $$ SELECT lower(public.unaccent('public.unaccent', t)) $$`.execute(db);
+  await sql`CREATE TABLE sabou.dossier (code text PRIMARY KEY, ouvert boolean NOT NULL,
+                                        "praticienNom" text NOT NULL)`.execute(db);
   await sql`INSERT INTO sabou.dossier
-            SELECT 'DS-' || (1000 + n), n <= 20 FROM generate_series(23, 1, -1) n`.execute(db);
+            SELECT 'DS-' || (1000 + n), n <= 20,
+                   CASE WHEN n IN (3, 14) THEN 'Mariama Soumah' WHEN n = 7 THEN '100% Kéïta'
+                        ELSE 'Sékou Kourouma' END
+              FROM generate_series(23, 1, -1) n`.execute(db);
 }, 180_000);
 
 afterAll(async () => {
@@ -47,13 +53,15 @@ afterAll(async () => {
   await container?.stop();
 });
 
-const OPEN = sql`SELECT code, ouvert FROM sabou.dossier WHERE ouvert`;
+const OPEN = sql`SELECT code, ouvert, "praticienNom" FROM sabou.dossier WHERE ouvert`;
 
 function read(query: Partial<Record<keyof ZoneListQuery, string>>) {
   const parsed = zoneListQuerySchema.parse(query);
   return db
     .transaction()
-    .execute((trx) => zonePage<{ code: string }>(trx as unknown as ZoneTrx, OPEN, parsed));
+    .execute((trx) =>
+      zonePage<{ code: string }>(trx as unknown as ZoneTrx, OPEN, parsed, ['praticienNom']),
+    );
 }
 
 const codes = (from: number, to: number) =>
@@ -81,7 +89,9 @@ describe('Page par numéro (decalage)', () => {
 
   it('garde toutes les colonnes de la liste, avec leur type', async () => {
     const page = await read({ limite: '1' });
-    expect(page.elements).toEqual([{ code: 'DS-1001', ouvert: true }]);
+    expect(page.elements).toEqual([
+      { code: 'DS-1001', ouvert: true, praticienNom: 'Sékou Kourouma' },
+    ]);
   });
 });
 
@@ -90,6 +100,30 @@ describe('Page par curseur (apres)', () => {
     const page = await read({ limite: '5', apres: 'DS-1017' });
     expect(page.elements.map((e) => e.code)).toEqual(codes(1018, 1020));
     expect(page).toMatchObject({ suivant: null, total: 20 });
+  });
+});
+
+describe('Recherche (q)', () => {
+  it('dans le nom, sans accents ni majuscules ; le total compte les lignes trouvées', async () => {
+    const page = await read({ q: 'MARIAMA soumah' });
+    expect(page.elements.map((e) => e.code)).toEqual(['DS-1003', 'DS-1014']);
+    expect(page.total).toBe(2);
+    expect((await read({ q: 'kourouma', limite: '10' })).total).toBe(17);
+  });
+
+  it('dans le code', async () => {
+    const page = await read({ q: 'ds-1017' });
+    expect(page).toMatchObject({ elements: [{ code: 'DS-1017' }], total: 1 });
+  });
+
+  it('les caractères spéciaux de LIKE sont cherchés tels quels', async () => {
+    expect((await read({ q: '100%' })).elements.map((e) => e.code)).toEqual(['DS-1007']);
+    expect((await read({ q: '%' })).total).toBe(1);
+    expect((await read({ q: '_' })).total).toBe(0);
+  });
+
+  it('une tentative d’injection reste un simple texte cherché', async () => {
+    expect((await read({ q: "' OR 1=1 --" })).total).toBe(0);
   });
 });
 
@@ -116,6 +150,9 @@ describe('Paramètres', () => {
     [{ decalage: '1.5' }],
     [{ decalage: '100001' }],
     [{ decalage: '0 OR 1=1' }],
+    [{ q: '' }],
+    [{ q: '   ' }],
+    [{ q: 'x'.repeat(101) }],
   ])('refuse %j', (query) => {
     expect(zoneListQuerySchema.safeParse(query).success).toBe(false);
   });

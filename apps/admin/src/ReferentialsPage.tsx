@@ -7,7 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
-import { Alert, Badge, Button, PageHeader, Tabs } from '@sabou/ui';
+import { Alert, Badge, Button, PageHeader, Pagination, Tabs, usePagination } from '@sabou/ui';
 import type { Language, LanguageType, Referentials, Specialty, TerritoryLevel } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { BADGE_TONES } from './roles';
@@ -166,6 +166,8 @@ function ErrorText({ error }: { error?: string }) {
 // ---------- Langues (US-020) ----------
 
 function LanguagesSection({ languages, onDone }: { languages: Language[]; onDone: OnDone }) {
+  // Pagination commune au-delà de 10 lignes (gabarit de liste, 05 §2.45)
+  const { pageItems, paginationProps } = usePagination(languages, 'langues');
   return (
     <section aria-labelledby="languages-title" className="ui-section">
       <h2 id="languages-title" className="ui-visually-hidden">
@@ -180,26 +182,29 @@ function LanguagesSection({ languages, onDone }: { languages: Language[]; onDone
           <LanguageForm onDone={onDone} />
         </OnDemand>
       </div>
-      <div className="ui-table-wrap">
-        <table className="ui-table">
-          <caption className="ui-visually-hidden">Langues</caption>
-          <thead>
-            <tr>
-              <th scope="col">Langue</th>
-              <th scope="col">Type</th>
-              <th scope="col">Usage</th>
-              <th scope="col">Statut</th>
-              <th scope="col" className="ui-table__actions">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {languages.map((language) => (
-              <LanguageItem key={language.code} language={language} onDone={onDone} />
-            ))}
-          </tbody>
-        </table>
+      <div className="ui-table-block">
+        <div className="ui-table-wrap">
+          <table className="ui-table">
+            <caption className="ui-visually-hidden">Langues</caption>
+            <thead>
+              <tr>
+                <th scope="col">Langue</th>
+                <th scope="col">Type</th>
+                <th scope="col">Usage</th>
+                <th scope="col">Statut</th>
+                <th scope="col" className="ui-table__actions">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((language) => (
+                <LanguageItem key={language.code} language={language} onDone={onDone} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Pagination {...paginationProps} noun={['langue', 'langues']} label="Pages : Langues" />
       </div>
     </section>
   );
@@ -658,6 +663,8 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
 // ---------- Spécialités (US-021) ----------
 
 function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[]; onDone: OnDone }) {
+  // Pagination commune au-delà de 10 lignes (gabarit de liste, 05 §2.45)
+  const { pageItems, paginationProps } = usePagination(specialties, 'specialites');
   return (
     <section aria-labelledby="specialties-title" className="ui-section">
       <h2 id="specialties-title" className="ui-visually-hidden">
@@ -669,25 +676,32 @@ function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[];
           <SpecialtyForm onDone={onDone} />
         </OnDemand>
       </div>
-      <div className="ui-table-wrap">
-        <table className="ui-table">
-          <caption className="ui-visually-hidden">Spécialités</caption>
-          <thead>
-            <tr>
-              <th scope="col">Spécialité</th>
-              <th scope="col">En anglais</th>
-              <th scope="col">Statut</th>
-              <th scope="col" className="ui-table__actions">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {specialties.map((specialty) => (
-              <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
-            ))}
-          </tbody>
-        </table>
+      <div className="ui-table-block">
+        <div className="ui-table-wrap">
+          <table className="ui-table">
+            <caption className="ui-visually-hidden">Spécialités</caption>
+            <thead>
+              <tr>
+                <th scope="col">Spécialité</th>
+                <th scope="col">En anglais</th>
+                <th scope="col">Statut</th>
+                <th scope="col" className="ui-table__actions">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((specialty) => (
+                <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Pagination
+          {...paginationProps}
+          noun={['spécialité', 'spécialités']}
+          label="Pages : Spécialités"
+        />
       </div>
     </section>
   );
