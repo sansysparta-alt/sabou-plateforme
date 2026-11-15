@@ -1003,3 +1003,98 @@ details[open] > .ui-dossier__summary {
   gap: var(--sabou-space-4);
   padding: var(--sabou-space-4);
 }
+
+/* ---------- Listes de gestion (US-019) : recherche et filtres, tableau, pagination ----------
+   Chaque chose à sa place : la barre d'outils au-dessus du tableau, les actions à droite de
+   chaque ligne, la pagination dessous. Sobre : couleurs de la charte, pas de fond coloré. */
+.ui-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-2) var(--sabou-space-3);
+}
+.ui-toolbar__search {
+  flex: 1 1 18rem;
+}
+.ui-toolbar__select {
+  flex: 0 1 14rem;
+  width: auto;
+}
+.ui-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sabou-space-1);
+}
+.ui-segmented__item {
+  min-height: var(--sabou-target);
+  padding: 0 var(--sabou-space-3);
+  border: 1px solid var(--sabou-border);
+  border-radius: var(--sabou-radius-full);
+  background: var(--sabou-surface);
+  color: var(--sabou-text);
+  font: inherit;
+  font-size: var(--sabou-text-sm);
+  cursor: pointer;
+}
+.ui-segmented__item:hover {
+  background: var(--sabou-bg);
+}
+.ui-segmented__item[aria-pressed='true'] {
+  border-color: var(--sabou-forest);
+  background: var(--sabou-forest);
+  color: var(--sabou-on-dark);
+  font-weight: var(--sabou-weight-semibold);
+}
+.ui-table th[scope='row'] {
+  font-weight: var(--sabou-weight-regular);
+}
+.ui-table .ui-table__actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.ui-table td.ui-table__actions .ui-button {
+  min-height: 2.25rem;
+  padding: 0 var(--sabou-space-3);
+  font-size: var(--sabou-text-sm);
+}
+.ui-table-empty {
+  padding: var(--sabou-space-4);
+  color: var(--sabou-text-muted);
+}
+.ui-person {
+  display: flex;
+  align-items: center;
+  gap: var(--sabou-space-3);
+  min-width: 14rem;
+}
+.ui-person__text {
+  display: grid;
+  min-width: 0;
+  line-height: var(--sabou-leading-tight);
+}
+.ui-person__name {
+  font-weight: var(--sabou-weight-semibold);
+}
+.ui-person__email {
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+  overflow-wrap: anywhere;
+}
+.ui-avatar--light {
+  width: 2rem;
+  height: 2rem;
+  background: var(--sabou-mist);
+  font-size: var(--sabou-text-xs);
+}
+.ui-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sabou-space-2);
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+}
+.ui-pagination > span {
+  margin-right: auto;
+}
