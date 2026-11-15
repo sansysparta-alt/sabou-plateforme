@@ -66,7 +66,34 @@ function takeParam(name: string): string | undefined {
   return value;
 }
 
+// Connexion perdue en route (?reprise=1, US-019) : relancée une fois ; une deuxième perte en
+// moins de deux minutes (cookies bloqués, par exemple) affiche l'erreur au lieu de boucler
+const RETRY_KEY = 'sabou-reprise-connexion';
+const RETRY_WINDOW_MS = 120_000;
+
+function lostLoginTwice(): boolean {
+  try {
+    const last = Number(window.sessionStorage.getItem(RETRY_KEY));
+    if (last && Date.now() - last < RETRY_WINDOW_MS) return true;
+    window.sessionStorage.setItem(RETRY_KEY, String(Date.now()));
+    return false;
+  } catch {
+    // Stockage indisponible : pas de garde-fou possible, on affiche l'erreur
+    return true;
+  }
+}
+
+function forgetLoginRetry(): void {
+  try {
+    window.sessionStorage.removeItem(RETRY_KEY);
+  } catch {
+    // Stockage indisponible : rien à oublier
+  }
+}
+
 function takeLoginError(): string | undefined {
+  const lost = takeParam('reprise') !== undefined;
+  if (lost && lostLoginTwice()) return LOGIN_ERRORS.connexion;
   const code = takeParam('erreur');
   return code ? (LOGIN_ERRORS[code] ?? LOGIN_ERRORS.connexion) : undefined;
 }
@@ -98,7 +125,11 @@ function ConnectedApp() {
   useEffect(() => {
     let active = true;
     fetchSession().then(
-      (user) => active && setState(user ? { status: 'connected', user } : { status: 'anonymous' }),
+      (user) => {
+        if (!active) return;
+        if (user) forgetLoginRetry();
+        setState(user ? { status: 'connected', user } : { status: 'anonymous' });
+      },
       () => active && setState({ status: 'error' }),
     );
     return () => {
@@ -131,8 +162,9 @@ function ConnectedApp() {
         nav={navigation(user)}
         currentPath={path()}
         userActions={
-          <Button variant="secondary" icon="logout" onClick={onLogout}>
-            Se déconnecter
+          // Bas de la colonne de navigation : icône seule, nom accessible « Se déconnecter »
+          <Button variant="secondary" icon="logout" onClick={onLogout} title="Se déconnecter">
+            <span className="ui-visually-hidden">Se déconnecter</span>
           </Button>
         }
       >

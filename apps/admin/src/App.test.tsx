@@ -111,6 +111,24 @@ describe('App', () => {
     assign.mockRestore();
   });
 
+  it('connexion perdue en route : relancée une fois, puis erreur à la deuxième perte (US-019)', async () => {
+    mockApi(null);
+    window.sessionStorage.clear();
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(window.location.search).toBe('');
+    cleanup();
+    assign.mockClear();
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/La connexion n’a pas abouti/);
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+    window.sessionStorage.clear();
+  });
+
   it('erreur de connexion : page d’accueil avec le message, lien vers /auth/login et garanties', async () => {
     mockApi(null);
     const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);

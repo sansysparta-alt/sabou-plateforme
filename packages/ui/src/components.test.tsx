@@ -140,6 +140,43 @@ describe('AppShell', () => {
     expect(screen.getByRole('navigation', { name: 'Navigation principale' })).toBeTruthy();
   });
 
+  it('réduire le menu : icônes seules, libellés toujours lus, choix mémorisé (US-019)', () => {
+    window.localStorage.clear();
+    const { container, unmount } = render(
+      <AppShell user={{ name: 'Essai DG', zone: 'National' }} nav={nav} currentPath="/">
+        <p>Contenu</p>
+      </AppShell>,
+    );
+    const shell = container.querySelector('.ui-shell')!;
+    const button = screen.getByRole('button', { name: 'Réduire le menu' });
+    expect(shell.getAttribute('data-collapsed')).toBe('false');
+    fireEvent.click(button);
+    expect(shell.getAttribute('data-collapsed')).toBe('true');
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    // Le libellé reste le nom accessible du lien
+    expect(screen.getByRole('link', { name: 'Comptes' })).toBeTruthy();
+    unmount();
+    const again = render(
+      <AppShell user={{ name: 'Essai DG' }} nav={nav} currentPath="/">
+        <p>Contenu</p>
+      </AppShell>,
+    );
+    expect(again.container.querySelector('.ui-shell')!.getAttribute('data-collapsed')).toBe('true');
+    window.localStorage.clear();
+  });
+
+  it('profil en bas de la navigation : initiales, nom et zone', () => {
+    render(
+      <AppShell user={{ name: 'Awa Camara', zone: 'National' }} nav={nav} currentPath="/">
+        <p>Contenu</p>
+      </AppShell>,
+    );
+    const navigation = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(navigation.textContent).toContain('AC');
+    expect(navigation.textContent).toContain('Awa Camara');
+    expect(navigation.textContent).toContain('National');
+  });
+
   it('le bouton Menu ouvre et ferme la navigation sur téléphone', () => {
     render(
       <AppShell user={{ name: 'Essai DG' }} nav={nav} currentPath="/">
