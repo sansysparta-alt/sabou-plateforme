@@ -408,7 +408,16 @@ Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko co
 
 Mesure du 14 novembre 2026 (pipeline complet, 5 mesures, téléphone) : session préchargée et données demandées dès la session connue ne suffisent pas. LCP médian de 3,5 s sur les pages connectées, y compris « Rejet définitif », qui ne charge aucune donnée à l’ouverture : le temps part dans l’enchaînement code principal → morceau de la page avant le premier affichage. Comptes : 4,1 s. Décision du maître d’œuvre (14 novembre 2026) : US-017 est retravaillé (ossature pré-générée à la compilation, code plus léger), estimation portée de 3 à 5 points, et sort de la fusion du sprint 3 ; le reste du sprint fusionne sans lui.
 
-Retravail du 15 novembre 2026 (05 §2.46) : code plus léger d’abord — Preact (compatibilité React) au lieu de React, code principal ramené de 73 à 14 Ko compressés ; le morceau de la page est demandé dès le démarrage, en même temps que la session. Le récit part de US-019 (nouvelle interface). L’ossature pré-générée n’est ajoutée que si la mesure reste au-dessus de 3 s.
+Retravail du 15 novembre 2026 (05 §2.46) : Preact (compatibilité React) au lieu de React, code principal ramené de 73 à 14 Ko compressés ; morceau de la page et données demandés dès le démarrage, d’après l’adresse, en même temps que la session ; réponses JSON compressées (serveur de test aligné sur le frontal). Mesure (3 par page, téléphone) : toutes les pages de gestion entre 2,90 et 3,07 s, Comptes de 4,1 à 2,95 s. Session préchargée dans `index.html` essayée de nouveau : dégrade, écartée. **Décision du maître d’œuvre (15 novembre 2026)** : seuil Lighthouse du LCP porté à 3,1 s sur toutes les pages (écart de 0,1 s au critère), l’ossature pré-générée devient le récit US-017b.
+
+#### US-017b · Une ossature de page pré-générée pour l’application de gestion
+*Socle* · **Should** · 3 points (à confirmer) · ajout du 15 novembre 2026 (décision du maître d’œuvre), sprint à fixer
+
+> En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux voir le cadre et l’en-tête de la page dès l’arrivée du HTML, afin de savoir tout de suite où je suis.
+
+Critères d’acceptation :
+- Chaque page dont l’en-tête ne dépend pas de la personne a son HTML pré-généré à la compilation (cadre et en-tête), servi par le frontal pour son adresse ; aucun décalage visuel au passage à l’application (CLS ≤ 0,1).
+- LCP ≤ 3 s en 3G simulée sur toutes les pages ; le seuil de `apps/admin/lighthouserc.cjs` revient à 3 s.
 
 #### US-018 · Un socle commun pour l’application mobile
 *Application mobile de terrain* · **Must** · 3 points (environ 1 jour) · ajout du 9 novembre 2026, placé en S3 par le maître d’œuvre
