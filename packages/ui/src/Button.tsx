@@ -1,4 +1,9 @@
-import type { AnchorHTMLAttributes, ComponentPropsWithRef, ReactNode } from 'react';
+import {
+  forwardRef,
+  type AnchorHTMLAttributes,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from 'react';
 import { Icon, type IconName } from './Icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger';
@@ -17,22 +22,21 @@ function classes(variant: ButtonVariant, block: boolean, extra?: string): string
 }
 
 // Bouton d'action. Un seul bouton « primary » par zone d'écran.
-export function Button({
-  variant = 'primary',
-  block = false,
-  icon,
-  children,
-  className,
-  type = 'button',
-  ...rest
-}: CommonProps & ComponentPropsWithRef<'button'>) {
+// forwardRef : « ref » transmis aussi sous Preact 10 (US-017)
+export const Button = forwardRef<
+  HTMLButtonElement,
+  CommonProps & ComponentPropsWithoutRef<'button'>
+>(function Button(
+  { variant = 'primary', block = false, icon, children, className, type = 'button', ...rest },
+  ref,
+) {
   return (
-    <button type={type} className={classes(variant, block, className)} {...rest}>
+    <button ref={ref} type={type} className={classes(variant, block, className)} {...rest}>
       {icon && <Icon name={icon} className="ui-button__icon" />}
       {children}
     </button>
   );
-}
+});
 
 // Lien qui a l'apparence d'un bouton (navigation vers une autre page)
 export function ButtonLink({

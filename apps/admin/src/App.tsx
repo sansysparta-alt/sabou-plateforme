@@ -2,35 +2,65 @@ import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode
 import { Alert, AppShell, Button, ButtonLink, PageHeader, type NavGroup } from '@sabou/ui';
 // Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
 // (seuil de temps de blocage de Lighthouse, US-010)
-const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
-const AccountsPage = lazy(() =>
-  import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
-);
+const loaders = {
+  dashboard: () => import('./Dashboard'),
+  accounts: () => import('./AccountsPage'),
+  referentials: () => import('./ReferentialsPage'),
+  invitation: () => import('./InvitationPage'),
+  fieldVerification: () => import('./FieldVerificationPage'),
+  consolidation: () => import('./ConsolidationPage'),
+  approval: () => import('./ApprovalPage'),
+  certificate: () => import('./CertificatePage'),
+  rejection: () => import('./RejectionPage'),
+  funnel: () => import('./FunnelPage'),
+  expertise: () => import('./ExpertisePage'),
+};
+const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
+const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
 const ReferentialsPage = lazy(() =>
-  import('./ReferentialsPage').then((m) => ({ default: m.ReferentialsPage })),
+  loaders.referentials().then((m) => ({ default: m.ReferentialsPage })),
 );
 const InvitationPage = lazy(() =>
-  import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
+  loaders.invitation().then((m) => ({ default: m.InvitationPage })),
 );
 const FieldVerificationPage = lazy(() =>
-  import('./FieldVerificationPage').then((m) => ({ default: m.FieldVerificationPage })),
+  loaders.fieldVerification().then((m) => ({ default: m.FieldVerificationPage })),
 );
 const ConsolidationPage = lazy(() =>
-  import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
+  loaders.consolidation().then((m) => ({ default: m.ConsolidationPage })),
 );
-const ApprovalPage = lazy(() =>
-  import('./ApprovalPage').then((m) => ({ default: m.ApprovalPage })),
-);
+const ApprovalPage = lazy(() => loaders.approval().then((m) => ({ default: m.ApprovalPage })));
 const CertificatePage = lazy(() =>
-  import('./CertificatePage').then((m) => ({ default: m.CertificatePage })),
+  loaders.certificate().then((m) => ({ default: m.CertificatePage })),
 );
-const RejectionPage = lazy(() =>
-  import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
-);
-const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
-const ExpertisePage = lazy(() =>
-  import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
-);
+const RejectionPage = lazy(() => loaders.rejection().then((m) => ({ default: m.RejectionPage })));
+const FunnelPage = lazy(() => loaders.funnel().then((m) => ({ default: m.FunnelPage })));
+const ExpertisePage = lazy(() => loaders.expertise().then((m) => ({ default: m.ExpertisePage })));
+
+// Morceau de la page demandée, d'après la seule adresse
+const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
+  '/': loaders.dashboard,
+  '/comptes': loaders.accounts,
+  '/referentiels': loaders.referentials,
+  '/invitation': loaders.invitation,
+  '/verification-terrain': loaders.fieldVerification,
+  '/consolidation': loaders.consolidation,
+  '/approbation': loaders.approval,
+  '/rejet-definitif': loaders.rejection,
+  '/entonnoir': loaders.funnel,
+  '/expertise': loaders.expertise,
+};
+
+// US-017 : le morceau de la page est demandé dès le démarrage, en même temps que la session,
+// au lieu d'attendre la réponse de celle-ci (un aller-retour de 300 ms de moins en 3G). Seul le
+// code est téléchargé : l'affichage reste soumis au profil, et l'API contrôle chaque accès.
+export function preloadCurrentPage(): void {
+  const current = path();
+  const load = current.startsWith('/certificats/') ? loaders.certificate : PAGE_LOADERS[current];
+  // Échec (réseau coupé) : sans effet ici, la page le signale à son affichage
+  load?.().catch(() => undefined);
+}
+
 import {
   fetchSession,
   hasManagementAccess,

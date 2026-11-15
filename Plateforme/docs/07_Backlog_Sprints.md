@@ -396,7 +396,7 @@ Critères d'acceptation :
 - Aucun écran ne régresse en accessibilité (WCAG 2.2 AA) ni en poids (illustration de 8 Ko).
 
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
-*Socle* · **Should** · 3 points (environ 1 jour) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre
+*Socle* · **Should** · 5 points (3 à l’origine, réestimé le 14 novembre 2026) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre, hors fusion du sprint 3
 
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
 
@@ -405,6 +405,10 @@ Critères d’acceptation :
 - Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.
+
+Mesure du 14 novembre 2026 (pipeline complet, 5 mesures, téléphone) : session préchargée et données demandées dès la session connue ne suffisent pas. LCP médian de 3,5 s sur les pages connectées, y compris « Rejet définitif », qui ne charge aucune donnée à l’ouverture : le temps part dans l’enchaînement code principal → morceau de la page avant le premier affichage. Comptes : 4,1 s. Décision du maître d’œuvre (14 novembre 2026) : US-017 est retravaillé (ossature pré-générée à la compilation, code plus léger), estimation portée de 3 à 5 points, et sort de la fusion du sprint 3 ; le reste du sprint fusionne sans lui.
+
+Retravail du 15 novembre 2026 (05 §2.46) : code plus léger d’abord — Preact (compatibilité React) au lieu de React, code principal ramené de 73 à 14 Ko compressés ; le morceau de la page est demandé dès le démarrage, en même temps que la session. Le récit part de US-019 (nouvelle interface). L’ossature pré-générée n’est ajoutée que si la mesure reste au-dessus de 3 s.
 
 #### US-018 · Un socle commun pour l’application mobile
 *Application mobile de terrain* · **Must** · 3 points (environ 1 jour) · ajout du 9 novembre 2026, placé en S3 par le maître d’œuvre
