@@ -11,6 +11,9 @@ import {
 
 let db: TestDatabase;
 const attempt = (sql: string) => inRolledBackTransaction(db.url.app, sql);
+// Écriture directe dans les tables de voix : réservée aux fonctions de la base depuis US-071 ;
+// le contrôle de la langue (trigger) se vérifie donc avec le rôle propriétaire des tables
+const asOwner = (sql: string) => inRolledBackTransaction(db.url.migrator, sql);
 
 beforeAll(async () => {
   db = await createSeededDatabase();
@@ -25,16 +28,23 @@ describe('Langue non autorisée (R-LNG-02 à R-LNG-05)', () => {
 
   it('refuse une voix en anglais', async () => {
     await expect(
-      attempt(`INSERT INTO plante_voix (plante_id, langue_code, audio_id, enregistre_par)
+      asOwner(`INSERT INTO plante_voix (plante_id, langue_code, audio_id, enregistre_par)
                VALUES (3, 'en', 1, 1)`),
     ).rejects.toThrow("Langue « en » non autorisée pour l'usage voix");
   });
 
   it('accepte une voix en malinké (contrôle positif)', async () => {
     await expect(
-      attempt(`INSERT INTO plante_voix (plante_id, langue_code, audio_id, enregistre_par)
+      asOwner(`INSERT INTO plante_voix (plante_id, langue_code, audio_id, enregistre_par)
                VALUES (3, 'mal', 1, 1)`),
     ).resolves.toBeUndefined();
+  });
+
+  it('l’application n’écrit pas directement une voix (US-071 : par voix_nom_enregistrer)', async () => {
+    await expect(
+      attempt(`INSERT INTO plante_voix (plante_id, langue_code, audio_id, enregistre_par)
+               VALUES (3, 'mal', 1, 1)`),
+    ).rejects.toThrow('permission denied');
   });
 });
 
