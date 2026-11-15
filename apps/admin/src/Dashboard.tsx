@@ -143,7 +143,7 @@ export function Dashboard({
           ) : (
             // Grille affichée dès le départ, valeurs « … » en attendant : rien ne se décale à
             // l'arrivée des chiffres (CLS mesuré par Lighthouse)
-            <div className="ui-grid">
+            <div className="ui-grid ui-grid--stats">
               <StatCard
                 label="Praticiens"
                 value={data?.praticiens ?? PENDING}
@@ -203,6 +203,7 @@ export function Dashboard({
             columns={SMS_FAILURE_COLUMNS}
             rows={data.smsNonRemis.derniers}
             rowKey={(f) => `${f.objet}-${f.le}`}
+            paginate={{ key: 'sms-non-remis', noun: ['SMS', 'SMS'] }}
             empty=""
           />
         </section>

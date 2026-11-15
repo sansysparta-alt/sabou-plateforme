@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, PageHeader, StatCard } from '@sabou/ui';
+import { Alert, Badge, Button, PageHeader, Pagination, StatCard, usePagination } from '@sabou/ui';
 import type {
   AccountReferences,
   AccountRole,
@@ -31,7 +31,6 @@ const message = (error: unknown) =>
 // Gestion des comptes par la DG (lot A : US-012, US-013, UC-65). Organisation de la page
 // (US-019) : titre et action principale, chiffres, recherche et filtres, puis le tableau ;
 // le formulaire d'invitation ne s'ouvre qu'à la demande.
-const PAGE_SIZE = 25;
 type StatusFilter = AccountStatus | 'tous';
 const STATUS_FILTERS: [StatusFilter, string][] = [
   ['tous', 'Tous'],
@@ -57,7 +56,6 @@ export function AccountsPage() {
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<AccountRole | ''>('');
   const [status, setStatus] = useState<StatusFilter>('tous');
-  const [page, setPage] = useState(0);
   const searchId = useId();
   const roleId = useId();
 
@@ -87,9 +85,12 @@ export function AccountsPage() {
       (term === '' ||
         fold(`${account.firstName} ${account.lastName} ${account.email}`).includes(term)),
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, pages - 1);
-  const shown = filtered.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
+  // Retour à la première page à chaque changement de recherche ou de filtre
+  const { pageItems: shown, paginationProps } = usePagination(filtered, 'comptes', [
+    query,
+    role,
+    status,
+  ]);
 
   return (
     <>
@@ -134,7 +135,7 @@ export function AccountsPage() {
       {!ready && !loadError && <p>Chargement…</p>}
       {ready && (
         <>
-          <div className="ui-grid" aria-label="Chiffres des comptes" role="group">
+          <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
             <StatCard label="Comptes" value={count('tous')} />
             <StatCard label="Actifs" value={count('actif')} />
             <StatCard label="Invitations en attente" value={count('invite')} />
@@ -157,7 +158,6 @@ export function AccountsPage() {
                   value={query}
                   onChange={(event) => {
                     setQuery(event.target.value);
-                    setPage(0);
                   }}
                 />
               </div>
@@ -170,7 +170,6 @@ export function AccountsPage() {
                 value={role}
                 onChange={(event) => {
                   setRole(event.target.value as AccountRole | '');
-                  setPage(0);
                 }}
               >
                 <option value="">Tous les rôles</option>
@@ -187,79 +186,61 @@ export function AccountsPage() {
                     type="button"
                     className="ui-segmented__item"
                     aria-pressed={status === value}
-                    onClick={() => {
-                      setStatus(value);
-                      setPage(0);
-                    }}
+                    onClick={() => setStatus(value)}
                   >
                     {label} ({count(value)})
                   </button>
                 ))}
               </div>
             </div>
-            <div className="ui-table-wrap">
-              <table className="ui-table">
-                <caption className="ui-visually-hidden">Comptes d’administration</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Compte</th>
-                    <th scope="col">Rôle</th>
-                    <th scope="col">Zone</th>
-                    <th scope="col">Langues de travail</th>
-                    <th scope="col">Statut</th>
-                    <th scope="col" className="ui-table__actions">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((account) => (
-                    <AccountRow
-                      key={account.id}
-                      account={account}
-                      references={references}
-                      onChanged={(text, invitation) => {
-                        setNotice(text);
-                        if (invitation) {
-                          setLink({
-                            name: `${account.firstName} ${account.lastName}`,
-                            invitation,
-                          });
-                        }
-                        void reload();
-                      }}
-                    />
-                  ))}
-                </tbody>
-              </table>
-              {shown.length === 0 && (
-                <p className="ui-table-empty">
-                  {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
-                </p>
-              )}
+            <div className="ui-table-block">
+              <div className="ui-table-wrap">
+                <table className="ui-table">
+                  <caption className="ui-visually-hidden">Comptes d’administration</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Compte</th>
+                      <th scope="col">Rôle</th>
+                      <th scope="col">Zone</th>
+                      <th scope="col">Langues de travail</th>
+                      <th scope="col">Statut</th>
+                      <th scope="col" className="ui-table__actions">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shown.map((account) => (
+                      <AccountRow
+                        key={account.id}
+                        account={account}
+                        references={references}
+                        onChanged={(text, invitation) => {
+                          setNotice(text);
+                          if (invitation) {
+                            setLink({
+                              name: `${account.firstName} ${account.lastName}`,
+                              invitation,
+                            });
+                          }
+                          void reload();
+                        }}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+                {shown.length === 0 && (
+                  <p className="ui-table-empty">
+                    {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
+                  </p>
+                )}
+              </div>
+              <Pagination
+                {...paginationProps}
+                noun={['compte', 'comptes']}
+                label="Pages des comptes"
+              />
             </div>
-            {filtered.length > PAGE_SIZE && (
-              <nav className="ui-pagination" aria-label="Pages des comptes">
-                <span>
-                  {current * PAGE_SIZE + 1}–{Math.min((current + 1) * PAGE_SIZE, filtered.length)}{' '}
-                  sur {filtered.length}
-                </span>
-                <Button
-                  variant="secondary"
-                  disabled={current === 0}
-                  onClick={() => setPage(current - 1)}
-                >
-                  Précédent
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={current >= pages - 1}
-                  onClick={() => setPage(current + 1)}
-                >
-                  Suivant
-                </Button>
-              </nav>
-            )}
           </section>
         </>
       )}
