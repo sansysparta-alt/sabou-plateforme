@@ -52,6 +52,9 @@ type State =
   | { status: 'connected'; user: SessionUser }
   | { status: 'error' };
 
+// Navigation hors de l'application (ouverture de la connexion Keycloak), isolée pour les tests
+export const browser = { assign: (url: string) => window.location.assign(url) };
+
 // Paramètre posé par l'API au retour de Keycloak (?erreur=…, ?info=…), lu une fois puis
 // retiré de l'adresse
 function takeParam(name: string): string | undefined {
@@ -88,6 +91,8 @@ export function App() {
 function ConnectedApp() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [loginError] = useState(takeLoginError);
+  // Déconnexion volontaire : on reste sur la page d'accueil au lieu de rouvrir la connexion
+  const [loggedOut, setLoggedOut] = useState(false);
   const [mfaJustEnabled] = useState(() => takeParam('info') === 'double-facteur');
 
   useEffect(() => {
@@ -101,9 +106,17 @@ function ConnectedApp() {
     };
   }, []);
 
+  // Sans session : la page de connexion unique (Keycloak, US-019) s'ouvre directement. La page
+  // d'accueil ne sert qu'à montrer une erreur de connexion, ou après une déconnexion.
+  const directLogin = state.status === 'anonymous' && !loginError && !loggedOut;
+  useEffect(() => {
+    if (directLogin) browser.assign('/auth/login');
+  }, [directLogin]);
+
   async function onLogout() {
     try {
       await logout();
+      setLoggedOut(true);
       setState({ status: 'anonymous' });
     } catch {
       setState({ status: 'error' });
@@ -128,12 +141,11 @@ function ConnectedApp() {
     );
   }
 
-  // Sans session : écran de connexion en deux panneaux (maquette v1.3, US-019)
-  if (state.status === 'anonymous') return <LoginPage error={loginError} />;
+  if (state.status === 'anonymous' && !directLogin) return <LoginPage error={loginError} />;
 
   return (
     <PublicLayout busy={state.status === 'loading'}>
-      {state.status === 'loading' && <p>Chargement…</p>}
+      {(state.status === 'loading' || directLogin) && <p>Chargement…</p>}
       {state.status === 'error' && (
         <Alert tone="error" title="Service indisponible">
           Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.

@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
-import { App } from './App';
+import { App, browser } from './App';
 
 const dg: SessionUser = {
   username: 'awa.camara',
@@ -102,15 +102,29 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('sans session : page de connexion, lien vers /auth/login et garanties de sécurité', async () => {
+  it('sans session : la page de connexion unique s’ouvre directement (US-019)', async () => {
     mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(screen.queryByRole('link', { name: 'Se connecter' })).toBeNull();
+    assign.mockRestore();
+  });
+
+  it('erreur de connexion : page d’accueil avec le message, lien vers /auth/login et garanties', async () => {
+    mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?erreur=connexion');
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Application de gestion' }));
+    expect(screen.getByRole('alert').textContent).toMatch(/La connexion n’a pas abouti/);
     expect(screen.getByRole('link', { name: 'Se connecter' }).getAttribute('href')).toBe(
       '/auth/login',
     );
     expect(screen.getByText(/Double facteur obligatoire pour tous les administrateurs/));
     expect(screen.getByText(/bloqué 15 minutes après 5 mots de passe erronés/));
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
   });
 
   it("affiche le motif d'un échec puis le retire de l'adresse", async () => {
