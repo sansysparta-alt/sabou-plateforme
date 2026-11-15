@@ -41,6 +41,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
     exclude: ['e2e/**', 'lighthouse/**', 'node_modules/**'],
+    // Au-delà du délai des recherches de Testing Library (5 s, src/test-setup.ts) : sur un poste
+    // chargé, une recherche lente doit échouer avec son propre message, pas faire expirer le test
+    testTimeout: 15_000,
     // Tests sur Preact, comme l'application livrée : même interface que la version React
     alias: [{ find: /^@testing-library\/react$/, replacement: '@testing-library/preact' }],
   },
