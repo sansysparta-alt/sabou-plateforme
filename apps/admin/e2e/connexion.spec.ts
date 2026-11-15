@@ -71,6 +71,8 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   // Connexion suivante : mot de passe, puis code de l'application d'authentification
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
+  // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
+  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
   await startLogin(page);
   await submitPassword(page, dg);
   await expect(page.locator('#otp')).toBeVisible();
@@ -131,6 +133,8 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
 
   // Une fois activé, il lui est demandé à chaque connexion
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
+  // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
+  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
   await startLogin(page);
   await submitPassword(page, praticien);
   await expect(page.locator('#otp')).toBeVisible();
@@ -141,6 +145,8 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
 
   const citoyen = await createUser('citoyen');
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
+  // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
+  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
   await startLogin(page);
   await submitPassword(page, citoyen);
   await expect(page).toHaveURL(`${APP}/`);
