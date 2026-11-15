@@ -29,6 +29,9 @@ test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), to
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
   await expect(card(toValidate)).toBeVisible();
+  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
+  await card(toValidate).locator('summary').click();
+  await card(toReject).locator('summary').click();
   await expect(card(toValidate).getByText('Labé, région de Labé')).toBeVisible();
   await expect(card(toReject).getByText('Kankan, région de Kankan')).toBeVisible();
   await expect(card(notYet)).toHaveCount(0);

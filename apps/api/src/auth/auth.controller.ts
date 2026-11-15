@@ -80,6 +80,9 @@ export interface AuthSpace {
   errorPath: string;
   // Identifiant pré-rempli sur la page de Keycloak (« login_hint »), lu dans ?identifiant=
   loginHint?: (value: string) => string | null;
+  // Transaction perdue (page de connexion trop ancienne, autre onglet) : l'application relance
+  // la connexion une fois au lieu d'afficher une erreur (?reprise=1, US-019)
+  restartLostLogin?: boolean;
 }
 
 export const ADMIN_SPACE = (env: Env): AuthSpace => ({
@@ -87,6 +90,7 @@ export const ADMIN_SPACE = (env: Env): AuthSpace => ({
   sessionCookie: SESSION_COOKIE,
   loginCookie: LOGIN_COOKIE,
   errorPath: '/',
+  restartLostLogin: true,
 });
 
 export const CITIZEN_SPACE = (env: Env): AuthSpace => ({
@@ -159,7 +163,7 @@ export abstract class OidcAuthController {
       this.logger.warn(
         'Connexion refusée : transaction absente, expirée ou étrangère à ce navigateur',
       );
-      return this.fail(res, 'connexion');
+      return this.space.restartLostLogin ? this.restart(res) : this.fail(res, 'connexion');
     }
     if (typeof req.query.error === 'string') {
       // Annulation par l'utilisateur ou refus de Keycloak : rien à journaliser de plus ici
@@ -300,6 +304,14 @@ export abstract class OidcAuthController {
 
   private auditFailed(error: unknown): void {
     this.logger.error(`Journal d'audit indisponible : ${(error as Error).message}`);
+  }
+
+  // Aucun code n'est échangé : l'application relance une connexion neuve (nouvelle transaction)
+  private restart(res: Response): void {
+    res.clearCookie(this.space.loginCookie, COOKIE_OPTIONS);
+    const target = new URL(this.space.errorPath, this.space.appUrl);
+    target.searchParams.set('reprise', '1');
+    res.redirect(303, target.href);
   }
 
   private fail(res: Response, reason: 'connexion' | 'annulee' | 'double-facteur'): void {

@@ -383,8 +383,20 @@ Décision du maître d’œuvre (12 novembre 2026) : un seul membre du Comité d
 
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
 
+#### US-019 · Une application de gestion conforme à la maquette v1.3
+*Socle* · **Must** · 8 points · ajout du 15 novembre 2026, demandé par le maître d'œuvre, placé avant la reprise de US-017 et la fin de S4
+
+> En tant qu'administrateur, je veux des écrans sobres et bien organisés, conformes à la maquette de l'application de gestion (`Plateforme/docs/maquettes/`), afin de trouver tout de suite ce que j'ai à faire.
+
+Critères d'acceptation :
+- Connexion en deux panneaux : vert forêt à gauche (marque, illustration, accès), garanties de sécurité à droite ; empilés sur téléphone.
+- Navigation latérale pleine hauteur sur fond « brume », rubriques en petites capitales, élément actif plein vert.
+- Titres de page sobres, introduction courte, actions principales à droite du titre ; tableaux à en-tête vert et lignes alternées ; chiffres clés en tuiles.
+- Files de dossiers (étapes 2 à 5) : une ligne par dossier (code, praticien, repères, état), ouverte d'un clic pour le détail et la décision.
+- Aucun écran ne régresse en accessibilité (WCAG 2.2 AA) ni en poids (illustration de 8 Ko).
+
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
-*Socle* · **Should** · 3 points (environ 1 jour) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre
+*Socle* · **Should** · 5 points (3 à l’origine, réestimé le 14 novembre 2026) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre, hors fusion du sprint 3
 
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux que chaque page de l’application de gestion s’affiche en moins de 3 s, afin de travailler sans attendre.
 
@@ -393,6 +405,19 @@ Critères d’acceptation :
 - Aucune page déjà dans les seuils ne régresse (accueil sans session : 2,84 s le 8 novembre 2026).
 
 Constat du 8 novembre 2026 (US-016) : la chaîne page → bundle React (60 Ko compressés) → session → morceau de la page → données coûte un aller-retour de 300 ms par étape. Télécharger le morceau de la page en même temps que la session a aggravé la mesure (concurrence pour la bande passante). Pistes : bundle plus léger (Preact, à valider), ossature pré-générée à la compilation, données demandées dès la session connue.
+
+Mesure du 14 novembre 2026 (pipeline complet, 5 mesures, téléphone) : session préchargée et données demandées dès la session connue ne suffisent pas. LCP médian de 3,5 s sur les pages connectées, y compris « Rejet définitif », qui ne charge aucune donnée à l’ouverture : le temps part dans l’enchaînement code principal → morceau de la page avant le premier affichage. Comptes : 4,1 s. Décision du maître d’œuvre (14 novembre 2026) : US-017 est retravaillé (ossature pré-générée à la compilation, code plus léger), estimation portée de 3 à 5 points, et sort de la fusion du sprint 3 ; le reste du sprint fusionne sans lui.
+
+Retravail du 15 novembre 2026 (05 §2.46) : Preact (compatibilité React) au lieu de React, code principal ramené de 73 à 14 Ko compressés ; morceau de la page et données demandés dès le démarrage, d’après l’adresse, en même temps que la session ; réponses JSON compressées (serveur de test aligné sur le frontal). Mesure (3 par page, téléphone) : toutes les pages de gestion entre 2,90 et 3,07 s, Comptes de 4,1 à 2,95 s. Session préchargée dans `index.html` essayée de nouveau : dégrade, écartée. **Décision du maître d’œuvre (15 novembre 2026)** : seuil Lighthouse du LCP porté à 3,1 s sur toutes les pages (écart de 0,1 s au critère), l’ossature pré-générée devient le récit US-017b.
+
+#### US-017b · Une ossature de page pré-générée pour l’application de gestion
+*Socle* · **Should** · 3 points (à confirmer) · ajout du 15 novembre 2026 (décision du maître d’œuvre), sprint à fixer
+
+> En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux voir le cadre et l’en-tête de la page dès l’arrivée du HTML, afin de savoir tout de suite où je suis.
+
+Critères d’acceptation :
+- Chaque page dont l’en-tête ne dépend pas de la personne a son HTML pré-généré à la compilation (cadre et en-tête), servi par le frontal pour son adresse ; aucun décalage visuel au passage à l’application (CLS ≤ 0,1).
+- LCP ≤ 3 s en 3G simulée sur toutes les pages ; le seuil de `apps/admin/lighthouserc.cjs` revient à 3 s.
 
 #### US-018 · Un socle commun pour l’application mobile
 *Application mobile de terrain* · **Must** · 3 points (environ 1 jour) · ajout du 9 novembre 2026, placé en S3 par le maître d’œuvre

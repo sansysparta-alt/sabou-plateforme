@@ -120,7 +120,7 @@ export function RejectionPage() {
         lead="Réservé à la Direction Générale, pour fraude documentaire, usurpation d’identité ou pratique dangereuse avérée après avis du Comité scientifique. Le praticien dispose de 30 jours pour contester la décision."
       />
       <form
-        className="ui-form"
+        className="ui-search-bar"
         role="search"
         onSubmit={search}
         noValidate

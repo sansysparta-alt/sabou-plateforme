@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
-import { App } from './App';
+import { App, browser } from './App';
 import { clearPrefetched } from './prefetch';
 
 const dg: SessionUser = {
@@ -104,15 +104,47 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('sans session : page de connexion, lien vers /auth/login et garanties de sécurité', async () => {
+  it('sans session : la page de connexion unique s’ouvre directement (US-019)', async () => {
     mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(screen.queryByRole('link', { name: 'Se connecter' })).toBeNull();
+    assign.mockRestore();
+  });
+
+  it('connexion perdue en route : relancée une fois, puis erreur à la deuxième perte (US-019)', async () => {
+    mockApi(null);
+    window.sessionStorage.clear();
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(window.location.search).toBe('');
+    cleanup();
+    assign.mockClear();
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/La connexion n’a pas abouti/);
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+    window.sessionStorage.clear();
+  });
+
+  it('erreur de connexion : page d’accueil avec le message, lien vers /auth/login et garanties', async () => {
+    mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?erreur=connexion');
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Application de gestion' }));
+    expect(screen.getByRole('alert').textContent).toMatch(/La connexion n’a pas abouti/);
     expect(screen.getByRole('link', { name: 'Se connecter' }).getAttribute('href')).toBe(
       '/auth/login',
     );
     expect(screen.getByText(/Double facteur obligatoire pour tous les administrateurs/));
     expect(screen.getByText(/bloqué 15 minutes après 5 mots de passe erronés/));
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
   });
 
   it("affiche le motif d'un échec puis le retire de l'adresse", async () => {
@@ -145,8 +177,11 @@ describe('App', () => {
     expect(row.textContent).toMatch(/Mariama Diallo.*Dossier soumis.*2 sur 6/);
     expect(row.textContent).toMatch(/09:30/);
     // Fonctions à venir annoncées, sans lien vers une page qui n'existe pas
-    expect(screen.getByText('Certificats émis').parentElement!.textContent).toMatch(/Sprint 3/);
-    expect(screen.getByRole('heading', { name: 'À venir' }));
+    // Plus de calendrier des sprints sur l'accueil (US-019) ; accès directs dans l'en-tête
+    expect(screen.queryByRole('heading', { name: 'À venir' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Gérer les comptes' }).getAttribute('href')).toBe(
+      '/comptes',
+    );
     expect(screen.queryByRole('link', { name: 'Activer le double facteur' })).toBeNull();
   });
 
@@ -271,35 +306,6 @@ describe('App', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/rattaché à aucune zone active/);
     expect(alert.textContent).not.toMatch(/Forbidden/);
-  });
-
-  it('session demandée comme la précharge index.html, pour que le navigateur la reprenne (US-017)', async () => {
-    const fetchMock = mockApi(dg);
-    render(<App />);
-    expect(await screen.findByRole('link', { name: 'Comptes' }));
-    expect(fetchMock).toHaveBeenCalledWith('/auth/session', { credentials: 'include' });
-  });
-
-  it('données de la page demandées dès la session connue, une seule fois (US-017)', async () => {
-    const fetchMock = mockApi(committee);
-    window.history.replaceState(null, '', '/expertise');
-    render(<App />);
-    // Demandée avant même que le morceau de la page soit chargé
-    await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('/api/dossiers/expertise', expect.anything()),
-    );
-    expect(await screen.findByRole('heading', { level: 1, name: 'Expertise des dossiers' }));
-    expect(await screen.findByText(/Aucun dossier/));
-    const calls = fetchMock.mock.calls.filter(([url]) => url === '/api/dossiers/expertise');
-    expect(calls).toHaveLength(1);
-  });
-
-  it('tableau de bord : chiffres demandés en avance une seule fois (US-017)', async () => {
-    const fetchMock = mockApi(dg);
-    render(<App />);
-    expect(await screen.findByRole('heading', { name: 'Chiffres de votre zone' }));
-    const calls = fetchMock.mock.calls.filter(([url]) => url === '/api/tableau-de-bord');
-    expect(calls).toHaveLength(1);
   });
 
   it('DG et Comité : rubrique Fiches plantes et sa page ; pas pour le préfectoral (US-050)', async () => {

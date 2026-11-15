@@ -5,11 +5,8 @@ import type { SessionUser } from '@sabou/types';
 
 export type { SessionUser };
 
-// La session est préchargée par index.html dès la lecture de la page, en même temps que le
-// code de l'application (US-017). Pour que le navigateur reprenne ce préchargement, la requête
-// doit être identique : mode « cors » avec identifiants (« include », même origine ici).
 export async function fetchSession(): Promise<SessionUser | null> {
-  const response = await fetch('/auth/session', { credentials: 'include' });
+  const response = await fetch('/auth/session', { credentials: 'same-origin' });
   if (response.status === 401) return null;
   if (!response.ok) throw new Error(`Session : statut ${response.status}`);
   return (await response.json()) as SessionUser;
