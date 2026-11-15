@@ -838,3 +838,13 @@ Développement : sans React, le rafraîchissement à chaud garde l'état en moin
 4. Site public.
 5. Services : boutique, abonnements, Mobile Money, API partenaires, DHIS2, exports.
 6. Recette, audit de sécurité, pilote en Haute Guinée (malinké), puis généralisation.
+
+### 2.48 Pipeline complet : arrêt propre, jamais pendant un essai dans le navigateur (novembre 2026)
+
+Décision du maître d'œuvre du 16 novembre 2026, après un pipeline bloqué trois heures par une analyse figée faute de mémoire.
+
+- **Durée maximale par étape** : 60 minutes (`STEP_TIMEOUT_MIN`). Au-delà, l'étape est arrêtée avec tous ses processus et échoue.
+- **Arrêt à la première étape en échec** ; dans les étapes lancées en parallèle, l'échec de l'une arrête les autres.
+- **Rien ne reste derrière** : à la sortie (réussite, échec ou Ctrl+C), les processus restants et les conteneurs lancés par le pipeline sont arrêtés. L'environnement local (Docker Compose) n'est pas touché. Sous Git Bash, l'arrêt suit l'arbre des processus de Git Bash puis `taskkill /T`, car les programmes Windows ne reçoivent pas les signaux de bash.
+- **Pas pendant un essai dans le navigateur** : `pnpm ci:local` refuse de démarrer si l'application de gestion (5173) ou le site (3000) tournent en développement. La mémoire du poste (7,2 Go) ne suffit pas aux deux.
+- Preuve : `infra/ci/pipeline-selftest.sh`, première étape du pipeline (étape en échec, étape figée, échec en parallèle, essai en cours, aucun processus restant). Contre-épreuves : sans le témoin de dépassement, ou sans l'arrêt des étapes parallèles, elle échoue.
