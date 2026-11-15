@@ -1,7 +1,8 @@
 // Données demandées en avance (US-017). En 3G, chaque aller-retour coûte 300 ms : au lieu
-// d'attendre que le morceau de la page soit téléchargé pour demander ses données, l'application
-// les demande dès que la session est connue, en même temps que le morceau. La page les reçoit
-// ensuite par call(), sans rien changer à son code.
+// d'attendre la session puis le morceau de la page pour demander ses données, l'application les
+// demande dès son démarrage, d'après la seule adresse, en même temps que la session et le
+// morceau. La page les reçoit ensuite par call(), sans rien changer à son code. L'API contrôle
+// chaque lecture : une page que le profil n'ouvre pas reçoit un refus, jamais repris.
 //
 // Seules des lectures sont demandées en avance (GET, ou la consultation d'une invitation, sans
 // effet). Une réponse n'est servie qu'une fois, et seulement dans les secondes qui suivent :

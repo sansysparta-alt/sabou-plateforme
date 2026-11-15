@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, PageHeader } from '@sabou/ui';
+import { Alert, Badge, Button, PageHeader, Pagination, StatCard, usePagination } from '@sabou/ui';
 import type {
   AccountReferences,
   AccountRole,
+  AccountStatus,
   AccountSummary,
   InvitationLink,
   WorkLanguage,
@@ -27,13 +28,36 @@ const RIGHTS = [
 const message = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
-// Gestion des comptes par la DG (lot A : US-012, US-013, UC-65)
+// Gestion des comptes par la DG (lot A : US-012, US-013, UC-65). Organisation de la page
+// (US-019) : titre et action principale, chiffres, recherche et filtres, puis le tableau ;
+// le formulaire d'invitation ne s'ouvre qu'à la demande.
+type StatusFilter = AccountStatus | 'tous';
+const STATUS_FILTERS: [StatusFilter, string][] = [
+  ['tous', 'Tous'],
+  ['actif', 'Actifs'],
+  ['invite', 'Invitations en attente'],
+  ['suspendu', 'Suspendus'],
+];
+
+// Recherche sans accents ni casse
+const fold = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+
 export function AccountsPage() {
   const [accounts, setAccounts] = useState<AccountSummary[] | null>(null);
   const [references, setReferences] = useState<AccountReferences | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [link, setLink] = useState<{ name: string; invitation: InvitationLink }>();
   const [notice, setNotice] = useState<string>();
+  const [inviting, setInviting] = useState(false);
+  const [query, setQuery] = useState('');
+  const [role, setRole] = useState<AccountRole | ''>('');
+  const [status, setStatus] = useState<StatusFilter>('tous');
+  const searchId = useId();
+  const roleId = useId();
 
   const reload = useCallback(async () => {
     try {
@@ -50,13 +74,40 @@ export function AccountsPage() {
     fetchReferences().then(setReferences, (error: unknown) => setLoadError(message(error)));
   }, []);
 
+  const all = accounts ?? [];
+  const count = (wanted: StatusFilter) =>
+    wanted === 'tous' ? all.length : all.filter((account) => account.status === wanted).length;
+  const term = fold(query.trim());
+  const filtered = all.filter(
+    (account) =>
+      (status === 'tous' || account.status === status) &&
+      (role === '' || account.role === role) &&
+      (term === '' ||
+        fold(`${account.firstName} ${account.lastName} ${account.email}`).includes(term)),
+  );
+  // Retour à la première page à chaque changement de recherche ou de filtre
+  const { pageItems: shown, paginationProps } = usePagination(filtered, 'comptes', [
+    query,
+    role,
+    status,
+  ]);
+
   return (
     <>
-      <PageHeader title="Comptes" />
-      <p>
-        Invitez les membres des équipes, attribuez leur rôle, leur zone et leurs langues de travail.
-        Une suspension coupe l’accès immédiatement.
-      </p>
+      <PageHeader
+        title="Comptes"
+        lead="Comptes d’administration : rôle, zone et langues de travail. Une suspension coupe l’accès immédiatement."
+        actions={
+          <Button
+            variant="primary"
+            icon="plus"
+            aria-expanded={inviting}
+            onClick={() => setInviting((value) => !value)}
+          >
+            Inviter un compte
+          </Button>
+        }
+      />
       {loadError && <Alert tone="error">{loadError}</Alert>}
       <p role="status" className="ui-live-status">
         {notice}
@@ -69,42 +120,129 @@ export function AccountsPage() {
           invitation={link.invitation}
         />
       )}
-      {/* Formulaire et liste affichés ensemble, une fois les deux chargés : le formulaire
-          arrivé après la liste la pousserait vers le bas (CLS mesuré par Lighthouse) */}
-      {!ready && !loadError && <p>Chargement…</p>}
-      {ready && (
+      {inviting && references && (
         <InviteForm
           references={references}
+          onCancel={() => setInviting(false)}
           onInvited={(name, invitation) => {
             setLink({ name, invitation });
             setNotice(`Invitation créée pour ${name}.`);
+            setInviting(false);
             void reload();
           }}
         />
       )}
+      {!ready && !loadError && <p>Chargement…</p>}
       {ready && (
-        <section aria-labelledby="accounts-title">
-          <h2 id="accounts-title">Comptes d’administration</h2>
-          {accounts.length === 0 && <p>Aucun compte.</p>}
-          {accounts.length > 0 && (
-            <ul className="ui-stack">
-              {accounts.map((account) => (
-                <AccountItem
-                  key={account.id}
-                  account={account}
-                  references={references}
-                  onChanged={(text, invitation) => {
-                    setNotice(text);
-                    if (invitation) {
-                      setLink({ name: `${account.firstName} ${account.lastName}`, invitation });
-                    }
-                    void reload();
+        <>
+          <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
+            <StatCard label="Comptes" value={count('tous')} />
+            <StatCard label="Actifs" value={count('actif')} />
+            <StatCard label="Invitations en attente" value={count('invite')} />
+            <StatCard label="Suspendus" value={count('suspendu')} />
+          </div>
+          <section aria-labelledby="accounts-title" className="ui-section">
+            <h2 id="accounts-title" className="ui-visually-hidden">
+              Comptes d’administration
+            </h2>
+            <div className="ui-toolbar" role="search">
+              <div className="ui-toolbar__search">
+                <label htmlFor={searchId} className="ui-visually-hidden">
+                  Rechercher un compte
+                </label>
+                <input
+                  id={searchId}
+                  className="ui-input"
+                  type="search"
+                  placeholder="Rechercher par nom ou adresse e-mail"
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
                   }}
                 />
-              ))}
-            </ul>
-          )}
-        </section>
+              </div>
+              <label htmlFor={roleId} className="ui-visually-hidden">
+                Filtrer par rôle
+              </label>
+              <select
+                id={roleId}
+                className="ui-select ui-toolbar__select"
+                value={role}
+                onChange={(event) => {
+                  setRole(event.target.value as AccountRole | '');
+                }}
+              >
+                <option value="">Tous les rôles</option>
+                {ROLES.map((value) => (
+                  <option key={value} value={value}>
+                    {ROLE_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+              <div className="ui-segmented" role="group" aria-label="Filtrer par statut">
+                {STATUS_FILTERS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="ui-segmented__item"
+                    aria-pressed={status === value}
+                    onClick={() => setStatus(value)}
+                  >
+                    {label} ({count(value)})
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="ui-table-block">
+              <div className="ui-table-wrap">
+                <table className="ui-table">
+                  <caption className="ui-visually-hidden">Comptes d’administration</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Compte</th>
+                      <th scope="col">Rôle</th>
+                      <th scope="col">Zone</th>
+                      <th scope="col">Langues de travail</th>
+                      <th scope="col">Statut</th>
+                      <th scope="col" className="ui-table__actions">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shown.map((account) => (
+                      <AccountRow
+                        key={account.id}
+                        account={account}
+                        references={references}
+                        onChanged={(text, invitation) => {
+                          setNotice(text);
+                          if (invitation) {
+                            setLink({
+                              name: `${account.firstName} ${account.lastName}`,
+                              invitation,
+                            });
+                          }
+                          void reload();
+                        }}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+                {shown.length === 0 && (
+                  <p className="ui-table-empty">
+                    {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
+                  </p>
+                )}
+              </div>
+              <Pagination
+                {...paginationProps}
+                noun={['compte', 'comptes']}
+                label="Pages des comptes"
+              />
+            </div>
+          </section>
+        </>
       )}
     </>
   );
@@ -160,7 +298,7 @@ function InvitationLinkPanel({ name, invitation }: { name: string; invitation: I
   );
 }
 
-function AccountItem({
+function AccountRow({
   account,
   references,
   onChanged,
@@ -189,65 +327,69 @@ function AccountItem({
   }
 
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>{name}</h3>
-      <dl className="ui-facts">
-        <dt>Rôle</dt>
-        <dd>{ROLE_LABELS[account.role]}</dd>
-        <dt>Zone</dt>
-        <dd>{account.zone}</dd>
-        <dt>Adresse e-mail</dt>
-        <dd>{account.email}</dd>
-        <dt>Langues de travail</dt>
-        <dd>
-          {account.languages.length === 0
-            ? 'Aucune'
-            : account.languages
-                .map(
-                  (language) =>
-                    `${languageName(language.code)} (${RIGHTS.filter(([right]) => language[right])
-                      .map(([, label]) => label.toLowerCase())
-                      .join(', ')})`,
-                )
-                .join(' ; ')}
-        </dd>
-        <dt>Statut</dt>
-        <dd>
-          <Badge tone={BADGE_TONES[account.status]}>{STATUS_LABELS[account.status]}</Badge>
-        </dd>
-      </dl>
-      {error && <Alert tone="error">{error}</Alert>}
-      {account.status === 'actif' && !account.self && (
-        <button
-          type="button"
-          className="ui-button ui-button--danger"
-          disabled={busy}
-          onClick={() => act(() => suspendAccount(account.id), `Compte de ${name} suspendu.`)}
-        >
-          Suspendre<span className="ui-visually-hidden"> le compte de {name}</span>
-        </button>
-      )}
-      {account.status === 'suspendu' && (
-        <button
-          type="button"
-          className="ui-button ui-button--secondary"
-          disabled={busy}
-          onClick={() => act(() => reactivateAccount(account.id), `Compte de ${name} réactivé.`)}
-        >
-          Réactiver<span className="ui-visually-hidden"> le compte de {name}</span>
-        </button>
-      )}
-      {account.status === 'invite' && (
-        <button
-          type="button"
-          className="ui-button ui-button--secondary"
-          disabled={busy}
-          onClick={() => act(() => renewInvitation(account.id), `Nouveau lien pour ${name}.`)}
-        >
-          Nouveau lien<span className="ui-visually-hidden"> d’invitation pour {name}</span>
-        </button>
-      )}
-    </li>
+    <tr>
+      <th scope="row">
+        <span className="ui-person">
+          <span className="ui-avatar ui-avatar--light" aria-hidden="true">
+            {(account.firstName[0] ?? '') + (account.lastName[0] ?? '')}
+          </span>
+          <span className="ui-person__text">
+            <span className="ui-person__name">{name}</span>
+            <span className="ui-person__email">{account.email}</span>
+          </span>
+        </span>
+      </th>
+      <td>{ROLE_LABELS[account.role]}</td>
+      <td>{account.zone}</td>
+      <td>
+        {account.languages.length === 0
+          ? 'Aucune'
+          : account.languages
+              .map(
+                (language) =>
+                  `${languageName(language.code)} (${RIGHTS.filter(([right]) => language[right])
+                    .map(([, label]) => label.toLowerCase())
+                    .join(', ')})`,
+              )
+              .join(' ; ')}
+      </td>
+      <td>
+        <Badge tone={BADGE_TONES[account.status]}>{STATUS_LABELS[account.status]}</Badge>
+      </td>
+      <td className="ui-table__actions">
+        {error && <Alert tone="error">{error}</Alert>}
+        {account.status === 'actif' && !account.self && (
+          <button
+            type="button"
+            className="ui-button ui-button--danger"
+            disabled={busy}
+            onClick={() => act(() => suspendAccount(account.id), `Compte de ${name} suspendu.`)}
+          >
+            Suspendre<span className="ui-visually-hidden"> le compte de {name}</span>
+          </button>
+        )}
+        {account.status === 'suspendu' && (
+          <button
+            type="button"
+            className="ui-button ui-button--secondary"
+            disabled={busy}
+            onClick={() => act(() => reactivateAccount(account.id), `Compte de ${name} réactivé.`)}
+          >
+            Réactiver<span className="ui-visually-hidden"> le compte de {name}</span>
+          </button>
+        )}
+        {account.status === 'invite' && (
+          <button
+            type="button"
+            className="ui-button ui-button--secondary"
+            disabled={busy}
+            onClick={() => act(() => renewInvitation(account.id), `Nouveau lien pour ${name}.`)}
+          >
+            Nouveau lien<span className="ui-visually-hidden"> d’invitation pour {name}</span>
+          </button>
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -278,8 +420,10 @@ const EMPTY: FormState = {
 function InviteForm({
   references,
   onInvited,
+  onCancel,
 }: {
   references: AccountReferences;
+  onCancel: () => void;
   onInvited: (name: string, invitation: InvitationLink) => void;
 }) {
   const id = useId();
@@ -518,9 +662,19 @@ function InviteForm({
             </fieldset>
           ))}
         </fieldset>
-        <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
-          {sending ? 'Création…' : 'Créer l’invitation'}
-        </button>
+        <div className="ui-form__actions">
+          <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
+            {sending ? 'Création…' : 'Créer l’invitation'}
+          </button>
+          <button
+            type="button"
+            className="ui-button ui-button--tertiary"
+            disabled={sending}
+            onClick={onCancel}
+          >
+            Annuler
+          </button>
+        </div>
       </form>
     </section>
   );

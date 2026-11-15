@@ -27,7 +27,11 @@ test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ;
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
   await expect(card(toValidate)).toBeVisible();
-  await expect(card(toValidate).getByText('Koubia')).toBeVisible();
+  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
+  await card(toValidate).locator('summary').click();
+  await card(toReject).locator('summary').click();
+  // Préfecture dans le détail ouvert (elle figure aussi sur la ligne repliée)
+  await expect(card(toValidate).locator('dd').filter({ hasText: 'Koubia' })).toBeVisible();
   await expect(card(toReject)).toBeVisible();
   // Le dossier de la région de Kankan n'apparaît pas dans la liste de Labé
   await expect(card(elsewhere)).toHaveCount(0);

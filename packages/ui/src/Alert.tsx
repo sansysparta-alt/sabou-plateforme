@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 export type AlertTone = 'info' | 'success' | 'warning' | 'error';
@@ -8,13 +8,17 @@ export interface AlertProps {
   title?: string;
   children?: ReactNode;
   id?: string;
-  // Message à focaliser (erreur d'un formulaire) : il reçoit alors tabIndex={-1}
-  ref?: Ref<HTMLDivElement>;
 }
 
 // Message sobre : encadré fin tout autour, icône dessinée, pas de trait latéral.
 // Erreur : role="alert" (annoncée aussitôt) ; autres : role="status" (annoncée sans interrompre).
-export function Alert({ tone = 'info', title, children, id, ref }: AlertProps) {
+// Message à focaliser (erreur d'un formulaire) : passer « ref », il reçoit alors tabIndex={-1}.
+// forwardRef plutôt que « ref » en simple propriété (React 19) : l'application de gestion tourne
+// sur Preact 10, qui ne transmet « ref » qu'à travers forwardRef (US-017).
+export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  { tone = 'info', title, children, id },
+  ref,
+) {
   return (
     <div
       ref={ref}
@@ -30,4 +34,4 @@ export function Alert({ tone = 'info', title, children, id, ref }: AlertProps) {
       </div>
     </div>
   );
-}
+});

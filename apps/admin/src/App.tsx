@@ -1,42 +1,122 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import { Alert, AppShell, Button, ButtonLink, Card, PageHeader, type NavGroup } from '@sabou/ui';
+import { Alert, AppShell, Button, ButtonLink, PageHeader, type NavGroup } from '@sabou/ui';
 // Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
 // (seuil de temps de blocage de Lighthouse, US-010)
-const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
-const AccountsPage = lazy(() =>
-  import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
-);
+const loaders = {
+  dashboard: () => import('./Dashboard'),
+  accounts: () => import('./AccountsPage'),
+  referentials: () => import('./ReferentialsPage'),
+  invitation: () => import('./InvitationPage'),
+  fieldVerification: () => import('./FieldVerificationPage'),
+  consolidation: () => import('./ConsolidationPage'),
+  approval: () => import('./ApprovalPage'),
+  certificate: () => import('./CertificatePage'),
+  rejection: () => import('./RejectionPage'),
+  funnel: () => import('./FunnelPage'),
+  expertise: () => import('./ExpertisePage'),
+  // Dictionnaire (US-050)
+  plants: () => import('./PlantsPage'),
+  plant: () => import('./PlantPage'),
+  // US-052 : fiches maladies (liste et fiche dans le même module)
+  diseases: () => import('./DiseasesPage'),
+};
+const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
+const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
 const ReferentialsPage = lazy(() =>
-  import('./ReferentialsPage').then((m) => ({ default: m.ReferentialsPage })),
+  loaders.referentials().then((m) => ({ default: m.ReferentialsPage })),
 );
 const InvitationPage = lazy(() =>
-  import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
+  loaders.invitation().then((m) => ({ default: m.InvitationPage })),
 );
 const FieldVerificationPage = lazy(() =>
-  import('./FieldVerificationPage').then((m) => ({ default: m.FieldVerificationPage })),
+  loaders.fieldVerification().then((m) => ({ default: m.FieldVerificationPage })),
 );
 const ConsolidationPage = lazy(() =>
-  import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
+  loaders.consolidation().then((m) => ({ default: m.ConsolidationPage })),
 );
-const ApprovalPage = lazy(() =>
-  import('./ApprovalPage').then((m) => ({ default: m.ApprovalPage })),
-);
+const ApprovalPage = lazy(() => loaders.approval().then((m) => ({ default: m.ApprovalPage })));
 const CertificatePage = lazy(() =>
-  import('./CertificatePage').then((m) => ({ default: m.CertificatePage })),
+  loaders.certificate().then((m) => ({ default: m.CertificatePage })),
 );
-const RejectionPage = lazy(() =>
-  import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
-);
-const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
-const PlantsPage = lazy(() => import('./PlantsPage').then((m) => ({ default: m.PlantsPage })));
-const PlantPage = lazy(() => import('./PlantPage').then((m) => ({ default: m.PlantPage })));
-const DiseasesPage = lazy(() =>
-  import('./DiseasesPage').then((m) => ({ default: m.DiseasesPage })),
-);
-const DiseasePage = lazy(() => import('./DiseasesPage').then((m) => ({ default: m.DiseasePage })));
-const ExpertisePage = lazy(() =>
-  import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
-);
+const RejectionPage = lazy(() => loaders.rejection().then((m) => ({ default: m.RejectionPage })));
+const FunnelPage = lazy(() => loaders.funnel().then((m) => ({ default: m.FunnelPage })));
+const ExpertisePage = lazy(() => loaders.expertise().then((m) => ({ default: m.ExpertisePage })));
+const PlantsPage = lazy(() => loaders.plants().then((m) => ({ default: m.PlantsPage })));
+const PlantPage = lazy(() => loaders.plant().then((m) => ({ default: m.PlantPage })));
+const DiseasesPage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasesPage })));
+const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasePage })));
+
+// Morceau de la page demandée, d'après la seule adresse
+const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
+  '/': loaders.dashboard,
+  '/comptes': loaders.accounts,
+  '/referentiels': loaders.referentials,
+  '/invitation': loaders.invitation,
+  '/verification-terrain': loaders.fieldVerification,
+  '/consolidation': loaders.consolidation,
+  '/approbation': loaders.approval,
+  '/rejet-definitif': loaders.rejection,
+  '/entonnoir': loaders.funnel,
+  '/expertise': loaders.expertise,
+  '/plantes': loaders.plants,
+  '/maladies': loaders.diseases,
+};
+
+// Lectures que chaque page fait à son ouverture, exactement comme elle les demande
+const PAGE_DATA: Record<string, string[]> = {
+  '/': ['/api/tableau-de-bord'],
+  '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
+  '/referentiels': ['/api/referentiels'],
+  '/verification-terrain': ['/api/dossiers/verification-terrain'],
+  '/consolidation': ['/api/dossiers/consolidation'],
+  '/approbation': ['/api/dossiers/approbation'],
+  '/entonnoir': ['/api/entonnoir'],
+  '/expertise': ['/api/dossiers/expertise'],
+  '/plantes': ['/api/plantes'],
+  '/maladies': ['/api/maladies'],
+};
+const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+// Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
+const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
+// Fiche maladie (US-052) : /maladies/MA-001, pour la DG et le Comité
+const DISEASE_PATH = /^\/maladies\/(MA-\d{3,10})$/;
+
+// US-017 : le morceau de la page et ses données sont demandés dès le démarrage, en même temps
+// que la session, au lieu d'attendre la réponse de celle-ci (en 3G, un aller-retour de 300 ms
+// par étape). D'après la seule adresse : l'affichage reste soumis au profil, et l'API contrôle
+// chaque lecture (un refus n'est jamais repris par une page).
+export function preloadCurrentPage(): void {
+  const current = path();
+  const certificate = CERTIFICATE_PREFIX.exec(current);
+  const load = certificate ? loaders.certificate : PAGE_LOADERS[current];
+  // Échec (réseau coupé) : sans effet ici, la page le signale à son affichage
+  load?.().catch(() => undefined);
+  if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  const plant = PLANT_PATH.exec(current);
+  if (plant) {
+    loaders.plant().catch(() => undefined);
+    return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
+  }
+  const disease = DISEASE_PATH.exec(current);
+  if (disease) {
+    loaders.diseases().catch(() => undefined);
+    return prefetch(`/api/maladies/${encodeURIComponent(disease[1]!)}`);
+  }
+  // Invitation : la consultation, sans effet, avec le jeton du lien (après le #)
+  if (current === '/invitation') {
+    const token = window.location.hash.slice(1);
+    if (/^[\w-]{43}$/.test(token)) {
+      prefetch('/api/invitation/consultation', { method: 'POST', body: { token } });
+    }
+    return;
+  }
+  // Retour de connexion en erreur ou connexion perdue : la page de données ne s'ouvre pas
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('erreur') || params.has('reprise')) return;
+  PAGE_DATA[current]?.forEach((url) => prefetch(url));
+}
+
+import { prefetch } from './prefetch';
 import {
   fetchSession,
   hasManagementAccess,
@@ -49,13 +129,17 @@ import {
   profileLabel,
   type SessionUser,
 } from './session';
-import { prefetch } from './prefetch';
+// Illustration de la connexion (maquette v1.3), 8 Ko en WebP
+import illustration from './assets/connexion.webp';
 
 type State =
   | { status: 'loading' }
   | { status: 'anonymous' }
   | { status: 'connected'; user: SessionUser }
   | { status: 'error' };
+
+// Navigation hors de l'application (ouverture de la connexion Keycloak), isolée pour les tests
+export const browser = { assign: (url: string) => window.location.assign(url) };
 
 // Paramètre posé par l'API au retour de Keycloak (?erreur=…, ?info=…), lu une fois puis
 // retiré de l'adresse
@@ -68,7 +152,34 @@ function takeParam(name: string): string | undefined {
   return value;
 }
 
+// Connexion perdue en route (?reprise=1, US-019) : relancée une fois ; une deuxième perte en
+// moins de deux minutes (cookies bloqués, par exemple) affiche l'erreur au lieu de boucler
+const RETRY_KEY = 'sabou-reprise-connexion';
+const RETRY_WINDOW_MS = 120_000;
+
+function lostLoginTwice(): boolean {
+  try {
+    const last = Number(window.sessionStorage.getItem(RETRY_KEY));
+    if (last && Date.now() - last < RETRY_WINDOW_MS) return true;
+    window.sessionStorage.setItem(RETRY_KEY, String(Date.now()));
+    return false;
+  } catch {
+    // Stockage indisponible : pas de garde-fou possible, on affiche l'erreur
+    return true;
+  }
+}
+
+function forgetLoginRetry(): void {
+  try {
+    window.sessionStorage.removeItem(RETRY_KEY);
+  } catch {
+    // Stockage indisponible : rien à oublier
+  }
+}
+
 function takeLoginError(): string | undefined {
+  const lost = takeParam('reprise') !== undefined;
+  if (lost && lostLoginTwice()) return LOGIN_ERRORS.connexion;
   const code = takeParam('erreur');
   return code ? (LOGIN_ERRORS[code] ?? LOGIN_ERRORS.connexion) : undefined;
 }
@@ -76,22 +187,9 @@ function takeLoginError(): string | undefined {
 // Pages de l'application ; toute autre adresse mène à l'accueil
 const path = () => window.location.pathname.replace(/\/+$/, '') || '/';
 
-// Consultation de l'invitation demandée en même temps que le morceau de la page (US-017) ;
-// le jeton reste dans le fragment, que la page lit puis efface (InvitationPage)
-let invitationPrefetched = false;
-function prefetchInvitation(): void {
-  if (invitationPrefetched) return;
-  invitationPrefetched = true;
-  const token = window.location.hash.slice(1);
-  if (/^[\w-]{43}$/.test(token)) {
-    prefetch('/api/invitation/consultation', { method: 'POST', body: { token } });
-  }
-}
-
 export function App() {
   // Acceptation d'une invitation : la personne n'a pas encore de compte ni de session
   if (path() === '/invitation') {
-    prefetchInvitation();
     return (
       <PublicLayout>
         <Suspense fallback={<p>Chargement…</p>}>
@@ -106,6 +204,8 @@ export function App() {
 function ConnectedApp() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [loginError] = useState(takeLoginError);
+  // Déconnexion volontaire : on reste sur la page d'accueil au lieu de rouvrir la connexion
+  const [loggedOut, setLoggedOut] = useState(false);
   const [mfaJustEnabled] = useState(() => takeParam('info') === 'double-facteur');
 
   useEffect(() => {
@@ -113,7 +213,7 @@ function ConnectedApp() {
     fetchSession().then(
       (user) => {
         if (!active) return;
-        if (user) prefetchPageData(user);
+        if (user) forgetLoginRetry();
         setState(user ? { status: 'connected', user } : { status: 'anonymous' });
       },
       () => active && setState({ status: 'error' }),
@@ -123,9 +223,17 @@ function ConnectedApp() {
     };
   }, []);
 
+  // Sans session : la page de connexion unique (Keycloak, US-019) s'ouvre directement. La page
+  // d'accueil ne sert qu'à montrer une erreur de connexion, ou après une déconnexion.
+  const directLogin = state.status === 'anonymous' && !loginError && !loggedOut;
+  useEffect(() => {
+    if (directLogin) browser.assign('/auth/login');
+  }, [directLogin]);
+
   async function onLogout() {
     try {
       await logout();
+      setLoggedOut(true);
       setState({ status: 'anonymous' });
     } catch {
       setState({ status: 'error' });
@@ -140,8 +248,9 @@ function ConnectedApp() {
         nav={navigation(user)}
         currentPath={path()}
         userActions={
-          <Button variant="secondary" icon="logout" onClick={onLogout}>
-            Se déconnecter
+          // Bas de la colonne de navigation : icône seule, nom accessible « Se déconnecter »
+          <Button variant="secondary" icon="logout" onClick={onLogout} title="Se déconnecter">
+            <span className="ui-visually-hidden">Se déconnecter</span>
           </Button>
         }
       >
@@ -150,15 +259,16 @@ function ConnectedApp() {
     );
   }
 
+  if (state.status === 'anonymous' && !directLogin) return <LoginPage error={loginError} />;
+
   return (
     <PublicLayout busy={state.status === 'loading'}>
-      {state.status === 'loading' && <p>Chargement…</p>}
+      {(state.status === 'loading' || directLogin) && <p>Chargement…</p>}
       {state.status === 'error' && (
         <Alert tone="error" title="Service indisponible">
           Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
         </Alert>
       )}
-      {state.status === 'anonymous' && <LoginPage error={loginError} />}
       {state.status === 'connected' && <Forbidden user={state.user} onLogout={onLogout} />}
     </PublicLayout>
   );
@@ -245,75 +355,30 @@ function navigation(user: SessionUser): NavGroup[] {
   return groups;
 }
 
-// Pages de chaque profil, avec les lectures que la page fait à son ouverture (demandées en
-// avance, US-017) ; tout autre profil, ou toute autre adresse, mène à l'accueil
-interface Route {
-  Page: ComponentType;
-  data: string[];
-}
-const DIRECTOR_PAGES: Record<string, Route> = {
-  '/entonnoir': { Page: FunnelPage, data: ['/api/entonnoir'] },
-  '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
-  '/rejet-definitif': { Page: RejectionPage, data: [] },
-  '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
-  '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },
-  '/comptes': { Page: AccountsPage, data: ['/api/comptes', '/api/comptes/referentiels'] },
-  '/referentiels': { Page: ReferentialsPage, data: ['/api/referentiels'] },
+// Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
+const DIRECTOR_PAGES: Record<string, ComponentType> = {
+  '/entonnoir': FunnelPage,
+  '/approbation': ApprovalPage,
+  '/rejet-definitif': RejectionPage,
+  '/plantes': PlantsPage,
+  '/maladies': DiseasesPage,
+  '/comptes': AccountsPage,
+  '/referentiels': ReferentialsPage,
 };
-const PREFECTORAL_PAGES: Record<string, Route> = {
-  '/verification-terrain': {
-    Page: FieldVerificationPage,
-    data: ['/api/dossiers/verification-terrain'],
-  },
+const PREFECTORAL_PAGES: Record<string, ComponentType> = {
+  '/verification-terrain': FieldVerificationPage,
 };
-const REGIONAL_PAGES: Record<string, Route> = {
-  '/consolidation': { Page: ConsolidationPage, data: ['/api/dossiers/consolidation'] },
+const REGIONAL_PAGES: Record<string, ComponentType> = {
+  '/consolidation': ConsolidationPage,
 };
-const COMMITTEE_PAGES: Record<string, Route> = {
-  '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
-  '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
-  '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },
+const COMMITTEE_PAGES: Record<string, ComponentType> = {
+  '/expertise': ExpertisePage,
+  '/plantes': PlantsPage,
+  '/maladies': DiseasesPage,
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
 const CERTIFICATE_PATH = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
-// Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
-const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
-const plantOf = (user: SessionUser) =>
-  isDirector(user) || isCommittee(user) ? PLANT_PATH.exec(path()) : null;
-// Fiche maladie (US-052) : /maladies/MA-001, pour la DG et le Comité
-const DISEASE_PATH = /^\/maladies\/(MA-\d{3,10})$/;
-const diseaseOf = (user: SessionUser) =>
-  isDirector(user) || isCommittee(user) ? DISEASE_PATH.exec(path()) : null;
-
-function routeFor(user: SessionUser): Route | undefined {
-  const pages = isDirector(user)
-    ? DIRECTOR_PAGES
-    : isPrefectoral(user)
-      ? PREFECTORAL_PAGES
-      : isRegional(user)
-        ? REGIONAL_PAGES
-        : isCommittee(user)
-          ? COMMITTEE_PAGES
-          : {};
-  return pages[path()];
-}
-
-// Lectures de la page qui va s'ouvrir, lancées dès la session connue, en même temps que le
-// téléchargement de son morceau (US-017) : elles en suivent exactement les conditions
-export function prefetchPageData(user: SessionUser): void {
-  if (!hasManagementAccess(user)) return;
-  const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
-  if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
-  const plant = plantOf(user);
-  if (plant) return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
-  const disease = diseaseOf(user);
-  if (disease) return prefetch(`/api/maladies/${encodeURIComponent(disease[1]!)}`);
-  const route = routeFor(user);
-  if (route) return route.data.forEach((url) => prefetch(url));
-  // Tableau de bord : chiffres réservés aux administrateurs connectés avec leur second facteur
-  if (user.administrator && user.secondFactor) prefetch('/api/tableau-de-bord');
-}
 
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
   const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
@@ -324,7 +389,7 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
       </Suspense>
     );
   }
-  const plant = plantOf(user);
+  const plant = isDirector(user) || isCommittee(user) ? PLANT_PATH.exec(path()) : null;
   if (plant) {
     return (
       <Suspense fallback={<p>Chargement…</p>}>
@@ -332,7 +397,7 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
       </Suspense>
     );
   }
-  const disease = diseaseOf(user);
+  const disease = isDirector(user) || isCommittee(user) ? DISEASE_PATH.exec(path()) : null;
   if (disease) {
     return (
       <Suspense fallback={<p>Chargement…</p>}>
@@ -340,7 +405,15 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
       </Suspense>
     );
   }
-  const Page = routeFor(user)?.Page;
+  const Page = isDirector(user)
+    ? DIRECTOR_PAGES[path()]
+    : isPrefectoral(user)
+      ? PREFECTORAL_PAGES[path()]
+      : isRegional(user)
+        ? REGIONAL_PAGES[path()]
+        : isCommittee(user)
+          ? COMMITTEE_PAGES[path()]
+          : undefined;
   return (
     <Suspense fallback={<p>Chargement…</p>}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}
@@ -348,28 +421,54 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
   );
 }
 
+// Connexion (maquette v1.3) : panneau vert à gauche (marque, illustration, accès), garanties de
+// sécurité à droite ; les deux s'empilent sur téléphone. Le formulaire lui-même est celui de
+// Keycloak, ouvert par le bouton.
 function LoginPage({ error }: { error?: string }) {
   return (
-    <>
-      <PageHeader
-        title="Application de gestion"
-        lead="Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du Comité scientifique et aux tradipraticiens."
-      />
-      {error && <Alert tone="error">{error}</Alert>}
-      <div>
-        <ButtonLink variant="primary" href="/auth/login">
-          Se connecter
-        </ButtonLink>
-      </div>
-      <Card title="Vos garanties de sécurité">
-        <ul className="ui-list">
-          <li>Double facteur obligatoire pour tous les administrateurs.</li>
-          <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
-          <li>Session fermée après 30 minutes d’inactivité.</li>
-          <li>Chaque connexion est journalisée.</li>
-        </ul>
-      </Card>
-    </>
+    <div className="ui-login">
+      <a className="ui-skip-link" href="#contenu">
+        Aller au contenu
+      </a>
+      <main id="contenu" className="ui-login__main" tabIndex={-1}>
+        <section className="ui-login__hero" aria-labelledby="connexion-titre">
+          <img
+            className="ui-login__art"
+            src={illustration}
+            alt=""
+            width={960}
+            height={480}
+            decoding="async"
+          />
+          <p className="ui-login__brand">
+            <span className="ui-topbar__mark" aria-hidden="true">
+              S
+            </span>
+            SABOU
+          </p>
+          <p className="ui-login__kicker">Accès sécurisé</p>
+          <h1 id="connexion-titre">Application de gestion</h1>
+          <p className="ui-login__lead">
+            Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du
+            Comité scientifique et aux tradipraticiens.
+          </p>
+          {error && <Alert tone="error">{error}</Alert>}
+          <ButtonLink variant="primary" href="/auth/login" className="ui-login__action">
+            Se connecter
+          </ButtonLink>
+          <p className="ui-login__note">Double facteur obligatoire pour les administrateurs</p>
+        </section>
+        <section className="ui-login__panel" aria-labelledby="garanties-titre">
+          <h2 id="garanties-titre">Vos garanties de sécurité</h2>
+          <ul className="ui-login__list">
+            <li>Double facteur obligatoire pour tous les administrateurs.</li>
+            <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
+            <li>Session fermée après 30 minutes d’inactivité.</li>
+            <li>Chaque connexion est journalisée.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
   );
 }
 
