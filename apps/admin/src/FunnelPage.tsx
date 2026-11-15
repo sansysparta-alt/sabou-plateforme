@@ -142,6 +142,7 @@ export function FunnelPage() {
                 columns={blockedColumns}
                 rows={data.bloques.dossiers}
                 rowKey={(d) => d.dossier}
+                paginate={{ key: 'entonnoir-bloques', noun: ['dossier', 'dossiers'] }}
               />
             )}
           </>

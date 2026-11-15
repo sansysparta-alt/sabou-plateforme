@@ -23,6 +23,8 @@ test('US-045 : approuver émet un certificat de 12 mois signé par le coffre, QR
   const card = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
+  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
+  await card.locator('summary').click();
   await expect(card.getByText('Réalisée, compte rendu signé')).toBeVisible();
   await expectAccessible(page, 'approbation des dossiers');
 

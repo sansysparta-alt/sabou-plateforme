@@ -1,7 +1,13 @@
 import { Badge } from '@sabou/ui';
 import type { ConsolidationItem } from '@sabou/types';
 import { listConsolidation } from './certification-api';
-import { DecisionActions, DossierQueuePage, longDate, type OnDecided } from './DossierDecision';
+import {
+  DecisionActions,
+  DossierQueuePage,
+  DossierRow,
+  longDate,
+  type OnDecided,
+} from './DossierDecision';
 
 // Consolidation par l'admin régional (US-043, UC-40) : dossiers de sa région vérifiés sur le
 // terrain (étape 3), transmis au Comité scientifique, ou renvoyés avec motif au préfectoral
@@ -20,10 +26,11 @@ export function ConsolidationPage() {
 
 function DossierItem({ dossier, onDecided }: { dossier: ConsolidationItem; onDecided: OnDecided }) {
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>
-        {dossier.code} · {dossier.praticienNom}
-      </h3>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticienNom}
+      meta={`${dossier.prefecture} · ${dossier.specialite} · vérifié le ${longDate(dossier.verifieLe)}`}
+    >
       <dl className="ui-facts">
         <dt>Praticien</dt>
         <dd>{dossier.praticien}</dd>
@@ -54,6 +61,6 @@ function DossierItem({ dossier, onDecided }: { dossier: ConsolidationItem; onDec
         rejectHint="Le dossier revient à l’admin préfectoral pour une nouvelle vérification terrain. Le motif est conservé dans l’historique du dossier."
         onDecided={onDecided}
       />
-    </li>
+    </DossierRow>
   );
 }

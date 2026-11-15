@@ -48,15 +48,6 @@ const SMS_FAILURE_COLUMNS: Column<SmsFailure>[] = [
   { key: 'raison', header: 'Raison', render: (f) => f.raison },
 ];
 
-// Fonctions annoncées, d'après le plan des sprints (07_Backlog_Sprints.md)
-const UPCOMING: [label: string, sprint: string][] = [
-  ['Circuit de certification : validation terrain, consolidation, expertise', 'Sprint 2'],
-  ['Approbation par la DG et certificat signé', 'Sprint 3'],
-  ['Dictionnaire Impérial des plantes', 'Sprint 4'],
-  ['Traitements et leur circuit de validation', 'Sprint 5'],
-  ['Tableaux de bord et rapports par profil', 'Sprint 9'],
-];
-
 // Valeur affichée pendant le chargement des chiffres (lue « points de suspension »)
 const PENDING = '…';
 
@@ -101,7 +92,23 @@ export function Dashboard({
 
   return (
     <>
-      <PageHeader title={`Bonjour, ${user.name}`} lead={`${profileLabel(user)}${zone}`} />
+      <PageHeader
+        title={`Bonjour, ${user.name}`}
+        lead={`${profileLabel(user)}${zone}`}
+        // Accès directs de la DG (maquette v1.3 : actions à droite du titre, US-019)
+        actions={
+          isDirector(user) ? (
+            <div className="ui-form__actions">
+              <ButtonLink variant="secondary" href="/comptes" icon="users">
+                Gérer les comptes
+              </ButtonLink>
+              <ButtonLink variant="secondary" href="/referentiels" icon="book">
+                Gérer les référentiels
+              </ButtonLink>
+            </div>
+          ) : undefined
+        }
+      />
       {user.secondFactor && (
         <p className="ui-muted">
           <Badge tone="success">Double facteur actif</Badge> Votre connexion est protégée par un
@@ -136,7 +143,7 @@ export function Dashboard({
           ) : (
             // Grille affichée dès le départ, valeurs « … » en attendant : rien ne se décale à
             // l'arrivée des chiffres (CLS mesuré par Lighthouse)
-            <div className="ui-grid">
+            <div className="ui-grid ui-grid--stats">
               <StatCard
                 label="Praticiens"
                 value={data?.praticiens ?? PENDING}
@@ -165,37 +172,10 @@ export function Dashboard({
                   detail="Après 4 essais d’envoi"
                 />
               )}
-              <StatCard label="Certificats émis" value={null} upcoming="Sprint 3" />
             </div>
           )}
         </section>
       )}
-      {isDirector(user) && (
-        <Card
-          title="Gestion"
-          actions={
-            <>
-              <ButtonLink variant="secondary" href="/comptes" icon="users">
-                Gérer les comptes
-              </ButtonLink>
-              <ButtonLink variant="secondary" href="/referentiels" icon="book">
-                Gérer les référentiels
-              </ButtonLink>
-            </>
-          }
-        >
-          <p>Invitez les administrateurs et tenez à jour les listes de référence.</p>
-        </Card>
-      )}
-      <Card title="À venir">
-        <ul className="ui-list">
-          {UPCOMING.map(([label, sprint]) => (
-            <li key={label}>
-              {label} <span className="ui-muted">({sprint})</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
       {/* En dernier : sa hauteur dépend des données, elle ne pousse donc aucun autre bloc */}
       {data && (
         <section className="ui-section" aria-labelledby="activite">
@@ -223,6 +203,7 @@ export function Dashboard({
             columns={SMS_FAILURE_COLUMNS}
             rows={data.smsNonRemis.derniers}
             rowKey={(f) => `${f.objet}-${f.le}`}
+            paginate={{ key: 'sms-non-remis', noun: ['SMS', 'SMS'] }}
             empty=""
           />
         </section>

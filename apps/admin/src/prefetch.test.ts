@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { call } from './accounts-api';
 import { clearPrefetched, prefetch, requestKey, takePrefetched } from './prefetch';
 
@@ -65,12 +63,5 @@ describe('Données demandées en avance (US-017)', () => {
     );
     prefetch('/api/comptes');
     await expect(call('/api/comptes')).rejects.toMatchObject({ status: 0 });
-  });
-
-  it('index.html précharge la session avec les identifiants, comme fetchSession', () => {
-    const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
-    expect(html).toMatch(
-      /<link rel="preload" href="\/auth\/session" as="fetch" crossorigin="use-credentials" \/>/,
-    );
   });
 });

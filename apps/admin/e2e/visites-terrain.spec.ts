@@ -31,6 +31,8 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   const card = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
+  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
+  await card.locator('summary').click();
   await expect(card.getByText('À réaliser')).toBeVisible();
   await expect(card.getByRole('button', { name: /^Valider/ })).toHaveCount(0);
 
@@ -60,6 +62,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
 
   // Critère 2 : sans attestation (signature), l'écran et l'API refusent
   await page.reload();
+  await card.locator('summary').click();
   await card.getByRole('button', { name: /^Enregistrer le compte rendu/ }).click();
   await card.getByLabel('Favorable', { exact: true }).check();
   await card.getByLabel('Constats').fill('Lieu d’exercice conforme ; plantes séchées à l’abri.');

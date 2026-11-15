@@ -692,19 +692,6 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 
 **Contrôles du pipeline** : `packages/db/test/entonnoir-certification.test.ts` (6 étapes, délai moyen du jeu d'exemple, fenêtre de 12 mois, blocage à plus de 15 jours, étape 1 exclue, tri, zones, droits) ; `apps/api/src/dashboard/funnel.test.ts` (DG seule, second facteur, sans cache) ; `apps/admin/src/FunnelPage.test.tsx` et `App.test.tsx` (écran, rubrique réservée) ; `apps/admin/e2e/entonnoir.spec.ts` (bout en bout, accessibilité, refus d'un autre rôle) ; mesure Lighthouse de `/entonnoir`.
 
-### 2.39 Application de gestion en 3 s sur chaque page en 3G (US-017, novembre 2026)
-
-Constat (§2.28) : sur une page qui attend des données, la chaîne était page → code de l'application (60 Ko compressés) → session → morceau de la page → données, un aller-retour de 300 ms à chaque étape en 3G. Deux de ces attentes sont supprimées, sans changer de bibliothèque.
-
-| Choix | Pourquoi | Écarté |
-|---|---|---|
-| **Session préchargée par `index.html`** : `<link rel="preload" href="/auth/session" as="fetch" crossorigin="use-credentials">`, et `fetchSession` demande la session avec `credentials: 'include'` (même origine) pour que le navigateur reprenne ce préchargement | La session arrive pendant le téléchargement du code ; réponse de quelques centaines d'octets, sans concurrence notable pour la bande passante. Aucun script en ligne : la politique de sécurité du contenu (`script-src 'self'`) reste inchangée | Script en ligne avec empreinte dans la CSP : une exception de plus à tenir à jour |
-| **Données de la page demandées dès la session connue** (`apps/admin/src/prefetch.ts`), en même temps que le morceau de la page ; la page les reçoit par `call()` sans changer son code. Table des lectures de chaque page dans `App.tsx`, avec les mêmes conditions que la page (rôle, second facteur pour les chiffres du tableau de bord) ; consultation d'une invitation demandée au démarrage | Le morceau de la page et ses données ne s'attendent plus ; aucune requête de plus qu'avant | Bibliothèque de chargement des données (TanStack Query, routeur à « loaders ») : une dépendance pour un seul besoin. Télécharger le morceau de la page en même temps que la session : déjà essayé, aggrave la mesure (§2.28) |
-| **Réponse servie une seule fois, et dans les 10 secondes** ; seules des lectures sont demandées en avance (GET, ou la consultation d'une invitation, sans effet) | Un rechargement après une décision repart toujours vers l'API : jamais de donnée périmée | Cache de lecture partagé : risque d'afficher un état d'avant la décision |
-| **Seuils de US-010 rétablis pour toutes les pages** dans `apps/admin/lighthouserc.cjs` (LCP ≤ 3 s, performance ≥ 0,90 en 3G) ; le seuil provisoire de 4 s et 0,80 est levé | Critère de US-017 | — |
-
-**Contrôles du pipeline** : `apps/admin/src/prefetch.test.ts` (une seule requête, réponse servie une fois, expiration à 10 s, jeton d'invitation, lecture et écriture distinctes, panne réseau rendue à la page, préchargement présent dans `index.html`) ; `App.prefetch.test.tsx` (données déjà demandées quand le morceau de la page s’affiche) ; `App.test.tsx` (session demandée comme la précharge `index.html`, données d'une page et du tableau de bord demandées une seule fois, pas de chiffres demandés pour un praticien) ; les seuils Lighthouse de toutes les pages. Mesure : au pipeline complet de fin de sprint (règle du 14 novembre 2026, §2.11).
-
 ### 2.40 Fiches plantes et leurs photos (US-050, novembre 2026)
 
 | Choix | Pourquoi | Écarté |
@@ -721,6 +708,40 @@ Constat (§2.28) : sur une page qui attend des données, la chaîne était page 
 La validation par le Comité (statut « validée ») est l'objet de US-051.
 
 **Contrôles du pipeline** : `packages/db/test/fiche-plante.test.ts` (création par la DG et le Comité, refus des autres profils, unicité normalisée, champs obligatoires, modification tracée et refus d'une fiche changée entre-temps, écriture directe interdite, photo principale unique, texte alternatif obligatoire, remplacement de la principale retirée) ; `zones.test.ts` (fonctions SECURITY DEFINER listées) ; `packages/types/src/plants.test.ts` ; `apps/api/src/plants/plants.test.ts` (accès, origine, saisie, refus traduits, formats et taille des photos, fichier retiré si la base refuse, en-têtes de la photo servie) ; `apps/admin/src/PlantsPage.test.tsx` et `App.test.tsx` (écrans, rubrique réservée).
+
+### 2.45 Interface de gestion conforme à la maquette v1.3 (US-019, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Refonte par la bibliothèque commune** (`packages/ui`) : navigation sur fond « brume », élément actif plein vert, titres sobres (22 px), tableaux à en-tête vert et lignes alternées, chiffres clés en tuiles | Tous les écrans changent d'un coup ; la maquette de l'application de gestion (`Plateforme/docs/maquettes/`) est la référence | Retouches écran par écran |
+| **Jetons de taille inchangés** ; seuls les styles des composants changent | Les jetons sont repris par l'application mobile, un test échoue s'ils divergent (US-018) | Réduire les jetons : aurait changé l'application mobile |
+| **Connexion en deux panneaux**, illustration de la maquette en WebP (8 Ko, contre 132 Ko en PNG) | Fidèle à la maquette sans peser en 3G | Image d'origine |
+| **Files de dossiers en lignes repliables** (`<details>` natif) : une ligne par dossier, le détail et la décision à l'ouverture | Neuf dossiers tiennent sur un écran ; clavier et lecteurs d'écran sans script | Grandes cartes dépliées (une page par dossier) ; tableau avec fenêtre modale : plus de code, moins accessible |
+| **Accueil allégé** : la carte « À venir » (calendrier des sprints) et la tuile « Certificats émis (Sprint 3) » sont retirées ; les accès de la DG passent dans l'en-tête | Informations périmées et place perdue | — |
+
+**Règle de mise en page de l'application de gestion (US-019, à suivre par tout nouvel écran).**
+Chaque écran présente ses éléments dans cet ordre, sans les mélanger :
+
+1. **En-tête** (`PageHeader`) : titre court, une ligne d'explication, action principale à droite (« Inviter un compte », « Ajouter une langue »). Les formulaires d'ajout ne s'ouvrent qu'à la demande, sous l'en-tête.
+2. **Chiffres clés**, s'il y en a : tuiles blanches (`StatCard`, grille `ui-grid--stats` : deux par ligne sur téléphone).
+3. **Recherche et filtres** (`ui-toolbar`) : champ de recherche, listes de choix, filtres de statut avec leur nombre (`ui-segmented`) ; tout changement ramène à la première page.
+4. **Contenu** : tableau (`DataTable`, ou `table.ui-table`) avec les actions alignées à droite de chaque ligne et la **pagination commune** (`Pagination`, `usePagination` : 10, 25 ou 50 par page, choix mémorisé par liste) ; ou, pour une file de décisions, des lignes repliables (`DossierRow`) qu'on ouvre pour décider.
+5. **Plusieurs référentiels sur un écran** : un onglet chacun (`Tabs` : clavier WAI-ARIA, onglet gardé dans l'adresse).
+
+Style : contenu sobre (fond clair, cartes blanches, tableaux neutres) ; la couleur est réservée à la navigation, aux actions et aux états. Le menu latéral (colonne vert forêt, profil et déconnexion en bas, réductible) est commun à tous les écrans (`AppShell`). Garde-fous vérifiés par `tokens.test.ts` : aucune couleur en dur, aucun trait latéral décoratif.
+
+### 2.46 Application de gestion en 3 s en 3G (US-017, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Preact 10 (`preact/compat`) à la place de React** dans l'application de gestion, par alias de compilation (`apps/admin/vite.config.ts`) ; le code reste écrit pour l'interface de React. Code principal : 73 Ko compressés → 14 Ko | En 3G (700 kbit/s), 59 Ko de moins valent environ 0,7 s avant le premier affichage, plus le temps d'analyse sur un processeur bridé. Retour arrière : retirer les alias | Garder React et pré-générer seulement l'ossature : le code principal resterait le goulot (mesure du 14/11 : 3,5 s sur une page sans données) ; Preact 11 : sorti en octobre 2026, trop récent |
+| **Tests unitaires sur Preact** (`@testing-library/preact`, mêmes alias dans `packages/ui` et `apps/admin`) | Les tests vérifient ce qui est livré ; `@sabou/ui` n'est utilisé que par l'application de gestion | Tests sur React et livraison sur Preact : écarts invisibles |
+| **`forwardRef`** pour les composants de `@sabou/ui` qui reçoivent une référence (`Alert`, `Button`, champs) | Preact 10 ne transmet pas `ref` comme simple propriété (nouveauté de React 19) ; `forwardRef` marche avec les deux | — |
+| **Morceau de la page et ses données demandés au démarrage** (`preloadCurrentPage`, `prefetch.ts`), d'après la seule adresse, en même temps que la session ; la page reprend la réponse par `call()`, une fois, dans les 10 s | Deux allers-retours de 300 ms de moins. Le profil décide toujours de l'affichage et l'API contrôle chaque lecture (un refus n'est jamais repris) | Session préchargée dans `index.html` : essayée deux fois (14 et 15/11), la mesure se dégrade (2,90 → 3,01 s sur une page sans données) |
+| **Réponses JSON de l'API compressées par le frontal** (Brotli, sinon gzip) ; le serveur de test (`scripts/serve.mjs`) fait de même. En production : compression du frontal activée pour `application/json` | Comptes : 35 Ko → 3 Ko, 4,1 → 2,95 s | Compression dans l'API : le frontal le fait déjà pour les fichiers |
+| **Mêmes seuils sur toutes les pages** (score 0,90, LCP 3,1 s en 3G) ; l'exception de 4 s (§2.28) est retirée | Mesuré de 2,90 à 3,07 s ; écart de 0,1 s au critère de 3 s accepté par le maître d'œuvre (15/11/2026) jusqu'à l'ossature pré-générée (US-017b) | Garder 3 s : échecs ponctuels du pipeline à quelques dizaines de ms |
+
+Développement : sans React, le rafraîchissement à chaud garde l'état en moins (rechargement de la page à chaque modification).
 
 ## 3. Architecture
 

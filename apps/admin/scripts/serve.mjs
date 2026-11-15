@@ -1,12 +1,19 @@
 // Serveur de l'application compilée pour les tests (US-010), au plus près du serveur frontal
 // de production : fichiers compressés (Brotli ou gzip), cache long des fichiers versionnés,
-// en-têtes de sécurité, et /auth relayé vers l'API sous la même origine.
+// en-têtes de sécurité, et /auth relayé vers l'API sous la même origine, réponses JSON
+// compressées à la volée comme le fait le serveur frontal (US-017, 05 §2.46).
 //   node scripts/serve.mjs        (dist/ doit exister : pnpm build)
 import { createServer, request } from 'node:http';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
+import {
+  brotliCompressSync,
+  constants,
+  createBrotliCompress,
+  createGzip,
+  gzipSync,
+} from 'node:zlib';
 
 const dist = fileURLToPath(new URL('../dist', import.meta.url));
 const port = Number(process.env.ADMIN_PORT ?? 5173);
@@ -51,6 +58,21 @@ function load(dir) {
 }
 load(dist);
 
+// Brotli si le navigateur l'accepte, sinon gzip
+function encodingFor(req) {
+  const accept = String(req.headers['accept-encoding'] ?? '');
+  return /\bbr\b/.test(accept) ? 'br' : /\bgzip\b/.test(accept) ? 'gzip' : undefined;
+}
+
+// Réponses JSON de l'API compressées (Brotli, sinon gzip), comme par le serveur frontal de
+// production ; les autres réponses (fichiers, redirections) passent telles quelles
+function jsonEncoding(req, response) {
+  const type = String(response.headers['content-type'] ?? '');
+  if (!type.startsWith('application/json') || response.headers['content-encoding'])
+    return undefined;
+  return encodingFor(req);
+}
+
 function proxy(req, res) {
   // Premier mandataire : l'IP du client (journal d'audit, US-030) est celle de la connexion,
   // jamais un en-tête X-Forwarded-For ou Forwarded envoyé par le client lui-même
@@ -59,8 +81,27 @@ function proxy(req, res) {
   const upstream = request(
     { host: '127.0.0.1', port: apiPort, path: req.url, method: req.method, headers },
     (response) => {
-      res.writeHead(response.statusCode ?? 502, response.headers);
-      response.pipe(res);
+      const encoding = jsonEncoding(req, response);
+      if (!encoding) {
+        res.writeHead(response.statusCode ?? 502, response.headers);
+        response.pipe(res);
+        return;
+      }
+      // Longueur inconnue une fois compressé : envoi par morceaux
+      const rest = { ...response.headers };
+      delete rest['content-length'];
+      res.writeHead(response.statusCode ?? 502, {
+        ...rest,
+        'content-encoding': encoding,
+        vary: 'accept-encoding',
+      });
+      response
+        .pipe(
+          encoding === 'br'
+            ? createBrotliCompress({ params: { [constants.BROTLI_PARAM_QUALITY]: 4 } })
+            : createGzip(),
+        )
+        .pipe(res);
     },
   );
   upstream.on('error', () => {
@@ -76,8 +117,7 @@ createServer((req, res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return res.writeHead(405).end();
   // Application à page unique : toute adresse inconnue reçoit index.html
   const file = files.get(path) ?? files.get('/index.html');
-  const accept = String(req.headers['accept-encoding'] ?? '');
-  const encoding = /\bbr\b/.test(accept) ? 'br' : /\bgzip\b/.test(accept) ? 'gzip' : undefined;
+  const encoding = encodingFor(req);
   res.writeHead(200, {
     ...HEADERS,
     'content-type': file.type,
