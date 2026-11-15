@@ -116,7 +116,8 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
     `&code_challenge=${'A'.repeat(43)}&code_challenge_method=S256&state=lighthouse`;
 
   const groups: PageGroup[] = [
-    { name: 'sans session', cookie: '', urls: [`${APP}/`, keycloakLogin, link] },
+    // Sans session, « / » ouvre la connexion Keycloak (US-019), mesurée par keycloakLogin
+    { name: 'sans session', cookie: '', urls: [keycloakLogin, link] },
     {
       name: 'DG connectée',
       cookie: await cookieHeader(dgContext),

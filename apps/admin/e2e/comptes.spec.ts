@@ -43,6 +43,9 @@ async function dgOnAccountsPage(page: Page): Promise<void> {
 }
 
 async function fillIdentity(page: Page, invitee: Invitee, role: string): Promise<void> {
+  // Formulaire ouvert à la demande (US-019)
+  const opener = page.getByRole('button', { name: 'Inviter un compte' });
+  if ((await opener.getAttribute('aria-expanded')) !== 'true') await opener.click();
   const form = page.getByRole('region', { name: 'Inviter un compte' });
   await form.getByLabel('Prénom').fill(invitee.firstName);
   await form.getByLabel('Nom', { exact: true }).fill(invitee.lastName);
@@ -162,9 +165,9 @@ test('US-013 : suspension en un clic, sessions révoquées, nouvelle connexion r
 
   // Un clic de la DG
   await page.reload();
-  const item = page.getByRole('listitem').filter({
-    has: page.getByRole('heading', { name: `${invitee.firstName} ${invitee.lastName}` }),
-  });
+  // Tableau paginé (US-019) : le compte est retrouvé par la recherche
+  await page.getByRole('searchbox', { name: 'Rechercher un compte' }).fill(invitee.email);
+  const item = page.getByRole('row').filter({ hasText: invitee.email });
   await item
     .getByRole('button', {
       name: `Suspendre le compte de ${invitee.firstName} ${invitee.lastName}`,

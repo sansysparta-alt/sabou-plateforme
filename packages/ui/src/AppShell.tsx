@@ -24,8 +24,28 @@ export interface AppShellProps {
   children: ReactNode;
 }
 
-// Ossature de l'application de gestion (maquette v1.3) : bandeau Vert forêt, navigation latérale
-// groupée par rubriques, contenu centré. Sur téléphone, la navigation s'ouvre par « Menu ».
+// Navigation réduite aux icônes (ordinateur), mémorisée pour ce navigateur seulement
+const COLLAPSED_KEY = 'sabou-navigation-reduite';
+
+function readCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return (
+    (words[0]?.[0] ?? '') + (words.length > 1 ? (words.at(-1)?.[0] ?? '') : '')
+  ).toUpperCase();
+}
+
+// Ossature de l'application de gestion (US-019, à la manière de la navigation de Studium) :
+// colonne Vert forêt pleine hauteur, marque en haut, rubriques au milieu, profil et
+// déconnexion en bas ; réductible aux icônes sur ordinateur. Sur téléphone, un bandeau porte
+// le bouton « Menu », qui ouvre la colonne.
 export function AppShell({
   context,
   user,
@@ -35,8 +55,21 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+
+  function toggleCollapsed() {
+    setCollapsed((value) => {
+      try {
+        window.localStorage.setItem(COLLAPSED_KEY, value ? '0' : '1');
+      } catch {
+        // Stockage indisponible : le choix vaut pour cette page seulement
+      }
+      return !value;
+    });
+  }
+
   return (
-    <div className="ui-shell">
+    <div className="ui-shell" data-collapsed={collapsed}>
       <a className="ui-skip-link" href="#contenu">
         Aller au contenu
       </a>
@@ -56,16 +89,7 @@ export function AppShell({
             S
           </span>
           SABOU
-          {context && <span className="ui-topbar__context">· {context}</span>}
         </a>
-        <span className="ui-topbar__spacer" />
-        <div className="ui-topbar__user">
-          <div className="ui-topbar__identity">
-            <span className="ui-topbar__name">{user.name}</span>
-            {user.zone && <span className="ui-topbar__zone">{user.zone}</span>}
-          </div>
-          {userActions}
-        </div>
       </header>
       <div className="ui-shell__body">
         <nav
@@ -74,6 +98,15 @@ export function AppShell({
           aria-label="Navigation principale"
           data-open={open}
         >
+          <a className="ui-sidebar__brand" href="/">
+            <span className="ui-topbar__mark" aria-hidden="true">
+              S
+            </span>
+            <span className="ui-sidebar__text">
+              <span className="ui-sidebar__name">SABOU</span>
+              <span className="ui-sidebar__tagline">{context ?? 'Médecine traditionnelle'}</span>
+            </span>
+          </a>
           <div className="ui-nav">
             {nav.map((group) => (
               <div key={group.heading} className="ui-nav__group">
@@ -84,10 +117,11 @@ export function AppShell({
                       <a
                         className="ui-nav__link"
                         href={item.href}
+                        title={collapsed ? item.label : undefined}
                         aria-current={item.href === currentPath ? 'page' : undefined}
                       >
                         <Icon name={item.icon} />
-                        {item.label}
+                        <span className="ui-sidebar__text">{item.label}</span>
                         {item.count !== undefined && (
                           <span className="ui-nav__count">{item.count}</span>
                         )}
@@ -97,6 +131,27 @@ export function AppShell({
                 </ul>
               </div>
             ))}
+          </div>
+          <div className="ui-sidebar__footer">
+            <button
+              type="button"
+              className="ui-sidebar__collapse"
+              aria-pressed={collapsed}
+              onClick={toggleCollapsed}
+            >
+              <Icon name="chevron-left" />
+              <span className="ui-sidebar__text">Réduire le menu</span>
+            </button>
+            <div className="ui-sidebar__user">
+              <span className="ui-avatar" aria-hidden="true">
+                {initials(user.name)}
+              </span>
+              <span className="ui-sidebar__text ui-sidebar__identity">
+                <span className="ui-sidebar__user-name">{user.name}</span>
+                {user.zone && <span className="ui-sidebar__user-zone">{user.zone}</span>}
+              </span>
+              {userActions}
+            </div>
           </div>
         </nav>
         <main id="contenu" className="ui-main" tabIndex={-1}>
