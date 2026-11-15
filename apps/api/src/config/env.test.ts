@@ -53,6 +53,10 @@ describe('loadEnv', () => {
       S3_PIECES_BUCKET: 'sabou-pieces',
       S3_CREATE_BUCKET: false,
       OPENBAO_KEY: 'sabou-dg',
+      // Voix déposées (US-070)
+      AUDIO_POLL_SECONDS: 10,
+      FFMPEG_PATH: '/usr/local/bin/ffmpeg',
+      AUDIO_MODEL_PATH: '/app/assets/rnnoise-cb.rnnn',
     });
   });
 
