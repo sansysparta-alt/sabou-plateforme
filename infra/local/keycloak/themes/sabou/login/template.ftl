@@ -102,7 +102,27 @@
 </head>
 
 <body class="${properties.kcBodyClass!}" data-page-id="login-${pageId}">
-<div class="${properties.kcLoginClass!}">
+<#-- SABOU (US-019, maquette v1.3) : connexion de l'administration en une seule page, panneau
+     vert à gauche (marque, illustration, garanties), formulaire à droite ; empilés sur téléphone.
+     Le site public (thème « sabou-public », sabouPhoneLogin) garde la carte centrée. -->
+<#assign sabouSplit = !(properties.sabouPhoneLogin?has_content)>
+<div class="sabou-page<#if sabouSplit> sabou-page--split</#if>">
+<#if sabouSplit>
+<aside class="sabou-hero" aria-label="${msg("sabouHeroLabel")}">
+    <img class="sabou-hero__art" src="${url.resourcesPath}/img/connexion.webp" alt="" width="960" height="480" decoding="async">
+    <p class="sabou-hero__brand"><span class="sabou-hero__mark" aria-hidden="true">S</span>SABOU</p>
+    <p class="sabou-hero__kicker">${msg("sabouHeroKicker")}</p>
+    <p class="sabou-hero__title">${msg("sabouHeroTitle")}</p>
+    <p class="sabou-hero__lead">${msg("sabouHeroLead")}</p>
+    <ul class="sabou-hero__list">
+        <li>${msg("sabouHeroGuarantee1")}</li>
+        <li>${msg("sabouHeroGuarantee2")}</li>
+        <li>${msg("sabouHeroGuarantee3")}</li>
+        <li>${msg("sabouHeroGuarantee4")}</li>
+    </ul>
+</aside>
+</#if>
+<main class="${properties.kcLoginClass!}">
     <div id="kc-header" class="${properties.kcHeaderClass!}">
         <div id="kc-header-wrapper"
              class="${properties.kcHeaderWrapperClass!}">${kcSanitize(msg("loginTitleHtml",(realm.displayNameHtml!'')))?no_esc}</div>
@@ -221,7 +241,8 @@
 
       <@loginFooter.content/>
     </div>
-  </div>
+  </main>
+</div>
 </body>
 </html>
 </#macro>

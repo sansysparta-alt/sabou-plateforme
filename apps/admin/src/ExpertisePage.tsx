@@ -1,7 +1,13 @@
 import { Badge } from '@sabou/ui';
 import type { ExpertiseItem } from '@sabou/types';
 import { listExpertise } from './certification-api';
-import { DecisionActions, DossierQueuePage, longDate, type OnDecided } from './DossierDecision';
+import {
+  DecisionActions,
+  DossierQueuePage,
+  DossierRow,
+  longDate,
+  type OnDecided,
+} from './DossierDecision';
 
 // Expertise par le Comité scientifique (US-044, UC-50) : dossiers consolidés de toutes les
 // régions (étape 4), transmis à la DG pour approbation, ou renvoyés avec motif au régional
@@ -20,10 +26,11 @@ export function ExpertisePage() {
 
 function DossierItem({ dossier, onDecided }: { dossier: ExpertiseItem; onDecided: OnDecided }) {
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>
-        {dossier.code} · {dossier.praticienNom}
-      </h3>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticienNom}
+      meta={`${dossier.prefecture} · ${dossier.specialite} · consolidé le ${longDate(dossier.consolideLe)}`}
+    >
       <dl className="ui-facts">
         <dt>Praticien</dt>
         <dd>{dossier.praticien}</dd>
@@ -56,6 +63,6 @@ function DossierItem({ dossier, onDecided }: { dossier: ExpertiseItem; onDecided
         rejectHint="Le dossier revient à l’admin régional. Le motif est conservé dans l’historique du dossier."
         onDecided={onDecided}
       />
-    </li>
+    </DossierRow>
   );
 }

@@ -1,4 +1,4 @@
-import { useId, type ReactNode, type ComponentPropsWithRef } from 'react';
+import { forwardRef, useId, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 interface FieldFrameProps {
@@ -47,18 +47,15 @@ function Frame({
   );
 }
 
-export function TextField({
-  label,
-  hint,
-  error,
-  id,
-  className,
-  ...rest
-}: FieldFrameProps & ComponentPropsWithRef<'input'>) {
+export const TextField = forwardRef<
+  HTMLInputElement,
+  FieldFrameProps & ComponentPropsWithoutRef<'input'>
+>(function TextField({ label, hint, error, id, className, ...rest }, ref) {
   const ids = useFieldIds(id, hint, error);
   return (
     <Frame {...ids} label={label} hint={hint} error={error}>
       <input
+        ref={ref}
         id={ids.fieldId}
         className={['ui-input', className].filter(Boolean).join(' ')}
         aria-describedby={ids.describedBy}
@@ -67,21 +64,17 @@ export function TextField({
       />
     </Frame>
   );
-}
+});
 
-export function SelectField({
-  label,
-  hint,
-  error,
-  id,
-  className,
-  children,
-  ...rest
-}: FieldFrameProps & ComponentPropsWithRef<'select'>) {
+export const SelectField = forwardRef<
+  HTMLSelectElement,
+  FieldFrameProps & ComponentPropsWithoutRef<'select'>
+>(function SelectField({ label, hint, error, id, className, children, ...rest }, ref) {
   const ids = useFieldIds(id, hint, error);
   return (
     <Frame {...ids} label={label} hint={hint} error={error}>
       <select
+        ref={ref}
         id={ids.fieldId}
         className={['ui-select', className].filter(Boolean).join(' ')}
         aria-describedby={ids.describedBy}
@@ -92,21 +85,18 @@ export function SelectField({
       </select>
     </Frame>
   );
-}
+});
 
 // Texte libre sur plusieurs lignes (motif d'un rejet, US-042) ; même cadre que les autres champs
-export function TextAreaField({
-  label,
-  hint,
-  error,
-  id,
-  className,
-  ...rest
-}: FieldFrameProps & ComponentPropsWithRef<'textarea'>) {
+export const TextAreaField = forwardRef<
+  HTMLTextAreaElement,
+  FieldFrameProps & ComponentPropsWithoutRef<'textarea'>
+>(function TextAreaField({ label, hint, error, id, className, ...rest }, ref) {
   const ids = useFieldIds(id, hint, error);
   return (
     <Frame {...ids} label={label} hint={hint} error={error}>
       <textarea
+        ref={ref}
         id={ids.fieldId}
         className={['ui-input', 'ui-textarea', className].filter(Boolean).join(' ')}
         aria-describedby={ids.describedBy}
@@ -115,4 +105,4 @@ export function TextAreaField({
       />
     </Frame>
   );
-}
+});

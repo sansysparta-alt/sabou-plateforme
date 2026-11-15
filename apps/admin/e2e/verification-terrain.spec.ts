@@ -29,6 +29,9 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
   await expect(card(visited)).toBeVisible();
   // Le dossier de Kankan n'apparaît pas dans la liste de Labé
   await expect(card(elsewhere)).toHaveCount(0);
+  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
+  await card(visited).locator('summary').click();
+  await card(notVisited).locator('summary').click();
   await expectAccessible(page, 'vérification terrain');
 
   // Critère 2 : sans visite réalisée, pas de bouton à l'écran, et l'API refuse aussi

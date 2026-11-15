@@ -3,7 +3,13 @@ import { Alert, Badge, Button } from '@sabou/ui';
 import type { ApprovalItem } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { approveDossier, listApproval } from './certification-api';
-import { DecisionActions, DossierQueuePage, longDate, type OnDecided } from './DossierDecision';
+import {
+  DecisionActions,
+  DossierQueuePage,
+  DossierRow,
+  longDate,
+  type OnDecided,
+} from './DossierDecision';
 
 // Approbation par la Direction Générale (US-045, UC-60) : dossiers expertisés par le Comité
 // (étape 5). Approuver émet le certificat signé (12 mois) ; rejeter renvoie au Comité.
@@ -25,10 +31,11 @@ export const certificatePath = (numero: string) => `/certificats/${encodeURIComp
 function DossierItem({ dossier, onDecided }: { dossier: ApprovalItem; onDecided: OnDecided }) {
   const label = `${dossier.code}, ${dossier.praticienNom}`;
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>
-        {dossier.code} · {dossier.praticienNom}
-      </h3>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticienNom}
+      meta={`${dossier.prefecture} · ${dossier.specialite} · expertisé le ${longDate(dossier.expertiseLe)}`}
+    >
       <dl className="ui-facts">
         <dt>Praticien</dt>
         <dd>{dossier.praticien}</dd>
@@ -68,7 +75,7 @@ function DossierItem({ dossier, onDecided }: { dossier: ApprovalItem; onDecided:
         rejectHint="Le dossier revient au Comité scientifique. Le motif est conservé dans l’historique du dossier."
         onDecided={onDecided}
       />
-    </li>
+    </DossierRow>
   );
 }
 
