@@ -280,6 +280,9 @@ describe('Garde-fous du schéma', () => {
       'voix_depot_etat',
       'voix_depot_terminer',
       'voix_depots_prendre',
+      // US-071 : statuts de la voix des noms, droits par langue contrôlés en base (05 §2.47)
+      'voix_nom_enregistrer',
+      'voix_nom_statut',
     ]);
     const unsafe = rows.filter(
       (r) =>
