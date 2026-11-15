@@ -13,6 +13,7 @@ export {
   usePagination,
   type PaginationProps,
 } from './Pagination';
+export { Tabs, type Tab } from './Tabs';
 export {
   AppShell,
   PageHeader,

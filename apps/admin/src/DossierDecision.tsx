@@ -96,9 +96,17 @@ export function DossierQueuePage<T extends { code: string }>({
       {dossiers === null && !loadError && <p>Chargement…</p>}
       {dossiers !== null && (
         <section aria-labelledby="dossiers-title">
-          <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
-            {listTitle}
-          </h2>
+          <div className="ui-list-title">
+            <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
+              {listTitle}
+            </h2>
+            {/* Nombre de dossiers chargés ; « + » : d'autres suivent */}
+            <span className="ui-tabs__count">
+              {dossiers.length}
+              {next ? '+' : ''}
+              <span className="ui-visually-hidden"> dossier{dossiers.length > 1 ? 's' : ''}</span>
+            </span>
+          </div>
           {dossiers.length === 0 && <p>{empty}</p>}
           {dossiers.length > 0 && (
             <ul className="ui-dossiers">

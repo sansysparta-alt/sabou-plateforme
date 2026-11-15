@@ -1201,6 +1201,11 @@ details[open] > .ui-dossier__summary {
   .ui-table {
     min-width: 40rem;
   }
+  /* Un code ou une date ne se coupe pas : le tableau défile dans son cadre */
+  .ui-table th,
+  .ui-table td {
+    white-space: nowrap;
+  }
 }
 /* Colonne de navigation : le fond vert descend jusqu'en bas, même sur une page longue */
 @media (min-width: 60rem) {
@@ -1214,4 +1219,105 @@ details[open] > .ui-dossier__summary {
   .ui-shell[data-collapsed='true'] .ui-shell__body {
     background: linear-gradient(to right, var(--sabou-forest) 4.5rem, transparent 4.5rem);
   }
+}
+
+/* ---------- Onglets (US-019, composant Tabs) ---------- */
+.ui-tabs {
+  display: grid;
+  gap: var(--sabou-space-4);
+}
+.ui-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sabou-space-1);
+  border-bottom: 1px solid var(--sabou-border);
+}
+.ui-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sabou-space-2);
+  min-height: var(--sabou-target);
+  margin-bottom: -1px;
+  padding: 0 var(--sabou-space-4);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--sabou-text-muted);
+  font: inherit;
+  font-weight: var(--sabou-weight-semibold);
+  cursor: pointer;
+}
+.ui-tabs__tab:hover {
+  color: var(--sabou-text);
+}
+.ui-tabs__tab[aria-selected='true'] {
+  border-bottom-color: var(--sabou-institution);
+  color: var(--sabou-forest);
+}
+.ui-tabs__count {
+  min-width: 1.5rem;
+  padding: 0 var(--sabou-space-2);
+  border-radius: var(--sabou-radius-full);
+  background: var(--sabou-bg);
+  font-size: var(--sabou-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.ui-tabs__panel {
+  display: grid;
+  gap: var(--sabou-space-4);
+}
+.ui-tabs__panel[hidden] {
+  display: none;
+}
+.ui-tabs__panel:focus-visible {
+  outline-offset: var(--sabou-space-2);
+}
+/* En-tête d'un panneau : explication à gauche, action à droite */
+.ui-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sabou-space-3);
+}
+.ui-panel-header > p {
+  margin: 0;
+  max-width: 48rem;
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+}
+/* Recherche en une ligne : le champ puis son bouton */
+.ui-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sabou-space-3);
+}
+.ui-search-bar > .ui-field {
+  flex: 1 1 20rem;
+  max-width: 40rem;
+}
+.ui-search-bar > .ui-form__actions {
+  padding-top: 1.75rem;
+}
+
+/* Formulaire ouvert à la demande : sur sa propre ligne, toute la largeur */
+.ui-on-demand {
+  flex: 1 1 100%;
+}
+/* Formulaire court sur une ligne (modification dans un tableau) */
+.ui-form--inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  gap: var(--sabou-space-3);
+}
+/* Titre de liste et son nombre d'éléments */
+.ui-list-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sabou-space-2);
+}
+.ui-list-title > h2 {
+  margin: 0;
 }
