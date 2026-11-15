@@ -34,6 +34,9 @@ const DiseasesPage = lazy(() =>
   import('./DiseasesPage').then((m) => ({ default: m.DiseasesPage })),
 );
 const DiseasePage = lazy(() => import('./DiseasesPage').then((m) => ({ default: m.DiseasePage })));
+const LocalNamesPage = lazy(() =>
+  import('./LocalNamesPage').then((m) => ({ default: m.LocalNamesPage })),
+);
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -209,17 +212,20 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
     });
   }
-  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique
+  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
+  // locaux (US-053) pour tout administrateur, saisis par le référent de chaque langue
+  const dictionary: NavGroup = {
+    heading: 'Dictionnaire',
+    items: [{ href: '/noms-locaux', label: 'Noms locaux', icon: 'book' }],
+  };
   if (isDirector(user) || isCommittee(user)) {
-    groups.push({
-      heading: 'Dictionnaire',
-      items: [
-        { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
-        // US-052
-        { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
-      ],
-    });
+    dictionary.items.unshift(
+      { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
+      // US-052
+      { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
+    );
   }
+  if (user.administrator) groups.push(dictionary);
   if (isDirector(user)) {
     // Pilotage de la DG : entonnoir des 6 étapes (US-048)
     groups[0]!.items.push({
@@ -247,11 +253,15 @@ function navigation(user: SessionUser): NavGroup[] {
 
 // Pages de chaque profil, avec les lectures que la page fait à son ouverture (demandées en
 // avance, US-017) ; tout autre profil, ou toute autre adresse, mène à l'accueil
+// Lectures de la page des noms locaux (US-053)
+const LOCAL_NAMES_LANGUAGES = '/api/noms-locaux/langues';
+const LOCAL_NAMES_PLANTS = '/api/noms-locaux/plantes';
 interface Route {
   Page: ComponentType;
   data: string[];
 }
 const DIRECTOR_PAGES: Record<string, Route> = {
+  '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
   '/entonnoir': { Page: FunnelPage, data: ['/api/entonnoir'] },
   '/approbation': { Page: ApprovalPage, data: ['/api/dossiers/approbation'] },
   '/rejet-definitif': { Page: RejectionPage, data: [] },
@@ -261,15 +271,18 @@ const DIRECTOR_PAGES: Record<string, Route> = {
   '/referentiels': { Page: ReferentialsPage, data: ['/api/referentiels'] },
 };
 const PREFECTORAL_PAGES: Record<string, Route> = {
+  '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
   '/verification-terrain': {
     Page: FieldVerificationPage,
     data: ['/api/dossiers/verification-terrain'],
   },
 };
 const REGIONAL_PAGES: Record<string, Route> = {
+  '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
   '/consolidation': { Page: ConsolidationPage, data: ['/api/dossiers/consolidation'] },
 };
 const COMMITTEE_PAGES: Record<string, Route> = {
+  '/noms-locaux': { Page: LocalNamesPage, data: [LOCAL_NAMES_LANGUAGES, LOCAL_NAMES_PLANTS] },
   '/expertise': { Page: ExpertisePage, data: ['/api/dossiers/expertise'] },
   '/plantes': { Page: PlantsPage, data: ['/api/plantes'] },
   '/maladies': { Page: DiseasesPage, data: ['/api/maladies'] },

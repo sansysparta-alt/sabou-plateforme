@@ -1,9 +1,4 @@
-import {
-  useId,
-  type ReactNode,
-  type SelectHTMLAttributes,
-  type ComponentPropsWithRef,
-} from 'react';
+import { useId, type ReactNode, type ComponentPropsWithRef } from 'react';
 import { Icon } from './Icon';
 
 interface FieldFrameProps {
@@ -82,7 +77,7 @@ export function SelectField({
   className,
   children,
   ...rest
-}: FieldFrameProps & SelectHTMLAttributes<HTMLSelectElement>) {
+}: FieldFrameProps & ComponentPropsWithRef<'select'>) {
   const ids = useFieldIds(id, hint, error);
   return (
     <Frame {...ids} label={label} hint={hint} error={error}>

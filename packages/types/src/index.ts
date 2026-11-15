@@ -18,3 +18,4 @@ export * from './certificates.js';
 export * from './rejections.js';
 export * from './plants.js';
 export * from './diseases.js';
+export * from './local-names.js';
