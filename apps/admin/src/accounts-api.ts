@@ -35,7 +35,7 @@ export async function call<T>(
   const verb = method ?? (body === undefined ? 'GET' : 'POST');
   const payload = body === undefined || file ? undefined : JSON.stringify(body);
   try {
-    // Réponse déjà demandée par l'application en même temps que le morceau de la page (US-017)
+    // Réponse déjà demandée par l'application à son démarrage (US-017)
     const early = file ? undefined : takePrefetched(requestKey(verb, path, payload));
     response = await (early ??
       fetch(path, {

@@ -27,9 +27,9 @@ export async function submitPassword(page: Page, user: TestUser, password = user
   await page.getByRole('button', { name: 'Connexion' }).click();
 }
 
+// Sans session, l'application ouvre directement la page de connexion unique (US-019)
 export async function startLogin(page: Page) {
   await page.goto(APP);
-  await page.getByRole('link', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/realms/sabou/`));
 }
 

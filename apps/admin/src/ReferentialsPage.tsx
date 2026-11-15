@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, PageHeader } from '@sabou/ui';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
+import { Alert, Badge, Button, PageHeader, Tabs } from '@sabou/ui';
 import type { Language, LanguageType, Referentials, Specialty, TerritoryLevel } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { BADGE_TONES } from './roles';
@@ -34,6 +42,9 @@ const usage = (language: Language) =>
   [language.text && 'texte', language.voice && 'voix'].filter(Boolean).join(' et ');
 
 // Paramétrage des référentiels par la DG, sans modifier le code (lot C : US-020, US-021)
+// Référentiels de la DG (lot C : US-020, US-021). Organisation (US-019) : un onglet par
+// référentiel, avec son explication, son action d'ajout (formulaire ouvert à la demande) et
+// son tableau.
 export function ReferentialsPage() {
   const [data, setData] = useState<Referentials | null>(null);
   const [loadError, setLoadError] = useState<string>();
@@ -60,22 +71,59 @@ export function ReferentialsPage() {
 
   return (
     <>
-      <PageHeader title="Référentiels" />
-      <p>
-        Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée.
-      </p>
+      <PageHeader
+        title="Référentiels"
+        lead="Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée."
+      />
       {loadError && <Alert tone="error">{loadError}</Alert>}
       <p role="status" className="ui-live-status">
         {notice}
       </p>
       {data === null && !loadError && <p>Chargement…</p>}
       {data && (
-        <>
-          <LanguagesSection languages={data.languages} onDone={done} />
-          <TerritoriesSection data={data} onDone={done} />
-          <SpecialtiesSection specialties={data.specialties} onDone={done} />
-        </>
+        <Tabs
+          label="Référentiels"
+          tabs={[
+            {
+              id: 'langues',
+              label: 'Langues',
+              count: data.languages.length,
+              content: <LanguagesSection languages={data.languages} onDone={done} />,
+            },
+            {
+              id: 'territoires',
+              label: 'Territoires',
+              count: data.regions.length,
+              content: <TerritoriesSection data={data} onDone={done} />,
+            },
+            {
+              id: 'specialites',
+              label: 'Spécialités',
+              count: data.specialties.length,
+              content: <SpecialtiesSection specialties={data.specialties} onDone={done} />,
+            },
+          ]}
+        />
       )}
+    </>
+  );
+}
+
+// Bouton qui ouvre un formulaire à la demande, et le formulaire dessous
+function OnDemand({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button
+        variant={open ? 'secondary' : 'primary'}
+        icon={open ? 'close' : 'plus'}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? 'Fermer' : label}
+        {open && <span className="ui-visually-hidden"> : {label}</span>}
+      </Button>
+      {open && <div className="ui-on-demand">{children}</div>}
     </>
   );
 }
@@ -119,18 +167,40 @@ function ErrorText({ error }: { error?: string }) {
 
 function LanguagesSection({ languages, onDone }: { languages: Language[]; onDone: OnDone }) {
   return (
-    <section aria-labelledby="languages-title">
-      <h2 id="languages-title">Langues</h2>
-      <p className="ui-field__hint">
-        Les langues nationales existent uniquement en voix. Une langue ajoutée reste inactive
-        jusqu’à son activation.
-      </p>
-      <ul className="ui-stack">
-        {languages.map((language) => (
-          <LanguageItem key={language.code} language={language} onDone={onDone} />
-        ))}
-      </ul>
-      <LanguageForm onDone={onDone} />
+    <section aria-labelledby="languages-title" className="ui-section">
+      <h2 id="languages-title" className="ui-visually-hidden">
+        Langues
+      </h2>
+      <div className="ui-panel-header">
+        <p>
+          Les langues nationales existent uniquement en voix. Une langue ajoutée reste inactive
+          jusqu’à son activation.
+        </p>
+        <OnDemand label="Ajouter une langue">
+          <LanguageForm onDone={onDone} />
+        </OnDemand>
+      </div>
+      <div className="ui-table-wrap">
+        <table className="ui-table">
+          <caption className="ui-visually-hidden">Langues</caption>
+          <thead>
+            <tr>
+              <th scope="col">Langue</th>
+              <th scope="col">Type</th>
+              <th scope="col">Usage</th>
+              <th scope="col">Statut</th>
+              <th scope="col" className="ui-table__actions">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {languages.map((language) => (
+              <LanguageItem key={language.code} language={language} onDone={onDone} />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -139,40 +209,38 @@ function LanguageItem({ language, onDone }: { language: Language; onDone: OnDone
   const { busy, error, run } = useAction(onDone);
   const next = !language.active;
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>
-        {language.name} <span className="ui-field__hint">({language.code})</span>
-      </h3>
-      <dl className="ui-facts">
-        <dt>Type</dt>
-        <dd>{LANGUAGE_TYPE_LABELS[language.type]}</dd>
-        <dt>Usage</dt>
-        <dd>{usage(language)}</dd>
-        <dt>Statut</dt>
-        <dd>
-          <Badge tone={BADGE_TONES[language.active ? 'actif' : 'suspendu']}>
-            {language.active ? 'Active' : 'Inactive'}
-          </Badge>
-        </dd>
-      </dl>
-      <ErrorText error={error} />
-      {language.code !== 'fr' && (
-        <button
-          type="button"
-          className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
-          disabled={busy}
-          onClick={() =>
-            run(
-              () => updateLanguage(language.code, { active: next }),
-              `${language.name} ${next ? 'activée' : 'désactivée'}.`,
-            )
-          }
-        >
-          {next ? 'Activer' : 'Désactiver'}
-          <span className="ui-visually-hidden"> la langue {language.name}</span>
-        </button>
-      )}
-    </li>
+    <tr>
+      <th scope="row">
+        <span className="ui-person__name">{language.name}</span>{' '}
+        <span className="ui-muted">({language.code})</span>
+      </th>
+      <td>{LANGUAGE_TYPE_LABELS[language.type]}</td>
+      <td>{usage(language)}</td>
+      <td>
+        <Badge tone={BADGE_TONES[language.active ? 'actif' : 'suspendu']}>
+          {language.active ? 'Active' : 'Inactive'}
+        </Badge>
+      </td>
+      <td className="ui-table__actions">
+        <ErrorText error={error} />
+        {language.code !== 'fr' && (
+          <button
+            type="button"
+            className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
+            disabled={busy}
+            onClick={() =>
+              run(
+                () => updateLanguage(language.code, { active: next }),
+                `${language.name} ${next ? 'activée' : 'désactivée'}.`,
+              )
+            }
+          >
+            {next ? 'Activer' : 'Désactiver'}
+            <span className="ui-visually-hidden"> la langue {language.name}</span>
+          </button>
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -310,45 +378,80 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
 // ---------- Territoires (US-020) ----------
 
 function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDone }) {
+  // Un seul formulaire ouvert à la fois, sous l'en-tête du panneau
+  const [open, setOpen] = useState<'ajouter' | 'renommer' | null>(null);
   const languageName = (code: string) =>
     data.languages.find((language) => language.code === code)?.name ?? code;
   return (
-    <section aria-labelledby="territories-title">
-      <h2 id="territories-title">Territoires</h2>
-      <p className="ui-field__hint">
-        La région naturelle fixe la langue vocale proposée par défaut. La fusion de territoires fera
-        l’objet d’une évolution à part.
-      </p>
-      <ul className="ui-stack">
-        {data.regions.map((region) => {
-          const natural = data.naturalRegions.find((n) => n.id === region.parentId);
-          const prefectures = data.prefectures.filter((p) => p.parentId === region.id);
-          return (
-            <li key={region.id} className="ui-card ui-card--plain">
-              <h3>{region.name}</h3>
-              <dl className="ui-facts">
-                <dt>Région naturelle</dt>
-                <dd>{natural?.name}</dd>
-                <dt>Langue par défaut</dt>
-                <dd>{natural && languageName(natural.defaultLanguage)}</dd>
-                <dt>Préfectures</dt>
-                <dd>
-                  {prefectures
-                    .map((p) => {
-                      const subs = data.subPrefectures.filter((s) => s.parentId === p.id);
-                      return subs.length
-                        ? `${p.name} (${subs.map((s) => s.name).join(', ')})`
-                        : p.name;
-                    })
-                    .join(' ; ') || 'Aucune'}
-                </dd>
-              </dl>
-            </li>
-          );
-        })}
-      </ul>
-      <TerritoryForm data={data} onDone={onDone} />
-      <RenameForm data={data} onDone={onDone} />
+    <section aria-labelledby="territories-title" className="ui-section">
+      <h2 id="territories-title" className="ui-visually-hidden">
+        Territoires
+      </h2>
+      <div className="ui-panel-header">
+        <p>
+          La région naturelle fixe la langue vocale proposée par défaut. La fusion de territoires
+          fera l’objet d’une évolution à part.
+        </p>
+        <div className="ui-form__actions">
+          {(
+            [
+              ['ajouter', 'Ajouter un territoire'],
+              ['renommer', 'Renommer un territoire'],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              variant={open === value ? 'secondary' : 'primary'}
+              icon={open === value ? 'close' : 'plus'}
+              aria-expanded={open === value}
+              onClick={() => setOpen(open === value ? null : value)}
+            >
+              {open === value ? 'Fermer' : label}
+              {open === value && <span className="ui-visually-hidden"> : {label}</span>}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {open === 'ajouter' && <TerritoryForm data={data} onDone={onDone} />}
+      {open === 'renommer' && <RenameForm data={data} onDone={onDone} />}
+      <div className="ui-table-wrap">
+        <table className="ui-table">
+          <caption className="ui-visually-hidden">Territoires</caption>
+          <thead>
+            <tr>
+              <th scope="col">Région</th>
+              <th scope="col">Région naturelle</th>
+              <th scope="col">Langue par défaut</th>
+              <th scope="col">Préfectures (sous-préfectures)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.regions.map((region) => {
+              const natural = data.naturalRegions.find((n) => n.id === region.parentId);
+              const prefectures = data.prefectures.filter((p) => p.parentId === region.id);
+              return (
+                <tr key={region.id}>
+                  <th scope="row">
+                    <span className="ui-person__name">{region.name}</span>
+                  </th>
+                  <td>{natural?.name}</td>
+                  <td>{natural && languageName(natural.defaultLanguage)}</td>
+                  <td>
+                    {prefectures
+                      .map((p) => {
+                        const subs = data.subPrefectures.filter((s) => s.parentId === p.id);
+                        return subs.length
+                          ? `${p.name} (${subs.map((s) => s.name).join(', ')})`
+                          : p.name;
+                      })
+                      .join(' ; ') || 'Aucune'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -556,17 +659,36 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
 
 function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[]; onDone: OnDone }) {
   return (
-    <section aria-labelledby="specialties-title">
-      <h2 id="specialties-title">Spécialités</h2>
-      <p className="ui-field__hint">
-        Une spécialité désactivée n’est plus proposée ; les praticiens qui l’ont la gardent.
-      </p>
-      <ul className="ui-stack">
-        {specialties.map((specialty) => (
-          <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
-        ))}
-      </ul>
-      <SpecialtyForm onDone={onDone} />
+    <section aria-labelledby="specialties-title" className="ui-section">
+      <h2 id="specialties-title" className="ui-visually-hidden">
+        Spécialités
+      </h2>
+      <div className="ui-panel-header">
+        <p>Une spécialité désactivée n’est plus proposée ; les praticiens qui l’ont la gardent.</p>
+        <OnDemand label="Ajouter une spécialité">
+          <SpecialtyForm onDone={onDone} />
+        </OnDemand>
+      </div>
+      <div className="ui-table-wrap">
+        <table className="ui-table">
+          <caption className="ui-visually-hidden">Spécialités</caption>
+          <thead>
+            <tr>
+              <th scope="col">Spécialité</th>
+              <th scope="col">En anglais</th>
+              <th scope="col">Statut</th>
+              <th scope="col" className="ui-table__actions">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {specialties.map((specialty) => (
+              <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -588,76 +710,89 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
     if (ok) setEditing(false);
   }
 
+  const toggle = (
+    <button
+      type="button"
+      className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
+      disabled={busy}
+      onClick={() =>
+        run(
+          () => updateSpecialty(specialty.id, { active: next }),
+          `${specialty.labelFr} ${next ? 'activée' : 'désactivée'}.`,
+        )
+      }
+    >
+      {next ? 'Activer' : 'Désactiver'}
+      <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
+    </button>
+  );
+
   return (
-    <li className="ui-card ui-card--plain">
-      <h3>{specialty.labelFr}</h3>
-      <dl className="ui-facts">
-        <dt>En anglais</dt>
-        <dd lang="en">{specialty.labelEn ?? '—'}</dd>
-        <dt>Statut</dt>
-        <dd>
+    <>
+      <tr>
+        <th scope="row">
+          <span className="ui-person__name">{specialty.labelFr}</span>
+        </th>
+        <td lang="en">{specialty.labelEn ?? '—'}</td>
+        <td>
           <Badge tone={BADGE_TONES[specialty.active ? 'actif' : 'suspendu']}>
             {specialty.active ? 'Active' : 'Inactive'}
           </Badge>
-        </dd>
-      </dl>
-      <ErrorText error={error} />
-      {editing ? (
-        <form className="ui-form" onSubmit={onSubmit} noValidate>
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-fr`}>
-              Libellé en français
-            </label>
-            <input
-              className="ui-input"
-              id={`${id}-fr`}
-              required
-              maxLength={80}
-              value={labelFr}
-              onChange={(e) => setLabelFr(e.target.value)}
-            />
-          </div>
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-en`}>
-              Libellé en anglais (facultatif)
-            </label>
-            <input
-              className="ui-input"
-              id={`${id}-en`}
-              lang="en"
-              maxLength={80}
-              value={labelEn}
-              onChange={(e) => setLabelEn(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
-            Enregistrer
-          </button>
-        </form>
-      ) : (
-        <button
-          type="button"
-          className="ui-button ui-button--secondary"
-          onClick={() => setEditing(true)}
-        >
-          Modifier<span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
-        </button>
+        </td>
+        <td className="ui-table__actions">
+          <ErrorText error={error} />
+          <button
+            type="button"
+            className="ui-button ui-button--secondary"
+            aria-expanded={editing}
+            onClick={() => setEditing((value) => !value)}
+          >
+            {editing ? 'Fermer' : 'Modifier'}
+            <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
+          </button>{' '}
+          {toggle}
+        </td>
+      </tr>
+      {editing && (
+        <tr>
+          <td colSpan={4}>
+            <form className="ui-form ui-form--inline" onSubmit={onSubmit} noValidate>
+              <div className="ui-field">
+                <label className="ui-field__label" htmlFor={`${id}-fr`}>
+                  Libellé en français
+                </label>
+                <input
+                  className="ui-input"
+                  id={`${id}-fr`}
+                  required
+                  maxLength={80}
+                  value={labelFr}
+                  onChange={(e) => setLabelFr(e.target.value)}
+                />
+              </div>
+              <div className="ui-field">
+                <label className="ui-field__label" htmlFor={`${id}-en`}>
+                  Libellé en anglais (facultatif)
+                </label>
+                <input
+                  className="ui-input"
+                  id={`${id}-en`}
+                  lang="en"
+                  maxLength={80}
+                  value={labelEn}
+                  onChange={(e) => setLabelEn(e.target.value)}
+                />
+              </div>
+              <div className="ui-form__actions">
+                <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
+                  Enregistrer
+                </button>
+              </div>
+            </form>
+          </td>
+        </tr>
       )}
-      <button
-        type="button"
-        className={`ui-button ${next ? 'ui-button--secondary' : 'ui-button--danger'}`}
-        disabled={busy}
-        onClick={() =>
-          run(
-            () => updateSpecialty(specialty.id, { active: next }),
-            `${specialty.labelFr} ${next ? 'activée' : 'désactivée'}.`,
-          )
-        }
-      >
-        {next ? 'Activer' : 'Désactiver'}
-        <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
-      </button>
-    </li>
+    </>
   );
 }
 

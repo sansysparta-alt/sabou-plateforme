@@ -289,13 +289,14 @@ describe('GET /auth/callback', () => {
     expect(response.headers.get('location')).toBe(`${APP}/`);
   });
 
-  it('refuse un retour sans le cookie du navigateur qui a commencé la connexion', async () => {
+  it('refuse un retour sans le cookie du navigateur qui a commencé la connexion ; l’application relance (US-019)', async () => {
     const start = await fetch(`${base}/auth/login`, { redirect: 'manual' });
     const state = new URL(start.headers.get('location')!).searchParams.get('state')!;
     const response = await fetch(`${base}/auth/callback?code=abc&state=${state}`, {
       redirect: 'manual',
     });
-    expect(response.headers.get('location')).toBe(`${APP}/?erreur=connexion`);
+    // Aucun code échangé ; l'application de gestion relance une connexion neuve, une fois
+    expect(response.headers.get('location')).toBe(`${APP}/?reprise=1`);
     expect(idp.finishLogin).not.toHaveBeenCalled();
   });
 
@@ -306,7 +307,7 @@ describe('GET /auth/callback', () => {
     const url = `${base}/auth/callback?code=abc&state=${state}`;
     await fetch(url, { redirect: 'manual', headers });
     const replay = await fetch(url, { redirect: 'manual', headers });
-    expect(replay.headers.get('location')).toBe(`${APP}/?erreur=connexion`);
+    expect(replay.headers.get('location')).toBe(`${APP}/?reprise=1`);
     expect(idp.finishLogin).toHaveBeenCalledTimes(1);
   });
 
