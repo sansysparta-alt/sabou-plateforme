@@ -40,6 +40,9 @@ On s'inspire des pratiques des meilleures équipes du numérique en corrigeant l
 
 - **Pendant le sprint, à chaque récit** : lint et tests unitaires des paquets touchés (et de ceux qui en dépendent), plus les tests de la base au complet. Commande : `pnpm exec turbo run lint test "--filter=...[<base du récit>]" --filter=@sabou/db`, plus `prettier --check` des fichiers touchés. Ni Semgrep, ni Lighthouse, ni bout en bout complet à chaque récit.
 - **Une seule fois, avant la fusion dans `main`** : le pipeline complet (`pnpm ci:local`) sur l'état qui arrivera dans `main` (tous les récits du sprint réunis).
+- **Le pipeline complet ne bloque jamais le travail** (décision du maître d'œuvre du 16 novembre 2026) : Claude n'attend pas son résultat pour avancer ; il ne conditionne que la fusion dans `main`. Deux conditions :
+  - il s'arrête proprement s'il échoue : à la première étape en échec, ou au-delà de sa durée maximale (60 min par étape), sans laisser de processus ni de conteneur derrière lui ;
+  - il ne tourne jamais pendant un essai dans le navigateur, ni celui de Claude ni celui du maître d'œuvre : la mémoire du poste ne suffit pas aux deux. Il refuse de démarrer si l'application de gestion (5173) ou le site (3000) tournent en développement.
 - **En fin de sprint** : Claude rédige la liste détaillée des vérifications que le maître d'œuvre fait lui-même dans le navigateur pour valider le rendu (adresse, compte, action, résultat attendu).
 
 ### Autonomie
