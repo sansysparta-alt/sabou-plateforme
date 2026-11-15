@@ -2,7 +2,7 @@
 // principal, voix d'un dépôt traité du même compte, journal) sont prouvées par la base
 // (packages/db/test/noms-locaux.test.ts) et l'API (apps/api/src/plants/local-names.test.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { LocalNamesPlant, LocalNamesPlantSummary } from '@sabou/types';
 import { LocalNamesPage } from './LocalNamesPage';
 
@@ -185,6 +185,23 @@ describe('Voix du nom', () => {
     expect(polls).toBe(1);
     const add = posts().find(([url]) => url === '/api/noms-locaux')!;
     expect(JSON.parse(String(add[1]!.body))).toMatchObject({ depot: 42 });
+  });
+});
+
+describe('Gabarit de liste (US-019b)', () => {
+  it('la recherche part à l’API une fois la frappe arrêtée, sans bouton', async () => {
+    render(<LocalNamesPage />);
+    await screen.findByRole('table', { name: 'Plantes' });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher une plante' }), {
+      target: { value: 'kinké' },
+    });
+    expect(await screen.findByRole('table', { name: 'Plantes trouvées pour « kinké »' }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.map(([url]) => url)).toContain(
+        '/api/noms-locaux/plantes?q=kink%C3%A9',
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Rechercher' })).toBeNull();
   });
 });
 

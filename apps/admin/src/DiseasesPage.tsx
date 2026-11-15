@@ -1,12 +1,15 @@
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
   Button,
   DataTable,
+  ListToolbar,
   PageHeader,
+  SearchBox,
   SelectField,
   TextAreaField,
   TextField,
+  useDebounced,
 } from '@sabou/ui';
 import type {
   Denomination,
@@ -26,6 +29,8 @@ const NAME_MAX_LENGTH = 150;
 const SYMPTOMS_MAX_LENGTH = 2000;
 const DENOMINATIONS_MAX = 30;
 const SEARCH_MAX_LENGTH = 100;
+// Plafond de la liste renvoyée par l'API (DISEASE_LIST_LIMIT, diseases.repository.ts)
+const DISEASE_LIST_LIMIT = 200;
 const LANGUAGES: [DenominationLanguage, string][] = [
   ['fr', 'Français'],
   ['en', 'Anglais'],
@@ -53,63 +58,70 @@ export function DiseasesPage() {
   const [diseases, setDiseases] = useState<DiseaseSummary[] | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [query, setQuery] = useState('');
-  const [searched, setSearched] = useState('');
+  const [creating, setCreating] = useState(false);
+  // Gabarit de liste (05 §2.45) : la recherche part vers l'API une fois la frappe arrêtée
+  const searched = useDebounced(query.trim());
 
   useEffect(() => {
     let active = true;
-    listDiseases().then(
-      (rows) => active && setDiseases(rows),
+    listDiseases(searched).then(
+      (rows) => {
+        if (!active) return;
+        setDiseases(rows);
+        setLoadError(undefined);
+      },
       (error: unknown) => active && setLoadError(errorMessage(error)),
     );
     return () => {
       active = false;
     };
-  }, []);
-
-  async function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    try {
-      setDiseases(await listDiseases(q));
-      setSearched(q);
-      setLoadError(undefined);
-    } catch (error) {
-      setLoadError(errorMessage(error));
-    }
-  }
+  }, [searched]);
 
   return (
     <>
       <PageHeader
         title="Fiches maladies"
         lead="Une fiche par maladie : nom français, nom anglais, dénominations et symptômes. La recherche trouve aussi les dénominations, avec ou sans accents."
+        actions={
+          <Button
+            variant="primary"
+            icon="plus"
+            aria-expanded={creating}
+            onClick={() => setCreating((value) => !value)}
+          >
+            Nouvelle fiche maladie
+          </Button>
+        }
       />
-      <NewDiseaseForm />
+      {creating && <NewDiseaseForm onCancel={() => setCreating(false)} />}
       <section className="ui-section" aria-labelledby="maladies-titre">
-        <h2 id="maladies-titre">Fiches</h2>
-        <form className="ui-form__actions" role="search" onSubmit={onSearch}>
-          <TextField
+        <h2 id="maladies-titre" className="ui-visually-hidden">
+          Fiches
+        </h2>
+        <ListToolbar>
+          <SearchBox
             label="Rechercher une maladie"
-            hint="Nom français ou anglais, dénomination, ou code (MA-001)."
-            type="search"
+            placeholder="Nom français ou anglais, dénomination, ou code (MA-001)"
             value={query}
             maxLength={SEARCH_MAX_LENGTH}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={setQuery}
           />
-          <div>
-            <Button type="submit" variant="secondary">
-              Rechercher
-            </Button>
-          </div>
-        </form>
+        </ListToolbar>
         {loadError && <Alert tone="error">{loadError}</Alert>}
         {diseases === null && !loadError && <p>Chargement…</p>}
+        {diseases && diseases.length >= DISEASE_LIST_LIMIT && (
+          <p className="ui-muted">
+            Seules les {DISEASE_LIST_LIMIT} premières fiches sont listées : précisez la recherche.
+          </p>
+        )}
         {diseases && (
           <DataTable
             caption={searched ? `Fiches trouvées pour « ${searched} »` : 'Toutes les fiches'}
+            captionHidden
             rows={diseases}
             rowKey={(disease) => disease.code}
             empty={searched ? 'Aucune fiche ne correspond.' : 'Aucune fiche pour l’instant.'}
+            paginate={{ key: 'maladies', noun: ['fiche', 'fiches'], resetOn: [searched] }}
             columns={[
               {
                 key: 'nom',
@@ -250,9 +262,10 @@ const EMPTY: DiseaseFields = {
   denominations: [],
 };
 
-function NewDiseaseForm() {
+// Formulaire de création, ouvert sous l'en-tête à la demande ; le focus va au premier champ
+function NewDiseaseForm({ onCancel }: { onCancel: () => void }) {
   const titleId = useId();
-  const [open, setOpen] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
   const [fields, setFields] = useState<DiseaseFields>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -270,17 +283,17 @@ function NewDiseaseForm() {
     }
   }
 
-  if (!open) {
-    return (
-      <div>
-        <Button variant="primary" icon="plus" onClick={() => setOpen(true)}>
-          Nouvelle fiche maladie
-        </Button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    form.current?.querySelector('input')?.focus();
+  }, []);
+
   return (
-    <form className="ui-form ui-card ui-card--plain" aria-labelledby={titleId} onSubmit={onSubmit}>
+    <form
+      ref={form}
+      className="ui-form ui-card ui-card--plain"
+      aria-labelledby={titleId}
+      onSubmit={onSubmit}
+    >
       <h2 id={titleId}>Nouvelle fiche maladie</h2>
       {error && <Alert tone="error">{error}</Alert>}
       <DiseaseFieldInputs value={fields} onChange={setFields} />
@@ -288,15 +301,7 @@ function NewDiseaseForm() {
         <Button type="submit" variant="primary" disabled={busy}>
           {busy ? 'Création…' : 'Créer la fiche'}
         </Button>
-        <Button
-          variant="tertiary"
-          disabled={busy}
-          onClick={() => {
-            setOpen(false);
-            setFields(EMPTY);
-            setError(undefined);
-          }}
-        >
+        <Button variant="tertiary" disabled={busy} onClick={onCancel}>
           Annuler
         </Button>
       </div>

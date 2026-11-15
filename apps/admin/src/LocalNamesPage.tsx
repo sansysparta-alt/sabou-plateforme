@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, DataTable, PageHeader, SelectField, TextField } from '@sabou/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  DataTable,
+  ListToolbar,
+  PageHeader,
+  SearchBox,
+  SelectField,
+  TextField,
+  useDebounced,
+} from '@sabou/ui';
 import type { LocalNamesPlant, LocalNamesPlantSummary, RecordingLanguage } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import {
@@ -31,17 +42,14 @@ export function LocalNamesPage() {
   const [plant, setPlant] = useState<LocalNamesPlant | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [query, setQuery] = useState('');
-  const [searched, setSearched] = useState('');
+  // Gabarit de liste (05 §2.45) : la recherche part vers l'API une fois la frappe arrêtée
+  const searched = useDebounced(query.trim());
   const plantTitle = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listRecordingLanguages(), searchLocalNamesPlants()]).then(
-      ([langs, rows]) => {
-        if (!active) return;
-        setLanguages(langs);
-        setPlants(rows);
-      },
+    listRecordingLanguages().then(
+      (langs) => active && setLanguages(langs),
       (error: unknown) => active && setLoadError(errorMessage(error)),
     );
     return () => {
@@ -55,17 +63,20 @@ export function LocalNamesPage() {
     if (plantCode) plantTitle.current?.focus();
   }, [plantCode]);
 
-  async function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    try {
-      setPlants(await searchLocalNamesPlants(q));
-      setSearched(q);
-      setLoadError(undefined);
-    } catch (error) {
-      setLoadError(errorMessage(error));
-    }
-  }
+  useEffect(() => {
+    let active = true;
+    searchLocalNamesPlants(searched).then(
+      (rows) => {
+        if (!active) return;
+        setPlants(rows);
+        setLoadError(undefined);
+      },
+      (error: unknown) => active && setLoadError(errorMessage(error)),
+    );
+    return () => {
+      active = false;
+    };
+  }, [searched]);
 
   async function choose(code: string) {
     try {
@@ -94,24 +105,20 @@ export function LocalNamesPage() {
       {plants && (
         <section className="ui-section" aria-labelledby="plantes-titre">
           <h2 id="plantes-titre">Choisir une plante</h2>
-          <form className="ui-toolbar" role="search" onSubmit={onSearch}>
-            <TextField
+          <ListToolbar>
+            <SearchBox
               label="Rechercher une plante"
-              hint="Nom français ou scientifique, ou code (PL-001)."
-              type="search"
+              placeholder="Nom français ou scientifique, ou code (PL-001)"
               value={query}
               maxLength={SEARCH_MAX_LENGTH}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={setQuery}
             />
-            <div>
-              <Button type="submit" variant="secondary">
-                Rechercher
-              </Button>
-            </div>
-          </form>
+          </ListToolbar>
           <DataTable
             caption={searched ? `Plantes trouvées pour « ${searched} »` : 'Plantes'}
+            captionHidden
             rows={plants}
+            paginate={{ key: 'noms-locaux', noun: ['plante', 'plantes'], resetOn: [searched] }}
             rowKey={(row) => row.code}
             empty={
               searched ? 'Aucune plante ne correspond.' : 'Aucune fiche plante pour l’instant.'
@@ -127,6 +134,7 @@ export function LocalNamesPage() {
               {
                 key: 'action',
                 header: 'Action',
+                actions: true,
                 render: (row) => (
                   <Button variant="secondary" onClick={() => choose(row.code)}>
                     Noms locaux <span className="ui-visually-hidden">de {row.nomFr}</span>

@@ -88,3 +88,11 @@ export function useDebounced<T>(value: T, delay = SEARCH_DELAY_MS): T {
   }, [value, delay]);
   return settled;
 }
+
+// Texte comparé sans accents ni majuscules : « nere » trouve « Néré » (recherche dans une
+// liste déjà reçue)
+export const foldText = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();

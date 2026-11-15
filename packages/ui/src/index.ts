@@ -22,6 +22,7 @@ export {
   SegmentedFilter,
   useDebounced,
   SEARCH_DELAY_MS,
+  foldText,
 } from './Toolbar';
 export {
   AppShell,

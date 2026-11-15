@@ -4,10 +4,14 @@ import {
   Badge,
   Button,
   DataTable,
+  ListToolbar,
   PageHeader,
+  SearchBox,
+  SegmentedFilter,
   SelectField,
   TextAreaField,
   TextField,
+  foldText,
 } from '@sabou/ui';
 import type {
   NameVoiceObject,
@@ -48,10 +52,14 @@ const OBJECT_LABEL: Record<NameVoiceObject, string> = { plante: 'Plante', maladi
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
+type KindFilter = 'toutes' | NameVoiceObject;
+
 export function NameVoicesPage() {
   const [targets, setTargets] = useState<NameVoiceTarget[] | null>(null);
   const [current, setCurrent] = useState<NameVoices | null>(null);
   const [loadError, setLoadError] = useState<string>();
+  const [query, setQuery] = useState('');
+  const [kind, setKind] = useState<KindFilter>('toutes');
   const title = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -79,6 +87,17 @@ export function NameVoicesPage() {
     }
   }
 
+  // Gabarit de liste (05 §2.45) : la liste entière est reçue en une fois ; la recherche et le
+  // filtre s'appliquent ici, sans nouvel appel
+  const all = targets ?? [];
+  const term = foldText(query.trim());
+  const count = (wanted: KindFilter) =>
+    all.filter((t) => wanted === 'toutes' || t.objet === wanted).length;
+  const rows = all.filter(
+    (t) =>
+      (kind === 'toutes' || t.objet === kind) && (term === '' || foldText(t.nom).includes(term)),
+  );
+
   return (
     <>
       <PageHeader
@@ -88,11 +107,37 @@ export function NameVoicesPage() {
       {loadError && <Alert tone="error">{loadError}</Alert>}
       {targets === null && !loadError && <p>Chargement…</p>}
       {targets && (
+        <ListToolbar>
+          <SearchBox
+            label="Rechercher une fiche"
+            placeholder="Nom de la plante ou de la maladie"
+            value={query}
+            onChange={setQuery}
+          />
+          <SegmentedFilter
+            label="Filtrer par fiche"
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: 'toutes', label: 'Toutes', count: count('toutes') },
+              { value: 'plante', label: 'Plantes', count: count('plante') },
+              { value: 'maladie', label: 'Maladies', count: count('maladie') },
+            ]}
+          />
+        </ListToolbar>
+      )}
+      {targets && (
         <DataTable
           caption="Fiches du Dictionnaire"
-          rows={targets}
-          rowKey={(t) => t.code}
-          empty="Aucune fiche pour l’instant."
+          captionHidden
+          rows={rows}
+          rowKey={(t) => `${t.objet}/${t.code}`}
+          empty={
+            term || kind !== 'toutes'
+              ? 'Aucune fiche ne correspond.'
+              : 'Aucune fiche pour l’instant.'
+          }
+          paginate={{ key: 'voix-des-noms', noun: ['fiche', 'fiches'], resetOn: [term, kind] }}
           columns={[
             { key: 'nom', header: 'Nom', render: (t) => t.nom },
             { key: 'objet', header: 'Fiche', render: (t) => OBJECT_LABEL[t.objet] },
@@ -101,6 +146,7 @@ export function NameVoicesPage() {
             {
               key: 'action',
               header: 'Action',
+              actions: true,
               render: (t) => (
                 <Button variant="secondary" onClick={() => open(t)}>
                   Voix <span className="ui-visually-hidden">du nom {t.nom}</span>
