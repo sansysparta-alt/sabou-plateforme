@@ -32,17 +32,17 @@ const repository = {
   async listFieldVerification(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers/verification-terrain', sub, query });
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
   async listConsolidation(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers/consolidation', sub, query });
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
   async listExpertise(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers/expertise', sub, query });
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
   async decide(sub: string, _ip: string | undefined, code: string, input: DossierDecision) {
     decisions.push({ sub, code, input });
@@ -52,12 +52,12 @@ const repository = {
   async listPractitioners(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'praticiens', sub, query });
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
   async listDossiers(sub: string, query: ZoneListQuery) {
     calls.push({ list: 'dossiers', sub, query });
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
 };
 
@@ -140,7 +140,7 @@ describe.each([
     const response = await get(path, 'admin');
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.json()).toEqual({ elements: [], suivant: null });
+    expect(await response.json()).toEqual({ elements: [], suivant: null, total: 0 });
     expect(calls).toEqual([{ list: path.slice(5), sub: SUB, query: { limite: 50 } }]);
   });
 
@@ -149,10 +149,17 @@ describe.each([
     expect(calls[0]!.query).toEqual({ limite: 10, apres: 'PR-1041' });
   });
 
+  it('transmet la page demandée par numéro (US-019b)', async () => {
+    await get(`${path}?limite=25&decalage=50`, 'admin');
+    expect(calls[0]!.query).toEqual({ limite: 25, decalage: 50 });
+  });
+
   it.each([
     ['limite=0'],
     ['limite=101'],
     ['apres=%27%20OR%201%3D1'],
+    ['decalage=-1'],
+    ['apres=PR-1041&decalage=10'],
     // Aucun paramètre de zone n'est accepté : la zone vient du compte, jamais de la requête
     ['prefecture_id=9'],
     ['region=7'],

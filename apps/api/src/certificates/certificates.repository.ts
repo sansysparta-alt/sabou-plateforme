@@ -17,6 +17,7 @@ import {
   StaleDossierError,
 } from '../certification/certification.repository';
 import { DATABASE, type Database } from '../database/database';
+import { zonePage } from '../database/paging';
 import { inZone } from '../database/zone';
 import { CERTIFICATE_SIGNER, SignerUnavailableError, type CertificateSigner } from './vault-signer';
 
@@ -34,11 +35,6 @@ function translate(error: unknown): never {
   throw error;
 }
 
-function page<T extends { code: string }>(rows: T[], limit: number): ZonePage<T> {
-  const elements = rows.slice(0, limit);
-  return { elements, suivant: rows.length > limit ? elements.at(-1)!.code : null };
-}
-
 @Injectable()
 export class CertificatesRepository {
   constructor(
@@ -49,7 +45,9 @@ export class CertificatesRepository {
   // Dossiers en attente d'approbation par la DG (étape 5), toutes régions
   listApproval(sub: string, query: ZoneListQuery): Promise<ZonePage<ApprovalItem>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<ApprovalItem>`
+      return zonePage<ApprovalItem>(
+        trx,
+        sql`
         SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
                sp.libelle_fr AS specialite, pf.nom AS prefecture, ra.nom AS region, d.type,
                to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "expertiseLe",
@@ -63,11 +61,9 @@ export class CertificatesRepository {
           JOIN sabou.specialite sp    ON sp.id = p.specialite_id
           JOIN sabou.prefecture pf    ON pf.id = p.prefecture_id
           JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
-         WHERE d.statut = 'en_cours' AND d.etape_courante = 5
-           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
-         ORDER BY d.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 5`,
+        query,
+      );
     });
   }
 

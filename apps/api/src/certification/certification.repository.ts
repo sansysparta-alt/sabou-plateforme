@@ -13,6 +13,7 @@ import type {
 } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
+import { zonePage } from '../database/paging';
 import { inZone } from '../database/zone';
 import { visitOf } from '../visits/visits.repository';
 
@@ -35,12 +36,6 @@ function translateTransition(error: unknown): never {
   throw error;
 }
 
-// Page de « limite » éléments : une ligne de plus est lue pour savoir s'il en reste
-function page<T extends { code: string }>(rows: T[], limit: number): ZonePage<T> {
-  const elements = rows.slice(0, limit);
-  return { elements, suivant: rows.length > limit ? elements.at(-1)!.code : null };
-}
-
 // Lectures des praticiens et des dossiers (US-011). Aucun filtre de zone ici : les règles
 // RLS de la base l'appliquent, dans le contexte ouvert par inZone.
 @Injectable()
@@ -49,35 +44,35 @@ export class CertificationRepository {
 
   listPractitioners(sub: string, query: ZoneListQuery): Promise<ZonePage<PractitionerSummary>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<PractitionerSummary>`
+      return zonePage<PractitionerSummary>(
+        trx,
+        sql`
         SELECT p.code, u.prenom, u.nom, sp.libelle_fr AS specialite, pf.nom AS prefecture,
                ra.nom AS region, p.statut
           FROM sabou.praticien p
           JOIN sabou.utilisateur u    ON u.id = p.utilisateur_id
           JOIN sabou.specialite sp    ON sp.id = p.specialite_id
           JOIN sabou.prefecture pf    ON pf.id = p.prefecture_id
-          JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
-         WHERE ${query.apres ?? null}::text IS NULL OR p.code > ${query.apres ?? null}
-         ORDER BY p.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+          JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id`,
+        query,
+      );
     });
   }
 
   listDossiers(sub: string, query: ZoneListQuery): Promise<ZonePage<DossierSummary>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<DossierSummary>`
+      return zonePage<DossierSummary>(
+        trx,
+        sql`
         SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
                pf.nom AS prefecture, d.type, d.etape_courante AS etape, d.statut,
                to_char(d.ouvert_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "ouvertLe"
           FROM sabou.dossier_certification d
           JOIN sabou.praticien p   ON p.id = d.praticien_id
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
-          JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
-         WHERE ${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null}
-         ORDER BY d.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+          JOIN sabou.prefecture pf ON pf.id = p.prefecture_id`,
+        query,
+      );
     });
   }
 
@@ -87,7 +82,9 @@ export class CertificationRepository {
     query: ZoneListQuery,
   ): Promise<ZonePage<FieldVerificationItem>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<FieldVerificationItem>`
+      return zonePage<FieldVerificationItem>(
+        trx,
+        sql`
         SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
                sp.libelle_fr AS specialite, d.type, d.visite_requise AS "visiteRequise",
                to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "soumisLe",
@@ -98,11 +95,9 @@ export class CertificationRepository {
           JOIN sabou.praticien p   ON p.id = d.praticien_id
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
           JOIN sabou.specialite sp ON sp.id = p.specialite_id
-         WHERE d.statut = 'en_cours' AND d.etape_courante = 2
-           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
-         ORDER BY d.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 2`,
+        query,
+      );
     });
   }
 
@@ -110,7 +105,9 @@ export class CertificationRepository {
   // pagination que la vérification terrain
   listConsolidation(sub: string, query: ZoneListQuery): Promise<ZonePage<ConsolidationItem>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<ConsolidationItem>`
+      return zonePage<ConsolidationItem>(
+        trx,
+        sql`
         SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
                sp.libelle_fr AS specialite, pf.nom AS prefecture, d.type,
                to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "verifieLe",
@@ -121,11 +118,9 @@ export class CertificationRepository {
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
           JOIN sabou.specialite sp ON sp.id = p.specialite_id
           JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
-         WHERE d.statut = 'en_cours' AND d.etape_courante = 3
-           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
-         ORDER BY d.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 3`,
+        query,
+      );
     });
   }
 
@@ -133,7 +128,9 @@ export class CertificationRepository {
   // Comité est national, R-ACC) ; mêmes règles d'ordre et de pagination
   listExpertise(sub: string, query: ZoneListQuery): Promise<ZonePage<ExpertiseItem>> {
     return inZone(this.db, sub, async (trx) => {
-      const { rows } = await sql<ExpertiseItem>`
+      return zonePage<ExpertiseItem>(
+        trx,
+        sql`
         SELECT d.code, p.code AS praticien, u.prenom || ' ' || u.nom AS "praticienNom",
                sp.libelle_fr AS specialite, pf.nom AS prefecture, ra.nom AS region, d.type,
                to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "consolideLe",
@@ -145,11 +142,9 @@ export class CertificationRepository {
           JOIN sabou.specialite sp    ON sp.id = p.specialite_id
           JOIN sabou.prefecture pf    ON pf.id = p.prefecture_id
           JOIN sabou.region_admin ra  ON ra.id = pf.region_admin_id
-         WHERE d.statut = 'en_cours' AND d.etape_courante = 4
-           AND (${query.apres ?? null}::text IS NULL OR d.code > ${query.apres ?? null})
-         ORDER BY d.code
-         LIMIT ${query.limite + 1}`.execute(trx);
-      return page(rows, query.limite);
+         WHERE d.statut = 'en_cours' AND d.etape_courante = 4`,
+        query,
+      );
     });
   }
 

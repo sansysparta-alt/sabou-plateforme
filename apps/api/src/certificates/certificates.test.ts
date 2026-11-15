@@ -34,7 +34,7 @@ const repository = {
   async listApproval(sub: string, query: unknown) {
     calls.push(['list', sub, query]);
     if (failure) throw failure;
-    return { elements: [], suivant: null };
+    return { elements: [], suivant: null, total: 0 };
   },
   async approve(sub: string, _ip: unknown, code: string) {
     calls.push(['approve', sub, code]);

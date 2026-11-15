@@ -71,11 +71,11 @@ function mockApi(session: SessionUser | null | 'panne') {
     }
     if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
     if (
-      url === '/api/dossiers/verification-terrain' ||
-      url === '/api/dossiers/consolidation' ||
-      url === '/api/dossiers/expertise'
+      url === '/api/dossiers/verification-terrain?limite=10' ||
+      url === '/api/dossiers/consolidation?limite=10' ||
+      url === '/api/dossiers/expertise?limite=10'
     )
-      return Response.json({ elements: [], suivant: null });
+      return Response.json({ elements: [], suivant: null, total: 0 });
     if (url === '/auth/logout' && init?.method === 'POST')
       return new Response(null, { status: 204 });
     return new Response(null, { status: 404 });

@@ -1,6 +1,7 @@
 import { Badge } from '@sabou/ui';
 import type { ExpertiseItem } from '@sabou/types';
 import { listExpertise } from './certification-api';
+import { QUEUES } from './queues';
 import {
   DecisionActions,
   DossierQueuePage,
@@ -18,6 +19,7 @@ export function ExpertisePage() {
       lead="Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier."
       listTitle="Dossiers à expertiser"
       empty="Aucun dossier en attente d’expertise."
+      queue={QUEUES.expertise}
       load={listExpertise}
       item={DossierItem}
     />

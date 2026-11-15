@@ -11,6 +11,8 @@ export {
   PAGE_SIZES,
   pageNumbers,
   usePagination,
+  usePageSize,
+  storedPageSize,
   type PaginationProps,
 } from './Pagination';
 export { Tabs, type Tab } from './Tabs';

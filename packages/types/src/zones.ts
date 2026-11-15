@@ -3,8 +3,12 @@ import { z } from 'zod';
 // Listes cloisonnées par zone (lot B : US-011). La zone ne figure dans aucun paramètre :
 // l'API la lit en base, pour le compte connecté (R-ACC-02).
 
-// Pagination par curseur (code du dernier élément reçu) : pages courtes en 3G, et aucune
-// page sautée ni répétée si une ligne arrive entre deux appels
+// Deux façons de paginer, exclusives l'une de l'autre :
+// - par curseur (`apres` : code du dernier élément reçu), pour parcourir une liste en entier
+//   sans page sautée ni répétée si une ligne arrive entre deux appels ;
+// - par numéro de page (`decalage` : nombre d'éléments à sauter), pour les écrans de gestion
+//   qui affichent « Page 3 sur 8 » (US-019b). Les files de dossiers restent courtes.
+export const ZONE_LIST_MAX_OFFSET = 100_000;
 export const zoneListQuerySchema = z
   .object({
     limite: z.coerce.number().int().min(1).max(100).default(50),
@@ -12,8 +16,12 @@ export const zoneListQuerySchema = z
       .string()
       .regex(/^[A-Z]{2}-\d{1,10}$/)
       .optional(),
+    decalage: z.coerce.number().int().min(0).max(ZONE_LIST_MAX_OFFSET).optional(),
   })
-  .strict();
+  .strict()
+  .refine((query) => query.apres === undefined || query.decalage === undefined, {
+    message: 'apres et decalage ne se combinent pas',
+  });
 export type ZoneListQuery = z.infer<typeof zoneListQuerySchema>;
 
 export const practitionerSummarySchema = z.object({
@@ -39,8 +47,10 @@ export const dossierSummarySchema = z.object({
 });
 export type DossierSummary = z.infer<typeof dossierSummarySchema>;
 
-// Une page : ses éléments et le curseur de la suivante (null en fin de liste)
+// Une page : ses éléments, le curseur de la suivante (null en fin de liste) et le nombre
+// d'éléments de toute la liste, curseur et décalage mis à part (US-019b)
 export interface ZonePage<T> {
   elements: T[];
   suivant: string | null;
+  total: number;
 }
