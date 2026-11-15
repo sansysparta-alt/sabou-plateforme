@@ -51,16 +51,45 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/expertise': loaders.expertise,
 };
 
-// US-017 : le morceau de la page est demandé dès le démarrage, en même temps que la session,
-// au lieu d'attendre la réponse de celle-ci (un aller-retour de 300 ms de moins en 3G). Seul le
-// code est téléchargé : l'affichage reste soumis au profil, et l'API contrôle chaque accès.
+// Lectures que chaque page fait à son ouverture, exactement comme elle les demande
+const PAGE_DATA: Record<string, string[]> = {
+  '/': ['/api/tableau-de-bord'],
+  '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
+  '/referentiels': ['/api/referentiels'],
+  '/verification-terrain': ['/api/dossiers/verification-terrain'],
+  '/consolidation': ['/api/dossiers/consolidation'],
+  '/approbation': ['/api/dossiers/approbation'],
+  '/entonnoir': ['/api/entonnoir'],
+  '/expertise': ['/api/dossiers/expertise'],
+};
+const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+
+// US-017 : le morceau de la page et ses données sont demandés dès le démarrage, en même temps
+// que la session, au lieu d'attendre la réponse de celle-ci (en 3G, un aller-retour de 300 ms
+// par étape). D'après la seule adresse : l'affichage reste soumis au profil, et l'API contrôle
+// chaque lecture (un refus n'est jamais repris par une page).
 export function preloadCurrentPage(): void {
   const current = path();
-  const load = current.startsWith('/certificats/') ? loaders.certificate : PAGE_LOADERS[current];
+  const certificate = CERTIFICATE_PREFIX.exec(current);
+  const load = certificate ? loaders.certificate : PAGE_LOADERS[current];
   // Échec (réseau coupé) : sans effet ici, la page le signale à son affichage
   load?.().catch(() => undefined);
+  if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  // Invitation : la consultation, sans effet, avec le jeton du lien (après le #)
+  if (current === '/invitation') {
+    const token = window.location.hash.slice(1);
+    if (/^[\w-]{43}$/.test(token)) {
+      prefetch('/api/invitation/consultation', { method: 'POST', body: { token } });
+    }
+    return;
+  }
+  // Retour de connexion en erreur ou connexion perdue : la page de données ne s'ouvre pas
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('erreur') || params.has('reprise')) return;
+  PAGE_DATA[current]?.forEach((url) => prefetch(url));
 }
 
+import { prefetch } from './prefetch';
 import {
   fetchSession,
   hasManagementAccess,

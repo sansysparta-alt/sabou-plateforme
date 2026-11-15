@@ -5,6 +5,7 @@ import type {
   InvitationPreview,
   InviteRequest,
 } from '@sabou/types';
+import { requestKey, takePrefetched } from './prefetch';
 
 // Appels de la gestion des comptes (lot A). Même origine que l'application : le cookie de
 // session suit, et l'en-tête Origin posé par le navigateur protège les décisions.
@@ -27,16 +28,23 @@ const GENERIC = 'Le service est momentanément indisponible. Veuillez réessayer
 export async function call<T>(path: string, body?: unknown, method?: 'PATCH'): Promise<T> {
   let response: Response;
   const file = body instanceof Blob;
+  const verb = method ?? (body === undefined ? 'GET' : 'POST');
+  const payload = body === undefined || file ? undefined : JSON.stringify(body);
   try {
-    response = await fetch(path, {
-      method: method ?? (body === undefined ? 'GET' : 'POST'),
-      credentials: 'same-origin',
-      headers:
-        body === undefined
-          ? {}
-          : { 'content-type': file ? body.type || 'application/octet-stream' : 'application/json' },
-      body: body === undefined ? undefined : file ? body : JSON.stringify(body),
-    });
+    // Réponse déjà demandée par l'application à son démarrage (US-017)
+    const early = file ? undefined : takePrefetched(requestKey(verb, path, payload));
+    response = await (early ??
+      fetch(path, {
+        method: verb,
+        credentials: 'same-origin',
+        headers:
+          body === undefined
+            ? {}
+            : {
+                'content-type': file ? body.type || 'application/octet-stream' : 'application/json',
+              },
+        body: file ? body : payload,
+      }));
   } catch {
     throw new ApiError(0, 'Connexion impossible. Vérifiez votre réseau et réessayez.');
   }
