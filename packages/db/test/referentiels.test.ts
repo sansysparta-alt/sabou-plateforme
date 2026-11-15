@@ -37,6 +37,35 @@ async function rejects(sql: string, params: unknown[] = []): Promise<string> {
   throw new Error(`Instruction acceptée : ${sql}`);
 }
 
+// Transaction du rôle propriétaire, annulée à la fin : depuis US-071, l'application n'écrit
+// plus directement dans les tables de voix ; le contrôle de la langue (trigger) s'y vérifie
+async function asOwner(run: (owner: pg.Client) => Promise<void>): Promise<void> {
+  const owner = new pg.Client({
+    connectionString: db.url.migrator,
+    options: '-c search_path=sabou,public',
+  });
+  await owner.connect();
+  try {
+    await owner.query('BEGIN');
+    await run(owner);
+  } finally {
+    await owner.query('ROLLBACK').catch(() => undefined);
+    await owner.end();
+  }
+}
+
+// Code d'erreur PostgreSQL d'une requête du rôle propriétaire ('' si elle passe)
+async function ownerRejects(owner: pg.Client, sql: string): Promise<string> {
+  await owner.query('SAVEPOINT essai');
+  try {
+    await owner.query(sql);
+    return '';
+  } catch (error) {
+    await owner.query('ROLLBACK TO SAVEPOINT essai');
+    return (error as { code?: string }).code ?? '?';
+  }
+}
+
 // Une voix existante du jeu d'exemple, déplacée vers une autre langue
 const moveVoice = (code: string) =>
   `UPDATE plante_voix SET langue_code = '${code}'
@@ -69,7 +98,9 @@ describe('Référentiel initial (migration, sans jeu d’exemple)', () => {
 
 describe('US-020 : langues et territoires', () => {
   it('l’anglais n’a pas de voix : une voix en anglais est refusée', async () => {
-    expect(await rejects(moveVoice('en'))).toBe('P0001');
+    await asOwner(async (owner) => {
+      expect(await ownerRejects(owner, moveVoice('en'))).toBe('P0001');
+    });
   });
 
   it('Conakry est en Basse Guinée, soussou par défaut', async () => {
@@ -82,14 +113,16 @@ describe('US-020 : langues et territoires', () => {
   });
 
   it('une langue nationale ajoutée puis activée sert aux voix, sans modifier le code', async () => {
-    await client.query(
-      `INSERT INTO langue (code, iso639_3, nom_fr, type, texte, voix, active, ordre)
-       VALUES ('kis', 'kss', 'Kissi', 'nationale', false, true, false, 7)`,
-    );
-    expect(await rejects(moveVoice('kis'))).toBe('P0001');
-    await client.query(`UPDATE langue SET active = true WHERE code = 'kis'`);
-    const { rowCount } = await client.query(moveVoice('kis'));
-    expect(rowCount).toBe(1);
+    await asOwner(async (owner) => {
+      await owner.query(
+        `INSERT INTO langue (code, iso639_3, nom_fr, type, texte, voix, active, ordre)
+         VALUES ('kis', 'kss', 'Kissi', 'nationale', false, true, false, 7)`,
+      );
+      expect(await ownerRejects(owner, moveVoice('kis'))).toBe('P0001');
+      await owner.query(`UPDATE langue SET active = true WHERE code = 'kis'`);
+      const { rowCount } = await owner.query(moveVoice('kis'));
+      expect(rowCount).toBe(1);
+    });
   });
 
   it('une langue nationale n’a jamais d’usage texte (R-LNG-02)', async () => {
