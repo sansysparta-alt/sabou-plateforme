@@ -49,7 +49,7 @@ function DossierItem({
           {visitDone ? (
             <Badge tone="success">Visite faite</Badge>
           ) : dossier.visiteRequise ? (
-            <Badge tone="warning">Visite à réaliser</Badge>
+            <Badge tone="warning">Visite attendue</Badge>
           ) : null}
         </>
       }

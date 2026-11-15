@@ -692,6 +692,16 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 
 **Contrôles du pipeline** : `packages/db/test/entonnoir-certification.test.ts` (6 étapes, délai moyen du jeu d'exemple, fenêtre de 12 mois, blocage à plus de 15 jours, étape 1 exclue, tri, zones, droits) ; `apps/api/src/dashboard/funnel.test.ts` (DG seule, second facteur, sans cache) ; `apps/admin/src/FunnelPage.test.tsx` et `App.test.tsx` (écran, rubrique réservée) ; `apps/admin/e2e/entonnoir.spec.ts` (bout en bout, accessibilité, refus d'un autre rôle) ; mesure Lighthouse de `/entonnoir`.
 
+### 2.45 Interface de gestion conforme à la maquette v1.3 (US-019, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Refonte par la bibliothèque commune** (`packages/ui`) : navigation sur fond « brume », élément actif plein vert, titres sobres (22 px), tableaux à en-tête vert et lignes alternées, chiffres clés en tuiles | Tous les écrans changent d'un coup ; la maquette de l'application de gestion (`Plateforme/docs/maquettes/`) est la référence | Retouches écran par écran |
+| **Jetons de taille inchangés** ; seuls les styles des composants changent | Les jetons sont repris par l'application mobile, un test échoue s'ils divergent (US-018) | Réduire les jetons : aurait changé l'application mobile |
+| **Connexion en deux panneaux**, illustration de la maquette en WebP (8 Ko, contre 132 Ko en PNG) | Fidèle à la maquette sans peser en 3G | Image d'origine |
+| **Files de dossiers en lignes repliables** (`<details>` natif) : une ligne par dossier, le détail et la décision à l'ouverture | Neuf dossiers tiennent sur un écran ; clavier et lecteurs d'écran sans script | Grandes cartes dépliées (une page par dossier) ; tableau avec fenêtre modale : plus de code, moins accessible |
+| **Accueil allégé** : la carte « À venir » (calendrier des sprints) et la tuile « Certificats émis (Sprint 3) » sont retirées ; les accès de la DG passent dans l'en-tête | Informations périmées et place perdue | — |
+
 ## 3. Architecture
 
 ```
