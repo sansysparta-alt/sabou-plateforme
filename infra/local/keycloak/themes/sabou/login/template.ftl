@@ -147,51 +147,20 @@
                     </div>
                 </div>
             </#if>
-        <#if !(auth?has_content && auth.showUsername() && !auth.showResetCredentials())>
-            <#if displayRequiredFields>
-                <div class="${properties.kcContentWrapperClass!}">
-                    <div class="${properties.kcLabelWrapperClass!} subtitle">
-                        <span class="subtitle"><span class="required">*</span> ${msg("requiredFields")}</span>
-                    </div>
-                    <div class="col-md-10">
-                        <h1 id="kc-page-title"><#nested "header"></h1>
-                    </div>
-                </div>
-            <#else>
-                <h1 id="kc-page-title"><#nested "header"></h1>
-            </#if>
-        <#else>
-            <#if displayRequiredFields>
-                <div class="${properties.kcContentWrapperClass!}">
-                    <div class="${properties.kcLabelWrapperClass!} subtitle">
-                        <span class="subtitle"><span class="required">*</span> ${msg("requiredFields")}</span>
-                    </div>
-                    <div class="col-md-10">
-                        <#nested "show-username">
-                        <div id="kc-username" class="${properties.kcFormGroupClass!}">
-                            <label id="kc-attempted-username">${auth.attemptedUsername}</label>
-                            <a id="reset-login" href="${url.loginRestartFlowUrl}" aria-label="${msg("restartLoginTooltip")}">
-                                <div class="kc-login-tooltip">
-                                    <i class="${properties.kcResetFlowIcon!}"></i>
-                                    <span class="kc-tooltip-text">${msg("restartLoginTooltip")}</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            <#else>
+        <#-- SABOU (refonte de l'authentification) : gabarit unique de l'en-tête de carte. Le titre
+             est toujours affiché ; l'identifiant, quand Keycloak le connaît, est sur sa propre
+             ligne (points de suspension s'il est long, valeur entière en infobulle), puis le lien
+             discret « Redémarrer la connexion ». -->
+        <div class="sabou-header__text">
+            <h1 id="kc-page-title"><#nested "header"></h1>
+            <#if auth?has_content && auth.showUsername() && !auth.showResetCredentials()>
                 <#nested "show-username">
-                <div id="kc-username" class="${properties.kcFormGroupClass!}">
-                    <label id="kc-attempted-username">${auth.attemptedUsername}</label>
-                    <a id="reset-login" href="${url.loginRestartFlowUrl}" aria-label="${msg("restartLoginTooltip")}">
-                        <div class="kc-login-tooltip">
-                            <i class="${properties.kcResetFlowIcon!}"></i>
-                            <span class="kc-tooltip-text">${msg("restartLoginTooltip")}</span>
-                        </div>
-                    </a>
-                </div>
+                <p id="kc-username" class="sabou-user">
+                    <span id="kc-attempted-username" class="sabou-user__name" title="${auth.attemptedUsername}">${auth.attemptedUsername}</span>
+                </p>
+                <a id="reset-login" class="sabou-restart" href="${url.loginRestartFlowUrl}">${msg("restartLoginTooltip")}</a>
             </#if>
-        </#if>
+        </div>
       </header>
       <div id="kc-content">
         <div id="kc-content-wrapper">
@@ -209,9 +178,9 @@
 
           <#if auth?has_content && auth.showTryAnotherWayLink()>
               <form id="kc-select-try-another-way-form" action="${url.loginAction}" method="post">
-                  <div class="${properties.kcFormGroupClass!}">
+                  <div class="sabou-secondary-action">
                       <input type="hidden" name="tryAnotherWay" value="on"/>
-                      <a href="#" id="try-another-way"
+                      <a href="#" id="try-another-way" class="sabou-link"
                          onclick="document.forms['kc-select-try-another-way-form'].requestSubmit();return false;">${msg("doTryAnotherWay")}</a>
                   </div>
               </form>

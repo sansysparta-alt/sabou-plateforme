@@ -1,25 +1,22 @@
 <#-- Copie de base/login/login-recovery-authn-code-config.ftl (Keycloak 26.8.1, licence Apache 2.0).
-     Changements SABOU (US-016) : message d'avertissement sobre en français (le gabarit d'origine
-     annonçait « Warning alert » en anglais), icône dessinée, boutons du thème sans police d'icônes. -->
+     Changements SABOU : une seule alerte, courte (refonte de l'authentification) ; codes sur
+     deux colonnes ; trois actions de même taille ; pas de case « Se déconnecter des autres
+     appareils » (non cochée : comportement inchangé) ; fichier et impression en français. -->
 <#import "template.ftl" as layout>
-<#import "password-commons.ftl" as passwordCommons>
 <@layout.registrationLayout; section>
 
 <#if section = "header">
-    ${msg("recovery-code-config-header")}
+    ${msg("sabouRecoveryTitle")}
 <#elseif section = "form">
     <!-- warning -->
-    <div class="alert-warning ${properties.kcAlertClass!} ${properties.kcRecoveryCodesWarning!}" role="status">
+    <div class="alert-warning ${properties.kcAlertClass!}" role="status">
         <@layout.alertIcon type="warning" />
-        <div class="sabou-alert__body">
-            <strong>${msg("recovery-code-config-warning-title")}</strong>
-            <p>${msg("recovery-code-config-warning-message")}</p>
-        </div>
+        <span class="${properties.kcAlertTitleClass!}">${msg("sabouRecoveryWarning")}</span>
     </div>
 
     <ol id="kc-recovery-codes-list" class="${properties.kcRecoveryCodesList!}">
         <#list recoveryAuthnCodesConfigBean.generatedRecoveryAuthnCodesList as code>
-            <li><span>${code?counter}:</span> ${code[0..3]}-${code[4..7]}-${code[8..]}</li>
+            <li><span class="sabou-codes__index">${code?counter}.</span> ${code[0..3]}-${code[4..7]}-${code[8..]}</li>
         </#list>
     </ol>
 
@@ -37,27 +34,26 @@
     </div>
 
     <!-- confirmation checkbox -->
-    <div class="${properties.kcFormOptionsClass!}">
-        <input class="${properties.kcCheckInputClass!}" type="checkbox" id="kcRecoveryCodesConfirmationCheck" name="kcRecoveryCodesConfirmationCheck"
+    <label class="sabou-choice" for="kcRecoveryCodesConfirmationCheck">
+        <input type="checkbox" id="kcRecoveryCodesConfirmationCheck" name="kcRecoveryCodesConfirmationCheck"
         onchange="document.getElementById('saveRecoveryAuthnCodesBtn').disabled = !this.checked;"
         />
-        <label for="kcRecoveryCodesConfirmationCheck">${msg("recovery-codes-confirmation-message")}</label>
-    </div>
+        ${msg("recovery-codes-confirmation-message")}
+    </label>
 
-    <form action="${url.loginAction}" class="${properties.kcFormGroupClass!}" id="kc-recovery-codes-settings-form" method="post">
+    <form action="${url.loginAction}" class="sabou-actions" id="kc-recovery-codes-settings-form" method="post">
         <input type="hidden" name="generatedRecoveryAuthnCodes" value="${recoveryAuthnCodesConfigBean.generatedRecoveryAuthnCodesAsString}" />
         <input type="hidden" name="generatedAt" value="${recoveryAuthnCodesConfigBean.generatedAt?c}" />
         <input type="hidden" id="userLabel" name="userLabel" value="${msg("recovery-codes-label-default")}" />
-        <@passwordCommons.logoutOtherSessions/>
 
         <#if isAppInitiatedAction??>
             <input type="submit"
-            class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonLargeClass!}"
+            class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!}"
             id="saveRecoveryAuthnCodesBtn" value="${msg("recovery-codes-action-complete")}"
             disabled
             />
             <button type="submit"
-                class="${properties.kcButtonClass!} ${properties.kcButtonDefaultClass!} ${properties.kcButtonLargeClass!} ${properties.kcButtonLargeClass!}"
+                class="${properties.kcButtonClass!} ${properties.kcButtonDefaultClass!} ${properties.kcButtonBlockClass!}"
                 id="cancelRecoveryAuthnCodesBtn" name="cancel-aia" value="true" />${msg("recovery-codes-action-cancel")}
             </button>
         <#else>
@@ -101,7 +97,7 @@
                 timeZoneName: 'short'
             };
 
-            return dt.toLocaleString('en-US', options);
+            return dt.toLocaleString('fr-FR', options);
         }
 
         function parseRecoveryCodeList() {
@@ -146,7 +142,7 @@
         }
 
         function downloadRecoveryCodes() {
-            setUpDownloadLinkAndDownload('kc-download-recovery-codes.txt', buildDownloadContent());
+            setUpDownloadLinkAndDownload('sabou-codes-de-secours.txt', buildDownloadContent());
         }
 
         var downloadButton = document.getElementById("downloadRecoveryCodes");
@@ -163,7 +159,7 @@
 
             return printFileContent =
                 "<html><style>" + styles + "</style><body>" +
-                "<title>kc-download-recovery-codes</title>" +
+                "<title>SABOU - codes de secours</title>" +
                 "<p>" + ${msg("recovery-codes-download-file-header")?c} + "</p>" +
                 "<div>" + recoveryCodeListHTML + "</div>" +
                 "<p>" + ${msg("recovery-codes-download-file-description")?c} + "</p>" +

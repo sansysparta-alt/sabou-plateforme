@@ -1,7 +1,34 @@
-/* Thème de connexion SABOU (US-010, aligné sur la base de design en US-016). Sans police ni
-   image à télécharger : la page tient en quelques kilo-octets sur un réseau 3G. Contrastes
-   WCAG 2.2 AA (≥ 4,5:1), cibles tactiles de 44 px, focus visible. Aucune couleur en dur. */
-/* Variables : tokens.css, copie exacte de packages/ui/src/tokens.css (contrôlée par le pipeline). */
+/* Thème de connexion SABOU (US-010, US-016, US-019 ; refonte de l'authentification).
+   Sans police ni script à télécharger : quelques kilo-octets en 3G. WCAG 2.2 AA : contrastes
+   ≥ 4,5:1, cibles de 44 px au moins, focus visible, libellés reliés aux champs.
+   Gabarit unique : tous les écrans (mot de passe, code, configuration du code, codes de secours,
+   autre méthode) ont la même carte, les mêmes marges et le même ordre (titre, alerte, champs,
+   bouton). Aucune valeur en dur : couleurs, polices et rayons viennent de tokens.css (copie
+   exacte de packages/ui/src/tokens.css, contrôlée par le pipeline), les mesures propres à ces
+   écrans des variables ci-dessous (échelle de 8 px). */
+
+:root {
+  /* Échelle d'espacement de 8 px */
+  --auth-space-1: var(--sabou-space-2); /* 8 px */
+  --auth-space-2: var(--sabou-space-4); /* 16 px */
+  --auth-space-3: var(--sabou-space-5); /* 24 px */
+  --auth-space-4: var(--sabou-space-6); /* 32 px */
+  /* Typographie : titre 24 px, texte 16 px, aide 14 px */
+  --auth-title-size: 1.5rem;
+  --auth-text-size: var(--sabou-text-md);
+  --auth-small-size: var(--sabou-text-sm);
+  --auth-leading: var(--sabou-leading);
+  --auth-leading-title: 1.2;
+  /* Carte et commandes */
+  --auth-card-width: 27.5rem; /* 440 px */
+  --auth-card-padding: var(--auth-space-4);
+  --auth-control-height: 3rem; /* 48 px */
+  --auth-check-size: 1.5rem; /* 24 px */
+  --auth-qr-size: 10rem; /* 160 px */
+  --auth-radius: var(--sabou-radius-sm);
+  --auth-card-radius: var(--sabou-radius-md);
+  --auth-card-shadow: var(--sabou-shadow-2);
+}
 
 *,
 *::before,
@@ -12,68 +39,137 @@
 body {
   margin: 0;
   font-family: var(--sabou-font-text);
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: var(--auth-text-size);
+  line-height: var(--auth-leading);
   color: var(--sabou-text);
   background: var(--sabou-bg);
 }
 
-.sabou-login {
-  max-width: 28rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+p {
+  margin: 0;
 }
 
+a,
+.sabou-link {
+  color: var(--sabou-institution);
+  text-underline-offset: 0.15em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--sabou-focus);
+  outline-offset: 2px;
+}
+
+.sabou-hidden {
+  display: none;
+}
+
+/* ---------- Page et carte ---------- */
+.sabou-login {
+  width: 100%;
+  max-width: var(--auth-card-width);
+  margin: 0 auto;
+  padding: var(--auth-space-3) var(--auth-space-2);
+}
+
+/* Nom SABOU au-dessus de la carte : site public seulement (la marque est dans le panneau sinon) */
 #kc-header-wrapper {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: var(--sabou-font-title);
+  font-size: var(--auth-title-size);
+  line-height: var(--auth-leading-title);
+  font-weight: var(--sabou-weight-bold);
   color: var(--sabou-institution);
   text-align: center;
-  margin-bottom: 1rem;
-  letter-spacing: 0.05em;
+  margin-bottom: var(--auth-space-2);
 }
 
 .sabou-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-3);
   background: var(--sabou-surface);
   border: 1px solid var(--sabou-border);
-  box-shadow: var(--sabou-shadow-1);
-  border-radius: var(--sabou-radius-md);
-  padding: 1.5rem 1.25rem;
+  box-shadow: var(--auth-card-shadow);
+  border-radius: var(--auth-card-radius);
+  padding: var(--auth-card-padding);
 }
 
+/* En-tête : titre (et identifiant) à gauche, langue à droite */
 .sabou-header {
-  /* Titre à gauche, langue à droite, même quand le titre tient sur deux lignes */
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--auth-space-2);
 }
-
-#kc-page-title {
-  font-family: var(--sabou-font-title);
-  font-size: var(--sabou-text-xl);
-  margin: 0 0 1rem;
+.sabou-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-1);
   flex: 1 1 auto;
   min-width: 0;
 }
+#kc-page-title {
+  margin: 0;
+  font-family: var(--sabou-font-title);
+  font-size: var(--auth-title-size);
+  line-height: var(--auth-leading-title);
+  font-weight: var(--sabou-weight-bold);
+  color: var(--sabou-text);
+}
+/* Identifiant sur sa propre ligne, jamais coupé au milieu : points de suspension */
+.sabou-user {
+  min-width: 0;
+}
+.sabou-user__name {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--sabou-text-muted);
+}
+.sabou-restart {
+  align-self: flex-start;
+  font-size: var(--auth-small-size);
+}
 
-/* Sélecteur de langue : liste masquée tant que le bouton n'est pas ouvert */
+/* Contenu : alerte, formulaire, actions secondaires, tous espacés de 24 px */
+#kc-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-3);
+}
+#kc-content-wrapper form,
+#kc-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-3);
+}
+#kc-form-login,
+#kc-otp-login-form,
+#kc-totp-settings-form,
+#kc-recovery-code-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-3);
+}
+
+/* Sélecteur de langue : masqué par le gabarit tant qu'une seule langue est active */
 .sabou-locale {
-  order: 2;
   flex: 0 0 auto;
 }
 #kc-locale-dropdown {
   position: relative;
 }
 #kc-current-locale-link {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 0.75rem;
+  min-height: var(--sabou-target);
+  min-width: var(--sabou-target);
+  padding: 0 var(--auth-space-1);
   font: inherit;
+  font-size: var(--auth-small-size);
   color: var(--sabou-institution);
   background: transparent;
   border: 1px solid var(--sabou-border-strong);
-  border-radius: var(--sabou-radius-sm);
+  border-radius: var(--auth-radius);
   cursor: pointer;
 }
 .sabou-locale__list {
@@ -81,12 +177,12 @@ body {
   position: absolute;
   right: 0;
   z-index: 1;
-  margin: 0.25rem 0 0;
-  padding: 0.25rem 0;
+  margin: var(--auth-space-1) 0 0;
+  padding: var(--auth-space-1) 0;
   list-style: none;
   background: var(--sabou-surface);
   border: 1px solid var(--sabou-border-strong);
-  border-radius: var(--sabou-radius-sm);
+  border-radius: var(--auth-radius);
   min-width: 9rem;
 }
 #kc-current-locale-link[aria-expanded='true'] + .sabou-locale__list {
@@ -94,7 +190,7 @@ body {
 }
 .sabou-locale__item {
   display: block;
-  padding: 0.625rem 0.875rem;
+  padding: var(--auth-space-1) var(--auth-space-2);
   color: var(--sabou-text);
   text-decoration: none;
 }
@@ -102,39 +198,41 @@ body {
   background: var(--sabou-bg);
 }
 
+/* ---------- Champs ---------- */
 .sabou-field {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-1);
+  margin: 0;
 }
-
 .sabou-label {
-  /* En ligne : l'astérisque des champs obligatoires reste à côté du libellé */
-  display: inline-block;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-weight: var(--sabou-weight-semibold);
 }
 .required {
   color: var(--sabou-error);
-  font-weight: 600;
 }
-
 .sabou-input {
   display: block;
   width: 100%;
-  min-height: 44px;
-  padding: 0.5rem 0.75rem;
+  height: var(--auth-control-height);
+  padding: 0 var(--auth-space-2);
   font: inherit;
   color: var(--sabou-text);
   background: var(--sabou-surface);
   border: 1px solid var(--sabou-border-strong);
-  border-radius: var(--sabou-radius-sm);
+  border-radius: var(--auth-radius);
 }
 .sabou-input[aria-invalid='true'] {
   border: 2px solid var(--sabou-error);
 }
-
+/* Code à 6 chiffres : chiffres espacés, lisibles */
+.sabou-code {
+  font-family: var(--sabou-font-mono);
+  letter-spacing: 0.25em;
+}
 .sabou-input-group {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--auth-space-1);
 }
 .sabou-input-group .sabou-input {
   flex: 1 1 auto;
@@ -142,11 +240,11 @@ body {
 
 /* Bouton « afficher le mot de passe » : pictogramme dessiné en CSS, libellé porté par aria-label */
 .sabou-reveal {
-  flex: 0 0 44px;
-  min-height: 44px;
+  flex: 0 0 var(--auth-control-height);
+  height: var(--auth-control-height);
   background: var(--sabou-surface);
   border: 1px solid var(--sabou-border-strong);
-  border-radius: var(--sabou-radius-sm);
+  border-radius: var(--auth-radius);
   cursor: pointer;
 }
 .sabou-reveal i {
@@ -176,31 +274,67 @@ body {
 
 .sabou-error {
   display: block;
-  margin-top: 0.25rem;
   color: var(--sabou-error);
-  font-weight: 600;
+  font-size: var(--auth-small-size);
 }
-
-.sabou-help {
+.sabou-help,
+.sabou-options-links,
+#sabou-forgot-password {
   color: var(--sabou-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--auth-small-size);
 }
-
+/* Options du formulaire de mot de passe : sans marge propre, l'écart vient du formulaire */
+.sabou-options,
+#kc-form-options,
 .sabou-options-links {
-  margin-bottom: 1rem;
-  color: var(--sabou-text-muted);
-  font-size: 0.9375rem;
+  margin: 0;
+}
+#kc-form-options:empty {
+  display: none;
 }
 
+/* Cases et boutons radio : alignés sur leur texte, zone cliquable de 24 px au moins */
+.sabou-choice,
+#kc-form-options .checkbox label {
+  display: flex;
+  align-items: center;
+  gap: var(--auth-space-1);
+  min-height: var(--auth-check-size);
+  cursor: pointer;
+}
+.sabou-choice input,
+#kc-form-options .checkbox input,
+.sabou-checkbox {
+  flex: none;
+  width: var(--auth-check-size);
+  height: var(--auth-check-size);
+  margin: 0;
+  accent-color: var(--sabou-institution);
+}
+.sabou-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ---------- Boutons : pleine largeur, un seul bouton plein par écran ---------- */
+.sabou-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-2);
+}
 .sabou-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0.5rem 1.25rem;
+  min-height: var(--auth-control-height);
+  padding: 0 var(--auth-space-2);
   font: inherit;
-  font-weight: 600;
-  border-radius: var(--sabou-radius-sm);
+  font-weight: var(--sabou-weight-semibold);
+  border-radius: var(--auth-radius);
   border: 2px solid var(--sabou-institution);
   cursor: pointer;
   text-decoration: none;
@@ -211,52 +345,48 @@ body {
 }
 .sabou-button--primary:hover {
   background: var(--sabou-forest);
+  border-color: var(--sabou-forest);
 }
 .sabou-button--secondary {
   color: var(--sabou-institution);
   background: var(--sabou-surface);
 }
-.sabou-button--block {
+.sabou-button--secondary:hover {
+  background: var(--sabou-mist);
+}
+.sabou-button--block,
+#kc-form-buttons .sabou-button {
   width: 100%;
 }
 .sabou-button:disabled {
-  opacity: 0.7;
-  cursor: wait;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+#kc-form-buttons {
+  margin: 0;
 }
 
-a {
-  color: var(--sabou-institution);
-  text-underline-offset: 0.15em;
+/* Action secondaire en lien (« Essayer une autre méthode ») */
+.sabou-secondary-action,
+#kc-select-try-another-way-form {
+  font-size: var(--auth-small-size);
 }
 
-:focus-visible {
-  outline: 3px solid var(--sabou-focus);
-  outline-offset: 2px;
-}
-
+/* ---------- Alerte : une seule, une phrase ---------- */
 .sabou-alert {
-  /* Encadré fin tout autour, fond teinté, icône dessinée (comme .ui-alert de @sabou/ui) */
   display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  align-items: flex-start;
+  gap: var(--auth-space-1);
+  padding: var(--auth-space-1) var(--auth-space-2);
   border: 1px solid var(--sabou-info-border);
-  border-radius: var(--sabou-radius-sm);
+  border-radius: var(--auth-radius);
   background: var(--sabou-info-bg);
   color: var(--sabou-info);
+  font-size: var(--auth-small-size);
 }
 .sabou-alert__icon {
   flex: none;
-  margin-top: 0.15em;
-}
-.sabou-alert__body {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-}
-.sabou-alert__body p {
-  margin: 0;
-  color: var(--sabou-text);
+  margin-top: 0.1em;
 }
 .alert-success.sabou-alert {
   border-color: var(--sabou-success-border);
@@ -272,68 +402,89 @@ a {
   border-color: var(--sabou-error-border);
   background: var(--sabou-error-bg);
   color: var(--sabou-error);
-  font-weight: 600;
 }
 
-/* Configuration du code à usage unique : étapes, QR et clé lisibles sur petit écran */
-#kc-totp-settings {
-  padding-left: 1.25rem;
+/* ---------- Configuration du code : trois étapes courtes ---------- */
+.sabou-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-2);
+  margin: 0;
+  padding-left: var(--auth-space-3);
 }
-#kc-totp-settings li {
-  margin-bottom: 0.75rem;
-}
-#kc-totp-secret-qr-code {
+.sabou-qr {
   display: block;
-  max-width: 12rem;
-  height: auto;
-  margin-top: 0.5rem;
+  width: var(--auth-qr-size);
+  height: var(--auth-qr-size);
+  margin: var(--auth-space-1) auto;
 }
-#kc-totp-secret-key {
+.sabou-steps .sabou-link {
+  display: block;
+  text-align: center;
+  font-size: var(--auth-small-size);
+}
+.sabou-secret {
+  display: block;
+  margin: var(--auth-space-1) 0;
   font-family: var(--sabou-font-mono);
-  font-size: 1.0625rem;
   overflow-wrap: anywhere;
 }
-#kc-totp-supported-apps {
-  padding-left: 1.25rem;
-}
 
-/* Codes de secours */
+/* ---------- Codes de secours : deux colonnes alignées, chasse fixe ---------- */
 .sabou-codes {
-  font-family: var(--sabou-font-mono);
-  font-size: 1.0625rem;
-  padding-left: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--auth-space-1) var(--auth-space-2);
+  margin: 0;
+  padding: 0;
   list-style: none;
-  columns: 2;
+  font-family: var(--sabou-font-mono);
+  font-size: var(--auth-text-size);
+}
+.sabou-codes__index {
+  display: inline-block;
+  min-width: 2.5ch;
+  color: var(--sabou-text-muted);
 }
 .sabou-codes-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--auth-space-1);
 }
-.sabou-checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  vertical-align: middle;
-  margin-right: 0.5rem;
+
+/* ---------- Choix d'une autre méthode ---------- */
+.sabou-methods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-1);
+}
+.sabou-method {
+  display: block;
+  width: 100%;
+  min-height: var(--auth-control-height);
+  padding: var(--auth-space-1) var(--auth-space-2);
+  font: inherit;
+  text-align: left;
+  color: var(--sabou-text);
+  background: var(--sabou-surface);
+  border: 1px solid var(--sabou-border-strong);
+  border-radius: var(--auth-radius);
+  cursor: pointer;
+}
+.sabou-method:hover {
+  background: var(--sabou-mist);
+}
+.sabou-method__title {
+  font-weight: var(--sabou-weight-semibold);
+}
+.sabou-method__help {
+  font-size: var(--auth-small-size);
+  color: var(--sabou-text-muted);
 }
 
 #kc-info-wrapper,
 #kc-registration {
-  margin-top: 1rem;
-}
-
-#kc-username {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-#kc-attempted-username {
-  font-weight: 600;
-}
-.kc-tooltip-text {
-  font-size: 0.9375rem;
+  font-size: var(--auth-small-size);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -342,13 +493,10 @@ a {
   }
 }
 
-/* ---------- Connexion en une page (US-019, maquette v1.3) ----------
-   Administration : panneau vert forêt (marque, illustration, garanties) puis formulaire ;
-   côte à côte sur ordinateur. La marque est dans le panneau : le titre « SABOU » au-dessus de
-   la carte est masqué. Site public : carte centrée, inchangée. */
-.sabou-page--split .sabou-login {
-  max-width: 28rem;
-}
+/* ---------- Administration : panneau SABOU et carte (US-019) ----------
+   Ordinateur : panneau vert forêt à gauche, contenu centré verticalement, illustration en fond
+   discret (pas de grand vide) ; carte centrée dans la zone droite. Sous 900 px : bandeau avec la
+   marque seule, carte en pleine largeur. Site public : carte centrée seule, sans panneau. */
 .sabou-page--split #kc-header {
   display: none;
 }
@@ -356,95 +504,116 @@ a {
   position: relative;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 2rem 1rem 0;
+  align-items: center;
+  padding: var(--auth-space-2);
   background: var(--sabou-forest);
   color: var(--sabou-on-dark);
 }
 .sabou-hero > * {
   position: relative;
   margin: 0;
-  max-width: 28rem;
+}
+.sabou-hero__art,
+.sabou-hero__kicker,
+.sabou-hero__title,
+.sabou-hero__lead,
+.sabou-hero__list {
+  display: none;
 }
 .sabou-hero__brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
+  gap: var(--auth-space-1);
+  font-weight: var(--sabou-weight-bold);
   letter-spacing: 0.04em;
 }
 .sabou-hero__mark {
   display: inline-grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: var(--sabou-radius-sm);
+  width: var(--auth-space-4);
+  height: var(--auth-space-4);
+  border-radius: var(--auth-radius);
   background: var(--sabou-gold);
   color: var(--sabou-forest);
   font-family: var(--sabou-font-title);
 }
-.sabou-hero__kicker {
-  margin-top: 1rem;
-  font-size: var(--sabou-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sabou-gold);
-}
-.sabou-hero__title {
-  font-family: var(--sabou-font-title);
-  font-size: var(--sabou-text-2xl);
-  font-weight: 700;
-  line-height: 1.2;
-}
-.sabou-hero__lead,
-.sabou-hero__list {
-  font-size: var(--sabou-text-sm);
-  color: var(--sabou-on-dark-muted);
-}
-.sabou-hero__list {
-  display: none;
-  padding-left: 1.1rem;
-}
-.sabou-hero__list li + li {
-  margin-top: 0.25rem;
-}
-/* Téléphone : l'illustration en bandeau sous le texte */
-.sabou-hero > .sabou-hero__art {
-  order: 1;
-  max-width: none;
-  width: calc(100% + 2rem);
-  height: 7rem;
-  margin: 0.5rem -1rem 0;
-  object-fit: cover;
-  object-position: center 35%;
-  opacity: 0.6;
-}
-@media (min-width: 60rem) {
+
+@media (min-width: 900px) {
   .sabou-page--split {
     display: grid;
     grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
     min-height: 100vh;
   }
   .sabou-hero {
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: center;
-    padding: 3rem 3rem 17rem;
+    gap: var(--auth-space-2);
+    padding: var(--auth-space-4) var(--auth-space-4) var(--auth-space-4) var(--sabou-space-8);
   }
+  .sabou-hero > * {
+    max-width: 28rem;
+  }
+  .sabou-hero__kicker,
+  .sabou-hero__title,
+  .sabou-hero__lead,
   .sabou-hero__list {
     display: block;
   }
+  /* Illustration en fond du panneau, assombrie : le texte reste à 4,5:1 au moins */
   .sabou-hero > .sabou-hero__art {
+    display: block;
     position: absolute;
-    inset: auto 0 0 0;
+    inset: 0;
     width: 100%;
-    height: 15rem;
+    max-width: none;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.12;
+  }
+  .sabou-hero__kicker {
+    margin-top: var(--auth-space-2);
+    font-size: var(--auth-small-size);
+    font-weight: var(--sabou-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sabou-gold);
+  }
+  .sabou-hero__title {
+    font-family: var(--sabou-font-title);
+    font-size: var(--sabou-text-2xl);
+    font-weight: var(--sabou-weight-bold);
+    line-height: var(--auth-leading-title);
+  }
+  .sabou-hero__lead,
+  .sabou-hero__list {
+    font-size: var(--auth-small-size);
+    color: var(--sabou-on-dark-muted);
+  }
+  .sabou-hero__list {
     margin: 0;
+    padding-left: var(--auth-space-2);
+  }
+  .sabou-hero__list li + li {
+    margin-top: var(--auth-space-1);
   }
   .sabou-page--split .sabou-login {
     align-self: center;
     justify-self: center;
-    width: min(100%, 28rem);
-    padding: 3rem 1.5rem;
+    padding: var(--auth-space-4) var(--auth-space-3);
+  }
+}
+
+/* Téléphone : carte en pleine largeur, marges intérieures réduites */
+@media (max-width: 899px) {
+  .sabou-login {
+    max-width: none;
+    padding: var(--auth-space-2);
+  }
+  .sabou-card {
+    padding: var(--auth-space-3) var(--auth-space-2);
+  }
+  .sabou-codes-actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

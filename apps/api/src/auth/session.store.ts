@@ -27,6 +27,8 @@ export interface LoginTransaction {
   // Relance demandant le niveau 2 seul (second facteur juste activé, §2.28) : une seule par
   // connexion ; au retour, l'application affiche « double facteur activé »
   stepUp?: boolean;
+  // Début de la connexion (ms) : un second facteur enregistré depuis l'a été pendant celle-ci
+  startedAt?: number;
 }
 
 export const SESSION_STORE = Symbol('SESSION_STORE');

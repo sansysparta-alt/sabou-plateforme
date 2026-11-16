@@ -57,16 +57,10 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   await page.locator('#kcRecoveryCodesConfirmationCheck').check();
   await page.locator('#saveRecoveryAuthnCodesBtn').click();
 
-  // Le code tout juste enregistré est demandé aussitôt (niveau 2 seul, §2.28) : pas de
-  // mot de passe à retaper, pas de session sans lui
-  await expect(page.locator('#otp')).toBeVisible();
-  await expect(page.getByLabel('Mot de passe', { exact: true })).toBeHidden();
-  expect(await sessionStatus(page)).toBe(401);
-  await expectAccessible(page, 'Saisie du code juste après l’activation');
-  // Un code ne sert qu'une fois par période de 30 s
-  await page.waitForTimeout(msUntilNextPeriod());
-  await page.locator('#otp').fill(totp(secret));
-  await page.getByRole('button', { name: 'Connexion' }).click();
+  // Le code vient d'être saisi et vérifié à la configuration : ni mot de passe ni code
+  // redemandés, directement le tableau de bord (§2.55)
+  await expect(page).toHaveURL(new RegExp(`^${APP}/`));
+  expect(await sessionStatus(page)).toBe(200);
   await expect(page.getByRole('status')).toContainText('Double facteur activé');
 
   // Connexion suivante : mot de passe, puis code de l'application d'authentification
