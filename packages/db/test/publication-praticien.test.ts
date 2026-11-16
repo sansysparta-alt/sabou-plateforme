@@ -12,15 +12,20 @@ import {
 } from './helpers.ts';
 
 let db: TestDatabase;
-const attempt = (sql: string) => inRolledBackTransaction(db.url.app, sql);
-const lastRows = (sql: string) => rowsAt(db.url.app, sql);
+// Rôle de l'API ; les traitements d'essai sont préparés par le super-utilisateur (owner), le
+// praticien et l'API n'écrivant pas le contenu d'un traitement en direct (US-060)
+const attempt = (sql: string) =>
+  inRolledBackTransaction(db.url.postgres, `SET LOCAL ROLE sabou_app; ${sql}`);
+const lastRows = (sql: string) => rowsAt(db.url.postgres, `SET LOCAL ROLE sabou_app; ${sql}`);
+const owner = (sql: string) => `RESET ROLE; ${sql} SET LOCAL ROLE sabou_app;`;
 
 const DG = 'dg@sabou-sante.gn';
 
 // Traitements joints au dossier DS-1041 (PR-1041, formule gratuite), expertisés à l'étape 4 :
 // plante validée (Néré), sections obligatoires et cycle renseignés. Un traitement non joint
 // et un traitement joint mais encore « transmis » servent de témoins.
-const joinRecipes = (count: number, praticien = '1', dossier = '1') => `
+const joinRecipes = (count: number, praticien = '1', dossier = '1') =>
+  owner(`
   INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, cycle_duree_jours,
                        cycle_prises_par_jour, dossier_id)
   SELECT 'REC-90' || lpad(g::text, 2, '0'), ${praticien}, 1, 'Essai ' || g, 3, 2, ${dossier}
@@ -33,7 +38,7 @@ const joinRecipes = (count: number, praticien = '1', dossier = '1') => `
   SELECT r.id, t.code, 'Essai' FROM recette r CROSS JOIN section_type t
    WHERE r.code LIKE 'REC-90%' AND t.obligatoire;
   UPDATE recette SET statut = 'expertisee' WHERE code LIKE 'REC-90%' AND code <> 'REC-9091';
-  UPDATE recette SET statut = 'transmise' WHERE code = 'REC-9091';`;
+  UPDATE recette SET statut = 'transmise' WHERE code = 'REC-9091';`);
 
 // DS-1041 suit les étapes 1 à 4 puis la DG approuve avec un certificat de forme valide
 const approved = `${openContext('s.kourouma@exemple.gn')}
@@ -150,14 +155,16 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
 
   it('une raison d’attente sur un traitement qui n’est pas « expertisé » : refusée', async () => {
     await expect(
-      attempt(`UPDATE recette SET attente_raison = 'quota'
+      attempt(
+        owner(`UPDATE recette SET attente_raison = 'quota'
                 WHERE id = (SELECT min(id) FROM recette WHERE statut <> 'expertisee');`),
+      ),
     ).rejects.toThrow(/ck_recette_attente_expertisee/);
   });
 
   it('règle de choix : les 3 plus anciens par création, quel que soit leur code (§2.35)', async () => {
     // REC-9000 est créé après REC-9001 à 9003 : c'est lui qui attend
-    const rows = await lastRows(`${joinRecipes(3)}
+    const rows = await lastRows(`${joinRecipes(3)} RESET ROLE;
       INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, cycle_duree_jours,
                            cycle_prises_par_jour, dossier_id)
       VALUES ('REC-9000', 1, 1, 'Créé en dernier', 3, 2, 1);
@@ -167,6 +174,7 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
       SELECT r.id, t.code, 'Essai' FROM recette r CROSS JOIN section_type t
        WHERE r.code = 'REC-9000' AND t.obligatoire;
       UPDATE recette SET statut = 'expertisee' WHERE code = 'REC-9000';
+      SET LOCAL ROLE sabou_app;
       ${approved}
       SELECT string_agg(code, ',' ORDER BY code) AS attente FROM recette
        WHERE code BETWEEN 'REC-9000' AND 'REC-9003' AND statut = 'expertisee';`);
@@ -203,8 +211,8 @@ describe('Un traitement qui ne peut pas être certifié attend, sans bloquer la 
 
   it('plante non validée par le Comité : ce traitement attend, les autres sont certifiés (R-REC-06)', async () => {
     const rows = await lastRows(`${joinRecipes(2)}
-      UPDATE recette_plante SET plante_id = 5
-       WHERE recette_id = (SELECT id FROM recette WHERE code = 'REC-9001');
+      ${owner(`UPDATE recette_plante SET plante_id = 5
+       WHERE recette_id = (SELECT id FROM recette WHERE code = 'REC-9001');`)}
       ${approved}
       SELECT (SELECT statut FROM praticien WHERE id = 1) AS praticien,
              (SELECT string_agg(code || ' ' || statut, ',' ORDER BY code) FROM recette

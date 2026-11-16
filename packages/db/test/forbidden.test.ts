@@ -49,9 +49,10 @@ describe('Langue non autorisée (R-LNG-02 à R-LNG-05)', () => {
 });
 
 describe('Traitement incomplet', () => {
+  // Par le propriétaire des tables : sans contexte, l'API ne voit plus le traitement (US-060)
   it('refuse de certifier REC-2045, qui n’a qu’une section', async () => {
     await expect(
-      attempt(`UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-2045'`),
+      asOwner(`UPDATE recette SET statut = 'certifiee' WHERE code = 'REC-2045'`),
     ).rejects.toThrow('Traitement REC-2045 : sections obligatoires manquantes');
   });
 });

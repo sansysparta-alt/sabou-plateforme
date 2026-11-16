@@ -590,6 +590,8 @@ Critères d’acceptation :
 - Consentement et niveau de visibilité obligatoires avant soumission.
 - Étant donné un traitement resté « expertisé » à la publication de mon dossier (US-046), quand j’ouvre le Studio, alors je vois la raison : formule gratuite limitée à 3 traitements certifiés, ou plante ou section à compléter. La raison est lue sur le traitement (colonne `recette.attente_raison`, écrite par US-046), pas dans le journal d’audit. *Ajout du 13 novembre 2026, demandé par le maître d’œuvre à la livraison de US-046 ; le SMS est déjà envoyé par US-046. Estimation maintenue à 8 points par le maître d’œuvre (13 novembre 2026), à condition que la raison soit enregistrée sur le traitement.*
 
+Réalisation (16 novembre 2026, 05 §2.50) : Studio dans le site (`/studio`) ; un traitement d’un praticien pas encore certifié est joint à son dossier en cours à la soumission (décision du maître d’œuvre du 16 novembre 2026) ; texte seulement, la voix vient avec le Studio mobile (S7).
+
 #### US-061 · Faire avancer un traitement (soumettre, transmettre, expertiser, certifier, rejeter)
 *Traitements et circuit* · **Must** · 5 points · cas : UC-22, UC-42, UC-51, UC-62
 
