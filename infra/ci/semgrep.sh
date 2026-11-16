@@ -44,24 +44,32 @@ if [[ -n "${SEMGREP_FILES:-}" ]] && ((${#targets[@]} == 0)); then
   exit 0
 fi
 
-src="$target" out="$workdir"
+out="$workdir"
 # Sous Git Bash (Windows), Docker attend des chemins Windows
-if command -v cygpath >/dev/null; then
-  src="$(cygpath -m "$src")" out="$(cygpath -m "$out")"
-fi
+if command -v cygpath >/dev/null; then out="$(cygpath -m "$out")"; fi
 configs=()
 for dir in "${RULES_DIRS[@]}"; do configs+=(--config "/rules/$dir"); done
 
-# Le code est monté en lecture seule ; les règles (des milliers de petits fichiers) sont
-# copiées dans le conteneur par un flux tar : sous Windows, les lire à travers le dossier
-# partagé prenait 9 minutes, contre moins d'une ainsi. --metrics=off : aucune donnée envoyée
-# à Semgrep ; le code n'est jamais transmis.
-container=$(MSYS_NO_PATHCONV=1 docker create -v "$src:/src:ro" -v "$out:/out" -w /src \
+# Le code et les règles (des milliers de petits fichiers) sont copiés dans le conteneur par
+# un flux tar : sous Windows, les lire à travers le dossier partagé prenait 9 minutes, contre
+# moins d'une ainsi. Seuls les fichiers que Git suit ou n'ignore pas sont copiés : dans un
+# dossier de travail secondaire (git worktree), le .git pointe hors du conteneur et Semgrep
+# ne pourrait pas lire le .gitignore (il analysait alors les rapports Lighthouse et
+# node_modules). --metrics=off : aucune donnée envoyée à Semgrep ; le code n'est jamais transmis.
+container=$(MSYS_NO_PATHCONV=1 docker create -v "$out:/out" -w /src \
   "$SEMGREP_IMAGE" semgrep scan --metrics=off --disable-version-check --quiet \
   "${configs[@]}" --exclude-rule "$I18NEXT_RULE" --text --json-output=/out/results.json \
   "${targets[@]}")
-# Archive préfixée et déposée à la racine : docker cp n'accepte qu'une destination existante
+# Archives préfixées et déposées à la racine : docker cp n'accepte qu'une destination existante
 tar -C "$workdir/rules" --transform 's,^,rules/,' -cf - "${RULES_DIRS[@]}" |
+  MSYS_NO_PATHCONV=1 docker cp - "$container:/" >/dev/null
+# Fichiers du dépôt (suivis, ou nouveaux et non ignorés) ; hors dépôt Git (contre-épreuve),
+# tout le dossier. Un fichier suivi mais supprimé est sauté.
+if git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$target" ls-files -z --cached --others --exclude-standard
+else
+  (cd "$target" && find . -type f -print0)
+fi | tar -C "$target" --null --ignore-failed-read -T - --transform 's,^\(\./\)\?,src/,' -cf - 2>/dev/null |
   MSYS_NO_PATHCONV=1 docker cp - "$container:/" >/dev/null
 status=0
 docker start -a "$container" || status=$?
