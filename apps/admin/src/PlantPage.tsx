@@ -8,6 +8,7 @@ import type {
   PlantImageType,
 } from '@sabou/types';
 import { ApiError } from './accounts-api';
+import { AnnotationsPanel } from './AnnotationsPanel';
 import {
   addPlantImage,
   fetchPlant,
@@ -95,6 +96,8 @@ export function PlantPage({ code, canValidate = false }: { code: string; canVali
         </Alert>
       )}
       <PlantValidation plant={plant} canValidate={canValidate} onValidated={setPlant} />
+      {/* US-064 : annotation botanique et avis motivé du Comité ; lus aussi par la DG */}
+      <AnnotationsPanel type="plante" code={plant.code} canAnnotate={canValidate} />
       <PlantForm plant={plant} onSaved={setPlant} />
       <PlantImages plant={plant} onChanged={setPlant} />
     </>

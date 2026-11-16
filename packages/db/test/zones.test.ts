@@ -248,6 +248,8 @@ describe('Garde-fous du schéma', () => {
         WHERE p.prosecdef ORDER BY 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      // US-064 : annotations du seul Comité, jamais modifiées (05 §2.54)
+      'annotation_ajouter',
       'contexte_ouvrir',
       // US-052 : fiches maladies, même règle que les fiches plantes (05 §2.42)
       'maladie_creer',

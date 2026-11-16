@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { DossiersModule } from './dossiers/dossiers.module';
 import { HealthController } from './health/health.controller';
 import { AccountsModule } from './accounts/accounts.module';
+import { AnnotationsModule } from './annotations/annotations.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CertificatesModule } from './certificates/certificates.module';
@@ -28,6 +29,7 @@ import { VisitsModule } from './visits/visits.module';
     AuditModule,
     AuthModule,
     AccountsModule,
+    AnnotationsModule,
     CertificationModule,
     CertificatesModule,
     RejectionsModule,

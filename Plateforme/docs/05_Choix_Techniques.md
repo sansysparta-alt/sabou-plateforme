@@ -914,3 +914,12 @@ Décision du maître d'œuvre (16 novembre 2026) : un traitement créé au Studi
 | **Liste paramétrée par la DG dans les Référentiels** (onglet « Contre-indications »), même forme et mêmes gestes que les spécialités : ajout, modification, désactivation, jamais de suppression ; libellé français unique (casse et accents), anglais facultatif ; actions tracées au journal | « Liste paramétrable » du critère, sans écran nouveau à apprendre ; un traitement peut y faire référence | Liste figée dans le code |
 | **Choix au Studio** par `traitement_contre_indications_poser` (brouillon du praticien seulement), dans la même transaction que l'enregistrement ; une contre-indication désactivée n'est plus proposée, mais un traitement qui l'a déjà la garde | Même règle que les spécialités | Refuser l'enregistrement d'un traitement qui porte une contre-indication désactivée |
 | **Alerte** (« Déconseillé : … ») sur le traitement dans le Studio et dans la file des administrateurs ; la page publique du traitement (sprints du site) la reprendra | La page publique n'existe pas encore | — |
+
+### 2.54 Annotations du Comité scientifique (US-064, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Écriture par `annotation_ajouter`** (`SECURITY DEFINER`) réservée au Comité ; avis obligatoire (favorable, réserve, défavorable) et texte de 2 000 caractères au plus, contraintes `NOT VALID` : les annotations antérieures sans avis sont gardées ; journal d'audit | La base n'est pas contournable ; aucune donnée existante modifiée | Avis rendu obligatoire en réécrivant les anciennes annotations |
+| **Jamais modifiée ni effacée** (écriture directe retirée au rôle de l'API) | C'est l'historique des avis, consultable par la DG | Modification par son auteur |
+| **Lecture réservée au Comité et à la DG** (RLS) | Avis internes, motivant les décisions | — |
+| **Panneau replié, chargé à l'ouverture**, dans la file des traitements (Comité : traitements transmis, avec formulaire ; DG : traitements expertisés, en lecture) et sur la fiche plante | Une file de 10 traitements ne fait pas 10 demandes de plus en 3G ; le rôle se déduit du statut que la file montre | Une demande par traitement à l'affichage |
