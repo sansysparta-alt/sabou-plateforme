@@ -143,7 +143,7 @@ export function DossierQueuePage<T extends { code: string }>({
       </p>
       {result === null && !loadError && <p>Chargement…</p>}
       {result !== null && (
-        <section aria-labelledby="dossiers-title" aria-busy={loading}>
+        <section className="ui-section" aria-labelledby="dossiers-title" aria-busy={loading}>
           <div className="ui-list-title">
             <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
               {listTitle}
@@ -164,30 +164,33 @@ export function DossierQueuePage<T extends { code: string }>({
             </ListToolbar>
           )}
           {total === 0 && <p>{searched ? 'Aucun dossier ne correspond.' : empty}</p>}
-          {dossiers.length > 0 && (
-            <ul className="ui-dossiers">
-              {dossiers.map((dossier) => (
-                <Item
-                  key={dossier.code}
-                  dossier={dossier}
-                  onDecided={onDecided}
-                  announce={setNotice}
-                />
-              ))}
-            </ul>
-          )}
-          <Pagination
-            total={total}
-            page={page}
-            pageSize={pageSize}
-            onPage={goTo}
-            onPageSize={(size) => {
-              setPageSize(size);
-              goTo(0);
-            }}
-            noun={['dossier', 'dossiers']}
-            label={`Pages : ${listTitle}`}
-          />
+          {/* La liste et sa pagination forment un seul bloc */}
+          <div>
+            {dossiers.length > 0 && (
+              <ul className="ui-dossiers">
+                {dossiers.map((dossier) => (
+                  <Item
+                    key={dossier.code}
+                    dossier={dossier}
+                    onDecided={onDecided}
+                    announce={setNotice}
+                  />
+                ))}
+              </ul>
+            )}
+            <Pagination
+              total={total}
+              page={page}
+              pageSize={pageSize}
+              onPage={goTo}
+              onPageSize={(size) => {
+                setPageSize(size);
+                goTo(0);
+              }}
+              noun={['dossier', 'dossiers']}
+              label={`Pages : ${listTitle}`}
+            />
+          </div>
         </section>
       )}
     </>
