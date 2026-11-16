@@ -16,13 +16,16 @@ export DOCKER_CLI_HINTS=false
 
 # Arrêt d'un processus et de tous ses descendants. Sous Git Bash (Windows), les programmes
 # natifs (node, flutter, docker) ne reçoivent pas les signaux de bash : taskkill /T les arrête.
+# Le parent est arrêté avant ses enfants : arrêté après, un sous-shell (le minuteur d'une
+# étape) reprendrait la suite de son script dès la fin de son « sleep ».
 kill_tree() {
-  local pid=$1 child
-  for child in $(child_pids "$pid"); do kill_tree "$child"; done
+  local pid=$1 child children
+  children=$(child_pids "$pid")
   if [[ -r /proc/$pid/winpid ]]; then
     taskkill //T //F //PID "$(<"/proc/$pid/winpid")" >/dev/null 2>&1 || true
   fi
   kill "$pid" 2>/dev/null || true
+  for child in $children; do kill_tree "$child"; done
 }
 # Enfants directs d'un processus (ps de Git Bash : PID en 2e colonne, parent en 3e). Le
 # système décide de la commande, pas /proc : un processus déjà terminé n'y figure plus, et le
