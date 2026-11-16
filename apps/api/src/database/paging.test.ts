@@ -30,13 +30,15 @@ beforeAll(async () => {
     .withEnvironment({ POSTGRES_PASSWORD: 'test', POSTGRES_DB: 'sabou' })
     .withExposedPorts(5432)
     .withWaitStrategy(Wait.forLogMessage(/database system is ready to accept connections/, 2))
+    // Poste chargé : l'initialisation de PostGIS peut dépasser la minute par défaut
+    .withStartupTimeout(150_000)
     .start();
   db = createDatabase(
     `postgres://postgres:test@${container.getHost()}:${container.getMappedPort(5432)}/sabou`,
   );
   await sql`CREATE SCHEMA sabou`.execute(db);
   // Même normalisation que la base (schéma initial)
-  await sql`CREATE EXTENSION unaccent`.execute(db);
+  await sql`CREATE EXTENSION unaccent SCHEMA public`.execute(db);
   await sql`CREATE FUNCTION sabou.f_norm(t text) RETURNS text LANGUAGE sql IMMUTABLE AS
             $$ SELECT lower(public.unaccent('public.unaccent', t)) $$`.execute(db);
   await sql`CREATE TABLE sabou.dossier (code text PRIMARY KEY, ouvert boolean NOT NULL,
