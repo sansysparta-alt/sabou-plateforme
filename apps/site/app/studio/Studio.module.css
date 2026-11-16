@@ -144,3 +144,12 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* US-063 : contre-indications en alerte (rouge sombre sur fond clair, 4,5:1 au moins) */
+.alert {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #b3261e;
+  background: #fdecea;
+  color: #5c0f0a;
+}

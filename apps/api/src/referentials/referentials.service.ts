@@ -97,6 +97,31 @@ export class ReferentialsService {
     });
   }
 
+  // US-063 : contre-indications structurées (R-REC-05)
+  createContraindication(input: CreateSpecialty, actor: Actor): Promise<void> {
+    return this.decide(
+      actor,
+      'referentiel.contre_indication_ajoutee',
+      'contre_indication',
+      async (trx) => {
+        const id = await this.repository.createContraindication(trx, input);
+        return { id: String(id), details: { ...input } };
+      },
+    );
+  }
+
+  updateContraindication(id: number, input: UpdateSpecialty, actor: Actor): Promise<void> {
+    return this.decide(
+      actor,
+      'referentiel.contre_indication_modifiee',
+      'contre_indication',
+      async (trx) => {
+        if (!(await this.repository.updateContraindication(trx, id, input))) throw notFound();
+        return { id: String(id), details: { ...input } };
+      },
+    );
+  }
+
   private async decide(
     actor: Actor,
     action: string,

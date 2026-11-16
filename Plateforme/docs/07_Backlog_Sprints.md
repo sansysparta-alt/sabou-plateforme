@@ -625,6 +625,8 @@ Critères d’acceptation :
 - Liste paramétrable (grossesse, allaitement, enfant de moins de 5 ans…).
 - Affichage en alerte sur la page traitement.
 
+Réalisation (16 novembre 2026, 05 §2.53) : liste paramétrable dans l’onglet « Contre-indications » des Référentiels (DG), choisie au Studio, affichée en alerte dans le Studio et la file des administrateurs ; la page publique du traitement la reprendra (sprints du site).
+
 #### US-064 · Annoter un traitement ou une plante
 *Traitements et circuit* · **Should** · 3 points · cas : UC-51
 

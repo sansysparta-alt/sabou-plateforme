@@ -906,3 +906,11 @@ Décision du maître d'œuvre (16 novembre 2026) : un traitement créé au Studi
 | **Bouton « Certifier » remplacé par les motifs** quand la certification est impossible ; le renvoi au Comité reste possible ; praticien pas encore certifié : « certifié à la publication du dossier DS-… » | Ne pas proposer un geste voué à l'échec ; dire ce qui débloquera | Bouton grisé sans explication |
 | **Refus de l'API avec le motif** (`blocked`, motif rédigé) si l'état change entre l'affichage et la décision | — | Message générique |
 | **Délai de grâce** : `formule_active` (schéma initial) compte un GOLD encore 30 jours après sa fin ; un traitement suspendu puis rétabli ne compte pas comme une nouvelle certification ; les traitements déjà certifiés restent publiés (R-REC-11) | Règles du cahier des charges, prouvées par `certification-bloquee.test.ts` | — |
+
+### 2.53 Contre-indications structurées (US-063, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Liste paramétrée par la DG dans les Référentiels** (onglet « Contre-indications »), même forme et mêmes gestes que les spécialités : ajout, modification, désactivation, jamais de suppression ; libellé français unique (casse et accents), anglais facultatif ; actions tracées au journal | « Liste paramétrable » du critère, sans écran nouveau à apprendre ; un traitement peut y faire référence | Liste figée dans le code |
+| **Choix au Studio** par `traitement_contre_indications_poser` (brouillon du praticien seulement), dans la même transaction que l'enregistrement ; une contre-indication désactivée n'est plus proposée, mais un traitement qui l'a déjà la garde | Même règle que les spécialités | Refuser l'enregistrement d'un traitement qui porte une contre-indication désactivée |
+| **Alerte** (« Déconseillé : … ») sur le traitement dans le Studio et dans la file des administrateurs ; la page publique du traitement (sprints du site) la reprendra | La page publique n'existe pas encore | — |

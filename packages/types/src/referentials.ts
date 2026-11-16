@@ -127,5 +127,7 @@ export const referentialsSchema = z.strictObject({
   prefectures: z.array(territorySchema),
   subPrefectures: z.array(territorySchema),
   specialties: z.array(specialtySchema),
+  // US-063 : contre-indications structurées, même forme que les spécialités
+  contraindications: z.array(specialtySchema),
 });
 export type Referentials = z.infer<typeof referentialsSchema>;

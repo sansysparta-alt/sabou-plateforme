@@ -267,6 +267,8 @@ describe('Garde-fous du schéma', () => {
       'plante_valider',
       'saisie_terrain_recevoir',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
+      // US-063 : contre-indications du brouillon, par le Studio
+      'traitement_contre_indications_poser',
       'traitement_enregistrer',
       'traitement_soumettre',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone

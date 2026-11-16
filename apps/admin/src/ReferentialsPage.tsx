@@ -8,15 +8,25 @@ import {
   type ReactNode,
 } from 'react';
 import { Alert, Badge, Button, PageHeader, Pagination, Tabs, usePagination } from '@sabou/ui';
-import type { Language, LanguageType, Referentials, Specialty, TerritoryLevel } from '@sabou/types';
+import type {
+  CreateSpecialty,
+  Language,
+  LanguageType,
+  Referentials,
+  Specialty,
+  TerritoryLevel,
+  UpdateSpecialty,
+} from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { BADGE_TONES } from './roles';
 import {
+  createContraindication,
   createLanguage,
   createSpecialty,
   createTerritory,
   fetchReferentials,
   renameTerritory,
+  updateContraindication,
   updateLanguage,
   updateSpecialty,
 } from './referentials-api';
@@ -98,7 +108,21 @@ export function ReferentialsPage() {
               id: 'specialites',
               label: 'Spécialités',
               count: data.specialties.length,
-              content: <SpecialtiesSection specialties={data.specialties} onDone={done} />,
+              content: (
+                <CodedListSection kind={SPECIALTIES} items={data.specialties} onDone={done} />
+              ),
+            },
+            {
+              id: 'contre-indications',
+              label: 'Contre-indications',
+              count: data.contraindications.length,
+              content: (
+                <CodedListSection
+                  kind={CONTRAINDICATIONS}
+                  items={data.contraindications}
+                  onDone={done}
+                />
+              ),
             },
           ]}
         />
@@ -658,29 +682,76 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
   );
 }
 
-// ---------- Spécialités (US-021) ----------
+// ---------- Listes codées : spécialités (US-021) et contre-indications (US-063) ----------
+// Même forme (code, libellés, actif) et mêmes gestes : ajout, modification, désactivation,
+// jamais de suppression. Les deux noms sont féminins (« activée », « Active »).
 
-function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[]; onDone: OnDone }) {
+interface CodedKind {
+  key: string;
+  title: string;
+  intro: string;
+  one: string;
+  capitalized: string;
+  many: string;
+  codeExample: string;
+  create: (input: CreateSpecialty) => Promise<void>;
+  update: (id: number, input: UpdateSpecialty) => Promise<void>;
+}
+
+const SPECIALTIES: CodedKind = {
+  key: 'specialites',
+  title: 'Spécialités',
+  intro: 'Une spécialité désactivée n’est plus proposée ; les praticiens qui l’ont la gardent.',
+  one: 'spécialité',
+  capitalized: 'Spécialité',
+  many: 'spécialités',
+  codeExample: 'ophtalmologie',
+  create: createSpecialty,
+  update: updateSpecialty,
+};
+
+const CONTRAINDICATIONS: CodedKind = {
+  key: 'contre-indications',
+  title: 'Contre-indications',
+  intro:
+    'Proposées au praticien dans le Studio et affichées en alerte sur le traitement. Une contre-indication désactivée n’est plus proposée ; les traitements qui l’ont la gardent.',
+  one: 'contre-indication',
+  capitalized: 'Contre-indication',
+  many: 'contre-indications',
+  codeExample: 'insuffisance_renale',
+  create: createContraindication,
+  update: updateContraindication,
+};
+
+function CodedListSection({
+  kind,
+  items,
+  onDone,
+}: {
+  kind: CodedKind;
+  items: Specialty[];
+  onDone: OnDone;
+}) {
   // Pagination commune au-delà de 10 lignes (gabarit de liste, 05 §2.45)
-  const { pageItems, paginationProps } = usePagination(specialties, 'specialites');
+  const { pageItems, paginationProps } = usePagination(items, kind.key);
   return (
-    <section aria-labelledby="specialties-title" className="ui-section">
-      <h2 id="specialties-title" className="ui-visually-hidden">
-        Spécialités
+    <section aria-labelledby={`${kind.key}-title`} className="ui-section">
+      <h2 id={`${kind.key}-title`} className="ui-visually-hidden">
+        {kind.title}
       </h2>
       <div className="ui-panel-header">
-        <p>Une spécialité désactivée n’est plus proposée ; les praticiens qui l’ont la gardent.</p>
-        <OnDemand label="Ajouter une spécialité">
-          <SpecialtyForm onDone={onDone} />
+        <p>{kind.intro}</p>
+        <OnDemand label={`Ajouter une ${kind.one}`}>
+          <SpecialtyForm kind={kind} onDone={onDone} />
         </OnDemand>
       </div>
       <div className="ui-table-block">
         <div className="ui-table-wrap">
           <table className="ui-table">
-            <caption className="ui-visually-hidden">Spécialités</caption>
+            <caption className="ui-visually-hidden">{kind.title}</caption>
             <thead>
               <tr>
-                <th scope="col">Spécialité</th>
+                <th scope="col">{kind.capitalized}</th>
                 <th scope="col">En anglais</th>
                 <th scope="col">Statut</th>
                 <th scope="col" className="ui-table__actions">
@@ -690,22 +761,35 @@ function SpecialtiesSection({ specialties, onDone }: { specialties: Specialty[];
             </thead>
             <tbody>
               {pageItems.map((specialty) => (
-                <SpecialtyItem key={specialty.id} specialty={specialty} onDone={onDone} />
+                <SpecialtyItem
+                  key={specialty.id}
+                  kind={kind}
+                  specialty={specialty}
+                  onDone={onDone}
+                />
               ))}
             </tbody>
           </table>
         </div>
         <Pagination
           {...paginationProps}
-          noun={['spécialité', 'spécialités']}
-          label="Pages : Spécialités"
+          noun={[kind.one, kind.many]}
+          label={`Pages : ${kind.title}`}
         />
       </div>
     </section>
   );
 }
 
-function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: OnDone }) {
+function SpecialtyItem({
+  kind,
+  specialty,
+  onDone,
+}: {
+  kind: CodedKind;
+  specialty: Specialty;
+  onDone: OnDone;
+}) {
   const id = useId();
   const { busy, error, run } = useAction(onDone);
   const [editing, setEditing] = useState(false);
@@ -716,8 +800,8 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const ok = await run(
-      () => updateSpecialty(specialty.id, { labelFr, labelEn: labelEn.trim() || null }),
-      `Spécialité ${labelFr} modifiée.`,
+      () => kind.update(specialty.id, { labelFr, labelEn: labelEn.trim() || null }),
+      `${kind.capitalized} ${labelFr} modifiée.`,
     );
     if (ok) setEditing(false);
   }
@@ -729,13 +813,16 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
       disabled={busy}
       onClick={() =>
         run(
-          () => updateSpecialty(specialty.id, { active: next }),
+          () => kind.update(specialty.id, { active: next }),
           `${specialty.labelFr} ${next ? 'activée' : 'désactivée'}.`,
         )
       }
     >
       {next ? 'Activer' : 'Désactiver'}
-      <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
+      <span className="ui-visually-hidden">
+        {' '}
+        la {kind.one} {specialty.labelFr}
+      </span>
     </button>
   );
 
@@ -760,7 +847,10 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
             onClick={() => setEditing((value) => !value)}
           >
             {editing ? 'Fermer' : 'Modifier'}
-            <span className="ui-visually-hidden"> la spécialité {specialty.labelFr}</span>
+            <span className="ui-visually-hidden">
+              {' '}
+              la {kind.one} {specialty.labelFr}
+            </span>
           </button>{' '}
           {toggle}
         </td>
@@ -808,7 +898,7 @@ function SpecialtyItem({ specialty, onDone }: { specialty: Specialty; onDone: On
   );
 }
 
-function SpecialtyForm({ onDone }: { onDone: OnDone }) {
+function SpecialtyForm({ kind, onDone }: { kind: CodedKind; onDone: OnDone }) {
   const id = useId();
   const [form, setForm] = useState({ code: '', labelFr: '', labelEn: '' });
   const { busy, error, run } = useAction(onDone);
@@ -817,12 +907,12 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
     event.preventDefault();
     const ok = await run(
       () =>
-        createSpecialty({
+        kind.create({
           code: form.code,
           labelFr: form.labelFr,
           labelEn: form.labelEn.trim() || null,
         }),
-      `Spécialité ${form.labelFr} ajoutée.`,
+      `${kind.capitalized} ${form.labelFr} ajoutée.`,
     );
     if (ok) setForm({ code: '', labelFr: '', labelEn: '' });
   }
@@ -834,7 +924,7 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
       aria-labelledby={`${id}-t`}
       noValidate
     >
-      <h3 id={`${id}-t`}>Ajouter une spécialité</h3>
+      <h3 id={`${id}-t`}>Ajouter une {kind.one}</h3>
       <ErrorText error={error} />
       <div className="ui-field">
         <label className="ui-field__label" htmlFor={`${id}-fr`}>
@@ -867,7 +957,7 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
           Code
         </label>
         <span className="ui-field__hint" id={`${id}-code-hint`}>
-          Minuscules, chiffres et _, sans accent (ex. ophtalmologie).
+          Minuscules, chiffres et _, sans accent (ex. {kind.codeExample}).
         </span>
         <input
           className="ui-input"
@@ -880,7 +970,7 @@ function SpecialtyForm({ onDone }: { onDone: OnDone }) {
         />
       </div>
       <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
-        Ajouter la spécialité
+        Ajouter la {kind.one}
       </button>
     </form>
   );

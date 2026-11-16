@@ -73,6 +73,14 @@ class FakeRepository {
     this.write('updateSpecialty', id, input);
     return true;
   }
+  async createContraindication(_trx: never, input: unknown) {
+    this.write('createContraindication', input);
+    return 6;
+  }
+  async updateContraindication(_trx: never, id: number, input: unknown) {
+    this.write('updateContraindication', id, input);
+    return id !== 999;
+  }
 }
 
 const repository = new FakeRepository();
@@ -304,5 +312,54 @@ describe('US-021 : spécialités', () => {
       'referentiel.specialite_ajoutee',
       'referentiel.specialite_modifiee',
     ]);
+  });
+});
+
+describe('US-063 : contre-indications structurées, liste paramétrable par la DG', () => {
+  it('ajoute, renomme et désactive une contre-indication, tracé au journal', async () => {
+    const created = await call('POST', '/contre-indications', {
+      as: 'dg',
+      body: { code: 'insuffisance_renale', labelFr: 'Insuffisance rénale', labelEn: null },
+    });
+    expect(created.status).toBe(204);
+    const updated = await call('PATCH', '/contre-indications/6', {
+      as: 'dg',
+      body: { active: false },
+    });
+    expect(updated.status).toBe(204);
+    expect(repository.writes).toEqual([
+      [
+        'createContraindication',
+        { code: 'insuffisance_renale', labelFr: 'Insuffisance rénale', labelEn: null },
+      ],
+      ['updateContraindication', 6, { active: false }],
+    ]);
+    expect(audit.entries.map((e) => e.action)).toEqual([
+      'referentiel.contre_indication_ajoutee',
+      'referentiel.contre_indication_modifiee',
+    ]);
+  });
+
+  it('inconnue : 404 ; code mal formé : 400 ; libellé déjà pris : 409', async () => {
+    expect(
+      (await call('PATCH', '/contre-indications/999', { as: 'dg', body: { active: true } })).status,
+    ).toBe(404);
+    expect(
+      (
+        await call('POST', '/contre-indications', {
+          as: 'dg',
+          body: { code: 'Rein!', labelFr: 'Rein', labelEn: null },
+        })
+      ).status,
+    ).toBe(400);
+    repository.failure = Object.assign(new Error('doublon'), { code: '23505' });
+    expect(
+      (
+        await call('POST', '/contre-indications', {
+          as: 'dg',
+          body: { code: 'grossesse_bis', labelFr: 'Grossesse', labelEn: null },
+        })
+      ).status,
+    ).toBe(409);
   });
 });
