@@ -42,13 +42,16 @@ const desktop = { preset: 'desktop' };
 // performance). Valeurs mesurées (LCP, TBT…) : médiane des valeurs de toutes les mesures
 // (« median ») ; « median-run » vérifiait le TBT de la seule mesure retenue pour son score,
 // qui pouvait être la plus lente des cinq (226 ms sur Comptes dans le pipeline de main).
+// Pages propres à la personne (adresse de l'application de gestion) : accueil, certificat,
+// invitation
+const PERSONAL_PAGES = '^https?://[^/]+:5173/(\\?|$|certificats/|invitation)';
 const budgets = {
   'categories:performance': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
   'categories:accessibility': ['error', { minScore: 1, aggregationMethod: 'median-run' }],
   'categories:best-practices': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
-  // 3 s en 3G normale (300 ms, 700 kbit/s) sur chaque page, connectée ou non (critère de US-017),
-  // tenu grâce à l'ossature pré-générée (US-017b, 05_Choix_Techniques.md §2.49) ; l'écart de
-  // 0,1 s accepté le 15/11/2026 est levé
+  // 3 s en 3G normale (300 ms, 700 kbit/s), connectée ou non (critère de US-017), tenu grâce à
+  // l'ossature pré-générée (US-017b, 05_Choix_Techniques.md §2.49). Exception ci-dessous pour
+  // les pages propres à la personne.
   'largest-contentful-paint': ['error', { maxNumericValue: 3000, aggregationMethod: 'median' }],
   'cumulative-layout-shift': ['error', { maxNumericValue: 0.1, aggregationMethod: 'median' }],
   'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median' }],
@@ -74,7 +77,22 @@ module.exports = {
       },
     },
     assert: {
-      assertions: budgets,
+      // Tableau de bord, certificat et invitation : en-tête propre à la personne, donc sans
+      // ossature pré-générée ; mesurés de 2,9 à 3,1 s. Seuil de 3,1 s gardé pour ces trois
+      // pages seules (décision du maître d'œuvre, 16/11/2026, 05 §2.49) ; 3 s pour les autres.
+      assertMatrix: [
+        {
+          matchingUrlPattern: PERSONAL_PAGES,
+          assertions: {
+            ...budgets,
+            'largest-contentful-paint': [
+              'error',
+              { maxNumericValue: 3100, aggregationMethod: 'median' },
+            ],
+          },
+        },
+        { matchingUrlPattern: `^(?!${PERSONAL_PAGES})`, assertions: budgets },
+      ],
     },
     // Rapports gardés sur le poste ou dans le pipeline : aucun envoi à un service externe
     upload: { target: 'filesystem', outputDir: `.lighthouse/${formFactor}` },
