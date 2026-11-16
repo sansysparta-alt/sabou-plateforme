@@ -1,5 +1,10 @@
 import { Badge } from '@sabou/ui';
-import type { DecidableStatus, TreatmentQueueItem, Visibility } from '@sabou/types';
+import type {
+  CertificationBlocker,
+  DecidableStatus,
+  TreatmentQueueItem,
+  Visibility,
+} from '@sabou/types';
 import {
   DecisionActions,
   DossierQueuePage,
@@ -39,6 +44,26 @@ const STEPS: Record<
       'Le traitement revient au Comité scientifique. Le motif est conservé dans son historique.',
   },
 };
+
+// US-062 : ce qui empêche encore la certification, rédigé pour la DG
+const BLOCKERS: Record<CertificationBlocker, string> = {
+  plante: 'le traitement n’a aucune plante',
+  plante_en_revue: 'une plante n’est pas encore validée par le Comité scientifique',
+  sections: 'une section obligatoire manque',
+  cycle: 'le cycle (durée et prises par jour) n’est pas renseigné',
+  certificat: 'le praticien n’a pas de certificat actif',
+  quota: 'la formule gratuite du praticien est limitée à 3 traitements certifiés',
+};
+
+function blockedReason(treatment: TreatmentQueueItem): string | undefined {
+  if (treatment.blocages.length === 0) return undefined;
+  const reasons = treatment.blocages.map((b) => BLOCKERS[b]).join(' ; ');
+  const later =
+    treatment.blocages.length === 1 && treatment.blocages[0] === 'certificat' && treatment.dossier
+      ? ` Il sera certifié à la publication du dossier ${treatment.dossier}.`
+      : '';
+  return `Certification impossible pour l’instant : ${reasons}.${later}`;
+}
 
 const VISIBILITY: Record<Visibility, string> = {
   publique: 'Publique',
@@ -130,7 +155,8 @@ function TreatmentItem({
         label={`${treatment.code}, ${treatment.titreFr}`}
         noun="traitement"
         validateLabel={step.action}
-        canValidate
+        canValidate={treatment.blocages.length === 0}
+        blockedReason={blockedReason(treatment)}
         validatedNotice={`Traitement ${treatment.code} ${step.advanced}.`}
         rejectedNotice={`Traitement ${treatment.code} ${step.returned}.`}
         rejectHint={step.returnHint}

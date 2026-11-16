@@ -132,7 +132,7 @@ describe('Critère : seul le rôle prévu, dans sa zone, peut faire chaque trans
     [new TreatmentDecisionNotAllowedError(), 403, 'not_allowed'],
     [new TreatmentChangedError(), 409, 'stale'],
     [new TreatmentPractitionerRejectedError(), 409, 'rejected'],
-    [new TreatmentCertificationBlockedError('x'), 409, 'blocked'],
+    [new TreatmentCertificationBlockedError(null), 409, 'blocked'],
   ])('refus de la base %s : %i', async (error, status, code) => {
     failure = error;
     const response = await decide({ statut: 'soumise', decision: 'avance' });
@@ -162,6 +162,24 @@ describe('Critère : un rejet exige un motif', () => {
       statut: 'transmise',
       decision: 'renvoi',
       motif: 'Partie à préciser.',
+    });
+  });
+});
+
+describe('US-062 : certification refusée, motif expliqué', () => {
+  it.each([
+    ['plante_en_revue', 'une plante n’est pas encore validée par le Comité scientifique'],
+    ['sections', 'une section obligatoire manque'],
+    ['certificat', 'le praticien n’a pas de certificat actif'],
+    ['quota', 'la formule gratuite du praticien est limitée à 3 traitements certifiés'],
+  ] as const)('%s : 409 avec le motif', async (blocker, text) => {
+    failure = new TreatmentCertificationBlockedError(blocker);
+    const response = await decide({ statut: 'expertisee', decision: 'avance' });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'blocked',
+      blocker,
+      message: `Certification impossible : ${text}.`,
     });
   });
 });
