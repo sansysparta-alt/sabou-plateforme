@@ -16,7 +16,8 @@ export interface NavGroup {
 export interface AppShellProps {
   // Contexte affiché après la marque, ex. « Direction Générale »
   context?: string;
-  user: { name: string; zone?: string };
+  // Absent pendant la lecture de la session : le cadre s'affiche déjà, sans profil (US-017b)
+  user?: { name: string; zone?: string };
   nav: NavGroup[];
   currentPath: string;
   // Bouton ou formulaire de déconnexion, fourni par l'application
@@ -142,16 +143,18 @@ export function AppShell({
               <Icon name="chevron-left" />
               <span className="ui-sidebar__text">Réduire le menu</span>
             </button>
-            <div className="ui-sidebar__user">
-              <span className="ui-avatar" aria-hidden="true">
-                {initials(user.name)}
-              </span>
-              <span className="ui-sidebar__text ui-sidebar__identity">
-                <span className="ui-sidebar__user-name">{user.name}</span>
-                {user.zone && <span className="ui-sidebar__user-zone">{user.zone}</span>}
-              </span>
-              {userActions}
-            </div>
+            {user && (
+              <div className="ui-sidebar__user">
+                <span className="ui-avatar" aria-hidden="true">
+                  {initials(user.name)}
+                </span>
+                <span className="ui-sidebar__text ui-sidebar__identity">
+                  <span className="ui-sidebar__user-name">{user.name}</span>
+                  {user.zone && <span className="ui-sidebar__user-zone">{user.zone}</span>}
+                </span>
+                {userActions}
+              </div>
+            )}
           </div>
         </nav>
         <main id="contenu" className="ui-main" tabIndex={-1}>

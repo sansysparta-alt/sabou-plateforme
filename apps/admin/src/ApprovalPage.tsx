@@ -11,14 +11,14 @@ import {
   longDate,
   type OnDecided,
 } from './DossierDecision';
+import { PAGE_HEADERS } from './page-headers';
 
 // Approbation par la Direction Générale (US-045, UC-60) : dossiers expertisés par le Comité
 // (étape 5). Approuver émet le certificat signé (12 mois) ; rejeter renvoie au Comité.
 export function ApprovalPage() {
   return (
     <DossierQueuePage
-      title="Approbation des dossiers"
-      lead="Dossiers expertisés par le Comité scientifique. L’approbation émet le certificat signé, valable 12 mois."
+      {...PAGE_HEADERS['/approbation']}
       listTitle="Dossiers à approuver"
       empty="Aucun dossier en attente d’approbation."
       queue={QUEUES.approval}

@@ -20,6 +20,7 @@ import {
   updateLanguage,
   updateSpecialty,
 } from './referentials-api';
+import { PAGE_HEADERS } from './page-headers';
 
 const message = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
@@ -71,10 +72,7 @@ export function ReferentialsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Référentiels"
-        lead="Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée."
-      />
+      <PageHeader {...PAGE_HEADERS['/referentiels']} />
       {loadError && <Alert tone="error">{loadError}</Alert>}
       <p role="status" className="ui-live-status">
         {notice}

@@ -859,3 +859,15 @@ Décision du maître d'œuvre du 16 novembre 2026, après un pipeline bloqué tr
 - **Rien ne reste derrière** : à la sortie (réussite, échec ou Ctrl+C), les processus restants et les conteneurs lancés par le pipeline sont arrêtés. L'environnement local (Docker Compose) n'est pas touché. Sous Git Bash, l'arrêt suit l'arbre des processus de Git Bash puis `taskkill /T`, car les programmes Windows ne reçoivent pas les signaux de bash.
 - **Pas pendant un essai dans le navigateur** : `pnpm ci:local` refuse de démarrer si l'application de gestion (5173) ou le site (3000) tournent en développement. La mémoire du poste (7,2 Go) ne suffit pas aux deux.
 - Preuve : `infra/ci/pipeline-selftest.sh`, première étape du pipeline (étape en échec, étape figée, échec en parallèle, essai en cours, aucun processus restant). Contre-épreuves : sans le témoin de dépassement, ou sans l'arrêt des étapes parallèles, elle échoue.
+
+### 2.49 Ossature de page pré-générée (US-017b, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Cadre et en-tête dans le HTML de chaque adresse**, pré-générés à la compilation (`scripts/prerender.mjs`) pour les pages dont l'en-tête ne dépend pas de la personne (`src/page-headers.ts`, source unique des titres et introductions) | En 3G, le titre et l'introduction (élément le plus grand de chaque page) paraissent dès l'arrivée du HTML et de la feuille de style, sans attendre le code, la session ni les données. `/referentiels` restait à 3,3 s (mesure bimodale, 2,9 ou 3,3 s) | Ossature du seul cadre, sans en-tête : le plus grand élément arriverait toujours avec l'application |
+| **Même composant que l'application** (`LoadingShell`), rendu à la compilation dans un DOM simulé (`jsdom`, déjà présent pour les tests) par une passe `vite build --ssr` ; l'application affiche cette même ossature pendant la lecture de la session et en attendant le morceau de la page | Balisage identique, vérifié par un test pour chaque page : l'application reprend les mêmes éléments, rien ne bouge (CLS nul, mesuré dans le navigateur) | `preact-render-to-string` : dépendance de plus pour le même résultat ; HTML écrit à la main : divergerait du composant |
+| **Tableau de bord non pré-généré** : son titre (« Bonjour, … ») dépend de la personne | Aucun nom dans un fichier statique | — |
+| **Frontal** : sert `dist/<adresse>/index.html` s'il existe, sinon `dist/index.html` (`scripts/serve.mjs` fait de même). En production : `try_files $uri $uri/index.html /index.html` ou équivalent | Une adresse inconnue garde l'application à page unique | — |
+| **Seuil Lighthouse du LCP ramené à 3 s** (`apps/admin/lighthouserc.cjs`), critère de US-017 tenu sans écart | Fin de l'écart de 0,1 s accepté le 15/11/2026 | — |
+
+Limite connue : un menu réduit par la personne (choix gardé dans le navigateur) s'affiche d'abord déplié, puis se réduit au démarrage de l'application. Le HTML statique ne connaît pas ce choix, et la politique de sécurité interdit un script dans la page pour le lire plus tôt.

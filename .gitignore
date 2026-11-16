@@ -21,6 +21,7 @@ desktop.ini
 node_modules/
 vendor/
 dist/
+dist-ssr/
 build/
 *.log
 .next/

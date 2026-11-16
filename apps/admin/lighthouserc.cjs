@@ -46,11 +46,10 @@ const budgets = {
   'categories:performance': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
   'categories:accessibility': ['error', { minScore: 1, aggregationMethod: 'median-run' }],
   'categories:best-practices': ['error', { minScore: 0.9, aggregationMethod: 'median-run' }],
-  // 3,1 s en 3G normale (300 ms, 700 kbit/s) sur chaque page, connectée ou non : mesuré de 2,90
-  // à 3,07 s après US-017 (Preact, données et morceau de la page demandés au démarrage). Écart
-  // de 0,1 s au critère de 3 s accepté par le maître d'œuvre le 15/11/2026, jusqu'à l'ossature
-  // pré-générée (récit US-017b, 05_Choix_Techniques.md §2.46)
-  'largest-contentful-paint': ['error', { maxNumericValue: 3100, aggregationMethod: 'median' }],
+  // 3 s en 3G normale (300 ms, 700 kbit/s) sur chaque page, connectée ou non (critère de US-017),
+  // tenu grâce à l'ossature pré-générée (US-017b, 05_Choix_Techniques.md §2.49) ; l'écart de
+  // 0,1 s accepté le 15/11/2026 est levé
+  'largest-contentful-paint': ['error', { maxNumericValue: 3000, aggregationMethod: 'median' }],
   'cumulative-layout-shift': ['error', { maxNumericValue: 0.1, aggregationMethod: 'median' }],
   'total-blocking-time': ['error', { maxNumericValue: 200, aggregationMethod: 'median' }],
   'total-byte-weight': ['error', { maxNumericValue: 150 * 1024, aggregationMethod: 'median' }],

@@ -132,6 +132,7 @@ export function preloadCurrentPage(): void {
 }
 
 import { prefetch } from './prefetch';
+import { LoadingShell, PageFallback } from './LoadingShell';
 import { firstQueuePagePath, QUEUES } from './queues';
 import {
   fetchSession,
@@ -277,9 +278,12 @@ function ConnectedApp() {
 
   if (state.status === 'anonymous' && !directLogin) return <LoginPage error={loginError} />;
 
+  // Lecture de la session : l'ossature de la page, identique à celle du HTML pré-généré
+  if (state.status === 'loading') return <LoadingShell path={path()} />;
+
   return (
-    <PublicLayout busy={state.status === 'loading'}>
-      {(state.status === 'loading' || directLogin) && <p>Chargement…</p>}
+    <PublicLayout>
+      {directLogin && <p>Chargement…</p>}
       {state.status === 'error' && (
         <Alert tone="error" title="Service indisponible">
           Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
@@ -291,7 +295,7 @@ function ConnectedApp() {
 }
 
 // Pages hors navigation (connexion, invitation, accès refusé) : bandeau seul
-function PublicLayout({ busy = false, children }: { busy?: boolean; children: ReactNode }) {
+function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="ui-shell">
       <a className="ui-skip-link" href="#contenu">
@@ -305,7 +309,7 @@ function PublicLayout({ busy = false, children }: { busy?: boolean; children: Re
           SABOU
         </a>
       </header>
-      <main id="contenu" className="ui-main" tabIndex={-1} aria-busy={busy}>
+      <main id="contenu" className="ui-main" tabIndex={-1}>
         <div className="ui-main__inner">{children}</div>
       </main>
     </div>
@@ -446,8 +450,9 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
         : isCommittee(user)
           ? COMMITTEE_PAGES[path()]
           : undefined;
+  // En attendant le morceau de la page : son en-tête, déjà affiché par l'ossature (US-017b)
   return (
-    <Suspense fallback={<p>Chargement…</p>}>
+    <Suspense fallback={<PageFallback path={path()} />}>
       {Page ? <Page /> : <Dashboard user={user} mfaJustEnabled={mfaJustEnabled} />}
     </Suspense>
   );

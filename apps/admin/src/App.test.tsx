@@ -103,6 +103,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Session lue : le bouton de déconnexion n'existe qu'une fois la personne connue. Le titre de la
+// page ne suffit plus : l'ossature (US-017b) l'affiche avant la session.
+const connected = () => screen.findByRole('button', { name: 'Se déconnecter' });
+
 describe('App', () => {
   it('sans session : la page de connexion unique s’ouvre directement (US-019)', async () => {
     mockApi(null);
@@ -214,6 +218,7 @@ describe('App', () => {
       mockApi(user);
       window.history.replaceState(null, '', '/entonnoir');
       render(<App />);
+      await connected();
       expect(await screen.findByRole('heading', { level: 1 }));
       expect(screen.queryByRole('link', { name: 'Entonnoir de certification' })).toBeNull();
       expect(screen.queryByRole('heading', { name: 'Entonnoir de certification' })).toBeNull();
@@ -235,6 +240,7 @@ describe('App', () => {
     render(<App />);
     const link = await screen.findByRole('link', { name: 'Vérification terrain' });
     expect(link.getAttribute('href')).toBe('/verification-terrain');
+    await connected();
     expect(await screen.findByRole('heading', { level: 1, name: 'Vérification terrain' }));
   });
 
@@ -244,6 +250,7 @@ describe('App', () => {
     render(<App />);
     const link = await screen.findByRole('link', { name: 'Consolidation régionale' });
     expect(link.getAttribute('href')).toBe('/consolidation');
+    await connected();
     expect(await screen.findByRole('heading', { level: 1, name: 'Consolidation régionale' }));
     expect(screen.queryByRole('link', { name: 'Vérification terrain' })).toBeNull();
   });
@@ -257,6 +264,7 @@ describe('App', () => {
       mockApi(user);
       window.history.replaceState(null, '', '/consolidation');
       render(<App />);
+      await connected();
       expect(await screen.findByRole('heading', { level: 1 }));
       expect(screen.queryByRole('link', { name: 'Consolidation régionale' })).toBeNull();
       expect(
@@ -271,6 +279,7 @@ describe('App', () => {
     render(<App />);
     const link = await screen.findByRole('link', { name: 'Expertise des dossiers' });
     expect(link.getAttribute('href')).toBe('/expertise');
+    await connected();
     expect(await screen.findByRole('heading', { level: 1, name: 'Expertise des dossiers' }));
   });
 
@@ -281,6 +290,7 @@ describe('App', () => {
     mockApi(user);
     window.history.replaceState(null, '', '/expertise');
     render(<App />);
+    await connected();
     expect(await screen.findByRole('heading', { level: 1 }));
     expect(screen.queryByRole('link', { name: 'Expertise des dossiers' })).toBeNull();
     expect(screen.queryByRole('heading', { level: 1, name: 'Expertise des dossiers' })).toBeNull();
@@ -313,6 +323,7 @@ describe('App', () => {
       mockApi(user);
       window.history.replaceState(null, '', '/plantes');
       render(<App />);
+      await connected();
       expect(await screen.findByRole('heading', { level: 1, name: 'Fiches plantes' }));
       expect(screen.getByRole('link', { name: 'Fiches plantes' }).getAttribute('href')).toBe(
         '/plantes',

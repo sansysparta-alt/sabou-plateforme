@@ -15,6 +15,7 @@ import {
 import type { PlantFields, PlantStatus, PlantSummary } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { createPlant, listPlants } from './plants-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Fiches plantes du Dictionnaire (US-050, UC-05) : liste, recherche et création, pour la DG
 // et le Comité scientifique. La base contrôle le rôle et l'unicité du nom scientifique.
@@ -74,8 +75,7 @@ export function PlantsPage() {
   return (
     <>
       <PageHeader
-        title="Fiches plantes"
-        lead="Une fiche par plante, commune à toutes les langues. Une fiche nouvelle ou modifiée reste « en revue » jusqu’à la validation du Comité scientifique."
+        {...PAGE_HEADERS['/plantes']}
         actions={
           <Button
             variant="primary"

@@ -422,7 +422,7 @@ Mesure du 14 novembre 2026 (pipeline complet, 5 mesures, téléphone) : session 
 Retravail du 15 novembre 2026 (05 §2.46) : Preact (compatibilité React) au lieu de React, code principal ramené de 73 à 14 Ko compressés ; morceau de la page et données demandés dès le démarrage, d’après l’adresse, en même temps que la session ; réponses JSON compressées (serveur de test aligné sur le frontal). Mesure (3 par page, téléphone) : toutes les pages de gestion entre 2,90 et 3,07 s, Comptes de 4,1 à 2,95 s. Session préchargée dans `index.html` essayée de nouveau : dégrade, écartée. **Décision du maître d’œuvre (15 novembre 2026)** : seuil Lighthouse du LCP porté à 3,1 s sur toutes les pages (écart de 0,1 s au critère), l’ossature pré-générée devient le récit US-017b.
 
 #### US-017b · Une ossature de page pré-générée pour l’application de gestion
-*Socle* · **Should** · 3 points (à confirmer) · ajout du 15 novembre 2026 (décision du maître d’œuvre), sprint à fixer
+*Socle* · **Should** · 3 points (à confirmer) · ajout du 15 novembre 2026 (décision du maître d’œuvre) ; avancé en fin de sprint 4 le 16 novembre 2026, à la demande du maître d’œuvre, car `/referentiels` dépassait le seuil de 3,1 s (05 §2.49)
 
 > En tant qu’administrateur sur un téléphone d’entrée de gamme en 3G, je veux voir le cadre et l’en-tête de la page dès l’arrivée du HTML, afin de savoir tout de suite où je suis.
 

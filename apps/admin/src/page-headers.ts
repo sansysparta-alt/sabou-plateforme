@@ -1,0 +1,66 @@
+// En-têtes des pages dont le titre et l'introduction ne dépendent pas de la personne (US-017b).
+// Source unique : chaque page les affiche, et l'ossature pré-générée à la compilation
+// (scripts/prerender.mjs) les met dans le HTML de son adresse, pour qu'ils s'affichent dès
+// l'arrivée du HTML en 3G, avant le code de l'application et la session.
+// Le tableau de bord (« Bonjour, … ») dépend de la personne : il n'y figure pas.
+
+export interface PageHeading {
+  title: string;
+  lead: string;
+}
+
+export const PAGE_HEADERS = {
+  '/comptes': {
+    title: 'Comptes',
+    lead: 'Comptes d’administration : rôle, zone et langues de travail. Une suspension coupe l’accès immédiatement.',
+  },
+  '/referentiels': {
+    title: 'Référentiels',
+    lead: 'Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée.',
+  },
+  '/verification-terrain': {
+    title: 'Vérification terrain',
+    lead: 'Dossiers soumis dans votre préfecture, en attente de votre décision. Délai cible : 3 jours par dossier.',
+  },
+  '/consolidation': {
+    title: 'Consolidation régionale',
+    lead: 'Dossiers de votre région vérifiés sur le terrain, en attente de votre décision. Délai cible : 3 jours par dossier.',
+  },
+  '/approbation': {
+    title: 'Approbation des dossiers',
+    lead: 'Dossiers expertisés par le Comité scientifique. L’approbation émet le certificat signé, valable 12 mois.',
+  },
+  '/expertise': {
+    title: 'Expertise des dossiers',
+    lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
+  },
+  '/entonnoir': {
+    title: 'Entonnoir de certification',
+    lead: 'Dossiers en cours à chaque étape, délais et dossiers bloqués, au niveau national.',
+  },
+  '/rejet-definitif': {
+    title: 'Rejet définitif',
+    lead: 'Réservé à la Direction Générale, pour fraude documentaire, usurpation d’identité ou pratique dangereuse avérée après avis du Comité scientifique. Le praticien dispose de 30 jours pour contester la décision.',
+  },
+  '/plantes': {
+    title: 'Fiches plantes',
+    lead: 'Une fiche par plante, commune à toutes les langues. Une fiche nouvelle ou modifiée reste « en revue » jusqu’à la validation du Comité scientifique.',
+  },
+  '/maladies': {
+    title: 'Fiches maladies',
+    lead: 'Une fiche par maladie : nom français, nom anglais, dénominations et symptômes. La recherche trouve aussi les dénominations, avec ou sans accents.',
+  },
+  '/noms-locaux': {
+    title: 'Noms locaux des plantes',
+    lead: 'Le référent d’une langue saisit les noms d’une plante dans cette langue : la voix du nom, et une transcription en alphabet latin qui sert seulement à la recherche.',
+  },
+  '/voix-des-noms': {
+    title: 'Voix des noms',
+    lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',
+  },
+} as const satisfies Record<string, PageHeading>;
+
+export type HeadedPath = keyof typeof PAGE_HEADERS;
+
+export const headingOf = (path: string): PageHeading | undefined =>
+  (PAGE_HEADERS as Record<string, PageHeading>)[path];
