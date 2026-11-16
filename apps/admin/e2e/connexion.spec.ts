@@ -119,11 +119,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   // Mot de passe redemandé avant de modifier la sécurité du compte
   await submitPassword(page, praticien);
   const secret = await configureTotp(page);
-  // Code demandé aussitôt, sans retaper le mot de passe (§2.28)
-  await expect(page.locator('#otp')).toBeVisible();
-  await page.waitForTimeout(msUntilNextPeriod());
-  await page.locator('#otp').fill(totp(secret));
-  await page.getByRole('button', { name: 'Connexion' }).click();
+  // Code saisi et vérifié à la configuration : pas de nouvelle demande (§2.55)
   await expect(page.getByRole('status')).toContainText('Double facteur activé');
   await expect(page.getByText('Double facteur actif')).toBeVisible();
   await expectAccessible(page, 'Double facteur activé');
