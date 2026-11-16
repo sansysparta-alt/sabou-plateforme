@@ -36,7 +36,7 @@ export const PAGE_HEADERS = {
   },
   '/entonnoir': {
     title: 'Entonnoir de certification',
-    lead: 'Dossiers en cours à chaque étape, délais et dossiers bloqués, au niveau national.',
+    lead: 'Dossiers en cours à chaque étape, délais et dossiers bloqués, au niveau national. Le délai moyen d’une étape porte sur les dossiers qui en sont sortis au cours des 12 derniers mois.',
   },
   '/rejet-definitif': {
     title: 'Rejet définitif',

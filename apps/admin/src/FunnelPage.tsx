@@ -108,10 +108,9 @@ export function FunnelPage() {
         <h2 id="etapes">Les 6 étapes</h2>
         {data ? (
           <>
-            <p className="ui-muted">
-              Délai cible : {data.delaiCibleJours} jours par étape. Délai moyen calculé sur les
-              dossiers sortis de l’étape au cours des 12 derniers mois.
-            </p>
+            {/* Explication du délai moyen dans l'introduction, pré-générée (US-017b) : ce
+                paragraphe court arrive avec les données sans devenir le plus grand élément */}
+            <p className="ui-muted">Délai cible : {data.delaiCibleJours} jours par étape.</p>
             <DataTable
               caption="Dossiers par étape et délai moyen"
               captionHidden
