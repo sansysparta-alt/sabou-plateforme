@@ -162,17 +162,25 @@ a,
 #kc-locale-dropdown {
   position: relative;
 }
+/* Lien discret, zone cliquable de 44 px gardée */
 #kc-current-locale-link {
   min-height: var(--sabou-target);
   min-width: var(--sabou-target);
+  margin: calc(-1 * var(--auth-space-1)) calc(-1 * var(--auth-space-1)) 0 0;
   padding: 0 var(--auth-space-1);
   font: inherit;
   font-size: var(--auth-small-size);
+  font-weight: var(--sabou-weight-semibold);
   color: var(--sabou-institution);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
   background: transparent;
-  border: 1px solid var(--sabou-border-strong);
+  border: 0;
   border-radius: var(--auth-radius);
   cursor: pointer;
+}
+#kc-current-locale-link:hover {
+  background: var(--sabou-mist);
 }
 .sabou-locale__list {
   display: none;
@@ -230,7 +238,13 @@ a,
 /* Code à 6 chiffres : chiffres espacés, lisibles */
 .sabou-code {
   font-family: var(--sabou-font-mono);
-  letter-spacing: 0.25em;
+  font-size: var(--sabou-text-lg);
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+.sabou-code::placeholder {
+  color: var(--sabou-text-muted);
+  opacity: 0.6;
 }
 .sabou-input-group {
   display: flex;
@@ -416,33 +430,53 @@ a,
   list-style: none;
   counter-reset: sabou-step;
 }
-/* Numéro de l'étape en haut à gauche de son contenu, même à côté du QR code */
+/* Numéro en pastille, aligné sur la première ligne de la consigne ; le contenu de l'étape
+   (aide, QR code) reste dans la colonne de la consigne */
 .sabou-steps > li {
   display: grid;
   grid-template-columns: var(--auth-space-3) minmax(0, 1fr);
+  column-gap: var(--auth-space-1);
+  row-gap: 0;
   counter-increment: sabou-step;
 }
+.sabou-steps > li > * {
+  grid-column: 2;
+}
 .sabou-steps > li::before {
-  content: counter(sabou-step) '.';
+  content: counter(sabou-step);
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: var(--auth-space-3);
+  height: var(--auth-space-3);
+  border-radius: var(--sabou-radius-full);
+  background: var(--sabou-mist);
+  color: var(--sabou-institution);
+  font-size: var(--auth-small-size);
+  font-weight: var(--sabou-weight-bold);
+}
+.sabou-step__hint {
+  font-size: var(--auth-small-size);
+  color: var(--sabou-text-muted);
 }
 .sabou-qr {
   display: block;
   flex: none;
   width: var(--auth-qr-size);
   height: var(--auth-qr-size);
+  padding: var(--sabou-space-1);
+  border: 1px solid var(--sabou-border);
+  border-radius: var(--auth-radius);
+  background: var(--sabou-surface);
+  box-sizing: content-box;
 }
-/* QR à gauche, consigne et lien à droite : l'écran tient sans défilement */
+/* QR dans un cadre léger, lien de secours à sa droite : l'écran tient sans défilement */
 .sabou-scan {
   display: flex;
-  flex-direction: row-reverse;
-  justify-content: flex-end;
   align-items: center;
   gap: var(--auth-space-2);
-}
-.sabou-scan__text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--auth-space-1);
+  margin-top: var(--auth-space-1);
 }
 .sabou-steps .sabou-link {
   font-size: var(--auth-small-size);
@@ -628,8 +662,33 @@ a,
   }
 }
 
-/* Téléphone : carte en pleine largeur, marges intérieures réduites */
+/* Écran bas (ordinateur portable, navigateur avec barres) : marges resserrées, tout tient */
+@media (max-height: 720px) {
+  .sabou-page--split .sabou-login {
+    padding-top: var(--auth-space-2);
+    padding-bottom: var(--auth-space-2);
+  }
+  .sabou-card {
+    gap: var(--auth-space-2);
+    padding: var(--auth-space-3) var(--auth-card-padding);
+  }
+  #kc-content-wrapper,
+  #kc-content-wrapper form,
+  #kc-totp-settings-form,
+  #kc-otp-login-form,
+  #kc-form-login {
+    gap: var(--auth-space-2);
+  }
+}
+
+/* Téléphone : bandeau réduit, carte en pleine largeur, marges intérieures réduites */
 @media (max-width: 899px) {
+  :root {
+    --auth-qr-size: 6.5rem; /* 104 px */
+  }
+  .sabou-hero {
+    padding: var(--auth-space-1) var(--auth-space-2);
+  }
   .sabou-login {
     max-width: none;
     padding: var(--auth-space-2);

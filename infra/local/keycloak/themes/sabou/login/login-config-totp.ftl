@@ -13,7 +13,10 @@
         ${msg("sabouTotpTitle")}
     <#elseif section = "form">
         <ol id="kc-totp-settings" class="sabou-steps">
-            <li>${msg("sabouTotpStep1")}</li>
+            <li>
+                <span>${msg("sabouTotpStep1")}</span>
+                <span class="sabou-step__hint">${msg("sabouTotpApps")}</span>
+            </li>
             <#if mode?? && mode = "manual">
                 <li>
                     ${msg("sabouTotpManualStep2")}
@@ -22,14 +25,10 @@
                 </li>
             <#else>
                 <li>
-                    <#-- Texte d'abord (le numéro de l'étape s'aligne sur sa première ligne), QR
-                         affiché à gauche par la mise en page -->
+                    <span>${msg("sabouTotpStep2")}</span>
                     <div class="sabou-scan">
-                        <div class="sabou-scan__text">
-                            <span>${msg("sabouTotpStep2")}</span>
-                            <a href="${totp.manualUrl}" id="mode-manual" class="sabou-link">${msg("loginTotpUnableToScan")}</a>
-                        </div>
                         <img id="kc-totp-secret-qr-code" class="sabou-qr" src="data:image/png;base64, ${totp.totpSecretQrCode}" alt="${msg("sabouTotpQrAlt")}" width="128" height="128">
+                        <a href="${totp.manualUrl}" id="mode-manual" class="sabou-link">${msg("loginTotpUnableToScan")}</a>
                     </div>
                 </li>
             </#if>
@@ -41,7 +40,7 @@
                 <label for="totp" class="${properties.kcLabelClass!}">${msg("sabouOtpLabel")}</label>
                 <input type="text" id="totp" name="totp" class="${properties.kcInputClass!} sabou-code"
                        autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-                       autofocus
+                       placeholder="123456" autofocus
                        aria-invalid="<#if messagesPerField.existsError('totp')>true</#if>"
                        <#if messagesPerField.existsError('totp')>aria-describedby="input-error-otp-code"</#if>
                        dir="ltr"/>

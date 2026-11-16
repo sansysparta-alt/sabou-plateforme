@@ -25,7 +25,7 @@
                 <label for="otp" class="${properties.kcLabelClass!}">${msg("sabouOtpLabel")}</label>
                 <input id="otp" name="otp" type="text" class="${properties.kcInputClass!} sabou-code"
                        autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-                       autofocus
+                       placeholder="123456" autofocus
                        aria-invalid="<#if messagesPerField.existsError('totp')>true</#if>"
                        <#if messagesPerField.existsError('totp')>aria-describedby="input-error-otp-code"</#if>
                        dir="ltr"/>
