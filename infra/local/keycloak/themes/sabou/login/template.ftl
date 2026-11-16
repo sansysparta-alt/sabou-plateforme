@@ -165,9 +165,11 @@
       <div id="kc-content">
         <div id="kc-content-wrapper">
 
-          <#-- App-initiated actions should not see warning messages about the need to complete the action -->
-          <#-- during login.                                                                               -->
-          <#if displayMessage && message?has_content && (message.type != 'warning' || !isAppInitiatedAction??)>
+          <#-- SABOU (refonte de l'authentification) : une seule alerte par écran. Les avertissements de
+               Keycloak sont les invitations « Vous devez configurer… », « Vous devez définir… » des
+               actions requises : ils répètent le titre de l'écran et ne sont pas affichés. Les
+               erreurs, succès et informations le sont. -->
+          <#if displayMessage && message?has_content && message.type != 'warning'>
               <div class="alert-${message.type} ${properties.kcAlertClass!}" role="<#if message.type = 'error'>alert<#else>status</#if>">
                   <@alertIcon type=message.type />
                   <span class="${properties.kcAlertTitleClass!}">${kcSanitize(message.summary)?no_esc}</span>

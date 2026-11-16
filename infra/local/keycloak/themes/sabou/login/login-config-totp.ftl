@@ -6,8 +6,7 @@
      - pas de case « Se déconnecter des autres appareils » (non cochée : comportement inchangé) ;
      - champ code : 6 chiffres, clavier numérique, remplissage automatique du code. -->
 <#import "template.ftl" as layout>
-<#-- Seules les erreurs s'affichent : l'avis « vous devez configurer… » répète le titre -->
-<@layout.registrationLayout displayRequiredFields=false displayMessage=(message?has_content && message.type = 'error' && !messagesPerField.existsError('totp','userLabel')); section>
+<@layout.registrationLayout displayRequiredFields=false displayMessage=!messagesPerField.existsError('totp','userLabel'); section>
 
     <#if section = "header">
         ${msg("sabouTotpTitle")}

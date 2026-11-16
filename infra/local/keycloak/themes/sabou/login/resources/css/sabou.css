@@ -94,12 +94,12 @@ a,
   padding: var(--auth-card-padding);
 }
 
-/* En-tête : titre (et identifiant) à gauche, langue à droite */
+/* En-tête : langue sur sa propre ligne en haut à droite de la carte (même place sur tous les
+   écrans), puis le titre seul, sur toute la largeur. Les marges négatives logent la zone
+   cliquable de 44 px dans la marge de la carte, sans ajouter de hauteur. */
 .sabou-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--auth-space-2);
+  flex-direction: column;
 }
 .sabou-header__text {
   display: flex;
@@ -154,10 +154,10 @@ a,
 }
 
 /* Sélecteur de langue : masqué par le gabarit tant qu'une seule langue est active */
-/* Langue à droite du titre, en code court (FR) : le titre garde la largeur de la carte */
 .sabou-locale {
-  order: 2;
-  flex: 0 0 auto;
+  align-self: flex-end;
+  margin: calc(-1 * var(--auth-space-2)) calc(-1 * var(--auth-space-1))
+    calc(-1 * var(--auth-space-1)) 0;
 }
 #kc-locale-dropdown {
   position: relative;
@@ -166,7 +166,6 @@ a,
 #kc-current-locale-link {
   min-height: var(--sabou-target);
   min-width: var(--sabou-target);
-  margin: calc(-1 * var(--auth-space-1)) calc(-1 * var(--auth-space-1)) 0 0;
   padding: 0 var(--auth-space-1);
   font: inherit;
   font-size: var(--auth-small-size);
@@ -488,10 +487,12 @@ a,
   overflow-wrap: anywhere;
 }
 
-/* ---------- Codes de secours : deux colonnes alignées, chasse fixe ---------- */
+/* ---------- Codes de secours : deux colonnes alignées, chasse fixe ----------
+   Chaque code sur une seule ligne ; numéros alignés à droite (9 et 10 au même bord). */
 .sabou-codes {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, max-content);
+  justify-content: space-between;
   gap: var(--auth-space-1) var(--auth-space-2);
   margin: 0;
   padding: 0;
@@ -499,9 +500,14 @@ a,
   font-family: var(--sabou-font-mono);
   font-size: var(--auth-text-size);
 }
+.sabou-codes li {
+  display: grid;
+  grid-template-columns: 3ch max-content;
+  column-gap: var(--auth-space-1);
+  white-space: nowrap;
+}
 .sabou-codes__index {
-  display: inline-block;
-  min-width: 2.5ch;
+  text-align: right;
   color: var(--sabou-text-muted);
 }
 .sabou-codes-actions {
@@ -696,7 +702,13 @@ a,
   .sabou-card {
     padding: var(--auth-space-3) var(--auth-space-2);
   }
-  .sabou-codes-actions {
-    grid-template-columns: minmax(0, 1fr);
+  /* Codes à 14 px sur téléphone : deux colonnes sans coupure dès 320 px ; les trois actions
+     restent sur une ligne, en plus compact (l'écran ne défile pas) */
+  .sabou-codes {
+    font-size: var(--auth-small-size);
+  }
+  .sabou-codes-actions .sabou-button {
+    padding: 0 var(--auth-space-1);
+    font-size: var(--auth-small-size);
   }
 }

@@ -65,7 +65,7 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   // Connexion suivante : mot de passe, puis code de l'application d'authentification
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, dg);
   await expect(page.locator('#otp')).toBeVisible();
@@ -90,7 +90,7 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   // Déconnexion : session de l'API fermée, et Keycloak redemande l'identification
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   expect(await sessionStatus(page)).toBe(401);
   await startLogin(page);
   await expect(page.getByLabel('Mot de passe', { exact: true })).toBeVisible();
@@ -126,7 +126,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   // Une fois activé, il lui est demandé à chaque connexion
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, praticien);
   await expect(page.locator('#otp')).toBeVisible();
@@ -138,7 +138,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   const citoyen = await createUser('citoyen');
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, citoyen);
   await expect(page).toHaveURL(`${APP}/`);
@@ -196,7 +196,7 @@ test('journal d’audit : échec, connexion et déconnexion, avec l’IP (US-030
   await submitPassword(page, user);
   await expect(page).toHaveURL(`${APP}/`);
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
 
   await expect
     .poll(() => auditLines(user.id).map((line) => `${line.source}:${line.action}`), AUDIT_DELAY)

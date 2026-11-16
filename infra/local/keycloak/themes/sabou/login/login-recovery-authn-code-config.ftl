@@ -16,7 +16,7 @@
 
     <ol id="kc-recovery-codes-list" class="${properties.kcRecoveryCodesList!}">
         <#list recoveryAuthnCodesConfigBean.generatedRecoveryAuthnCodesList as code>
-            <li><span class="sabou-codes__index">${code?counter}.</span> ${code[0..3]}-${code[4..7]}-${code[8..]}</li>
+            <li><span class="sabou-codes__index">${code?counter}.</span><span>${code[0..3]}-${code[4..7]}-${code[8..]}</span></li>
         </#list>
     </ol>
 
@@ -67,12 +67,17 @@
 
     <script>
         <#outputformat "JavaScript">
+        /* Texte d'un code : « 1. XXXX-XXXX-XXXX » (numéro et code sont deux éléments) */
+        function recoveryCodeText(li) {
+            return li.children[0].textContent + " " + li.children[1].textContent;
+        }
+
         /* copy recovery codes  */
         function copyRecoveryCodes() {
             var tmpTextarea = document.createElement("textarea");
             var codes = document.querySelectorAll("#kc-recovery-codes-list li");
             for (i = 0; i < codes.length; i++) {
-                tmpTextarea.value = tmpTextarea.value + codes[i].innerText + "\n";
+                tmpTextarea.value = tmpTextarea.value + recoveryCodeText(codes[i]) + "\n";
             }
             document.body.appendChild(tmpTextarea);
             tmpTextarea.select();
@@ -105,7 +110,7 @@
             var recoveryCodeList = "";
 
             for (var i = 0; i < recoveryCodes.length; i++) {
-                var recoveryCodeLiElement = recoveryCodes[i].innerText;
+                var recoveryCodeLiElement = recoveryCodeText(recoveryCodes[i]);
                 recoveryCodeList += recoveryCodeLiElement + "\r\n";
             }
 
@@ -155,6 +160,7 @@
                 `@page { size: auto;  margin-top: 0; }
                 body { width: 480px; }
                 div { list-style-type: none; font-family: monospace }
+                li span:first-child { display: inline-block; min-width: 3ch; margin-right: 1ch; text-align: right }
                 p:first-of-type { margin-top: 48px }`;
 
             return printFileContent =
