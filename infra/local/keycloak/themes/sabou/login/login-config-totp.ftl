@@ -6,14 +6,14 @@
      - pas de case « Se déconnecter des autres appareils » (non cochée : comportement inchangé) ;
      - champ code : 6 chiffres, clavier numérique, remplissage automatique du code. -->
 <#import "template.ftl" as layout>
-<@layout.registrationLayout displayRequiredFields=false displayMessage=!messagesPerField.existsError('totp','userLabel'); section>
+<#-- Seules les erreurs s'affichent : l'avis « vous devez configurer… » répète le titre -->
+<@layout.registrationLayout displayRequiredFields=false displayMessage=(message?has_content && message.type = 'error' && !messagesPerField.existsError('totp','userLabel')); section>
 
     <#if section = "header">
         ${msg("sabouTotpTitle")}
     <#elseif section = "form">
-        <#assign sabouApps><#list totp.supportedApplications as app>${msg(app)}<#sep>, </#list></#assign>
         <ol id="kc-totp-settings" class="sabou-steps">
-            <li>${msg("sabouTotpStep1", sabouApps)}</li>
+            <li>${msg("sabouTotpStep1")}</li>
             <#if mode?? && mode = "manual">
                 <li>
                     ${msg("sabouTotpManualStep2")}
@@ -22,9 +22,15 @@
                 </li>
             <#else>
                 <li>
-                    ${msg("sabouTotpStep2")}
-                    <img id="kc-totp-secret-qr-code" class="sabou-qr" src="data:image/png;base64, ${totp.totpSecretQrCode}" alt="${msg("sabouTotpQrAlt")}" width="160" height="160">
-                    <a href="${totp.manualUrl}" id="mode-manual" class="sabou-link">${msg("loginTotpUnableToScan")}</a>
+                    <#-- Texte d'abord (le numéro de l'étape s'aligne sur sa première ligne), QR
+                         affiché à gauche par la mise en page -->
+                    <div class="sabou-scan">
+                        <div class="sabou-scan__text">
+                            <span>${msg("sabouTotpStep2")}</span>
+                            <a href="${totp.manualUrl}" id="mode-manual" class="sabou-link">${msg("loginTotpUnableToScan")}</a>
+                        </div>
+                        <img id="kc-totp-secret-qr-code" class="sabou-qr" src="data:image/png;base64, ${totp.totpSecretQrCode}" alt="${msg("sabouTotpQrAlt")}" width="128" height="128">
+                    </div>
                 </li>
             </#if>
             <li>${msg("sabouTotpStep3")}</li>

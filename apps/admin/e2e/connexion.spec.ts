@@ -43,10 +43,9 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   // Pas d'accès tant que le second facteur n'est pas configuré
   await expect(page.locator('#kc-totp-settings')).toBeVisible();
   expect(await sessionStatus(page)).toBe(401);
-  // Encadré général du thème (template.ftl) : avertissement annoncé, icône dessinée décorative
-  const notice = page.getByRole('status').filter({ hasText: /authentification/i });
-  await expect(notice).toBeVisible();
-  await expect(notice.locator('svg.sabou-alert__icon[aria-hidden="true"]')).toBeVisible();
+  // Titre seul, sans avis qui le répète (refonte de l'authentification, §2.55)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Double authentification');
+  await expect(page.locator('.sabou-alert')).toHaveCount(0);
   await expectAccessible(page, 'Configuration du code à usage unique');
 
   const secret = await configureTotp(page);

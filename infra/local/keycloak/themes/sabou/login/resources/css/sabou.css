@@ -24,7 +24,7 @@
   --auth-card-padding: var(--auth-space-4);
   --auth-control-height: 3rem; /* 48 px */
   --auth-check-size: 1.5rem; /* 24 px */
-  --auth-qr-size: 10rem; /* 160 px */
+  --auth-qr-size: 8rem; /* 128 px */
   --auth-radius: var(--sabou-radius-sm);
   --auth-card-radius: var(--sabou-radius-md);
   --auth-card-shadow: var(--sabou-shadow-2);
@@ -154,7 +154,9 @@ a,
 }
 
 /* Sélecteur de langue : masqué par le gabarit tant qu'une seule langue est active */
+/* Langue à droite du titre, en code court (FR) : le titre garde la largeur de la carte */
 .sabou-locale {
+  order: 2;
   flex: 0 0 auto;
 }
 #kc-locale-dropdown {
@@ -410,17 +412,39 @@ a,
   flex-direction: column;
   gap: var(--auth-space-2);
   margin: 0;
-  padding-left: var(--auth-space-3);
+  padding: 0;
+  list-style: none;
+  counter-reset: sabou-step;
+}
+/* Numéro de l'étape en haut à gauche de son contenu, même à côté du QR code */
+.sabou-steps > li {
+  display: grid;
+  grid-template-columns: var(--auth-space-3) minmax(0, 1fr);
+  counter-increment: sabou-step;
+}
+.sabou-steps > li::before {
+  content: counter(sabou-step) '.';
 }
 .sabou-qr {
   display: block;
+  flex: none;
   width: var(--auth-qr-size);
   height: var(--auth-qr-size);
-  margin: var(--auth-space-1) auto;
+}
+/* QR à gauche, consigne et lien à droite : l'écran tient sans défilement */
+.sabou-scan {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--auth-space-2);
+}
+.sabou-scan__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--auth-space-1);
 }
 .sabou-steps .sabou-link {
-  display: block;
-  text-align: center;
   font-size: var(--auth-small-size);
 }
 .sabou-secret {

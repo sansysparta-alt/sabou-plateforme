@@ -133,7 +133,7 @@
                 <div class="${properties.kcLocaleMainClass!}" id="kc-locale">
                     <div id="kc-locale-wrapper" class="${properties.kcLocaleWrapperClass!}">
                         <div id="kc-locale-dropdown" class="menu-button-links ${properties.kcLocaleDropDownClass!}">
-                            <button id="kc-current-locale-link" aria-label="${msg("languages")} : ${locale.current}" aria-haspopup="true" aria-expanded="false" aria-controls="language-switch1">${locale.current}</button>
+                            <button id="kc-current-locale-link" aria-label="${msg("languages")} : ${locale.currentLanguageTag?upper_case} (${locale.current})" aria-haspopup="true" aria-expanded="false" aria-controls="language-switch1">${locale.currentLanguageTag?upper_case}</button>
                             <ul role="menu" tabindex="-1" aria-labelledby="kc-current-locale-link" aria-activedescendant="" id="language-switch1" class="${properties.kcLocaleListClass!}">
                                 <#assign i = 1>
                                 <#list locale.supported as l>
