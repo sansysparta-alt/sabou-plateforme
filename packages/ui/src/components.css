@@ -198,6 +198,119 @@
   flex-wrap: wrap;
   gap: var(--sabou-space-3);
 }
+/* Formulaire long découpé en sections titrées, séparées par un filet (invitation d'un compte) */
+.ui-form-section {
+  display: grid;
+  gap: var(--sabou-space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ui-form-section ~ .ui-form-section,
+.ui-form-section ~ .ui-form__actions {
+  padding-top: var(--sabou-space-5);
+  border-top: 1px solid var(--sabou-border);
+}
+/* Légende flottante : elle devient un élément de la grille, l'écart s'applique comme à un titre */
+.ui-form-section__legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: var(--sabou-text-lg);
+  font-weight: var(--sabou-weight-semibold);
+}
+/* Champs côte à côte sur grand écran, empilés sur téléphone */
+.ui-form-row {
+  display: grid;
+  gap: var(--sabou-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  align-items: start;
+}
+/* Boutons radio sur une ligne */
+.ui-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sabou-space-5);
+}
+/* Grille de cases à cocher (langue × droit) : la cellule entière est la cible du clic */
+.ui-check-matrix {
+  max-width: 40rem;
+}
+.ui-check-matrix .ui-table tbody th {
+  padding-block: 0;
+  font-weight: var(--sabou-weight-regular);
+}
+.ui-check-matrix .ui-table .ui-table__check {
+  width: 7rem;
+  text-align: center;
+}
+.ui-check-matrix .ui-table td.ui-table__check {
+  padding: 0;
+}
+.ui-check-matrix td.ui-table__check label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sabou-target);
+  cursor: pointer;
+}
+.ui-check-matrix td.ui-table__check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--sabou-institution);
+  cursor: pointer;
+}
+.ui-check-matrix tbody tr:hover {
+  background: var(--sabou-bg);
+}
+/* Libellé du droit à côté de la case, visible sur téléphone seulement (le nom accessible complet
+   reste porté par le texte masqué) */
+.ui-check-matrix__short {
+  display: none;
+}
+/* Téléphone : trois colonnes ne tiennent pas ; chaque langue devient un bloc, nom puis cases */
+@media (max-width: 36rem) {
+  .ui-check-matrix thead {
+    display: none;
+  }
+  /* Pas de largeur minimale ni de défilement : la grille s'empile au lieu de défiler */
+  .ui-check-matrix .ui-table,
+  .ui-check-matrix tbody {
+    display: block;
+    min-width: 0;
+  }
+  /* Cases à la suite, renvoyées à la ligne sur les écrans les plus étroits */
+  .ui-check-matrix tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: var(--sabou-space-2);
+    border-bottom: 1px solid var(--sabou-border);
+  }
+  .ui-check-matrix tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .ui-check-matrix .ui-table tbody th {
+    flex: 1 1 100%;
+    padding: var(--sabou-space-2) var(--sabou-space-2) 0;
+    border-bottom: 0;
+    font-weight: var(--sabou-weight-semibold);
+  }
+  .ui-check-matrix .ui-table td.ui-table__check {
+    width: auto;
+    border-bottom: 0;
+  }
+  .ui-check-matrix td.ui-table__check label {
+    justify-content: flex-start;
+    gap: var(--sabou-space-2);
+    padding-inline: var(--sabou-space-2);
+    font-size: var(--sabou-text-sm);
+  }
+  .ui-check-matrix__short {
+    display: inline;
+  }
+}
 
 /* ---------- Cartes ---------- */
 .ui-card {

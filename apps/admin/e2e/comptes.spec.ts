@@ -106,9 +106,8 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
 
   // Critère 1 : rôle, zone et langues de travail attribués
   await page.getByLabel('Région').selectOption({ label: 'Kindia' });
-  const soussou = page.getByRole('group', { name: 'Soussou' });
-  await soussou.getByLabel('Enregistrer').check();
-  await soussou.getByLabel('Valider').check();
+  await page.getByRole('checkbox', { name: 'Enregistrer en Soussou' }).check();
+  await page.getByRole('checkbox', { name: 'Valider en Soussou' }).check();
   await submitInvitation(page);
   const link = await invitationLink(page, invitee);
   expect(new URL(link).hash).toMatch(/^#[\w-]{43}$/);
