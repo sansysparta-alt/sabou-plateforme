@@ -24,9 +24,11 @@ kill_tree() {
   fi
   kill "$pid" 2>/dev/null || true
 }
-# Enfants directs d'un processus (ps de Git Bash : PID en 2e colonne, parent en 3e)
+# Enfants directs d'un processus (ps de Git Bash : PID en 2e colonne, parent en 3e). Le
+# système décide de la commande, pas /proc : un processus déjà terminé n'y figure plus, et le
+# ps de Git Bash ne connaît pas -o.
 child_pids() {
-  if [[ -d /proc/$1 && -r /proc/$1/winpid ]]; then
+  if [[ $OSTYPE == msys* || $OSTYPE == cygwin* ]]; then
     ps -ef | awk -v p="$1" 'NR > 1 && $3 == p { print $2 }'
   else
     ps -e -o pid= -o ppid= | awk -v p="$1" '$2 == p { print $1 }'
