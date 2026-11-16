@@ -78,12 +78,15 @@ export function DossierQueuePage<T extends { code: string }>({
   const [result, setResult] = useState<ZonePage<T> | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const [loading, setLoading] = useState(true);
+  // Demande en cours : sa clé diffère de celle de la dernière réponse reçue (sans état de
+  // chargement modifié dans l'effet)
+  const requestKey = `${page}|${pageSize}|${searched}|${reads}`;
+  const [answeredKey, setAnsweredKey] = useState<string>();
+  const loading = answeredKey !== requestKey;
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let current = true;
-    setLoading(true);
     load(page, pageSize, searched).then(
       (next) => {
         if (!current) return;
@@ -95,19 +98,19 @@ export function DossierQueuePage<T extends { code: string }>({
         }
         setResult(next);
         setLoadError(undefined);
-        setLoading(false);
+        setAnsweredKey(requestKey);
       },
       (error: unknown) => {
         if (!current) return;
         setLoadError(errorMessage(error));
-        setLoading(false);
+        setAnsweredKey(requestKey);
       },
     );
     return () => {
       current = false;
     };
     // `load` est une fonction du module certification-api, stable
-  }, [load, page, pageSize, searched, reads]);
+  }, [load, page, pageSize, searched, reads, requestKey]);
 
   function onDecided(code: string, text: string) {
     setResult(
