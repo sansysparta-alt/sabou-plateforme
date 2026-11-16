@@ -37,6 +37,8 @@ export interface QueuedMessage {
     prevueLe?: string;
     quota?: number;
     contenu?: number;
+    // Traitement (US-061) : statut d'arrivée, utile pour un renvoi
+    statut?: string;
     // Rejet définitif (US-047) : dossier clos, s'il y en avait un en cours, et dernier jour
     // du recours (2026-12-14)
     dossier?: string;
@@ -85,6 +87,13 @@ function pendingTreatmentsText(objet: string, quota: number, contenu: number): s
   return `SABOU : ${subject} : ${reasons.join(' ; ')}.`;
 }
 
+// Renvoi d'un traitement à l'étape précédente (US-061), selon le statut d'arrivée
+const TREATMENT_RETURN: Record<string, string> = {
+  brouillon: 'vous est renvoyé pour correction.',
+  soumise: "est renvoyé à l'administration de votre région.",
+  transmise: 'est renvoyé au Comité scientifique.',
+};
+
 // Texte d'un message de la file, ou null si le modèle est inconnu (erreur définitive)
 export function notificationText({ modele, objet, parametres }: QueuedMessage): string | null {
   const etape = parametres.etape;
@@ -116,6 +125,21 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
       return pendingTreatmentsText(objet, parametres.quota ?? 0, parametres.contenu ?? 0);
     case 'praticien.rejet_definitif':
       return finalRejectionText(parametres.dossier, parametres.recoursJusquau);
+    // Circuit d'un traitement (US-061, R-REC-07) ; le motif d'un renvoi est dans le Studio
+    case 'recette.soumise':
+      return `SABOU : votre traitement ${objet} est bien soumis. Il passe à l'examen de l'administration de votre région.`;
+    case 'recette.transmise':
+      return `SABOU : votre traitement ${objet} est transmis au Comité scientifique pour expertise.`;
+    case 'recette.expertisee':
+      return `SABOU : votre traitement ${objet} est expertisé par le Comité scientifique. Il attend la certification de la Direction Générale.`;
+    case 'recette.certifiee':
+      return `SABOU : félicitations, votre traitement ${objet} est certifié.`;
+    case 'recette.renvoyee': {
+      const to = TREATMENT_RETURN[parametres.statut ?? ''];
+      return to
+        ? `SABOU : votre traitement ${objet} ${to} Le motif est dans votre Studio SABOU.`
+        : null;
+    }
     case 'dossier.publie':
       return `SABOU : félicitations, votre certification est publiée (dossier ${objet}). Votre fiche de praticien certifié est visible sur SABOU.`;
     default:

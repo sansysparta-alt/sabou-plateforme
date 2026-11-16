@@ -45,6 +45,22 @@ export type Announce = (notice: string) => void;
 // Chaque page fournit l'affichage d'un dossier. Un dossier décidé quitte la file aussitôt, puis
 // la page est relue pour la compléter ; le focus revient au titre de la liste, pour ne pas le
 // perdre avec l'élément retiré (clavier, lecteurs d'écran).
+// Libellés propres aux éléments de la file (dossiers par défaut, traitements pour US-061)
+export interface QueueWords {
+  one: string;
+  many: string;
+  searchLabel: string;
+  placeholder: string;
+  none: string;
+}
+const DOSSIER_WORDS: QueueWords = {
+  one: 'dossier',
+  many: 'dossiers',
+  searchLabel: 'Rechercher un dossier',
+  placeholder: 'Code du dossier (DS-2001) ou nom du praticien',
+  none: 'Aucun dossier ne correspond.',
+};
+
 export function DossierQueuePage<T extends { code: string }>({
   title,
   lead,
@@ -53,12 +69,14 @@ export function DossierQueuePage<T extends { code: string }>({
   queue,
   load,
   item: Item,
+  words = DOSSIER_WORDS,
 }: {
   title: string;
   lead: string;
   listTitle: string;
   empty: string;
   queue: QueuePath;
+  words?: QueueWords;
   load: (page: number, size: number, q?: string) => Promise<ZonePage<T>>;
   item: ComponentType<{ dossier: T; onDecided: OnDecided; announce: Announce }>;
 }) {
@@ -150,20 +168,20 @@ export function DossierQueuePage<T extends { code: string }>({
             </h2>
             <span className="ui-tabs__count">
               {total}
-              <span className="ui-visually-hidden"> dossier{total > 1 ? 's' : ''}</span>
+              <span className="ui-visually-hidden"> {total > 1 ? words.many : words.one}</span>
             </span>
           </div>
           {(total > 0 || searched) && (
             <ListToolbar>
               <SearchBox
-                label="Rechercher un dossier"
-                placeholder="Code du dossier (DS-2001) ou nom du praticien"
+                label={words.searchLabel}
+                placeholder={words.placeholder}
                 value={query}
                 onChange={setQuery}
               />
             </ListToolbar>
           )}
-          {total === 0 && <p>{searched ? 'Aucun dossier ne correspond.' : empty}</p>}
+          {total === 0 && <p>{searched ? words.none : empty}</p>}
           {/* La liste et sa pagination forment un seul bloc */}
           <div>
             {dossiers.length > 0 && (
@@ -187,7 +205,7 @@ export function DossierQueuePage<T extends { code: string }>({
                 setPageSize(size);
                 goTo(0);
               }}
-              noun={['dossier', 'dossiers']}
+              noun={[words.one, words.many]}
               label={`Pages : ${listTitle}`}
             />
           </div>
@@ -239,11 +257,19 @@ export function DecisionActions({
   rejectedNotice,
   rejectHint,
   onDecided,
+  submit,
+  noun = 'dossier',
+  validateLabel = 'Valider',
 }: {
   code: string;
   // Nom accessible du dossier, ajouté aux boutons répétés dans la liste
   label: string;
-  etape: 2 | 3 | 4 | 5;
+  etape?: 2 | 3 | 4 | 5;
+  // Envoi de la décision ; par défaut, celle d'un dossier à l'étape `etape`
+  submit?: (decision: 'valide' | 'rejete', motif?: string) => Promise<unknown>;
+  // Objet décidé, dans les libellés (« le dossier », « le traitement »)
+  noun?: string;
+  validateLabel?: string;
   canValidate: boolean;
   // Raison affichée quand la validation n'est pas encore possible
   blockedReason?: string;
@@ -269,11 +295,14 @@ export function DecisionActions({
     setBusy(true);
     setError(undefined);
     try {
-      await decideDossier(code, {
-        etape,
-        decision,
-        ...(decision === 'rejete' ? { motif: motif.trim() } : {}),
-      });
+      const reason = decision === 'rejete' ? motif.trim() : undefined;
+      if (submit) await submit(decision, reason);
+      else
+        await decideDossier(code, {
+          etape: etape!,
+          decision,
+          ...(reason !== undefined ? { motif: reason } : {}),
+        });
       onDecided(code, done);
     } catch (failure) {
       setError(errorMessage(failure));
@@ -313,7 +342,10 @@ export function DecisionActions({
               disabled={busy}
               onClick={() => decide('valide', validatedNotice)}
             >
-              Valider <span className="ui-visually-hidden">le dossier {label}</span>
+              {validateLabel}{' '}
+              <span className="ui-visually-hidden">
+                le {noun} {label}
+              </span>
             </Button>
           )}
           <Button
@@ -322,13 +354,18 @@ export function DecisionActions({
             disabled={busy}
             onClick={() => setRejecting(true)}
           >
-            Rejeter <span className="ui-visually-hidden">le dossier {label}</span>
+            Rejeter{' '}
+            <span className="ui-visually-hidden">
+              le {noun} {label}
+            </span>
           </Button>
         </div>
       )}
       {rejecting && (
         <form className="ui-form" onSubmit={onReject} noValidate aria-labelledby={`${id}-rejet`}>
-          <h4 id={`${id}-rejet`}>Rejeter le dossier {code}</h4>
+          <h4 id={`${id}-rejet`}>
+            Rejeter le {noun} {code}
+          </h4>
           <TextAreaField
             ref={motifField}
             label="Motif du rejet"

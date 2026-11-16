@@ -164,3 +164,58 @@ export interface StudioReferentials {
   plantes: { code: string; nomFr: string; nomScientifique: string; validee: boolean }[];
   sections: { code: SectionType; libelleFr: string; obligatoire: boolean }[];
 }
+
+// ---------------------------------------------------------------------
+// Circuit côté administrateurs (US-061, R-REC-07)
+// ---------------------------------------------------------------------
+export const TREATMENT_MOTIF_MAX_LENGTH = 1000;
+// Statuts qui attendent une décision : soumis (régional), transmis (Comité), expertisé (DG)
+export const DECIDABLE_STATUSES = ['soumise', 'transmise', 'expertisee'] as const;
+export type DecidableStatus = (typeof DECIDABLE_STATUSES)[number];
+// « avance » : étape suivante ; « renvoi » : étape précédente, motif obligatoire
+export const TREATMENT_DECISIONS = ['avance', 'renvoi'] as const;
+export type TreatmentDecisionKind = (typeof TREATMENT_DECISIONS)[number];
+
+export const treatmentDecisionSchema = z
+  .object({
+    // Statut vu à l'écran : si le traitement a bougé entre-temps, la décision est refusée
+    statut: z.enum(DECIDABLE_STATUSES, 'Statut du traitement invalide.'),
+    decision: z.enum(TREATMENT_DECISIONS, 'Décision inconnue.'),
+    motif: z
+      .string()
+      .trim()
+      .max(TREATMENT_MOTIF_MAX_LENGTH, `Motif : ${TREATMENT_MOTIF_MAX_LENGTH} caractères au plus.`)
+      .optional(),
+  })
+  .strict()
+  .refine((d) => d.decision !== 'renvoi' || Boolean(d.motif), {
+    message: 'Motif du renvoi : champ obligatoire.',
+    path: ['motif'],
+  });
+export type TreatmentDecision = z.infer<typeof treatmentDecisionSchema>;
+
+export interface TreatmentQueueItem {
+  code: string;
+  titreFr: string;
+  statut: DecidableStatus;
+  praticien: string;
+  praticienNom: string;
+  prefecture: string;
+  maladie: string;
+  cycleDureeJours: number | null;
+  cyclePrisesParJour: number | null;
+  cyclePauseJours: number | null;
+  plantes: { nomFr: string; nomScientifique: string; partie: string | null; validee: boolean }[];
+  sections: { type: SectionType; libelleFr: string; texteFr: string; texteEn: string | null }[];
+  visibilite: Visibility;
+  // Dossier de certification auquel le traitement est joint (R-REC-08)
+  dossier: string | null;
+  // Date d'arrivée au statut actuel
+  depuisLe: string;
+  dernierMotif: string | null;
+}
+
+export interface TreatmentDecisionResult {
+  code: string;
+  statut: TreatmentStatus;
+}

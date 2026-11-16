@@ -23,6 +23,8 @@ const loaders = {
   localNames: () => import('./LocalNamesPage'),
   // US-071 : voix du nom des plantes et des maladies
   nameVoices: () => import('./NameVoicesPage'),
+  // US-061 : traitements à transmettre, expertiser ou certifier
+  treatments: () => import('./TreatmentsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -52,6 +54,9 @@ const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.Dise
 const NameVoicesPage = lazy(() =>
   loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
 );
+const TreatmentsPage = lazy(() =>
+  loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
+);
 const LocalNamesPage = lazy(() =>
   loaders.localNames().then((m) => ({ default: m.LocalNamesPage })),
 );
@@ -72,6 +77,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/maladies': loaders.diseases,
   '/noms-locaux': loaders.localNames,
   '/voix-des-noms': loaders.nameVoices,
+  '/traitements': loaders.treatments,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -89,6 +95,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/maladies': ['/api/maladies'],
   '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
   '/voix-des-noms': ['/api/voix-des-noms'],
+  '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -330,13 +337,20 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isRegional(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/consolidation', label: 'Consolidation régionale', icon: 'folder' }],
+      items: [
+        { href: '/consolidation', label: 'Consolidation régionale', icon: 'folder' },
+        // US-061
+        { href: '/traitements', label: 'Traitements à transmettre', icon: 'folder' },
+      ],
     });
   }
   if (isCommittee(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
+      items: [
+        { href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' },
+        { href: '/traitements', label: 'Traitements à expertiser', icon: 'folder' },
+      ],
     });
   }
   // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
@@ -369,6 +383,7 @@ function navigation(user: SessionUser): NavGroup[] {
       heading: 'Certification',
       items: [
         { href: '/approbation', label: 'Approbation des dossiers', icon: 'shield' },
+        { href: '/traitements', label: 'Traitements à certifier', icon: 'shield' },
         { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'error' },
       ],
     });
@@ -389,6 +404,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/voix-des-noms': NameVoicesPage,
   '/entonnoir': FunnelPage,
   '/approbation': ApprovalPage,
+  '/traitements': TreatmentsPage,
   '/rejet-definitif': RejectionPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
@@ -404,11 +420,13 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/consolidation': ConsolidationPage,
+  '/traitements': TreatmentsPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/expertise': ExpertisePage,
+  '/traitements': TreatmentsPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };

@@ -34,6 +34,10 @@ export const PAGE_HEADERS = {
     title: 'Expertise des dossiers',
     lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
   },
+  '/traitements': {
+    title: 'Traitements à décider',
+    lead: 'Traitements qui attendent votre décision : transmission au Comité par la région, expertise par le Comité scientifique, certification par la Direction Générale. Un renvoi exige un motif.',
+  },
   '/entonnoir': {
     title: 'Entonnoir de certification',
     lead: 'Dossiers en cours à chaque étape, délais et dossiers bloqués, au niveau national. Le délai moyen d’une étape porte sur les dossiers qui en sont sortis au cours des 12 derniers mois.',

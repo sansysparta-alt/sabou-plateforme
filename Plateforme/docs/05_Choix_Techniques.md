@@ -887,3 +887,13 @@ Décision du maître d'œuvre (16 novembre 2026) : un traitement créé au Studi
 | **Listes de référence par migration** (sections, contre-indications), retirées du jeu d'exemple | En production, ces tables auraient été vides | — |
 | **Plantes « en revue » acceptées dans un brouillon**, signalées dans le formulaire | La certification les refuse déjà (R-PLA-06, US-062) ; le praticien ne peut pas créer de plante | Ne proposer que les plantes validées : bloquerait la saisie |
 | **Texte saisi en français (anglais facultatif)** ; la voix du praticien vient avec le Studio mobile (S7) | Critères de US-060 ; R-LNG-02 | — |
+
+### 2.51 Circuit d'un traitement (US-061, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Une seule page de gestion « Traitements à décider »** (`/traitements`), dont le contenu dépend du rôle : soumis de sa région pour le régional, transmis pour le Comité, expertisés pour la DG (`traitements_a_decider()`, zone appliquée par le RLS) ; entrée de menu propre à chaque rôle (« à transmettre », « à expertiser », « à certifier ») | Même file paginée et mêmes gestes que les dossiers (US-019b) ; un seul écran à maintenir | Trois pages presque identiques |
+| **Décision contre le statut vu** (`traitement_decider(code, statut vu, avance/renvoi, motif)`), traduite en transition par la base | Même règle que les dossiers (§2.31) : un traitement qui a bougé entre-temps n'est pas décidé à l'aveugle | Envoyer le statut d'arrivée depuis l'écran |
+| **SMS de renvoi distinct** (`recette.renvoyee`, statut d'arrivée en paramètre), sans le motif, lu dans le Studio | Sans lui, un renvoi du Comité vers « soumis » se lirait comme une soumission ; le SMS de rejet ne contient pas le motif (décision du 12/11) | — |
+| **Praticien rejeté définitivement** : ses traitements sont exclus des files (critère du 14/11) ; la base refuse déjà toute progression (US-047) | — | — |
+| **Composants de la file généralisés** (`DossierQueuePage` : libellés ; `DecisionActions` : envoi, nom de l'objet, libellé de l'action) | Réutiliser plutôt que copier | Copie des composants |

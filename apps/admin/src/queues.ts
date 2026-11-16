@@ -10,6 +10,8 @@ export const QUEUES = {
   consolidation: '/api/dossiers/consolidation',
   expertise: '/api/dossiers/expertise',
   approval: '/api/dossiers/approbation',
+  // US-061 : traitements qui attendent la décision du compte connecté
+  treatments: '/api/traitements/a-decider',
 } as const;
 export type QueuePath = (typeof QUEUES)[keyof typeof QUEUES];
 
