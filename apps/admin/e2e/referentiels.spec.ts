@@ -4,8 +4,8 @@
 // packages/db/test/referentiels.test.ts.
 import { randomInt } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, firstAdministratorLogin } from './helpers';
-import { APP, createUser } from './keycloak';
+import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import { APP } from './keycloak';
 
 test.setTimeout(240_000);
 
@@ -35,7 +35,8 @@ async function languagesPageOf(page: Page, code: string): Promise<void> {
 test('la DG paramètre langues, territoires et spécialités sans modifier le code', async ({
   page,
 }) => {
-  const dg = await createUser('dg');
+  // Compte DG complet (Keycloak et ligne utilisateur) : le redécoupage vérifie l'acteur en base
+  const dg = await administrator('dg', { national: true });
   await firstAdministratorLogin(page, dg);
   await page.getByRole('link', { name: 'Gérer les référentiels' }).click();
   await expect(page).toHaveURL(`${APP}/referentiels`);
