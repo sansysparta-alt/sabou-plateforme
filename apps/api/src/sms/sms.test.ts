@@ -45,6 +45,34 @@ describe('Textes : un seul SMS par message, en français', () => {
     expect(isSingleGsm7Sms(text!)).toBe(true);
   });
 
+  it('US-049 : l’invitation à renouveler tient en un SMS et donne le numéro et l’échéance', () => {
+    const text = notificationText({
+      modele: 'certificat.renouvellement',
+      objet: 'SAB-2026-PR1042-KX7',
+      parametres: { expireLe: '2027-01-14' },
+    });
+    expect(text).toBe(
+      "SABOU : votre certificat SAB-2026-PR1042-KX7 expire le 14/01/2027. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire.",
+    );
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+    // Numéro le plus long admis : toujours un seul SMS
+    const longest = notificationText({
+      modele: 'certificat.renouvellement',
+      objet: `SAB-2026-PR${'9'.repeat(10)}-KX7`,
+      parametres: { expireLe: '2027-01-14' },
+    });
+    expect(isSingleGsm7Sms(longest!)).toBe(true);
+  });
+
+  it('US-049 : une invitation sans échéance ou sans numéro valable est une erreur définitive', () => {
+    const text = (objet: string, expireLe?: string) =>
+      notificationText({ modele: 'certificat.renouvellement', objet, parametres: { expireLe } });
+    expect(text('SAB-2026-PR1042-KX7', undefined)).toBe(null);
+    expect(text('SAB-2026-PR1042-KX7', '14/01/2027')).toBe(null);
+    expect(text('DS-1041', '2027-01-14')).toBe(null);
+    expect(text('SAB-2026-PR1042-KX7 ou autre', '2027-01-14')).toBe(null);
+  });
+
   it('US-041 : un rappel sans date valable est une erreur définitive', () => {
     for (const prevueLe of [undefined, '2026-11-20', 'demain']) {
       expect(
@@ -151,6 +179,7 @@ function fakeQueue(messages: QueuedSms[], outcome: SmsOutcome = 'envoyee') {
   const recorded: [string, string | null, boolean][] = [];
   const queue: NotificationQueue = {
     queueVisitReminders: vi.fn(async () => 0),
+    processCertificateDeadlines: vi.fn(async () => ({ expired: 0, reminders: 0 })),
     take: vi.fn(async (limit: number) => messages.splice(0, limit)),
     async record(id, error, definitive = false) {
       recorded.push([id, error, definitive]);
@@ -256,9 +285,44 @@ describe('Envoi de la file', () => {
     ]);
   });
 
+  it('US-049 : traite les échéances des certificats avant chaque relève, invitations comprises', async () => {
+    const order: string[] = [];
+    const { queue } = fakeQueue([
+      message('1', {
+        modele: 'certificat.renouvellement',
+        objet: 'SAB-2026-PR1042-KX7',
+        parametres: { expireLe: '2027-01-14' },
+      }),
+    ]);
+    queue.processCertificateDeadlines = vi.fn(async () => {
+      order.push('échéances');
+      return { expired: 2, reminders: 1 };
+    });
+    const take = queue.take;
+    queue.take = vi.fn(async (limit: number) => {
+      order.push('relève');
+      return take(limit);
+    });
+    const sent: string[] = [];
+    const sender: SmsSender = { send: async (_, text) => void sent.push(text) };
+
+    expect(await new SmsDispatcher(env, queue, sender).dispatch()).toBe(1);
+    expect(order).toEqual(['échéances', 'relève']);
+    expect(sent).toEqual([expect.stringContaining('expire le 14/01/2027') as string]);
+  });
+
+  it('US-049 : une erreur sur les échéances ne retient pas les SMS déjà en file', async () => {
+    const { queue, recorded } = fakeQueue([message('1')]);
+    queue.processCertificateDeadlines = () => Promise.reject(new Error('verrou'));
+    const dispatcher = new SmsDispatcher(env, queue, { send: async () => undefined });
+    expect(await dispatcher.dispatch()).toBe(1);
+    expect(recorded).toEqual([['1', null, false]]);
+  });
+
   it('une base injoignable n’arrête pas l’envoi : le passage suivant reprend', async () => {
     const queue: NotificationQueue = {
       queueVisitReminders: () => Promise.reject(new Error('connexion refusée')),
+      processCertificateDeadlines: () => Promise.reject(new Error('connexion refusée')),
       take: () => Promise.reject(new Error('connexion refusée')),
       record: vi.fn(),
     };
