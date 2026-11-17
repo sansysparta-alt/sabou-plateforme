@@ -116,6 +116,12 @@ describe('Page Comptes', () => {
     // La langue d'écoute aussi : la personne la choisit, la langue de sa région par défaut
     expect(within(form).queryByLabelText(/Langue d’écoute/)).toBeNull();
     const role = within(form).getByRole('combobox', { name: 'Rôle' });
+    // Zone toujours visible : à choisir après le rôle, « Tout le pays » pour un rôle national
+    const zone = () => within(form).getByRole('combobox', { name: 'Zone' }) as HTMLSelectElement;
+    expect(zone().disabled).toBe(true);
+    expect(zone().selectedOptions[0]!.textContent).toBe('Choisissez d’abord un rôle');
+    fireEvent.change(role, { target: { value: 'dg' } });
+    expect(zone().selectedOptions[0]!.textContent).toBe('Tout le pays');
     fireEvent.change(role, { target: { value: 'regional' } });
     expect(role.getAttribute('aria-describedby')).toBeTruthy();
     expect(document.getElementById(role.getAttribute('aria-describedby')!)?.textContent).toMatch(

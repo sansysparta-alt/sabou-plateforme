@@ -798,6 +798,15 @@ function InviteForm({
                 ))}
               </SelectField>
             )}
+            {/* Zone toujours visible : à choisir pour un rôle régional ou préfectoral, sinon
+                rappelée (rôle national, ou rôle pas encore choisi) */}
+            {form.role !== 'regional' && form.role !== 'prefectoral' && (
+              <SelectField label="Zone" disabled value="">
+                <option value="">
+                  {form.role ? 'Tout le pays' : 'Choisissez d’abord un rôle'}
+                </option>
+              </SelectField>
+            )}
           </div>
         </fieldset>
         {/* Langue de l'interface et langue d'écoute : choix de la personne elle-même, à tout
