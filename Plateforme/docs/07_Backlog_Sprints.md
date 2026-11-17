@@ -237,7 +237,7 @@ Critères d’acceptation :
 - Étant donné la page Comptes, quand la DG ouvre l’onglet « Rôles et droits », alors elle voit la matrice des permissions du cahier des charges (§3.2), ligne à ligne et profil par profil, puis les précisions des règles métier avec leur source ; les droits pas encore développés sont marqués « À venir » ; rien n’y est modifiable.
 - Chaque droit développé affiché est celui que le serveur applique : un test essaie l’action avec chaque profil et échoue si la matrice et le serveur divergent.
 - Étant donné le formulaire d’invitation, quand la DG choisit un rôle, alors le périmètre et la mission de ce rôle s’affichent sous le choix (maquette de gestion, diapositive 2).
-- Le téléphone est facultatif ; un mobile guinéen saisi librement est enregistré sous la forme +224 ; tout autre numéro est refusé avec un message, sans rien enregistrer. L’identifiant de connexion reste l’adresse e-mail.
+- Le téléphone est obligatoire pour les quatre profils de gestion (décision du maître d’œuvre du 17/11/2026) ; un mobile guinéen saisi librement est enregistré sous la forme +224 ; un numéro absent ou d’un autre format est refusé avec un message, sans rien enregistrer. L’identifiant de connexion reste l’adresse e-mail.
 
 #### US-013 · Suspendre un compte en un clic
 *Identité et accès* · **Must** · 2 points · cas : UC-65

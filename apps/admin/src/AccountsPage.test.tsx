@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { AccountReferences, AccountSummary } from '@sabou/types';
 import { MATRIX_ROLE_LABELS, MATRIX_ROLES, PERMISSIONS } from '@sabou/types/permissions';
-import { PHONE_ERROR } from '@sabou/types/phone';
+import { PHONE_ERROR, PHONE_REQUIRED } from '@sabou/types/phone';
 import { AccountsPage } from './AccountsPage';
 
 const account = (id: number, firstName: string, lastName: string, extra: Partial<AccountSummary>) =>
@@ -62,7 +62,7 @@ describe('Page Comptes', () => {
     expect(rows()).toHaveLength(4);
     const sow = rows()[1]!;
     expect(sow.textContent).toContain('ibrahima@sabou-sante.gn');
-    // Téléphone facultatif, sous l'adresse, sous sa forme lisible (US-012b)
+    // Téléphone sous l'adresse, sous sa forme lisible (US-012b)
     expect(sow.textContent).toContain('621 23 45 67');
     expect(within(sow).getByRole('button', { name: /^Suspendre.*Ibrahima Sow$/ }));
     // La DG ne peut pas se suspendre elle-même
@@ -126,13 +126,13 @@ describe('Page Comptes', () => {
     fireEvent.change(within(form).getByLabelText('Adresse e-mail'), {
       target: { value: 'fanta@sabou-sante.gn' },
     });
-    fireEvent.change(within(form).getByLabelText('Téléphone (facultatif)'), {
+    fireEvent.change(within(form).getByLabelText('Téléphone'), {
       target: { value: '0123' },
     });
     fireEvent.click(within(form).getByRole('button', { name: 'Créer l’invitation' }));
     // Erreurs sous les seuls champs concernés (téléphone, région), pas de bandeau ;
     // le premier champ à corriger reçoit le focus
-    const phone = within(form).getByLabelText('Téléphone (facultatif)');
+    const phone = within(form).getByLabelText('Téléphone');
     const region = within(form).getByRole('combobox', { name: 'Région' });
     expect(within(form).queryByRole('alert')).toBeNull();
     expect(errorOf(phone)).toBe(PHONE_ERROR);
@@ -163,7 +163,8 @@ describe('Page Comptes', () => {
     expect(errorOf(within(form).getByRole('combobox', { name: 'Rôle' }))).toBe(
       'Choisissez un rôle.',
     );
-    expect(errorOf(within(form).getByLabelText('Téléphone (facultatif)'))).toBeNull();
+    // Téléphone obligatoire pour les quatre profils de gestion (MOE 17/11/2026)
+    expect(errorOf(within(form).getByLabelText('Téléphone'))).toBe(PHONE_REQUIRED);
     expect(document.activeElement).toBe(first);
   });
 });

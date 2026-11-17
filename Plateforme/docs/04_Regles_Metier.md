@@ -161,7 +161,7 @@ Légende : **[CdC §x]** = règle reprise du cahier des charges · **[Correction
 | R-ACC-03 | Double facteur obligatoire pour tous les administrateurs (DG, régional, préfectoral, Comité). | [CdC §3.1] |
 | R-ACC-04 | Moindre privilège : chaque action n'est permise qu'au rôle prévu par la matrice §3.2 du cahier des charges. La matrice se **consulte** (page Comptes, onglet « Rôles et droits ») et ne se modifie pas dans l'application : les rôles sont fixes. Elle est complétée par les précisions des règles métier, chacune avec sa source (expertise d'un dossier à l'étape 4, circuit d'un traitement, fiches plantes, annotations du Comité). | [CdC §3.2] [Précision 17/11/2026, US-012b] : « matrice des permissions » du menu Utilisateurs & rôles entendue en consultation |
 | R-ACC-05 | Suspension en un clic par la DG ; toute connexion et toute décision sont journalisées. | [CdC §3.1] |
-| R-ACC-07 | Téléphone **facultatif** pour un compte d'administration (mobile guinéen, forme +224), pour être joint par la DG ; il n'est jamais identifiant de connexion (l'adresse e-mail l'est). | [CdC fiche U-001] [Précision 17/11/2026, US-012b] : minimisation des données |
+| R-ACC-07 | Téléphone **obligatoire** pour les quatre profils de gestion (DG, régional, préfectoral, Comité) : mobile guinéen, forme +224, pour les alertes et notifications par SMS du §9 ; il n'est jamais identifiant de connexion (l'adresse e-mail l'est). | [CdC fiche U-001, §9] [Décision MOE 17/11/2026, demande #61] |
 | R-ACC-06 | Un praticien est rattaché à un compte et à une préfecture (sous-préfecture facultative, pour les statistiques locales). | [CdC §6.4] [Correction] : sous-préfecture absente |
 
 ## 14. Site public piloté

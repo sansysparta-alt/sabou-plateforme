@@ -38,7 +38,12 @@ import {
   VOICE_RIGHTS_NOTE,
   type MatrixRole,
 } from '@sabou/types/permissions';
-import { formatNationalMobile, PHONE_ERROR, toNationalMobile } from '@sabou/types/phone';
+import {
+  formatNationalMobile,
+  PHONE_ERROR,
+  PHONE_REQUIRED,
+  toNationalMobile,
+} from '@sabou/types/phone';
 import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
 import { PAGE_HEADERS } from './page-headers';
 
@@ -583,7 +588,8 @@ function fieldErrors(form: FormState): FieldErrors {
   else if (!EMAIL.test(form.email.trim())) {
     errors.email = 'Adresse e-mail invalide, par exemple nom@domaine.gn.';
   }
-  if (form.phone.trim() && !toNationalMobile(form.phone)) errors.phone = PHONE_ERROR;
+  if (!form.phone.trim()) errors.phone = PHONE_REQUIRED;
+  else if (!toNationalMobile(form.phone)) errors.phone = PHONE_ERROR;
   if (!form.role) errors.role = 'Choisissez un rôle.';
   if (form.role === 'regional' && !form.regionId) errors.regionId = 'Choisissez une région.';
   if (form.role === 'prefectoral' && !form.prefectureId) {
@@ -655,7 +661,7 @@ function InviteForm({
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
-        phone: form.phone.trim() || null,
+        phone: form.phone.trim(),
         role: form.role as AccountRole,
         // Seule la zone du rôle est envoyée ; l'API refuse une zone absente ou en trop
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
@@ -680,8 +686,8 @@ function InviteForm({
     <section aria-labelledby={`${id}-title`} className="ui-card ui-card--plain">
       <h2 id={`${id}-title`}>Inviter un compte</h2>
       <p className="ui-muted">
-        Le prénom, le nom, l’adresse e-mail et le rôle sont obligatoires. Un lien d’invitation est
-        créé, à transmettre à la personne.
+        Tous les champs sont obligatoires, téléphone compris (alertes et notifications par SMS). Un
+        lien d’invitation est créé, à transmettre à la personne.
       </p>
       <form className="ui-form" onSubmit={onSubmit} noValidate>
         {error && (
@@ -725,8 +731,8 @@ function InviteForm({
             />
             <TextField
               id={fieldId('phone')}
-              label="Téléphone (facultatif)"
-              hint="Mobile guinéen (par exemple 621 23 45 67), pour être joint par la Direction générale."
+              label="Téléphone"
+              hint="Mobile guinéen (par exemple 621 23 45 67), pour les alertes et notifications par SMS."
               type="tel"
               inputMode="tel"
               autoComplete="off"
