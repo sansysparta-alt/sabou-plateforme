@@ -1,4 +1,5 @@
 import { Alert, Badge } from '@sabou/ui';
+import { AnnotationsPanel } from './AnnotationsPanel';
 import type {
   CertificationBlocker,
   DecidableStatus,
@@ -155,6 +156,14 @@ function TreatmentItem({
           )}
         </section>
       ))}
+      {/* US-064 : le Comité annote ce qu'il expertise ; la DG lit l'historique avant de certifier */}
+      {treatment.statut !== 'soumise' && (
+        <AnnotationsPanel
+          type="recette"
+          code={treatment.code}
+          canAnnotate={treatment.statut === 'transmise'}
+        />
+      )}
       <DecisionActions
         code={treatment.code}
         label={`${treatment.code}, ${treatment.titreFr}`}

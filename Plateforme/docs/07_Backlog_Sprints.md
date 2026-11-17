@@ -636,6 +636,8 @@ Critères d’acceptation :
 - Annotation datée avec avis (favorable, réserve, défavorable).
 - Historique consultable par la DG.
 
+Réalisation (16 novembre 2026, 05 §2.54) : annotations repliées dans la file des traitements (Comité sur les traitements transmis, DG en lecture sur les expertisés) et sur la fiche plante ; jamais modifiées ni effacées.
+
 ### Sprint 6 — Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement.
 
 #### US-072 · Valider les voix de ma langue dans l’atelier linguistique

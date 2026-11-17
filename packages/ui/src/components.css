@@ -1332,3 +1332,34 @@ details[open] > .ui-dossier__summary {
 .ui-list-title > h2 {
   margin: 0;
 }
+
+/* Annotations du Comité (US-064) : historique daté des avis, replié par défaut */
+.ui-annotations {
+  margin: var(--sabou-space-3) 0;
+  border-top: 1px solid var(--sabou-border);
+  padding-top: var(--sabou-space-2);
+}
+.ui-annotations__summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--sabou-target);
+  cursor: pointer;
+}
+.ui-annotations__summary h4 {
+  display: inline;
+  margin: 0;
+}
+.ui-annotations__list {
+  list-style: none;
+  margin: 0 0 var(--sabou-space-3);
+  padding: 0;
+  display: grid;
+  gap: var(--sabou-space-2);
+}
+.ui-annotations__list li {
+  padding-bottom: var(--sabou-space-2);
+  border-bottom: 1px solid var(--sabou-border);
+}
+.ui-annotations__list p {
+  margin: 0 0 var(--sabou-space-1);
+}

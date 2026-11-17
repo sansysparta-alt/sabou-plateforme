@@ -220,7 +220,7 @@ INSERT INTO recette_section_voix (section_id, langue_code, audio_id, statut, enr
 
 INSERT INTO annotation_comite (objet_type, objet_id, auteur_id, contenu, avis) VALUES
  ('recette',1,4,'Écorce de Khaya senegalensis : posologie compatible avec l''usage traditionnel ; amertume signalée.','favorable'),
- ('plante', 5,4,'Identification botanique à confirmer par échantillon.', NULL);
+ ('plante', 5,4,'Identification botanique à confirmer par échantillon.', 'reserve');
 
 -- ---------- Témoignages ----------
 INSERT INTO temoignage (auteur_id, recette_id, note, contenu, langue_code, statut, modere_par, modere_le, reponse_praticien, reponse_statut, reponse_le) VALUES

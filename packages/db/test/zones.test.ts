@@ -248,6 +248,8 @@ describe('Garde-fous du schéma', () => {
         WHERE p.prosecdef ORDER BY 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      // US-064 : annotations du seul Comité, jamais modifiées (05 §2.54)
+      'annotation_ajouter',
       // US-049 : échéances des certificats, toutes zones, réservée à l'API (05 §2.37)
       'certificats_echeances_traiter',
       'contexte_ouvrir',
