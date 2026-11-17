@@ -129,6 +129,16 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 
 **Décision du maître d'œuvre (12 novembre 2026) : pipeline rapide pendant le récit, complet avant la fusion.** `pnpm ci:recit` (`infra/ci/recit.sh`) ne vérifie que ce que le récit touche depuis `origin/main` : lint, typage, tests et compilation des paquets modifiés et de leurs dépendants (filtre `...[base]` de Turbo), tests de la base au complet, format des fichiers touchés, seuls les specs de bout en bout modifiés (ou `RECIT_SPECS`), Lighthouse à **une** mesure sur téléphone pour les pages de `RECIT_PAGES`, Semgrep sur les fichiers touchés, application mobile si elle a changé, audit des dépendances et des images si le verrou, un Dockerfile ou Compose a changé. **Il ne vaut jamais preuve** : `pnpm ci:local` (pipeline complet, Lighthouse à 5 mesures par page, refus de passer à 3) est lancé avant chaque demande de fusion et sa preuve y est jointe. `all.sh` efface les réglages de `ci:recit` avant de commencer, pour qu'aucun n'allège la preuve. Chaque étape est horodatée (début, fin, durée) ; les contrôles qui n'ont pas besoin de l'environnement local (application mobile, audit, Semgrep, variables d'environnement) tournent en parallèle. Semgrep reçoit ses règles et le code par des flux `tar` (`docker cp`) au lieu d'un dossier partagé : sous Windows, la lecture à travers le partage prenait environ 10 minutes.
 
+**Décision du maître d'œuvre (14 novembre 2026) : pipeline complet une fois par sprint.** Le passage complet en local dure une à deux heures sur le poste (7 Go de RAM : Lighthouse sur 15 pages et 2 formats ≈ 45 min, bout en bout ≈ 15 min, Semgrep, audit et application mobile en parallèle ≈ 45 min), et Docker tombe parfois en cours de route. Désormais :
+
+| Moment | Contrôles |
+|---|---|
+| Chaque récit, pendant le sprint | Lint et format des fichiers touchés ; tests unitaires des paquets touchés et de leurs dépendants ; tests de la base au complet (droits, cloisonnement par zone) ; contre-épreuves |
+| Fin de sprint, avant la fusion dans `main` | Pipeline complet (`pnpm ci:local`), une fois, sur l'état qui arrivera dans `main` : bout en bout et axe, Lighthouse (5 mesures), Semgrep, audit des dépendances et des images, application mobile |
+| Fin de sprint | Liste des vérifications que le maître d'œuvre fait lui-même dans le navigateur (rendu) |
+
+Ce qu'on accepte : une régression d'une page ou d'un parcours que le récit ne touche pas, ou une faille de dépendance, est découverte en fin de sprint et non au récit. Parade : le pipeline complet reste bloquant avant `main`, et les tests de la base (le cœur des règles métier et des droits) tournent à chaque récit. `pnpm ci:recit` reste disponible pour vérifier un récit plus largement quand c'est utile. Au retour du quota GitHub (1er décembre 2026), le pipeline de GitHub tourne sur chaque demande de fusion sans coût pour le poste ; la règle sera revue à ce moment.
+
 ### 2.12 Qualité
 
 | Choix | Usage |
