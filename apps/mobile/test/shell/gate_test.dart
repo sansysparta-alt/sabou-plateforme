@@ -2,6 +2,7 @@
 // gardé sur le téléphone ; citoyen renvoyé vers le site public ; ouverture sans réseau ;
 // prototypes absents de la version publiée.
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sabou_mobile/dev/prototypes.dart';
 import 'package:sabou_mobile/dossier/session.dart';
@@ -45,6 +46,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: sabouTheme(),
+        // Comme l'application (main.dart) : français, l'environnement de test étant en anglais
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: SabouGate(
           session: PractitionerSession(
             store: store,

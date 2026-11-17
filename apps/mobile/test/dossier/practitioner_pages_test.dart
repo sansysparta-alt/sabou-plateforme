@@ -4,6 +4,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sabou_mobile/app.dart';
 import 'package:sabou_mobile/dossier/dossier_api.dart';
@@ -60,6 +61,10 @@ void main() {
     );
     return MaterialApp(
       theme: sabouTheme(),
+      // Comme l'application (main.dart) : français, l'environnement de test étant en anglais
+      locale: const Locale('fr'),
+      supportedLocales: const [Locale('fr'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: SabouGate(
         session: session,
         rubrics: appRubrics(

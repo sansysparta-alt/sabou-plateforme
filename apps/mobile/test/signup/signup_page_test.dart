@@ -28,7 +28,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: sabouTheme(),
-        locale: locale,
+        // L'environnement de test est en anglais (en_US) : français par défaut, explicitement
+        locale: locale ?? const Locale('fr'),
         supportedLocales: const [Locale('fr'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: SignupPage(
