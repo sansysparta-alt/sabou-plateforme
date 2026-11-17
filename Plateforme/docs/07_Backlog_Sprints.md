@@ -205,7 +205,7 @@ Critères d’acceptation :
 
 Écarts à l’écran « Connexion » du CdC (maquette), validés par le maître d’œuvre le 5 novembre 2026 : pas de sélecteur de profil (le profil vient du compte) ; « Mot de passe oublié » renvoie vers l’administrateur, la réinitialisation par e-mail demandera un service SMTP et un récit à créer ; « Explorer la démo sans compte » hors de ce récit. Décisions techniques : `05_Choix_Techniques.md` §2.20.
 
-Mise à jour du 17 novembre 2026 (décision du maître d'œuvre, demande #60) : la page de Keycloak est la page de connexion du §5.2, sans page intermédiaire ; « Mot de passe oublié » par e-mail pour les quatre profils de gestion, avec alerte par e-mail à chaque changement de mot de passe ou de double facteur (`05_Choix_Techniques.md` §2.56). **Reporté** : « Explorer la démo sans compte » (§5.2), récit à planifier.
+Mise à jour du 17 novembre 2026 (décision du maître d'œuvre, demande #60) : la page de Keycloak est la page de connexion du §5.2, sans page intermédiaire ; « Mot de passe oublié » par e-mail pour les quatre profils de gestion, avec alerte par e-mail à chaque changement de mot de passe ou de double facteur (`05_Choix_Techniques.md` §2.60). **Reporté** : « Explorer la démo sans compte » (§5.2), récit à planifier.
 
 #### US-011 · Ne voir que les données de ma zone
 *Identité et accès* · **Must** · 5 points · cas : UC-65
