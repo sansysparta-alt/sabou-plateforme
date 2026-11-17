@@ -83,6 +83,10 @@ export class CircuitRepository {
                            FROM sabou.recette_section s
                            JOIN sabou.section_type t ON t.code = s.type_code
                           WHERE s.recette_id = r.id), '[]') AS sections,
+               COALESCE((SELECT jsonb_agg(ci.libelle_fr ORDER BY ci.id)
+                           FROM sabou.recette_contre_indication rci
+                           JOIN sabou.contre_indication ci ON ci.code = rci.contre_indication_code
+                          WHERE rci.recette_id = r.id), '[]') AS "contreIndications",
                to_char(COALESCE((SELECT max(h.decide_le) FROM sabou.recette_historique h
                                   WHERE h.recette_id = r.id), r.updated_at) AT TIME ZONE 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "depuisLe",

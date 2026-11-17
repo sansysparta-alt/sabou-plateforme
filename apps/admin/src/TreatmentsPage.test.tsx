@@ -30,6 +30,7 @@ const submitted: TreatmentQueueItem = {
       texteEn: null,
     },
   ],
+  contreIndications: ['Grossesse', 'Enfant de moins de 5 ans'],
   visibilite: 'restreinte',
   dossier: 'DS-1041',
   depuisLe: '2026-11-16T10:00:00Z',
@@ -183,5 +184,13 @@ describe('US-062 : la DG voit pourquoi un traitement ne peut pas encore être ce
     render(<TreatmentsPage />);
     fireEvent.click(within(await item('REC-0008')).getByRole('button', { name: /^Certifier/ }));
     expect(await screen.findByText(/limitée à 3 traitements certifiés/));
+  });
+});
+
+describe('US-063 : contre-indications affichées en alerte', () => {
+  it('l’administrateur voit les contre-indications du traitement en alerte', async () => {
+    render(<TreatmentsPage />);
+    const row = await item('REC-0007');
+    expect(within(row).getByText('Déconseillé : Grossesse, Enfant de moins de 5 ans.'));
   });
 });

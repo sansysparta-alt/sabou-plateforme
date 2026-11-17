@@ -23,3 +23,8 @@ export const renameTerritory = (level: TerritoryLevel, id: number, name: string)
 export const createSpecialty = (input: CreateSpecialty) => call<void>(`${BASE}/specialites`, input);
 export const updateSpecialty = (id: number, input: UpdateSpecialty) =>
   call<void>(`${BASE}/specialites/${id}`, input, 'PATCH');
+// US-063 : contre-indications structurées, mêmes gestes que les spécialités
+export const createContraindication = (input: CreateSpecialty) =>
+  call<void>(`${BASE}/contre-indications`, input);
+export const updateContraindication = (id: number, input: UpdateSpecialty) =>
+  call<void>(`${BASE}/contre-indications/${id}`, input, 'PATCH');

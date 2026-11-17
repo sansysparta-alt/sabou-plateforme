@@ -41,7 +41,9 @@ function translate(error: unknown): never {
     throw new TreatmentIncompleteError(incomplete[1]!.split(', ') as SubmissionGap[]);
   }
   // Référence inconnue (maladie, plante, section) : le formulaire n'offre que des choix connus
-  if (/introuvable|inconnue|deux fois|au plus|Niveau de visibilité/.test(message)) {
+  if (
+    /introuvable|inconnue|deux fois|au plus|Niveau de visibilité|Contre-indication/.test(message)
+  ) {
     throw new TreatmentInvalidError(message);
   }
   throw error;
@@ -62,7 +64,7 @@ export class StudioRepository {
 
   // Listes du formulaire : maladies, plantes (validées ou en revue) et sections
   async referentials(): Promise<StudioReferentials> {
-    const [maladies, plantes, sections] = await Promise.all([
+    const [maladies, plantes, sections, contreIndications] = await Promise.all([
       sql<StudioReferentials['maladies'][number]>`
         SELECT code, nom_fr AS "nomFr" FROM sabou.maladie ORDER BY nom_fr`.execute(this.db),
       sql<StudioReferentials['plantes'][number]>`
@@ -72,8 +74,16 @@ export class StudioRepository {
       sql<StudioReferentials['sections'][number]>`
         SELECT code, libelle_fr AS "libelleFr", obligatoire FROM sabou.section_type
          ORDER BY ordre`.execute(this.db),
+      sql<StudioReferentials['contreIndications'][number]>`
+        SELECT code, libelle_fr AS "libelleFr" FROM sabou.contre_indication
+         WHERE active ORDER BY id`.execute(this.db),
     ]);
-    return { maladies: maladies.rows, plantes: plantes.rows, sections: sections.rows };
+    return {
+      maladies: maladies.rows,
+      plantes: plantes.rows,
+      sections: sections.rows,
+      contreIndications: contreIndications.rows,
+    };
   }
 
   list(sub: string): Promise<TreatmentSummary[]> {
@@ -103,9 +113,15 @@ export class StudioRepository {
   ): Promise<TreatmentDetail> {
     return inZone(this.db, sub, async (trx) => {
       await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      const { contreIndications, ...content } = fields;
       const { rows } = await sql<{ code: string }>`
         SELECT sabou.traitement_enregistrer(${code}, ${seenAt}::timestamptz,
-                 ${JSON.stringify(fields)}::jsonb) AS code`
+                 ${JSON.stringify(content)}::jsonb) AS code`
+        .execute(trx)
+        .catch(translate);
+      // US-063 : contre-indications posées dans la même transaction
+      await sql`SELECT sabou.traitement_contre_indications_poser(${rows[0]!.code},
+                  ${JSON.stringify(contreIndications)}::jsonb)`
         .execute(trx)
         .catch(translate);
       return this.read(trx, rows[0]!.code);
@@ -138,6 +154,11 @@ export class StudioRepository {
                          ORDER BY t.ordre)
                          FROM sabou.recette_section s JOIN sabou.section_type t ON t.code = s.type_code
                         WHERE s.recette_id = r.id), '[]') AS sections,
+             COALESCE((SELECT jsonb_agg(jsonb_build_object('code', ci.code, 'libelleFr', ci.libelle_fr)
+                                        ORDER BY ci.id)
+                         FROM sabou.recette_contre_indication rci
+                         JOIN sabou.contre_indication ci ON ci.code = rci.contre_indication_code
+                        WHERE rci.recette_id = r.id), '[]') AS "contreIndications",
              CASE WHEN r.consentement_le IS NOT NULL THEN r.visibilite END AS visibilite,
              ${STAMP('r.consentement_le')} AS "consentementLe",
              CASE WHEN r.statut = 'brouillon' THEN sabou.recette_manques(r.id) ELSE '{}' END

@@ -32,6 +32,10 @@ const REFS = {
     },
     { code: 'conservation', libelleFr: 'Conservation', obligatoire: false },
   ],
+  contreIndications: [
+    { code: 'grossesse', libelleFr: 'Grossesse' },
+    { code: 'enfant_moins_5_ans', libelleFr: 'Enfant de moins de 5 ans' },
+  ],
 };
 const DRAFT: TreatmentDetail = {
   code: 'REC-0007',
@@ -48,6 +52,7 @@ const DRAFT: TreatmentDetail = {
     { plante: 'PL-002', nomFr: 'Vernonie amère', partie: 'feuilles', validee: true },
   ],
   sections: [],
+  contreIndications: [],
   visibilite: null,
   consentementLe: null,
   manques: ['consentement', 'sections'],
@@ -110,6 +115,7 @@ describe('Critère : maladie, 1 à n plantes ordonnées avec partie utilisée, c
     type('Durée (jours)', '7');
     type('Prises par jour', '2x');
     type('Texte en français — Mode de préparation', 'Faire bouillir.');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Enfant de moins de 5 ans' }));
     answers['POST traitements'] = [{ status: 201, body: DRAFT }];
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
     await screen.findByText('Brouillon REC-0007 enregistré.');
@@ -129,6 +135,7 @@ describe('Critère : maladie, 1 à n plantes ordonnées avec partie utilisée, c
             { plante: 'PL-001', partie: 'écorce' },
           ],
           sections: [{ type: 'preparation', texteFr: 'Faire bouillir.', texteEn: '' }],
+          contreIndications: ['enfant_moins_5_ans'],
           consentement: false,
           visibilite: null,
         },
@@ -169,7 +176,7 @@ describe('Critère : consentement et niveau de visibilité obligatoires avant so
     expect(screen.getByRole('radio', { name: /Publique/ }).matches(':disabled')).toBe(true);
     select('Maladie soignée', 'MA-001');
     type('Titre du traitement', 'Essai');
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('checkbox', { name: /J’accepte/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
     expect((await screen.findByRole('alert')).textContent).toContain('niveau de visibilité');
     expect(writes()).toEqual([]);
@@ -277,5 +284,35 @@ describe('Accès', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(
       'Le Studio est réservé aux praticiens.',
     );
+  });
+});
+
+describe('US-063 : contre-indications structurées', () => {
+  it('traitement soumis : contre-indications affichées en alerte', async () => {
+    answers['GET studio/referentiels'] = [ok(REFS)];
+    answers['GET traitements/REC-0007'] = [
+      ok({
+        ...DRAFT,
+        statut: 'soumise',
+        manques: [],
+        contreIndications: [
+          { code: 'grossesse', libelleFr: 'Grossesse' },
+          { code: 'enfant_moins_5_ans', libelleFr: 'Enfant de moins de 5 ans' },
+        ],
+      }),
+    ];
+    render(<TreatmentEditor code="REC-0007" />);
+    const alert = await screen.findByRole('note', { name: 'Contre-indications' });
+    expect(alert.textContent).toBe('Déconseillé : Grossesse, Enfant de moins de 5 ans.');
+  });
+
+  it('une contre-indication désactivée depuis reste cochée sur le traitement qui l’a', async () => {
+    answers['GET studio/referentiels'] = [ok(REFS)];
+    answers['GET traitements/REC-0007'] = [
+      ok({ ...DRAFT, contreIndications: [{ code: 'allaitement', libelleFr: 'Allaitement' }] }),
+    ];
+    render(<TreatmentEditor code="REC-0007" />);
+    const kept = await screen.findByRole('checkbox', { name: 'Allaitement' });
+    expect(kept).toHaveProperty('checked', true);
   });
 });

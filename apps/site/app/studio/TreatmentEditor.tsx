@@ -35,6 +35,7 @@ interface Form {
   cyclePauseJours: string;
   plantes: PlantRow[];
   sections: Partial<Record<SectionType, { fr: string; en: string }>>;
+  contreIndications: string[];
   consentement: boolean;
   visibilite: Visibility | '';
 }
@@ -55,6 +56,7 @@ const EMPTY: Form = {
   cyclePauseJours: '',
   plantes: [{ key: nextKey++, plante: '', partie: '' }],
   sections: {},
+  contreIndications: [],
   consentement: false,
   visibilite: '',
 };
@@ -75,6 +77,7 @@ function toForm(t: TreatmentDetail): Form {
     sections: Object.fromEntries(
       t.sections.map((s) => [s.type, { fr: s.texteFr, en: s.texteEn ?? '' }]),
     ),
+    contreIndications: t.contreIndications.map((c) => c.code),
     consentement: t.consentementLe !== null,
     visibilite: t.visibilite ?? '',
   };
@@ -104,6 +107,7 @@ function toFields(form: Form, refs: StudioReferentials): TreatmentFieldsInput {
         texteFr: form.sections[s.code]!.fr,
         texteEn: form.sections[s.code]!.en,
       })),
+    contreIndications: form.contreIndications,
     consentement: form.consentement,
     visibilite: form.consentement && form.visibilite ? form.visibilite : null,
   };
@@ -262,6 +266,13 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
   }
 
   const plantName = new Map(refs.plantes.map((p) => [p.code, p]));
+  // Liste active, plus celles que le traitement a déjà et qui ont été désactivées depuis
+  const contraindications = [
+    ...refs.contreIndications,
+    ...(treatment?.contreIndications ?? []).filter(
+      (c) => !refs.contreIndications.some((r) => r.code === c.code),
+    ),
+  ];
   const chosen = new Set(form.plantes.map((p) => p.plante));
 
   return (
@@ -493,6 +504,30 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
         ))}
 
         <fieldset className={styles.group}>
+          <legend className={forms.label}>Contre-indications</legend>
+          <p className={forms.help}>
+            Cochez les personnes à qui ce traitement est déconseillé : elles seront affichées en
+            alerte sur la page du traitement.
+          </p>
+          {contraindications.map((c) => (
+            <label key={c.code} className={forms.choice}>
+              <input
+                type="checkbox"
+                checked={form.contreIndications.includes(c.code)}
+                onChange={(e) =>
+                  update({
+                    contreIndications: e.target.checked
+                      ? [...form.contreIndications, c.code]
+                      : form.contreIndications.filter((code) => code !== c.code),
+                  })
+                }
+              />
+              {c.libelleFr}
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset className={styles.group}>
           <legend className={forms.label}>Consentement et visibilité</legend>
           <label className={forms.choice}>
             <input
@@ -567,6 +602,7 @@ function ReadOnly({ treatment }: { treatment: TreatmentDetail }) {
       {treatment.attenteRaison && (
         <p className={styles.waiting}>{WAITING_LABELS[treatment.attenteRaison]}</p>
       )}
+      <Contraindications items={treatment.contreIndications} />
       <dl className={styles.summary}>
         <dt>Maladie</dt>
         <dd>{treatment.maladie.nomFr}</dd>
@@ -590,5 +626,15 @@ function ReadOnly({ treatment }: { treatment: TreatmentDetail }) {
         <dd>{treatment.visibilite ? VISIBILITY_LABELS[treatment.visibilite].label : '—'}</dd>
       </dl>
     </>
+  );
+}
+
+// US-063 : contre-indications affichées en alerte
+function Contraindications({ items }: { items: { code: string; libelleFr: string }[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className={styles.alert} role="note" aria-label="Contre-indications">
+      <strong>Déconseillé :</strong> {items.map((c) => c.libelleFr).join(', ')}.
+    </div>
   );
 }

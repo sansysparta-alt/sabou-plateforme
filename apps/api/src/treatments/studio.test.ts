@@ -53,6 +53,7 @@ const DETAIL: TreatmentDetail = {
   cyclePauseJours: null,
   plantes: [],
   sections: [],
+  contreIndications: [],
   visibilite: 'publique',
   consentementLe: '2026-11-16T10:00:00.000000Z',
   manques: ['sections'],
@@ -214,6 +215,7 @@ describe('Critère : maladie, plantes ordonnées avec partie utilisée, cycle, s
         {
           ...FIELDS,
           titreEn: null,
+          contreIndications: [],
           plantes: [
             { plante: 'PL-002', partie: 'feuilles' },
             { plante: 'PL-001', partie: 'écorce' },
@@ -237,6 +239,7 @@ describe('Critère : maladie, plantes ordonnées avec partie utilisée, cycle, s
     ['section inconnue', { sections: [{ type: 'posologie', texteFr: 'x' }] }],
     ['section trop longue', { sections: [{ type: 'cycle', texteFr: 'x'.repeat(4001) }] }],
     ['texte en langue nationale', { titreMal: 'x' }],
+    ['contre-indication mal formée', { contreIndications: ['Grossesse!'] }],
   ])('%s : refusé (400) sans appel à la base', async (_label, change) => {
     const response = await call('POST', 'traitements', { body: { ...FIELDS, ...change } });
     expect(response.status).toBe(400);

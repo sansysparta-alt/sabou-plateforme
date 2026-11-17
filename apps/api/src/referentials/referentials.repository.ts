@@ -47,22 +47,32 @@ export class ReferentialsRepository {
         SELECT id, nom AS name, ${sql.ref(parent)} AS "parentId"
           FROM ${sql.table(`sabou.${table}`)} ORDER BY nom`.execute(this.db);
     };
-    const [languages, naturalRegions, regions, prefectures, subPrefectures, specialties] =
-      await Promise.all([
-        sql<Language>`
+    const [
+      languages,
+      naturalRegions,
+      regions,
+      prefectures,
+      subPrefectures,
+      specialties,
+      contraindications,
+    ] = await Promise.all([
+      sql<Language>`
           SELECT code, iso639_3 AS iso6393, nom_fr AS name, type, texte AS text, voix AS voice,
                  active, ordre AS "order"
             FROM sabou.langue ORDER BY ordre, code`.execute(this.db),
-        sql<NaturalRegion>`
+      sql<NaturalRegion>`
           SELECT id, code, nom AS name, langue_defaut_code AS "defaultLanguage"
             FROM sabou.region_naturelle ORDER BY id`.execute(this.db),
-        territories('regions'),
-        territories('prefectures'),
-        territories('sous-prefectures'),
-        sql<Specialty>`
+      territories('regions'),
+      territories('prefectures'),
+      territories('sous-prefectures'),
+      sql<Specialty>`
           SELECT id, code, libelle_fr AS "labelFr", libelle_en AS "labelEn", active
             FROM sabou.specialite ORDER BY id`.execute(this.db),
-      ]);
+      sql<Specialty>`
+          SELECT id, code, libelle_fr AS "labelFr", libelle_en AS "labelEn", active
+            FROM sabou.contre_indication ORDER BY id`.execute(this.db),
+    ]);
     return {
       languages: languages.rows,
       naturalRegions: naturalRegions.rows,
@@ -70,6 +80,7 @@ export class ReferentialsRepository {
       prefectures: prefectures.rows,
       subPrefectures: subPrefectures.rows,
       specialties: specialties.rows,
+      contraindications: contraindications.rows,
     };
   }
 
@@ -129,6 +140,25 @@ export class ReferentialsRepository {
       INSERT INTO sabou.specialite (code, libelle_fr, libelle_en)
       VALUES (${input.code}, ${input.labelFr}, ${input.labelEn}) RETURNING id`.execute(trx);
     return rows[0]!.id;
+  }
+
+  // US-063 : contre-indications, même forme que les spécialités
+  async createContraindication(trx: Trx, input: CreateSpecialty): Promise<number> {
+    const { rows } = await sql<{ id: number }>`
+      INSERT INTO sabou.contre_indication (code, libelle_fr, libelle_en)
+      VALUES (${input.code}, ${input.labelFr}, ${input.labelEn}) RETURNING id`.execute(trx);
+    return rows[0]!.id;
+  }
+
+  async updateContraindication(trx: Trx, id: number, input: UpdateSpecialty): Promise<boolean> {
+    const { numAffectedRows } = await sql`
+      UPDATE sabou.contre_indication
+         SET libelle_fr = coalesce(${input.labelFr ?? null}, libelle_fr),
+             libelle_en = CASE WHEN ${input.labelEn !== undefined} THEN ${input.labelEn ?? null}
+                               ELSE libelle_en END,
+             active = coalesce(${input.active ?? null}::boolean, active)
+       WHERE id = ${id}`.execute(trx);
+    return numAffectedRows === 1n;
   }
 
   // Renvoie false si la spécialité n'existe pas. labelEn peut être effacé (null).

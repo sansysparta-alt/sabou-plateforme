@@ -81,6 +81,23 @@ export class ReferentialsController {
     return this.service.updateSpecialty(id, parse(updateSpecialtySchema, body), actor(req));
   }
 
+  // US-063 : contre-indications structurées, même règles que les spécialités
+  @Post('contre-indications')
+  @HttpCode(204)
+  createContraindication(@Body() body: unknown, @Req() req: SessionRequest): Promise<void> {
+    return this.service.createContraindication(parse(createSpecialtySchema, body), actor(req));
+  }
+
+  @Patch('contre-indications/:id')
+  @HttpCode(204)
+  updateContraindication(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: unknown,
+    @Req() req: SessionRequest,
+  ): Promise<void> {
+    return this.service.updateContraindication(id, parse(updateSpecialtySchema, body), actor(req));
+  }
+
   @Post(':level')
   @HttpCode(204)
   createTerritory(

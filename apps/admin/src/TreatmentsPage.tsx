@@ -1,4 +1,4 @@
-import { Badge } from '@sabou/ui';
+import { Alert, Badge } from '@sabou/ui';
 import type {
   CertificationBlocker,
   DecidableStatus,
@@ -108,6 +108,11 @@ function TreatmentItem({
       name={treatment.titreFr}
       meta={`${treatment.praticienNom} · ${treatment.prefecture} · ${treatment.maladie} · depuis le ${longDate(treatment.depuisLe)}`}
     >
+      {treatment.contreIndications.length > 0 && (
+        <Alert tone="warning" title="Contre-indications">
+          Déconseillé : {treatment.contreIndications.join(', ')}.
+        </Alert>
+      )}
       {treatment.dernierMotif && (
         <p className="ui-muted">
           <strong>Dernier renvoi :</strong> {treatment.dernierMotif}

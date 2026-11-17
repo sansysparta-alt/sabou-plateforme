@@ -116,6 +116,11 @@ export const treatmentFieldsSchema = z
         (sections) => new Set(sections.map((s) => s.type)).size === sections.length,
         'Une section figure deux fois.',
       ),
+    // US-063 : contre-indications structurées (codes de la liste paramétrée par la DG)
+    contreIndications: z
+      .array(z.string().regex(/^[a-z][a-z0-9_]{1,39}$/, 'Contre-indication inconnue.'))
+      .max(20, '20 contre-indications au plus.')
+      .default([]),
     consentement: z.boolean(),
     visibilite: z.enum(VISIBILITIES, 'Niveau de visibilité inconnu.').nullish(),
   })
@@ -149,6 +154,8 @@ export interface TreatmentDetail extends TreatmentSummary {
   cyclePauseJours: number | null;
   plantes: { plante: string; nomFr: string; partie: string | null; validee: boolean }[];
   sections: { type: SectionType; texteFr: string; texteEn: string | null }[];
+  // US-063 : affichées en alerte
+  contreIndications: { code: string; libelleFr: string }[];
   // Niveau choisi avec le consentement ; null tant que le praticien n'a pas consenti
   visibilite: Visibility | null;
   consentementLe: string | null;
@@ -163,6 +170,8 @@ export interface StudioReferentials {
   maladies: { code: string; nomFr: string }[];
   plantes: { code: string; nomFr: string; nomScientifique: string; validee: boolean }[];
   sections: { code: SectionType; libelleFr: string; obligatoire: boolean }[];
+  // US-063 : contre-indications actives, proposées au praticien
+  contreIndications: { code: string; libelleFr: string }[];
 }
 
 // ---------------------------------------------------------------------
@@ -218,6 +227,8 @@ export interface TreatmentQueueItem {
   cyclePauseJours: number | null;
   plantes: { nomFr: string; nomScientifique: string; partie: string | null; validee: boolean }[];
   sections: { type: SectionType; libelleFr: string; texteFr: string; texteEn: string | null }[];
+  // US-063 : libellés des contre-indications, affichés en alerte
+  contreIndications: string[];
   visibilite: Visibility;
   // Dossier de certification auquel le traitement est joint (R-REC-08)
   dossier: string | null;
