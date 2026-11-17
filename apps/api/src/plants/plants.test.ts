@@ -12,11 +12,13 @@ import { ENV, type Env } from '../config/env';
 import { PIECE_STORAGE } from '../dossiers/piece-storage';
 import { inspectImage, PlantEditorGuard, PlantsController } from './plants.controller';
 import {
+  PlantAlreadyValidatedError,
   PlantNameTakenError,
   PlantNotAllowedError,
   PlantPrincipalImageError,
   PlantsRepository,
   PlantStaleError,
+  PlantValidationNotAllowedError,
   type StoredImage,
 } from './plants.repository';
 
@@ -33,6 +35,7 @@ const PLANT: PlantDetail = {
   nomEn: null,
   statut: 'en_revue',
   modifieLe: '2026-11-15T10:00:00.000000Z',
+  validation: null,
   images: [],
 };
 
@@ -58,6 +61,11 @@ const repository = {
   },
   async update(sub: string, _ip: unknown, code: string, input: unknown) {
     calls.push(['update', sub, code, input]);
+    fail();
+    return PLANT;
+  },
+  async validate(sub: string, _ip: unknown, code: string, vueLe: string) {
+    calls.push(['validate', sub, code, vueLe]);
     fail();
     return PLANT;
   },
@@ -348,5 +356,32 @@ describe('Critère : une seule photo principale, texte alternatif obligatoire', 
     expect(response.headers.get('content-security-policy')).toBe("default-src 'none'");
     expect(response.headers.get('cache-control')).toBe('private, max-age=86400, immutable');
     expect(Buffer.from(await response.arrayBuffer())).toEqual(JPEG);
+  });
+});
+
+describe('US-051 : validation par le Comité', () => {
+  const vueLe = '2026-11-15T10:00:00.000000Z';
+
+  it('transmet la date de lecture ; le refus de la DG par la base est expliqué', async () => {
+    expect((await request('POST', '/api/plantes/PL-005/validation', { vueLe })).status).toBe(200);
+    expect(calls).toEqual([['validate', SUB, 'PL-005', vueLe]]);
+    failure = new PlantValidationNotAllowedError();
+    const refused = await request(
+      'POST',
+      '/api/plantes/PL-005/validation',
+      { vueLe },
+      { cookie: 'dg' },
+    );
+    expect(refused.status).toBe(403);
+    expect((await refused.json()).message).toBe(
+      'Seul le Comité scientifique valide une fiche plante.',
+    );
+  });
+
+  it('fiche déjà validée : 409 ; date de lecture absente : 400', async () => {
+    failure = new PlantAlreadyValidatedError();
+    expect((await request('POST', '/api/plantes/PL-001/validation', { vueLe })).status).toBe(409);
+    failure = null;
+    expect((await request('POST', '/api/plantes/PL-001/validation', {})).status).toBe(400);
   });
 });

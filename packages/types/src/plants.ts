@@ -60,6 +60,12 @@ export const plantUpdateSchema = plantFieldsSchema
   .strict();
 export type PlantUpdate = z.infer<typeof plantUpdateSchema>;
 
+// Validation par le Comité (US-051) : date de dernière modification vue à l'écran
+export const plantValidationSchema = z
+  .object({ vueLe: z.iso.datetime({ offset: true, message: 'Date de lecture invalide.' }) })
+  .strict();
+export type PlantValidation = z.infer<typeof plantValidationSchema>;
+
 export const plantSearchSchema = z
   .object({
     q: z.string().trim().max(PLANT_SEARCH_MAX_LENGTH, 'Recherche trop longue.').optional(),
@@ -104,6 +110,8 @@ export interface PlantDetail {
   statut: PlantStatus;
   // Horodatage ISO 8601 de la dernière modification, à renvoyer avec une modification
   modifieLe: string;
+  // Validation par le Comité (US-051) : qui et quand ; null tant que la fiche est en revue
+  validation: { par: string; le: string } | null;
   images: PlantImage[];
 }
 

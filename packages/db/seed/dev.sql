@@ -128,12 +128,12 @@ INSERT INTO audio_fichier (chemin, duree_sec, taille_octets, enregistre_par, con
  ('audio/demandes/dp305.opus',     4.0, 11000,11, true, now());  -- 14
 
 -- ---------- Dictionnaire : plantes ----------
-INSERT INTO plante (code, nom_scientifique, famille, nom_fr, nom_en, statut, valide_par) VALUES
- ('PL-001','Khaya senegalensis', 'Meliaceae',  'Caïlcédrat',     'African mahogany','validee', 4),
- ('PL-002','Vernonia amygdalina','Asteraceae', 'Vernonie amère', 'Bitter leaf',     'validee', 4),
- ('PL-003','Parkia biglobosa',   'Fabaceae',   'Néré',           'African locust bean','validee', 4),
- ('PL-004','Moringa oleifera',   'Moringaceae','Moringa',        'Moringa',         'validee', 4),
- ('PL-005','Azadirachta indica', 'Meliaceae',  'Neem',           'Neem',            'en_revue', NULL);
+INSERT INTO plante (code, nom_scientifique, famille, nom_fr, nom_en, statut, valide_par, valide_le) VALUES
+ ('PL-001','Khaya senegalensis', 'Meliaceae',  'Caïlcédrat',     'African mahogany','validee', 4, now() - interval '30 days'),
+ ('PL-002','Vernonia amygdalina','Asteraceae', 'Vernonie amère', 'Bitter leaf',     'validee', 4, now() - interval '30 days'),
+ ('PL-003','Parkia biglobosa',   'Fabaceae',   'Néré',           'African locust bean','validee', 4, now() - interval '30 days'),
+ ('PL-004','Moringa oleifera',   'Moringaceae','Moringa',        'Moringa',         'validee', 4, now() - interval '30 days'),
+ ('PL-005','Azadirachta indica', 'Meliaceae',  'Neem',           'Neem',            'en_revue', NULL, NULL);
 
 INSERT INTO plante_image (plante_id, image_url, alt_text_fr, alt_text_en, type, principale, ordre) VALUES
  (1,'img/plantes/khaya.jpg',   'Écorce et feuilles de caïlcédrat','Khaya bark and leaves','ecorce',        true, 1),

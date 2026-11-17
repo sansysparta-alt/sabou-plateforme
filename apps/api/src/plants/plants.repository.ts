@@ -17,6 +17,8 @@ export class PlantImageNotFoundError extends Error {}
 export class PlantNotAllowedError extends Error {}
 export class PlantStaleError extends Error {}
 export class PlantPrincipalImageError extends Error {}
+export class PlantValidationNotAllowedError extends Error {}
+export class PlantAlreadyValidatedError extends Error {}
 export class PlantNameTakenError extends Error {
   constructor(readonly code: string) {
     super(`Nom scientifique déjà utilisé par la fiche ${code}`);
@@ -31,6 +33,10 @@ export const PLANT_LIST_LIMIT = 200;
 // couverte sur un vrai PostgreSQL (packages/db/test/fiche-plante.test.ts)
 function translate(error: unknown): never {
   const message = (error as { message?: string }).message ?? '';
+  if (message.includes('réservée au Comité scientifique')) {
+    throw new PlantValidationNotAllowedError();
+  }
+  if (/PL-\d+ déjà validée/.test(message)) throw new PlantAlreadyValidatedError();
   if (message.includes('réservées à la DG et au Comité scientifique')) {
     throw new PlantNotAllowedError();
   }
@@ -115,6 +121,17 @@ export class PlantsRepository {
     });
   }
 
+  // Validation par le Comité (US-051) : la base vérifie le rôle et l'état de la fiche
+  validate(sub: string, ip: string | undefined, code: string, vueLe: string): Promise<PlantDetail> {
+    return inZone(this.db, sub, async (trx) => {
+      await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      await sql`SELECT 1 FROM sabou.plante_valider(${code}, ${vueLe}::timestamptz)`
+        .execute(trx)
+        .catch(translate);
+      return this.read(trx, code);
+    });
+  }
+
   addImage(
     sub: string,
     ip: string | undefined,
@@ -185,10 +202,15 @@ export class PlantsRepository {
 
   private async read(trx: ZoneTrx, code: string): Promise<PlantDetail> {
     const { rows } = await sql<Omit<PlantDetail, 'images'>>`
-      SELECT code, nom_scientifique AS "nomScientifique", famille, nom_fr AS "nomFr",
-             nom_en AS "nomEn", statut,
-             to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "modifieLe"
-        FROM sabou.plante WHERE code = ${code}`.execute(trx);
+      SELECT p.code, p.nom_scientifique AS "nomScientifique", p.famille, p.nom_fr AS "nomFr",
+             p.nom_en AS "nomEn", p.statut,
+             to_char(p.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "modifieLe",
+             CASE WHEN p.valide_par IS NULL THEN NULL ELSE jsonb_build_object(
+               'par', u.prenom || ' ' || u.nom,
+               'le', to_char(p.valide_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')) END
+               AS validation
+        FROM sabou.plante p LEFT JOIN sabou.utilisateur u ON u.id = p.valide_par
+       WHERE p.code = ${code}`.execute(trx);
     const plant = rows[0];
     if (!plant) throw new PlantNotFoundError();
     const { rows: images } = await sql<PlantImage>`

@@ -15,6 +15,7 @@ import {
   removePlantImage,
   updatePlant,
   updatePlantImage,
+  validatePlant,
 } from './plants-api';
 import { PlantFieldInputs, STATUS } from './PlantsPage';
 
@@ -44,7 +45,11 @@ const fieldsOf = (plant: PlantDetail): PlantFields => ({
   nomEn: plant.nomEn ?? '',
 });
 
-export function PlantPage({ code }: { code: string }) {
+const longDate = (iso: string) =>
+  new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(iso));
+
+// canValidate : compte du Comité scientifique, seul à valider (R-PLA-05) ; la base le vérifie
+export function PlantPage({ code, canValidate = false }: { code: string; canValidate?: boolean }) {
   const [plant, setPlant] = useState<PlantDetail | null>(null);
   const [loadError, setLoadError] = useState<string>();
   // Fiche tout juste créée (?creee=1), lu une fois puis retiré de l'adresse
@@ -78,7 +83,6 @@ export function PlantPage({ code }: { code: string }) {
       </>
     );
   }
-  const [statusLabel, tone] = STATUS[plant.statut];
   return (
     <>
       <PageHeader title={plant.nomFr} lead={`Fiche ${plant.code}`} />
@@ -90,12 +94,75 @@ export function PlantPage({ code }: { code: string }) {
           Ajoutez maintenant sa photo principale.
         </Alert>
       )}
-      <p>
-        Statut : <Badge tone={tone}>{statusLabel}</Badge>
-      </p>
+      <PlantValidation plant={plant} canValidate={canValidate} onValidated={setPlant} />
       <PlantForm plant={plant} onSaved={setPlant} />
       <PlantImages plant={plant} onChanged={setPlant} />
     </>
+  );
+}
+
+// Statut de la fiche et validation par le Comité (US-051)
+function PlantValidation({
+  plant,
+  canValidate,
+  onValidated,
+}: {
+  plant: PlantDetail;
+  canValidate: boolean;
+  onValidated: (plant: PlantDetail) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const [done, setDone] = useState(false);
+  const [statusLabel, tone] = STATUS[plant.statut];
+
+  async function onValidate() {
+    if (!window.confirm(`Valider la fiche ${plant.code} (${plant.nomScientifique}) ?`)) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      onValidated(await validatePlant(plant.code, plant.modifieLe));
+      setDone(true);
+    } catch (failure) {
+      setError(errorMessage(failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="ui-section" aria-labelledby="statut-titre">
+      <h2 id="statut-titre">Statut</h2>
+      <p>
+        <Badge tone={tone}>{statusLabel}</Badge>
+        {plant.validation && (
+          <>
+            {' '}
+            par {plant.validation.par}, le {longDate(plant.validation.le)}
+          </>
+        )}
+      </p>
+      <div role="status">{done && <Alert tone="success">Fiche validée.</Alert>}</div>
+      {error && <Alert tone="error">{error}</Alert>}
+      {plant.statut === 'en_revue' &&
+        (canValidate ? (
+          <div>
+            <Button variant="primary" icon="success" disabled={busy} onClick={onValidate}>
+              {busy ? 'Validation…' : 'Valider la fiche'}
+            </Button>
+          </div>
+        ) : (
+          <p className="ui-muted">
+            Une fiche en revue attend la validation du Comité scientifique ; d’ici là, elle ne peut
+            entrer dans aucun traitement certifié.
+          </p>
+        ))}
+      {plant.statut === 'validee' && (
+        <p className="ui-muted">
+          Changer le nom scientifique ou la famille renvoie la fiche en revue.
+        </p>
+      )}
+    </section>
   );
 }
 

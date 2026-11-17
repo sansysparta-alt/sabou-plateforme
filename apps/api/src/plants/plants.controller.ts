@@ -35,6 +35,7 @@ import {
   plantImageFieldsSchema,
   plantSearchSchema,
   plantUpdateSchema,
+  plantValidationSchema,
   type PlantDetail,
   type PlantSummary,
 } from '@sabou/types';
@@ -53,6 +54,8 @@ import {
   PlantPrincipalImageError,
   PlantsRepository,
   PlantStaleError,
+  PlantAlreadyValidatedError,
+  PlantValidationNotAllowedError,
 } from './plants.repository';
 
 // Fiches plantes réservées à la DG et au Comité scientifique (UC-05, R-PLA-05), connectés
@@ -126,6 +129,18 @@ function plantError(error: unknown): never {
     throw new ForbiddenException({
       error: 'not_allowed',
       message: 'Les fiches plantes sont réservées à la DG et au Comité scientifique.',
+    });
+  }
+  if (error instanceof PlantValidationNotAllowedError) {
+    throw new ForbiddenException({
+      error: 'validation_not_allowed',
+      message: 'Seul le Comité scientifique valide une fiche plante.',
+    });
+  }
+  if (error instanceof PlantAlreadyValidatedError) {
+    throw new ConflictException({
+      error: 'already_validated',
+      message: 'Cette fiche est déjà validée.',
     });
   }
   if (error instanceof PlantNotFoundError) {
@@ -205,6 +220,21 @@ export class PlantsController {
     const input = parse(plantUpdateSchema, body);
     return this.repository
       .update(req.session!.sub, req.ip, plantCode(code), input)
+      .catch(plantError);
+  }
+
+  // Validation par le Comité scientifique (US-051, UC-52)
+  @Post(':code/validation')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  validate(
+    @Param('code') code: string,
+    @Body() body: unknown,
+    @Req() req: SessionRequest,
+  ): Promise<PlantDetail> {
+    const { vueLe } = parse(plantValidationSchema, body);
+    return this.repository
+      .validate(req.session!.sub, req.ip, plantCode(code), vueLe)
       .catch(plantError);
   }
 

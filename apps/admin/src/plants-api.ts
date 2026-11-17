@@ -18,6 +18,10 @@ export const createPlant = (fields: PlantFields) => call<PlantDetail>(BASE, fiel
 export const updatePlant = (code: string, update: PlantUpdate) =>
   call<PlantDetail>(plantPath(code), update, 'PATCH');
 
+// Validation par le Comité scientifique (US-051)
+export const validatePlant = (code: string, vueLe: string) =>
+  call<PlantDetail>(`${plantPath(code)}/validation`, { vueLe });
+
 // Adresse de la photo, servie par l'API après contrôle des droits
 export const plantImageUrl = (code: string, image: number) => `${plantPath(code)}/images/${image}`;
 

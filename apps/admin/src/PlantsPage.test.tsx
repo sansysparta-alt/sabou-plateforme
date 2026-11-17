@@ -34,6 +34,7 @@ const PLANT: PlantDetail = {
   nomEn: 'African mahogany',
   statut: 'validee',
   modifieLe: '2026-11-15T10:00:00.123456Z',
+  validation: { par: 'Aboubacar Diakité', le: '2026-11-15T09:00:00Z' },
   images: [
     { id: 1, alt: 'Écorce et feuilles', altEn: null, type: 'ecorce', principale: true },
     { id: 6, alt: 'Arbre entier', altEn: 'Tree', type: 'plante_entiere', principale: false },
@@ -200,5 +201,32 @@ describe('Fiche plante', () => {
     render(<PlantPage code="PL-999" />);
     expect((await screen.findByRole('alert')).textContent).toContain('Fiche plante introuvable.');
     expect(screen.getByRole('link', { name: 'Retour aux fiches plantes' }));
+  });
+});
+
+describe('US-051 : validation par le Comité', () => {
+  const inReview: PlantDetail = { ...PLANT, statut: 'en_revue', validation: null };
+
+  it('fiche validée : valideur et date', async () => {
+    render(<PlantPage code="PL-001" />);
+    expect(await screen.findByText(/par Aboubacar Diakité, le 15 novembre 2026/));
+  });
+
+  it('le Comité valide une fiche en revue ; la date de lecture part avec la validation', async () => {
+    vi.stubGlobal('confirm', () => true);
+    handler = (url) => Response.json(url.endsWith('/validation') ? PLANT : inReview);
+    render(<PlantPage code="PL-001" canValidate />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Valider la fiche' }));
+    expect(await screen.findByText('Fiche validée.'));
+    const [url, init] = lastCall();
+    expect([url, init.method]).toEqual(['/api/plantes/PL-001/validation', 'POST']);
+    expect(JSON.parse(init.body as string)).toEqual({ vueLe: PLANT.modifieLe });
+  });
+
+  it('hors Comité : pas de bouton, la règle est rappelée', async () => {
+    handler = () => Response.json(inReview);
+    render(<PlantPage code="PL-001" />);
+    expect(await screen.findByText(/attend la validation du Comité scientifique/));
+    expect(screen.queryByRole('button', { name: 'Valider la fiche' })).toBeNull();
   });
 });

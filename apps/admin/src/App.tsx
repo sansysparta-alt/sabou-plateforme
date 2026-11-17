@@ -374,7 +374,7 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
   if (plant) {
     return (
       <Suspense fallback={<p>Chargement…</p>}>
-        <PlantPage code={plant[1]!} />
+        <PlantPage code={plant[1]!} canValidate={isCommittee(user)} />
       </Suspense>
     );
   }
