@@ -78,6 +78,8 @@ export const territorySchema = z.strictObject({
   name: z.string(),
   // Rattachement : région naturelle, région ou préfecture selon le niveau
   parentId: z.number(),
+  // Faux : territoire remplacé par un redécoupage (US-022), conservé pour l'historique
+  active: z.boolean(),
 });
 export type Territory = z.infer<typeof territorySchema>;
 
@@ -90,6 +92,52 @@ export type CreateTerritory = z.infer<typeof createTerritorySchema>;
 
 export const renameTerritorySchema = z.strictObject({ name: label });
 export type RenameTerritory = z.infer<typeof renameTerritorySchema>;
+
+// US-022 : redécoupage administratif (R-ACC-08). objectId est la préfecture (rattachement,
+// fusion : préfecture absorbée) ou la sous-préfecture ; targetId la région, ou la préfecture
+// d'accueil. Pas d'annulation : on corrige par l'opération inverse, journalisée elle aussi.
+export const REDISTRICTING_OPERATIONS = [
+  'rattacher_prefecture',
+  'rattacher_sous_prefecture',
+  'fusionner_prefectures',
+] as const;
+export const redistrictingOperationSchema = z.enum(REDISTRICTING_OPERATIONS);
+export type RedistrictingOperation = z.infer<typeof redistrictingOperationSchema>;
+
+export const REDISTRICTING_LABELS: Record<RedistrictingOperation, string> = {
+  rattacher_prefecture: 'Rattacher une préfecture à une autre région',
+  rattacher_sous_prefecture: 'Rattacher une sous-préfecture à une autre préfecture',
+  fusionner_prefectures: 'Fusionner deux préfectures',
+};
+
+export const redistrictingSchema = z.strictObject({
+  operation: redistrictingOperationSchema,
+  objectId: id,
+  targetId: id,
+});
+export type Redistricting = z.infer<typeof redistrictingSchema>;
+
+export const REDISTRICTING_EFFECTS = ['gagne', 'perd', 'suspendu'] as const;
+export type RedistrictingEffect = (typeof REDISTRICTING_EFFECTS)[number];
+
+// Ce qui bouge, montré avant confirmation et journalisé avec l'opération
+export interface RedistrictingPreview {
+  operation: RedistrictingOperation;
+  object: string;
+  before: string;
+  target: string;
+  practitioners: number;
+  dossiers: number;
+  subPrefectures: number;
+  others: number;
+  administrators: {
+    id: number;
+    name: string;
+    email: string;
+    role: 'regional' | 'prefectoral';
+    effect: RedistrictingEffect;
+  }[];
+}
 
 // Spécialités (R-CER-09) : ajout, renommage et désactivation ; jamais de suppression
 export const specialtySchema = z.strictObject({

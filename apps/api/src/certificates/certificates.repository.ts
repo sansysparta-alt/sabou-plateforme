@@ -142,7 +142,8 @@ export class CertificatesRepository {
           JOIN sabou.praticien p             ON p.id = c.praticien_id
           JOIN sabou.utilisateur u           ON u.id = p.utilisateur_id
           JOIN sabou.specialite sp           ON sp.id = p.specialite_id
-          JOIN sabou.prefecture pf           ON pf.id = p.prefecture_id
+          -- Territoire de l'émission, figé (US-022) : un redécoupage ne le change pas
+          JOIN sabou.prefecture pf           ON pf.id = c.prefecture_origine_id
           JOIN sabou.dossier_certification d ON d.id = c.dossier_id
           JOIN sabou.cle_signature k         ON k.id = c.cle_id
          WHERE c.numero = ${numero}`.execute(trx);

@@ -57,10 +57,10 @@ export class DossiersRepository {
         SELECT id, libelle_fr AS libelle FROM sabou.specialite
          WHERE active ORDER BY libelle_fr`.execute(this.db),
       sql<PractitionerReferentials['prefectures'][number]>`
-        SELECT id, nom FROM sabou.prefecture ORDER BY nom`.execute(this.db),
+        SELECT id, nom FROM sabou.prefecture WHERE active ORDER BY nom`.execute(this.db),
       sql<PractitionerReferentials['sousPrefectures'][number]>`
         SELECT id, nom, prefecture_id AS "prefectureId" FROM sabou.sous_prefecture
-         ORDER BY nom`.execute(this.db),
+         WHERE active ORDER BY nom`.execute(this.db),
       sql<PractitionerReferentials['langues'][number]>`
         SELECT code, nom_fr AS nom FROM sabou.langue
          WHERE active ORDER BY ordre, code`.execute(this.db),

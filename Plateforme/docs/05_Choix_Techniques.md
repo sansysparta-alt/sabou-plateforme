@@ -970,3 +970,17 @@ Décision du maître d’œuvre (17 novembre 2026) : suivre le découpage d’ao
 | **Découpage d’août 2026 chargé par une migration versionnée** (US-023), avec mise à jour du jeu d’exemple et des tests de cloisonnement | Changement de référence à appliquer partout à la fois et testé ; l’écran ne sait pas encore rattacher une préfecture à une autre région | Saisie à la main dans l’écran ; modification d’une migration déjà appliquée |
 | **Redécoupage depuis l’écran Référentiels** (US-022) : rattacher, découper, fusionner, avec aperçu de ce qui bouge, confirmation, journal ; territoire remplacé conservé inactif | CdC (menu Réseau territorial : création, fusion, renommage) ; un décret ne doit plus demander de redéploiement ; l’historique (certificats, statistiques) reste juste | Redéploiement à chaque réforme ; suppression des anciens territoires |
 
+### 2.59 Redécoupage : fonctions de la base, aperçu puis confirmation (US-022, novembre 2026)
+
+Décisions du maître d’œuvre (17 novembre 2026) : comptes préfectoraux d’une préfecture fusionnée suspendus jusqu’à réaffectation ; découpage par déplacement de sous-préfectures (les praticiens suivent) ; territoire d’origine mémorisé sur le certificat ; pas d’annulation, opération inverse journalisée.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Trois fonctions SECURITY DEFINER** (`redecoupage_controler`, `redecoupage_apercu`, `redecoupage_appliquer`), réservées à un compte DG actif | Un redécoupage déplace des lignes de toutes les zones, ce que le cloisonnement interdit au rôle de l’API ; règles et déplacements tenus et testés en un seul endroit | Mises à jour depuis l’API (contournement du RLS ou rôle à droits étendus) |
+| **Aperçu calculé par la même fonction que l’application** ; l’application renvoie l’aperçu, journalisé tel quel par l’API (avec l’adresse IP) dans la même transaction | Ce que la DG a vu est ce qui est appliqué et tracé ; un changement de choix efface l’aperçu à l’écran | Journal écrit par la base sans l’IP ; aperçu calculé à part dans l’API |
+| **Colonne `active`** sur régions, préfectures, sous-préfectures ; déclencheur `ck_territoire_actif` : plus de rattachement nouveau vers un territoire remplacé | Historique conservé (R-ACC-08) ; une ligne qui garde son territoire reste modifiable | Suppression ; contrôle seulement dans l’API |
+| **Territoire d’origine du certificat** (`prefecture_origine_id`, `region_origine_id`) rempli par déclencheur à l’émission, figé, repris pour l’existant ; le certificat imprimable l’affiche | Un certificat émis ne change pas de territoire ; `certificat_emettre` inchangé | Recalcul à partir du praticien |
+| **Fusion** : comptes préfectoraux suspendus en base, puis sessions de l’API révoquées et compte Keycloak désactivé, comme une suspension par l’écran Comptes ; restauration si l’opération échoue | Plus aucun accès sur une zone qui n’existe plus ; la DG réaffecte puis réactive | Transfert automatique vers la préfecture conservée |
+
+Les statistiques passées restent celles des journaux et des certificats (territoire d’origine) ; le tableau de bord montre l’état présent.
+

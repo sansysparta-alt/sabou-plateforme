@@ -139,6 +139,29 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
   await rename.getByRole('button', { name: 'Renommer' }).click();
   await expect(page.getByRole('status')).toHaveText(`Territoire renommé en ${subPrefecture} bis.`);
 
+  // US-022 : découpage, la sous-préfecture passe de Labé à Mamou après aperçu et confirmation
+  await page.getByRole('button', { name: 'Redécouper' }).click();
+  const redistrict = page.getByRole('form', { name: 'Redécouper' });
+  await redistrict
+    .getByLabel('Opération')
+    .selectOption({ label: 'Rattacher une sous-préfecture à une autre préfecture' });
+  await redistrict.getByLabel('Sous-préfecture').selectOption({ label: `${subPrefecture} bis` });
+  await redistrict.getByLabel('Nouvelle préfecture').selectOption({ label: 'Mamou' });
+  await redistrict.getByRole('button', { name: 'Voir ce qui bouge' }).click();
+  const preview = redistrict.getByRole('region');
+  await expect(preview).toContainText('Praticiens');
+  await expect(preview).toContainText('perd ce territoire');
+  await preview.getByRole('button', { name: 'Confirmer le redécoupage' }).click();
+  await expect(page.getByRole('status')).toHaveText(
+    `Sous-préfecture ${subPrefecture} bis rattachée à la préfecture Mamou.`,
+  );
+  await expect(
+    page
+      .getByRole('table', { name: 'Territoires' })
+      .getByRole('row')
+      .filter({ has: page.getByRole('rowheader', { name: 'Mamou', exact: true }) }),
+  ).toContainText(`${subPrefecture} bis`);
+
   // Spécialité désactivée puis réactivée (la base de bout en bout reste dans son état)
   await tab('Spécialités');
   const nutrition = specialties.filter({

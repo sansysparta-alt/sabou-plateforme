@@ -324,6 +324,10 @@ describe('Garde-fous du schéma', () => {
       'plante_nom_local_retirer',
       // US-051 : validation par le seul Comité (05 §2.41)
       'plante_valider',
+      // US-022 : un redécoupage déplace des lignes de toutes les zones, DG seule (05 §2.59)
+      'redecoupage_apercu',
+      'redecoupage_appliquer',
+      'redecoupage_controler',
       'saisie_terrain_recevoir',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
       // US-063 : contre-indications du brouillon, par le Studio
