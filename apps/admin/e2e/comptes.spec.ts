@@ -50,6 +50,8 @@ async function fillIdentity(page: Page, invitee: Invitee, role: string): Promise
   await form.getByLabel('Prénom').fill(invitee.firstName);
   await form.getByLabel('Nom', { exact: true }).fill(invitee.lastName);
   await form.getByLabel('Adresse e-mail').fill(invitee.email);
+  // Téléphone obligatoire (US-012b, MOE 17/11/2026), saisi librement, enregistré en +224
+  await form.getByLabel('Téléphone', { exact: true }).fill('621 23 45 67');
   await form.getByLabel('Rôle').selectOption({ label: role });
 }
 
@@ -106,8 +108,6 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
 
   // Critère 1 : rôle, zone et langues de travail attribués
   await page.getByLabel('Région').selectOption({ label: 'Kindia' });
-  // Téléphone facultatif (US-012b), saisi librement, enregistré sous la forme +224
-  await page.getByLabel('Téléphone (facultatif)').fill('621 23 45 67');
   await page.getByRole('checkbox', { name: 'Enregistrer en Soussou' }).check();
   await page.getByRole('checkbox', { name: 'Valider en Soussou' }).check();
   await submitInvitation(page);

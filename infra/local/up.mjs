@@ -118,7 +118,8 @@ Environnement prêt, contrôles de santé verts :
   Keycloak     http://localhost:${env.KEYCLOAK_PORT} (admin, mot de passe dans .env)
   PostgreSQL   localhost:${env.POSTGRES_PORT}, base sabou
   Valkey       localhost:${env.VALKEY_PORT}
-  S3           http://localhost:${env.S3_PORT}`);
+  S3           http://localhost:${env.S3_PORT}
+  Mailpit      http://localhost:${env.MAILPIT_PORT ?? 8025} (e-mails envoyés par Keycloak)`);
       break;
     }
     case 'realm':
