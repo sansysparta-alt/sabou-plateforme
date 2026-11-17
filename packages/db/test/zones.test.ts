@@ -1,5 +1,6 @@
 // Lot B (US-011) : cloisonnement par zone dans PostgreSQL (RLS), sous le rôle de l'API.
-// Jeu d'exemple : PR-1041 et PR-1042 à Labé, PR-1043 à Siguiri (région de Kankan),
+// Jeu d'exemple : PR-1041 et PR-1042 à Labé, PR-1043 à Siguiri (région de Siguiri depuis
+// le découpage d'août 2026, US-023 ; auparavant région de Kankan),
 // PR-1044 à Kindia, PR-1045 à Mamou ; un dossier DS-10xx par praticien.
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -47,6 +48,7 @@ const codes = async (email: string | null, table: 'praticien' | 'dossier_certifi
 
 const LABE = 'prefectoral.labe@sabou-sante.gn';
 const KANKAN_REGION = 'regional.kankan@sabou-sante.gn';
+const SIGUIRI_REGION = 'regional.siguiri@sabou-sante.gn';
 const ALL_PRACTITIONERS = ['PR-1041', 'PR-1042', 'PR-1043', 'PR-1044', 'PR-1045'];
 
 describe('Admin préfectoral de Labé (US-011, critère 1)', () => {
@@ -79,26 +81,81 @@ describe('Admin préfectoral de Labé (US-011, critère 1)', () => {
       'SELECT DISTINCT dossier_id FROM dossier_piece',
     );
     expect(pieces.rows.map((r) => Number(r.dossier_id)).sort()).toEqual([1, 2]);
-    // Région de Kankan : les pièces du seul DS-1043 (Siguiri), jamais celles de Labé
+    // Région de Siguiri : les pièces du seul DS-1043, jamais celles de Labé
     const other = await as<{ dossier_id: string }>(
-      KANKAN_REGION,
+      SIGUIRI_REGION,
       'SELECT DISTINCT dossier_id FROM dossier_piece',
     );
     expect(other.rows.map((r) => Number(r.dossier_id))).toEqual([3]);
   });
 });
 
-describe('Admin régional de Kankan (US-011, critère 2)', () => {
+describe('Admin régional de Siguiri (US-011, critère 2)', () => {
   it('ne voit que les dossiers des préfectures de sa région', async () => {
-    // Kankan (7) et Siguiri (9) : seul PR-1043 (Siguiri) a un dossier
-    expect(await codes(KANKAN_REGION, 'dossier_certification')).toEqual(['DS-1043']);
+    // Préfectures de la région de Siguiri : seul PR-1043 (Siguiri) a un dossier
+    expect(await codes(SIGUIRI_REGION, 'dossier_certification')).toEqual(['DS-1043']);
   });
 
   it('voit les praticiens de toutes les préfectures de sa région, et d’elles seules', async () => {
-    expect(await codes(KANKAN_REGION, 'praticien')).toEqual(['PR-1043']);
+    expect(await codes(SIGUIRI_REGION, 'praticien')).toEqual(['PR-1043']);
     expect(await codes('regional.labe@sabou-sante.gn', 'praticien')).toEqual([
       'PR-1041',
       'PR-1042',
+    ]);
+  });
+});
+
+describe('US-023 : découpage d’août 2026', () => {
+  it('Siguiri a quitté la région de Kankan : son admin régional ne voit plus PR-1043', async () => {
+    expect(await codes(KANKAN_REGION, 'praticien')).toEqual([]);
+    expect(await codes(KANKAN_REGION, 'dossier_certification')).toEqual([]);
+  });
+
+  it('Siguiri et Beyla sont des régions, avec leurs préfectures et leur langue par défaut', async () => {
+    const { rows } = await owner.query<{
+      region: string;
+      naturelle: string;
+      langue: string;
+      prefectures: string[];
+    }>(
+      `SELECT r.nom AS region, n.nom AS naturelle, n.langue_defaut_code AS langue,
+              array_agg(p.nom ORDER BY p.nom) AS prefectures
+         FROM region_admin r
+         JOIN region_naturelle n ON n.id = r.region_naturelle_id
+         JOIN prefecture p ON p.region_admin_id = r.id
+        WHERE r.nom IN ('Siguiri', 'Beyla')
+        GROUP BY r.nom, n.nom, n.langue_defaut_code
+        ORDER BY r.nom`,
+    );
+    expect(rows).toEqual([
+      {
+        region: 'Beyla',
+        naturelle: 'Guinée Forestière',
+        langue: 'gue',
+        prefectures: ['Beyla', 'Karala', 'Kouankan', 'Sinko'],
+      },
+      {
+        region: 'Siguiri',
+        naturelle: 'Haute Guinée',
+        langue: 'mal',
+        prefectures: ['Doko', 'Kintinia', 'Siguiri', 'Siguirini'],
+      },
+    ]);
+  });
+
+  it('les autres préfectures nouvelles sont dans leur région', async () => {
+    const { rows } = await owner.query<{ prefecture: string; region: string }>(
+      `SELECT p.nom AS prefecture, r.nom AS region
+         FROM prefecture p JOIN region_admin r ON r.id = p.region_admin_id
+        WHERE p.nom IN ('Kamsar', 'Timbo', 'Tokounou', 'Djalakoro', 'Sabadou-Baranama')
+        ORDER BY p.nom`,
+    );
+    expect(rows).toEqual([
+      { prefecture: 'Djalakoro', region: 'Kankan' },
+      { prefecture: 'Kamsar', region: 'Boké' },
+      { prefecture: 'Sabadou-Baranama', region: 'Kankan' },
+      { prefecture: 'Timbo', region: 'Mamou' },
+      { prefecture: 'Tokounou', region: 'Kankan' },
     ]);
   });
 });

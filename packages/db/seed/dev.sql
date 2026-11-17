@@ -34,11 +34,13 @@ INSERT INTO utilisateur (email, telephone, prenom, nom, role_code, region_admin_
  ('sory@exemple.gn',                   '+224620000013','Sory','Keita',       'citoyen',     NULL,NULL,'fr','sou',md5('sabou:sory@exemple.gn')::uuid),                 -- 13
  ('mariam@exemple.gn',                 '+224620000014','Mariam','Camara',    'citoyen',     NULL,NULL,'en','fr',md5('sabou:mariam@exemple.gn')::uuid),                 -- 14
  ('regional.labe@sabou-sante.gn',      '+224620000015','Alpha','Barry',      'regional',    4,   NULL,'fr','pul',md5('sabou:regional.labe@sabou-sante.gn')::uuid),  -- 15
- ('regional.kankan@sabou-sante.gn',    '+224620000016','Mory','Kaba',        'regional',    7,   NULL,'fr','mal',md5('sabou:regional.kankan@sabou-sante.gn')::uuid);  -- 16
+ ('regional.kankan@sabou-sante.gn',    '+224620000016','Mory','Kaba',        'regional',    7,   NULL,'fr','mal',md5('sabou:regional.kankan@sabou-sante.gn')::uuid),  -- 16
+ -- Région de Siguiri, créée par le découpage d'août 2026 (US-023)
+ ('regional.siguiri@sabou-sante.gn',   '+224620000017','Djénabou','Kanté',   'regional',    (SELECT id FROM region_admin WHERE nom = 'Siguiri'),NULL,'fr','mal',md5('sabou:regional.siguiri@sabou-sante.gn')::uuid);  -- 17
 
 INSERT INTO utilisateur_langue (utilisateur_id, langue_code, peut_enregistrer, peut_traduire, peut_valider) VALUES
  (1,'fr',true,true,true),(1,'en',false,true,true),
- (2,'sou',true,true,true),(15,'pul',true,true,true),(16,'mal',true,true,true),
+ (2,'sou',true,true,true),(15,'pul',true,true,true),(16,'mal',true,true,true),(17,'mal',true,true,true),
  (3,'pul',true,true,false),(3,'fr',true,true,false),(5,'mal',true,true,false),(5,'fr',true,true,false),
  (8,'mal',true,false,false),(8,'fr',true,false,false);
 
@@ -264,7 +266,7 @@ INSERT INTO litige (code, objet, prefecture_id, ouvert_par, praticien_id, statut
 INSERT INTO litige_message (litige_id, auteur_id, contenu) VALUES
  (1,6,'La photo de ma pièce a été prise de nuit ; je fournis une nouvelle copie.');
 INSERT INTO alerte_territoriale (type, region_admin_id, prefecture_id, maladie_id, description, statut, accusee_le) VALUES
- ('hausse_pathologie',7,9,1,'Hausse des recherches « paludisme » à Siguiri (+40 % sur 7 jours).','nouvelle',NULL),
+ ('hausse_pathologie',(SELECT id FROM region_admin WHERE nom = 'Siguiri'),9,1,'Hausse des recherches « paludisme » à Siguiri (+40 % sur 7 jours).','nouvelle',NULL),
  ('dossier_bloque',   4,4,NULL,'DS-1041 sans décision depuis 8 jours.','accusee',now());
 INSERT INTO notification (destinataire_id, canal, modele, objet_type, objet_id, statut, tentatives, envoyee_le) VALUES
  (6,'sms','dossier.rejete','dossier','DS-1041','envoyee',1,now() - interval '8 days');
