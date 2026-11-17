@@ -18,6 +18,11 @@ export interface QueuedSms {
   parametres: QueuedMessage['parametres'];
 }
 
+export interface CertificateDeadlines {
+  expired: number;
+  reminders: number;
+}
+
 export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';
 
 // File des SMS (table notification), tenue par les fonctions de la base (migration
@@ -25,6 +30,9 @@ export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';
 export interface NotificationQueue {
   // Met en file les rappels de visite dus (la veille, à partir de 8 h) ; renvoie leur nombre
   queueVisitReminders(): Promise<number>;
+  // Échéances des certificats (US-049) : expire ceux qui sont échus et met en file les
+  // invitations à renouveler (60 jours avant, à partir de 8 h) ; renvoie les deux nombres
+  processCertificateDeadlines(): Promise<CertificateDeadlines>;
   take(limit: number): Promise<QueuedSms[]>;
   // error null : envoyé ; definitive : pas de nouvel essai
   record(id: string, error: string | null, definitive?: boolean): Promise<SmsOutcome>;
@@ -38,6 +46,13 @@ export class PgNotificationQueue implements NotificationQueue {
     const { rows } = await sql<{ nombre: number }>`
       SELECT sabou.visite_rappels_mettre_en_file() AS nombre`.execute(this.db);
     return rows[0]!.nombre;
+  }
+
+  async processCertificateDeadlines(): Promise<CertificateDeadlines> {
+    const { rows } = await sql<CertificateDeadlines>`
+      SELECT expires AS expired, relances AS reminders
+        FROM sabou.certificats_echeances_traiter()`.execute(this.db);
+    return rows[0]!;
   }
 
   async take(limit: number): Promise<QueuedSms[]> {
