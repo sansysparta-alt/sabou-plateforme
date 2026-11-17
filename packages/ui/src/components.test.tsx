@@ -1,10 +1,13 @@
 import { createRef } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   Alert,
   AppShell,
   DataTable,
+  Icon,
+  iconNames,
+  PageHeader,
   SelectField,
   StatCard,
   TextAreaField,
@@ -190,5 +193,66 @@ describe('AppShell', () => {
     fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('true');
     expect(navigation.getAttribute('data-open')).toBe('true');
+  });
+});
+
+describe('Icon', () => {
+  it('chaque icône a son propre tracé : deux rubriques ne partagent jamais le même dessin', () => {
+    render(
+      <>
+        {iconNames.map((name) => (
+          <Icon key={name} name={name} />
+        ))}
+      </>,
+    );
+    const drawings = Array.from(document.querySelectorAll('svg path'), (path) =>
+      path.getAttribute('d'),
+    );
+    expect(drawings).toHaveLength(iconNames.length);
+    expect(new Set(drawings).size).toBe(iconNames.length);
+  });
+});
+
+describe('PageHeader', () => {
+  it('signale quand il est accroché en haut de l’écran, puis quand il reprend sa place', () => {
+    let notify: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect = disconnect;
+      },
+    );
+    const { unmount } = render(
+      <PageHeader
+        title="Comptes"
+        lead="Comptes d’administration."
+        actions={<button>Inviter</button>}
+      />,
+    );
+    const header = screen
+      .getByRole('heading', { level: 1, name: 'Comptes' })
+      .closest('.ui-page-header')!;
+    expect(header.hasAttribute('data-stuck')).toBe(false);
+
+    act(() => notify([{ intersectionRatio: 0.98, boundingClientRect: { top: -1 } as DOMRect }]));
+    expect(header.getAttribute('data-stuck')).toBe('true');
+    // Titre et action restent accessibles une fois accroché
+    expect(screen.getByRole('button', { name: 'Inviter' })).toBeTruthy();
+
+    act(() => notify([{ intersectionRatio: 1, boundingClientRect: { top: 24 } as DOMRect }]));
+    expect(header.hasAttribute('data-stuck')).toBe(false);
+
+    // Partiellement caché en bas de l'écran (pas en haut) : pas accroché
+    act(() => notify([{ intersectionRatio: 0.5, boundingClientRect: { top: 600 } as DOMRect }]));
+    expect(header.hasAttribute('data-stuck')).toBe(false);
+
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

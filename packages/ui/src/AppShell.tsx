@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 
 export interface NavItem {
@@ -171,10 +171,30 @@ export interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-// En-tête de page : le seul h1 de la page (Cambria), une phrase d'introduction, les actions
+// En-tête de page : le seul h1 de la page (Cambria), une phrase d'introduction, les actions.
+// Sur ordinateur, il reste en haut de l'écran pendant le défilement : titre et action principale
+// toujours à portée. Une fois accroché, il se resserre (l'introduction s'efface) et un filet le
+// sépare du contenu.
 export function PageHeader({ title, lead, actions }: PageHeaderProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    // Navigateur sans IntersectionObserver (ou tests) : en-tête simplement fixe, sans resserrement
+    if (!element || typeof IntersectionObserver === 'undefined') return;
+    // L'en-tête est accroché à -1 px : dès qu'il est collé, il n'est plus entièrement visible
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        setStuck(
+          entry !== undefined && entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1,
+        ),
+      { threshold: [1] },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   return (
-    <div className="ui-page-header">
+    <div ref={ref} className="ui-page-header" data-stuck={stuck || undefined}>
       <div className="ui-page-header__text">
         <h1>{title}</h1>
         {lead && <p className="ui-page-header__lead">{lead}</p>}

@@ -327,16 +327,16 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isPrefectoral(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'folder' }],
+      items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' }],
     });
   }
   if (isRegional(user)) {
     groups.push({
       heading: 'Certification',
       items: [
-        { href: '/consolidation', label: 'Consolidation régionale', icon: 'folder' },
+        { href: '/consolidation', label: 'Consolidation régionale', icon: 'layers' },
         // US-061
-        { href: '/traitements', label: 'Traitements à transmettre', icon: 'folder' },
+        { href: '/traitements', label: 'Traitements à transmettre', icon: 'flask' },
       ],
     });
   }
@@ -344,8 +344,8 @@ function navigation(user: SessionUser): NavGroup[] {
     groups.push({
       heading: 'Certification',
       items: [
-        { href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' },
-        { href: '/traitements', label: 'Traitements à expertiser', icon: 'folder' },
+        { href: '/expertise', label: 'Expertise des dossiers', icon: 'clipboard-check' },
+        { href: '/traitements', label: 'Traitements à expertiser', icon: 'flask' },
       ],
     });
   }
@@ -355,16 +355,16 @@ function navigation(user: SessionUser): NavGroup[] {
   const dictionary: NavGroup = {
     heading: 'Dictionnaire',
     items: [
-      { href: '/noms-locaux', label: 'Noms locaux', icon: 'book' },
+      { href: '/noms-locaux', label: 'Noms locaux', icon: 'languages' },
       // US-071 : voix du nom des plantes et des maladies, par langue
-      { href: '/voix-des-noms', label: 'Voix des noms', icon: 'book' },
+      { href: '/voix-des-noms', label: 'Voix des noms', icon: 'mic' },
     ],
   };
   if (isDirector(user) || isCommittee(user)) {
     dictionary.items.unshift(
-      { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
+      { href: '/plantes', label: 'Fiches plantes', icon: 'leaf' },
       // US-052
-      { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
+      { href: '/maladies', label: 'Fiches maladies', icon: 'heart-pulse' },
     );
   }
   if (user.administrator) groups.push(dictionary);
@@ -373,21 +373,21 @@ function navigation(user: SessionUser): NavGroup[] {
     groups[0]!.items.push({
       href: '/entonnoir',
       label: 'Entonnoir de certification',
-      icon: 'clock',
+      icon: 'funnel',
     });
     groups.push({
       heading: 'Certification',
       items: [
-        { href: '/approbation', label: 'Approbation des dossiers', icon: 'shield' },
-        { href: '/traitements', label: 'Traitements à certifier', icon: 'shield' },
-        { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'error' },
+        { href: '/approbation', label: 'Approbation des dossiers', icon: 'badge-check' },
+        { href: '/traitements', label: 'Traitements à certifier', icon: 'flask' },
+        { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'ban' },
       ],
     });
     groups.push({
       heading: 'Administration',
       items: [
         { href: '/comptes', label: 'Comptes', icon: 'users' },
-        { href: '/referentiels', label: 'Référentiels', icon: 'book' },
+        { href: '/referentiels', label: 'Référentiels', icon: 'database' },
       ],
     });
   }
