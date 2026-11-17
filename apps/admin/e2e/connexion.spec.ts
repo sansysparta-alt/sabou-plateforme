@@ -34,9 +34,8 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   await expect(page.getByRole('complementary', { name: 'Présentation de SABOU' })).toContainText(
     'Application de gestion',
   );
-  await expect(
-    page.getByText('Mot de passe oublié ? Contactez votre administrateur.'),
-  ).toBeVisible();
+  // Mot de passe oublié par e-mail pour les comptes de gestion (MOE, 17/11/2026)
+  await expect(page.getByRole('link', { name: 'Mot de passe oublié ?' })).toBeVisible();
   await expectAccessible(page, 'Connexion Keycloak');
 
   await submitPassword(page, dg);
