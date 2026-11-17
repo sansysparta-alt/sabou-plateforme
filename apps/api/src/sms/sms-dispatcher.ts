@@ -56,7 +56,21 @@ export class SmsDispatcher implements OnApplicationBootstrap, OnApplicationShutd
     return this.running;
   }
 
+  private async processCertificateDeadlines(): Promise<void> {
+    try {
+      const { expired, reminders } = await this.queue.processCertificateDeadlines();
+      if (expired > 0) this.logger.log(`${expired} certificat(s) expiré(s)`);
+      if (reminders > 0) this.logger.log(`${reminders} invitation(s) à renouveler mise(s) en file`);
+    } catch (error: unknown) {
+      this.logger.error(`Échéances des certificats non traitées : ${(error as Error).message}`);
+    }
+  }
+
   private async dispatchOnce(): Promise<number> {
+    // Échéances des certificats (US-049) : tâche quotidienne de fait, puisqu'elle n'agit
+    // qu'une fois par certificat ; à chaque passage, elle rattrape un arrêt de l'API. Une
+    // erreur ici est journalisée sans retenir les SMS déjà en file.
+    await this.processCertificateDeadlines();
     // Rappels de visite (US-041) : mis en file avant la relève, ils partent dans ce passage
     await this.queue.queueVisitReminders();
     const messages = await this.queue.take(BATCH_SIZE);
