@@ -194,6 +194,17 @@ export const treatmentDecisionSchema = z
   });
 export type TreatmentDecision = z.infer<typeof treatmentDecisionSchema>;
 
+// Motifs qui empêchent de certifier un traitement (US-062, fonction recette_blocages)
+export const CERTIFICATION_BLOCKERS = [
+  'plante',
+  'plante_en_revue',
+  'sections',
+  'cycle',
+  'certificat',
+  'quota',
+] as const;
+export type CertificationBlocker = (typeof CERTIFICATION_BLOCKERS)[number];
+
 export interface TreatmentQueueItem {
   code: string;
   titreFr: string;
@@ -213,6 +224,8 @@ export interface TreatmentQueueItem {
   // Date d'arrivée au statut actuel
   depuisLe: string;
   dernierMotif: string | null;
+  // Traitement expertisé : ce qui empêche encore sa certification (vide sinon)
+  blocages: CertificationBlocker[];
 }
 
 export interface TreatmentDecisionResult {

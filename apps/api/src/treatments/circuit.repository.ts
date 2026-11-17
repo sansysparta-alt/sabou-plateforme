@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import type {
+  CertificationBlocker,
   TreatmentDecision,
   TreatmentDecisionResult,
   TreatmentQueueItem,
@@ -18,8 +19,22 @@ export class TreatmentDecisionNotAllowedError extends Error {}
 export class TreatmentChangedError extends Error {}
 export class TreatmentMotifRequiredError extends Error {}
 export class TreatmentPractitionerRejectedError extends Error {}
-// Certification refusée par trg_recette_publiable (R-REC-06, R-REC-08, R-REC-11)
-export class TreatmentCertificationBlockedError extends Error {}
+// Certification refusée par trg_recette_publiable (US-062 : R-REC-06, R-REC-08, R-REC-11)
+export class TreatmentCertificationBlockedError extends Error {
+  constructor(readonly blocker: CertificationBlocker | null) {
+    super('Certification bloquée');
+  }
+}
+
+// Message du trigger → motif (20261116140000_certification_traitement_bloquee.sql)
+const BLOCKER_MESSAGES: [string, CertificationBlocker][] = [
+  ['au moins une plante est requise', 'plante'],
+  ['toutes les plantes doivent être validées', 'plante_en_revue'],
+  ['sections obligatoires manquantes', 'sections'],
+  ['cycle (durée et prises par jour) requis', 'cycle'],
+  ['certifié avec un certificat actif', 'certificat'],
+  ['formule gratuite est limitée à 3', 'quota'],
+];
 
 // Messages de traitement_decider et recette_transition (20261116130000_circuit_traitement.sql),
 // prouvés sur un vrai PostgreSQL (packages/db/test/circuit-traitement.test.ts)
@@ -32,7 +47,10 @@ function translate(error: unknown): never {
   if (message.includes('praticien rejeté définitivement')) {
     throw new TreatmentPractitionerRejectedError();
   }
-  if (/^Traitement REC-\d+ : /.test(message)) throw new TreatmentCertificationBlockedError(message);
+  if (/^Traitement REC-\d+ : /.test(message)) {
+    const found = BLOCKER_MESSAGES.find(([text]) => message.includes(text));
+    throw new TreatmentCertificationBlockedError(found ? found[1] : null);
+  }
   throw error;
 }
 
@@ -70,7 +88,9 @@ export class CircuitRepository {
                        'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "depuisLe",
                (SELECT h.motif FROM sabou.recette_historique h
                  WHERE h.recette_id = r.id AND h.motif IS NOT NULL
-                 ORDER BY h.decide_le DESC, h.id DESC LIMIT 1) AS "dernierMotif"
+                 ORDER BY h.decide_le DESC, h.id DESC LIMIT 1) AS "dernierMotif",
+               CASE WHEN r.statut = 'expertisee' THEN sabou.recette_blocages(r.id)
+                    ELSE '{}'::text[] END AS blocages
           FROM sabou.traitements_a_decider() r
           JOIN sabou.praticien p   ON p.id = r.praticien_id
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id

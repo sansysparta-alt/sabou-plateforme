@@ -34,6 +34,7 @@ const submitted: TreatmentQueueItem = {
   dossier: 'DS-1041',
   depuisLe: '2026-11-16T10:00:00Z',
   dernierMotif: null,
+  blocages: [],
 };
 const expertised: TreatmentQueueItem = {
   ...submitted,
@@ -137,5 +138,50 @@ describe('Critère : chaque transition envoie le statut vu ; un rejet exige un m
       decision: 'renvoi',
       motif: 'Partie utilisée du neem à préciser.',
     });
+  });
+});
+
+describe('US-062 : la DG voit pourquoi un traitement ne peut pas encore être certifié', () => {
+  it('motifs affichés, bouton « Certifier » absent ; le renvoi reste possible', async () => {
+    mockApi([{ ...expertised, blocages: ['plante_en_revue', 'quota'] }]);
+    render(<TreatmentsPage />);
+    const row = await item('REC-0008');
+    expect(
+      within(row).getByText(
+        'Certification impossible pour l’instant : une plante n’est pas encore validée par le Comité scientifique ; la formule gratuite du praticien est limitée à 3 traitements certifiés.',
+      ),
+    );
+    expect(within(row).queryByRole('button', { name: /^Certifier/ })).toBeNull();
+    expect(within(row).getByRole('button', { name: /^Rejeter/ }));
+  });
+
+  it('praticien pas encore certifié : certifié avec la publication de son dossier', async () => {
+    mockApi([{ ...expertised, dossier: 'DS-1041', blocages: ['certificat'] }]);
+    render(<TreatmentsPage />);
+    expect(
+      within(await item('REC-0008')).getByText(
+        /n’a pas de certificat actif\. Il sera certifié à la publication du dossier DS-1041\./,
+      ),
+    );
+  });
+
+  it('refus de l’API au moment de certifier : son motif est affiché', async () => {
+    mockApi([expertised]);
+    const answer = vi.fn(async (url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? Response.json(
+            {
+              error: 'blocked',
+              message:
+                'Certification impossible : la formule gratuite du praticien est limitée à 3 traitements certifiés.',
+            },
+            { status: 409 },
+          )
+        : Response.json({ elements: [expertised], suivant: null, total: 1 }),
+    );
+    vi.stubGlobal('fetch', answer);
+    render(<TreatmentsPage />);
+    fireEvent.click(within(await item('REC-0008')).getByRole('button', { name: /^Certifier/ }));
+    expect(await screen.findByText(/limitée à 3 traitements certifiés/));
   });
 });

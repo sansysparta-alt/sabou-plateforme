@@ -614,6 +614,8 @@ Critères d’acceptation :
 - Refus si une plante n’est pas validée, si une section obligatoire manque ou si le praticien n’a pas de certificat actif.
 - Refus au-delà de 3 traitements certifiés en formule gratuite (après les 30 jours de grâce).
 
+Réalisation (16 novembre 2026, 05 §2.52) : motifs de blocage calculés par une seule fonction (`recette_blocages`), lue par le contrôle de certification et affichée à la DG avant sa décision.
+
 #### US-063 · Indiquer les contre-indications structurées
 *Traitements et circuit* · **Should** · 3 points · cas : UC-21
 

@@ -18,6 +18,7 @@ import {
   treatmentCodeSchema,
   treatmentDecisionSchema,
   zoneListQuerySchema,
+  type CertificationBlocker,
   type TreatmentDecisionResult,
   type TreatmentQueueItem,
   type ZonePage,
@@ -34,6 +35,16 @@ import {
   TreatmentNotInZoneError,
   TreatmentPractitionerRejectedError,
 } from './circuit.repository';
+
+// US-062 : motif de refus de la certification, rédigé pour l'écran
+const BLOCKER_TEXT: Record<CertificationBlocker, string> = {
+  plante: 'le traitement n’a aucune plante',
+  plante_en_revue: 'une plante n’est pas encore validée par le Comité scientifique',
+  sections: 'une section obligatoire manque',
+  cycle: 'le cycle (durée et prises par jour) n’est pas renseigné',
+  certificat: 'le praticien n’a pas de certificat actif',
+  quota: 'la formule gratuite du praticien est limitée à 3 traitements certifiés',
+};
 
 // Refus d'une décision : message rédigé pour l'écran, code pour le client
 function circuitError(error: unknown): never {
@@ -68,7 +79,12 @@ function circuitError(error: unknown): never {
   if (error instanceof TreatmentCertificationBlockedError) {
     throw new ConflictException({
       error: 'blocked',
-      message: 'Certification impossible : le traitement ne remplit pas toutes les conditions.',
+      blocker: error.blocker,
+      message: `Certification impossible : ${
+        error.blocker
+          ? BLOCKER_TEXT[error.blocker]
+          : 'le traitement ne remplit pas toutes les conditions'
+      }.`,
     });
   }
   throw error;

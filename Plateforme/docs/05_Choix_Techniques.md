@@ -920,3 +920,12 @@ Décision du maître d'œuvre (16 novembre 2026) : un traitement créé au Studi
 | **SMS de renvoi distinct** (`recette.renvoyee`, statut d'arrivée en paramètre), sans le motif, lu dans le Studio | Sans lui, un renvoi du Comité vers « soumis » se lirait comme une soumission ; le SMS de rejet ne contient pas le motif (décision du 12/11) | — |
 | **Praticien rejeté définitivement** : ses traitements sont exclus des files (critère du 14/11) ; la base refuse déjà toute progression (US-047) | — | — |
 | **Composants de la file généralisés** (`DossierQueuePage` : libellés ; `DecisionActions` : envoi, nom de l'objet, libellé de l'action) | Réutiliser plutôt que copier | Copie des composants |
+
+### 2.52 Certification d'un traitement bloquée s'il est incomplet (US-062, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Une seule source des motifs** : `recette_blocages(traitement)` (plante, plante en revue, sections, cycle, certificat actif, quota de la formule gratuite), lue par le trigger de certification (messages inchangés) et par la file de la DG | La DG voit pourquoi un traitement ne peut pas être certifié **avant** de cliquer, sans que l'écran et la base divergent | Contrôles recopiés dans l'API |
+| **Bouton « Certifier » remplacé par les motifs** quand la certification est impossible ; le renvoi au Comité reste possible ; praticien pas encore certifié : « certifié à la publication du dossier DS-… » | Ne pas proposer un geste voué à l'échec ; dire ce qui débloquera | Bouton grisé sans explication |
+| **Refus de l'API avec le motif** (`blocked`, motif rédigé) si l'état change entre l'affichage et la décision | — | Message générique |
+| **Délai de grâce** : `formule_active` (schéma initial) compte un GOLD encore 30 jours après sa fin ; un traitement suspendu puis rétabli ne compte pas comme une nouvelle certification ; les traitements déjà certifiés restent publiés (R-REC-11) | Règles du cahier des charges, prouvées par `certification-bloquee.test.ts` | — |
