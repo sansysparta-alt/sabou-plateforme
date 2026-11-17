@@ -59,8 +59,12 @@ function mockApi() {
         posts.push(url);
         return typeof approval === 'function' ? approval() : approval;
       }
-      if (url === '/api/dossiers/approbation') {
-        return Response.json({ elements: [expertised, renewal], suivant: null });
+      // Première page à la taille par défaut ; un dossier approuvé n'est plus renvoyé
+      if (url === '/api/dossiers/approbation?limite=10') {
+        const left = [expertised, renewal].filter(
+          (e) => !posts.includes(`/api/dossiers/${e.code}/approbation`),
+        );
+        return Response.json({ elements: left, suivant: null, total: left.length });
       }
       if (url === `/api/certificats/${CERTIFICATE.numero}`) return Response.json(CERTIFICATE);
       return Response.json({ message: 'Certificat introuvable.' }, { status: 404 });

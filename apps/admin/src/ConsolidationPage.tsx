@@ -1,6 +1,7 @@
 import { Badge } from '@sabou/ui';
 import type { ConsolidationItem } from '@sabou/types';
 import { listConsolidation } from './certification-api';
+import { QUEUES } from './queues';
 import {
   DecisionActions,
   DossierQueuePage,
@@ -18,6 +19,7 @@ export function ConsolidationPage() {
       lead="Dossiers de votre région vérifiés sur le terrain, en attente de votre décision. Délai cible : 3 jours par dossier."
       listTitle="Dossiers à consolider"
       empty="Aucun dossier en attente de consolidation."
+      queue={QUEUES.consolidation}
       load={listConsolidation}
       item={DossierItem}
     />

@@ -7,10 +7,21 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
-import { Alert, Button, PageHeader, TextAreaField } from '@sabou/ui';
+import {
+  Alert,
+  Button,
+  ListToolbar,
+  PageHeader,
+  Pagination,
+  SearchBox,
+  TextAreaField,
+  useDebounced,
+  usePageSize,
+} from '@sabou/ui';
 import type { ZonePage } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { decideDossier } from './certification-api';
+import { queueKey, type QueuePath } from './queues';
 
 // Éléments communs aux écrans de décision du workflow de certification (US-042 à l'étape 2,
 // US-043 à l'étape 3, US-044 à l'étape 4) : file des dossiers de la zone, puis valider ou rejeter avec motif.
@@ -30,14 +41,16 @@ export type OnDecided = (code: string, notice: string) => void;
 export type Announce = (notice: string) => void;
 
 // Page d'une file de dossiers à décider : titre, annonce des décisions (lecteurs d'écran),
-// liste paginée. Chaque page fournit l'affichage d'un dossier. Un dossier décidé quitte la
-// file ; le focus revient au titre de la liste, pour ne pas le perdre avec l'élément retiré
-// (clavier, lecteurs d'écran).
+// liste paginée par l'API (US-019b : pagination commune, taille de page mémorisée par file).
+// Chaque page fournit l'affichage d'un dossier. Un dossier décidé quitte la file aussitôt, puis
+// la page est relue pour la compléter ; le focus revient au titre de la liste, pour ne pas le
+// perdre avec l'élément retiré (clavier, lecteurs d'écran).
 export function DossierQueuePage<T extends { code: string }>({
   title,
   lead,
   listTitle,
   empty,
+  queue,
   load,
   item: Item,
 }: {
@@ -45,47 +58,82 @@ export function DossierQueuePage<T extends { code: string }>({
   lead: string;
   listTitle: string;
   empty: string;
-  load: (after?: string) => Promise<ZonePage<T>>;
+  queue: QueuePath;
+  load: (page: number, size: number, q?: string) => Promise<ZonePage<T>>;
   item: ComponentType<{ dossier: T; onDecided: OnDecided; announce: Announce }>;
 }) {
-  const [dossiers, setDossiers] = useState<T[] | null>(null);
-  const [next, setNext] = useState<string | null>(null);
+  const [pageSize, setPageSize] = usePageSize(queueKey(queue));
+  const [page, setPage] = useState(0);
+  // Recherche par code ou nom du praticien, envoyée à l'API une fois la frappe arrêtée ; une
+  // nouvelle recherche ramène à la première page (calculé pendant le rendu, sans effet)
+  const [query, setQuery] = useState('');
+  const searched = useDebounced(query.trim());
+  const [lastSearched, setLastSearched] = useState(searched);
+  if (lastSearched !== searched) {
+    setLastSearched(searched);
+    setPage(0);
+  }
+  // Compteur de relectures : une décision relit la page courante
+  const [reads, setReads] = useState(0);
+  const [result, setResult] = useState<ZonePage<T> | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const [loadingMore, setLoadingMore] = useState(false);
+  // Demande en cours : sa clé diffère de celle de la dernière réponse reçue (sans état de
+  // chargement modifié dans l'effet)
+  const requestKey = `${page}|${pageSize}|${searched}|${reads}`;
+  const [answeredKey, setAnsweredKey] = useState<string>();
+  const loading = answeredKey !== requestKey;
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    load().then(
-      (page) => {
-        setDossiers(page.elements);
-        setNext(page.suivant);
+    let current = true;
+    load(page, pageSize, searched).then(
+      (next) => {
+        if (!current) return;
+        // Page devenue vide (derniers dossiers décidés) : retour à la dernière page qui existe
+        const lastPage = Math.max(0, Math.ceil(next.total / pageSize) - 1);
+        if (next.elements.length === 0 && page > lastPage) {
+          setPage(lastPage);
+          return;
+        }
+        setResult(next);
+        setLoadError(undefined);
+        setAnsweredKey(requestKey);
       },
-      (error: unknown) => setLoadError(errorMessage(error)),
+      (error: unknown) => {
+        if (!current) return;
+        setLoadError(errorMessage(error));
+        setAnsweredKey(requestKey);
+      },
     );
-    // `load` est une fonction du module certification-api, stable : un seul chargement
-  }, [load]);
-
-  async function loadMore() {
-    if (!next) return;
-    setLoadingMore(true);
-    try {
-      const page = await load(next);
-      setDossiers((current) => [...(current ?? []), ...page.elements]);
-      setNext(page.suivant);
-    } catch (error) {
-      setLoadError(errorMessage(error));
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+    return () => {
+      current = false;
+    };
+    // `load` est une fonction du module certification-api, stable
+  }, [load, page, pageSize, searched, reads, requestKey]);
 
   function onDecided(code: string, text: string) {
-    setDossiers((current) => (current ?? []).filter((dossier) => dossier.code !== code));
+    setResult(
+      (current) =>
+        current && {
+          ...current,
+          elements: current.elements.filter((dossier) => dossier.code !== code),
+          total: Math.max(0, current.total - 1),
+        },
+    );
     setNotice(text);
+    heading.current?.focus();
+    setReads((n) => n + 1);
+  }
+
+  // Changement de page : le focus remonte au titre de la liste, lu par les lecteurs d'écran
+  function goTo(next: number) {
+    setPage(next);
     heading.current?.focus();
   }
 
+  const dossiers = result?.elements ?? [];
+  const total = result?.total ?? 0;
   return (
     <>
       <PageHeader title={title} lead={lead} />
@@ -93,40 +141,56 @@ export function DossierQueuePage<T extends { code: string }>({
       <p role="status" className="ui-live-status">
         {notice}
       </p>
-      {dossiers === null && !loadError && <p>Chargement…</p>}
-      {dossiers !== null && (
-        <section aria-labelledby="dossiers-title">
+      {result === null && !loadError && <p>Chargement…</p>}
+      {result !== null && (
+        <section className="ui-section" aria-labelledby="dossiers-title" aria-busy={loading}>
           <div className="ui-list-title">
             <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
               {listTitle}
             </h2>
-            {/* Nombre de dossiers chargés ; « + » : d'autres suivent */}
             <span className="ui-tabs__count">
-              {dossiers.length}
-              {next ? '+' : ''}
-              <span className="ui-visually-hidden"> dossier{dossiers.length > 1 ? 's' : ''}</span>
+              {total}
+              <span className="ui-visually-hidden"> dossier{total > 1 ? 's' : ''}</span>
             </span>
           </div>
-          {dossiers.length === 0 && <p>{empty}</p>}
-          {dossiers.length > 0 && (
-            <ul className="ui-dossiers">
-              {dossiers.map((dossier) => (
-                <Item
-                  key={dossier.code}
-                  dossier={dossier}
-                  onDecided={onDecided}
-                  announce={setNotice}
-                />
-              ))}
-            </ul>
+          {(total > 0 || searched) && (
+            <ListToolbar>
+              <SearchBox
+                label="Rechercher un dossier"
+                placeholder="Code du dossier (DS-2001) ou nom du praticien"
+                value={query}
+                onChange={setQuery}
+              />
+            </ListToolbar>
           )}
-          {next && (
-            <div>
-              <Button variant="secondary" disabled={loadingMore} onClick={loadMore}>
-                Afficher les dossiers suivants
-              </Button>
-            </div>
-          )}
+          {total === 0 && <p>{searched ? 'Aucun dossier ne correspond.' : empty}</p>}
+          {/* La liste et sa pagination forment un seul bloc */}
+          <div>
+            {dossiers.length > 0 && (
+              <ul className="ui-dossiers">
+                {dossiers.map((dossier) => (
+                  <Item
+                    key={dossier.code}
+                    dossier={dossier}
+                    onDecided={onDecided}
+                    announce={setNotice}
+                  />
+                ))}
+              </ul>
+            )}
+            <Pagination
+              total={total}
+              page={page}
+              pageSize={pageSize}
+              onPage={goTo}
+              onPageSize={(size) => {
+                setPageSize(size);
+                goTo(0);
+              }}
+              noun={['dossier', 'dossiers']}
+              label={`Pages : ${listTitle}`}
+            />
+          </div>
         </section>
       )}
     </>

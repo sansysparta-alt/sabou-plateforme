@@ -6,7 +6,12 @@ export interface Column<Row> {
   header: string;
   render: (row: Row) => ReactNode;
   numeric?: boolean;
+  // Colonne d'actions : alignée à droite, comme sur la page Comptes (gabarit de liste)
+  actions?: boolean;
 }
+
+const cellClass = <Row,>(column: Column<Row>) =>
+  column.actions ? 'ui-table__actions' : column.numeric ? 'ui-table__num' : undefined;
 
 export interface DataTableProps<Row> {
   // Légende obligatoire : nomme le tableau pour les lecteurs d'écran (visible ou non)
@@ -17,8 +22,9 @@ export interface DataTableProps<Row> {
   rowKey: (row: Row) => string | number;
   empty?: string;
   // Pagination au-delà de 10 lignes (US-019) : nom de la liste (taille de page mémorisée) et
-  // nom des éléments, ex. { key: 'entonnoir-bloques', noun: ['dossier', 'dossiers'] }
-  paginate?: { key: string; noun: readonly [string, string] };
+  // nom des éléments, ex. { key: 'entonnoir-bloques', noun: ['dossier', 'dossiers'] } ;
+  // resetOn : recherche et filtres, dont tout changement ramène à la première page
+  paginate?: { key: string; noun: readonly [string, string]; resetOn?: unknown[] };
 }
 
 // Tableau de données : en-têtes de colonne réels (<th scope="col">), défilement horizontal
@@ -33,7 +39,11 @@ export function DataTable<Row>({
   paginate,
 }: DataTableProps<Row>) {
   // Sans pagination demandée, la clé ne sert à rien et toutes les lignes sont montrées
-  const { pageItems, paginationProps } = usePagination(rows, paginate?.key ?? 'tableau');
+  const { pageItems, paginationProps } = usePagination(
+    rows,
+    paginate?.key ?? 'tableau',
+    paginate?.resetOn,
+  );
   const shown = paginate ? pageItems : rows;
   return (
     <div className="ui-table-block">
@@ -43,11 +53,7 @@ export function DataTable<Row>({
           <thead>
             <tr>
               {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={column.numeric ? 'ui-table__num' : undefined}
-                >
+                <th key={column.key} scope="col" className={cellClass(column)}>
                   {column.header}
                 </th>
               ))}
@@ -64,7 +70,7 @@ export function DataTable<Row>({
               shown.map((row) => (
                 <tr key={rowKey(row)}>
                   {columns.map((column) => (
-                    <td key={column.key} className={column.numeric ? 'ui-table__num' : undefined}>
+                    <td key={column.key} className={cellClass(column)}>
                       {column.render(row)}
                     </td>
                   ))}

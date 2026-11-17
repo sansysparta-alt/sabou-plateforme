@@ -2,7 +2,7 @@
 // français unique, recherche sans accents des dénominations) sont prouvées par la base
 // (packages/db/test/fiches-maladies.test.ts) et l'API (apps/api/src/diseases/diseases.test.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { DiseaseDetail, DiseaseSummary } from '@sabou/types';
 import { DiseasePage, DiseasesPage } from './DiseasesPage';
 
@@ -40,14 +40,15 @@ afterEach(() => {
 const lastCall = () => fetchMock.mock.calls.at(-1) as [string, RequestInit];
 
 describe('Fiches maladies', () => {
-  it('la liste montre les dénominations ; la recherche part à l’API', async () => {
+  it('la liste montre les dénominations ; la recherche part à l’API sans bouton', async () => {
     render(<DiseasesPage />);
     const row = within(await screen.findByRole('table')).getByRole('row', { name: /Paludisme/ });
     expect(row.textContent).toContain('Fièvre palustre, Malaria');
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'fievre' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rechercher' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher une maladie' }), {
+      target: { value: 'fievre' },
+    });
     expect(await screen.findByRole('table', { name: 'Fiches trouvées pour « fievre »' }));
-    expect(lastCall()[0]).toBe('/api/maladies?q=fievre');
+    await waitFor(() => expect(lastCall()[0]).toBe('/api/maladies?q=fievre'));
   });
 
   it('critère : nom français obligatoire ; dénominations en français ou en anglais seulement', async () => {

@@ -793,9 +793,20 @@ Chaque écran présente ses éléments dans cet ordre, sans les mélanger :
 
 1. **En-tête** (`PageHeader`) : titre court, une ligne d'explication, action principale à droite (« Inviter un compte », « Ajouter une langue »). Les formulaires d'ajout ne s'ouvrent qu'à la demande, sous l'en-tête.
 2. **Chiffres clés**, s'il y en a : tuiles blanches (`StatCard`, grille `ui-grid--stats` : deux par ligne sur téléphone).
-3. **Recherche et filtres** (`ui-toolbar`) : champ de recherche, listes de choix, filtres de statut avec leur nombre (`ui-segmented`) ; tout changement ramène à la première page.
-4. **Contenu** : tableau (`DataTable`, ou `table.ui-table`) avec les actions alignées à droite de chaque ligne et la **pagination commune** (`Pagination`, `usePagination` : 10, 25 ou 50 par page, choix mémorisé par liste) ; ou, pour une file de décisions, des lignes repliables (`DossierRow`) qu'on ouvre pour décider.
+3. **Recherche et filtres** (`ListToolbar`, `SearchBox`, `SegmentedFilter`) : une seule barre ; recherche sans bouton, listes de choix, filtres avec leur nombre ; tout changement ramène à la première page.
+4. **Contenu** : tableau (`DataTable`, ou `table.ui-table`) avec les actions alignées à droite de chaque ligne et la **pagination commune** (`Pagination`, `usePagination` : 10, 25 ou 50 par page, choix mémorisé par liste ; `usePageSize` quand l'API pagine) ; ou, pour une file de décisions, des lignes repliables (`DossierRow`), paginées par l'API, qu'on ouvre pour décider.
 5. **Plusieurs référentiels sur un écran** : un onglet chacun (`Tabs` : clavier WAI-ARIA, onglet gardé dans l'adresse).
+
+**Compléments de US-019b (pagination et gabarit sur tous les écrans, novembre 2026).**
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Files de dossiers paginées par l'API, par numéro de page** : paramètre `decalage` (exclusif du curseur `apres`, gardé pour les parcours complets) et `total` dans chaque réponse (`ZonePage`). Une seule requête rend la page et le total (`zonePage`, `apps/api/src/database/paging.ts`), toujours sous les règles RLS du compte | « Page 3 sur 8 » et le nombre de dossiers exigent le total ; un décalage sur une file de quelques centaines de lignes coûte peu | Charger toute la file dans le navigateur (lourd en 3G) ; garder « Afficher les dossiers suivants » (pas de total, pas de saut de page) |
+| **Taille de page mémorisée par file**, et première page **préchargée à cette taille** (`queues.ts`, US-017) | La page demandée en avance est exactement celle que l'écran demande : l'aller-retour gagné n'est pas perdu | — |
+| **Dossier décidé** : retiré aussitôt, puis la page est relue pour la compléter ; une page devenue vide ramène à la dernière page | La file reste exacte sans recharger l'écran | — |
+| **Recherche sans bouton** (`SearchBox`) : envoyée à l'API 400 ms après la dernière frappe (`useDebounced`) pour les fiches plantes, maladies et noms locaux ; filtrée sur place quand la liste est déjà reçue (Comptes, Voix des noms ; `foldText` : sans accents ni majuscules) | Un seul geste ; pas une requête par lettre en 3G | Recherche à chaque lettre |
+| **Composants du gabarit** dans `@sabou/ui` : `ListToolbar`, `SearchBox`, `SegmentedFilter` (filtre avec le nombre de chaque choix), colonne `actions` de `DataTable` (alignée à droite), `paginate.resetOn` (retour à la première page) | Un nouvel écran suit la règle sans réécrire son balisage | — |
+| **Listes plafonnées par l'API** (fiches plantes et maladies : 200) : au plafond, l'écran invite à préciser la recherche | Rien n'est caché sans le dire | Pagination serveur de ces listes : plafond jamais atteint aujourd'hui, à reprendre au besoin |
 
 Style : contenu sobre (fond clair, cartes blanches, tableaux neutres) ; la couleur est réservée à la navigation, aux actions et aux états. Le menu latéral (colonne vert forêt, profil et déconnexion en bas, réductible) est commun à tous les écrans (`AppShell`). Garde-fous vérifiés par `tokens.test.ts` : aucune couleur en dur, aucun trait latéral décoratif.
 

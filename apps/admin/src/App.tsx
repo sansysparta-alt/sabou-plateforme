@@ -74,16 +74,17 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/voix-des-noms': loaders.nameVoices,
 };
 
-// Lectures que chaque page fait à son ouverture, exactement comme elle les demande
-const PAGE_DATA: Record<string, string[]> = {
+// Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
+// de dossiers demande sa première page à la taille mémorisée (US-019b)
+const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/': ['/api/tableau-de-bord'],
   '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
   '/referentiels': ['/api/referentiels'],
-  '/verification-terrain': ['/api/dossiers/verification-terrain'],
-  '/consolidation': ['/api/dossiers/consolidation'],
-  '/approbation': ['/api/dossiers/approbation'],
+  '/verification-terrain': [() => firstQueuePagePath(QUEUES.fieldVerification)],
+  '/consolidation': [() => firstQueuePagePath(QUEUES.consolidation)],
+  '/approbation': [() => firstQueuePagePath(QUEUES.approval)],
   '/entonnoir': ['/api/entonnoir'],
-  '/expertise': ['/api/dossiers/expertise'],
+  '/expertise': [() => firstQueuePagePath(QUEUES.expertise)],
   '/plantes': ['/api/plantes'],
   '/maladies': ['/api/maladies'],
   '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
@@ -127,10 +128,11 @@ export function preloadCurrentPage(): void {
   // Retour de connexion en erreur ou connexion perdue : la page de données ne s'ouvre pas
   const params = new URLSearchParams(window.location.search);
   if (params.has('erreur') || params.has('reprise')) return;
-  PAGE_DATA[current]?.forEach((url) => prefetch(url));
+  PAGE_DATA[current]?.forEach((url) => prefetch(typeof url === 'string' ? url : url()));
 }
 
 import { prefetch } from './prefetch';
+import { firstQueuePagePath, QUEUES } from './queues';
 import {
   fetchSession,
   hasManagementAccess,

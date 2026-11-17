@@ -395,6 +395,17 @@ Critères d'acceptation :
 - Files de dossiers (étapes 2 à 5) : une ligne par dossier (code, praticien, repères, état), ouverte d'un clic pour le détail et la décision.
 - Aucun écran ne régresse en accessibilité (WCAG 2.2 AA) ni en poids (illustration de 8 Ko).
 
+#### US-019b · Pagination et gabarit de liste sur tous les écrans de gestion
+*Socle* · **Must** · 3 points · ajout du 15 novembre 2026, demandé par le maître d'œuvre (suite de US-019, après les écrans du sprint 4)
+
+> En tant qu'administrateur, je veux que chaque liste se présente et se parcoure de la même façon, afin de m'y retrouver tout de suite, quel que soit l'écran.
+
+Critères d'acceptation :
+- Files de dossiers (étapes 2 à 5) : nombre total de dossiers affiché, pages numérotées (10, 25 ou 50 par page, choix mémorisé par file) à la place de « Afficher les dossiers suivants » ; l'API renvoie le total.
+- Fiches plantes, fiches maladies, noms locaux, voix des noms, langues et spécialités : pagination commune.
+- Gabarit de liste de la page Comptes partout : action principale à droite du titre (formulaire ouvert à la demande), chiffres clés s'il y en a, une seule barre de recherche et de filtres (recherche sans bouton), tableau avec les actions à droite, puis la pagination.
+- Aucune régression d'accessibilité (WCAG 2.2 AA) ni de vitesse (première page préchargée, US-017).
+
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
 *Socle* · **Should** · 5 points (3 à l’origine, réestimé le 14 novembre 2026) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre, hors fusion du sprint 3
 

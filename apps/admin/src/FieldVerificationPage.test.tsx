@@ -55,7 +55,10 @@ type Handler = (url: string, init?: RequestInit) => Response | Promise<Response>
 let decisions: { url: string; body: unknown }[];
 
 function mockApi(
-  pages: Record<string, { elements: FieldVerificationItem[]; suivant: string | null }>,
+  pages: Record<
+    string,
+    { elements: FieldVerificationItem[]; suivant?: string | null; total?: number }
+  >,
   decide?: Handler,
 ) {
   decisions = [];
@@ -70,14 +73,30 @@ function mockApi(
         return decide ? decide(url, init) : Response.json({ code: 'DS-2001', etape: 3 });
       }
       const page = pages[url];
-      return page ? Response.json(page) : new Response(null, { status: 404 });
+      return page
+        ? Response.json(served(page.elements, page.total))
+        : new Response(null, { status: 404 });
     }),
   );
 }
 
 const LIST = '/api/dossiers/verification-terrain';
+// Première page, à la taille par défaut (10)
+const FIRST = `${LIST}?limite=10`;
 
-beforeEach(() => mockApi({ [LIST]: { elements: [visited, notVisited], suivant: null } }));
+// L'API ne renvoie plus un dossier décidé : la page relue après une décision s'en passe
+function served<T extends { code: string }>(elements: T[], total?: number) {
+  const decided = new Set(decisions.map((d) => /\/dossiers\/([^/]+)\//.exec(d.url)?.[1]));
+  const left = elements.filter((e) => !decided.has(e.code));
+  // Total donné par le test : diminué des dossiers décidés depuis
+  return {
+    elements: left,
+    suivant: null,
+    total: total === undefined ? left.length : total - decisions.length,
+  };
+}
+
+beforeEach(() => mockApi({ [FIRST]: { elements: [visited, notVisited], suivant: null } }));
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -109,7 +128,7 @@ describe('Liste des dossiers à l’étape 2', () => {
 
   it('renouvellement sans visite exigée : validation possible (R-QR-07)', async () => {
     mockApi({
-      [LIST]: {
+      [FIRST]: {
         elements: [{ ...notVisited, type: 'renouvellement', visiteRequise: false }],
         suivant: null,
       },
@@ -121,20 +140,107 @@ describe('Liste des dossiers à l’étape 2', () => {
   });
 
   it('liste vide : message explicite', async () => {
-    mockApi({ [LIST]: { elements: [], suivant: null } });
+    mockApi({ [FIRST]: { elements: [], suivant: null } });
     render(<FieldVerificationPage />);
     expect(await screen.findByText('Aucun dossier en attente de vérification.'));
   });
 
-  it('charge la page suivante à la demande', async () => {
-    mockApi({
-      [LIST]: { elements: [visited], suivant: 'DS-2001' },
-      [`${LIST}?apres=DS-2001`]: { elements: [notVisited], suivant: null },
+  describe('Pagination par l’API (US-019b)', () => {
+    // 23 dossiers : DS-2101 à DS-2123 ; l'API sert la page demandée et le total
+    const many = Array.from({ length: 23 }, (_, i) => ({ ...notVisited, code: `DS-${2101 + i}` }));
+    const pageOf = (from: number, size: number) => ({
+      elements: many.slice(from, from + size),
+      total: many.length,
     });
-    render(<FieldVerificationPage />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Afficher les dossiers suivants' }));
-    expect(await item('DS-2002'));
-    expect(screen.queryByRole('button', { name: 'Afficher les dossiers suivants' })).toBeNull();
+
+    it('première page de 10, total annoncé, page 3 demandée par son numéro', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&decalage=20`]: pageOf(20, 10),
+      });
+      render(<FieldVerificationPage />);
+      expect(await item('DS-2110'));
+      expect(screen.queryByRole('heading', { level: 3, name: /DS-2111/ })).toBeNull();
+      expect(
+        screen.getByRole('navigation', { name: 'Pages : Dossiers à vérifier' }).textContent,
+      ).toContain('1–10 sur 23 dossiers');
+      fireEvent.click(screen.getByRole('button', { name: 'Page 3' }));
+      expect(await item('DS-2123'));
+      expect(screen.queryByRole('heading', { level: 3, name: /DS-2101/ })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Page 3' }).getAttribute('aria-current')).toBe(
+        'page',
+      );
+      // Le focus remonte au titre de la liste
+      expect(document.activeElement).toBe(
+        screen.getByRole('heading', { name: 'Dossiers à vérifier' }),
+      );
+    });
+
+    it('recherche par code ou nom : envoyée à l’API, retour à la première page', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&decalage=10`]: pageOf(10, 10),
+        [`${LIST}?limite=10&q=DS-2123`]: { elements: [many[22]!], total: 1 },
+      });
+      render(<FieldVerificationPage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Page 2' }));
+      expect(await item('DS-2111'));
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher un dossier' }), {
+        target: { value: ' DS-2123 ' },
+      });
+      expect(await item('DS-2123'));
+      expect(screen.queryByRole('heading', { level: 3, name: /DS-2111/ })).toBeNull();
+      expect(screen.queryByRole('navigation', { name: 'Pages : Dossiers à vérifier' })).toBeNull();
+    });
+
+    it('recherche sans résultat : message propre à la recherche', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&q=inconnu`]: { elements: [], total: 0 },
+      });
+      render(<FieldVerificationPage />);
+      await item('DS-2101');
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher un dossier' }), {
+        target: { value: 'inconnu' },
+      });
+      expect(await screen.findByText('Aucun dossier ne correspond.'));
+    });
+
+    it('taille de page choisie : demandée à l’API et mémorisée pour cette file', async () => {
+      window.localStorage.clear();
+      mockApi({ [FIRST]: pageOf(0, 10), [`${LIST}?limite=25`]: pageOf(0, 25) });
+      render(<FieldVerificationPage />);
+      expect(await item('DS-2101'));
+      fireEvent.change(screen.getByLabelText('Afficher'), { target: { value: '25' } });
+      expect(await item('DS-2123'));
+      expect(window.localStorage.getItem('sabou-par-page-file-verification-terrain')).toBe('25');
+      window.localStorage.clear();
+    });
+
+    it('dernier dossier de la dernière page décidé : retour à la page précédente', async () => {
+      mockApi({
+        [FIRST]: pageOf(0, 10),
+        [`${LIST}?limite=10&decalage=20`]: pageOf(20, 10),
+        [`${LIST}?limite=10&decalage=10`]: pageOf(10, 10),
+      });
+      render(<FieldVerificationPage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Page 3' }));
+      // DS-2121 à DS-2123 : on décide les trois, la page 3 n'existe plus
+      for (const code of ['DS-2121', 'DS-2122', 'DS-2123']) {
+        const row = await item(code);
+        fireEvent.click(
+          within(row).getByRole('button', { name: new RegExp(`^Rejeter le dossier ${code}`) }),
+        );
+        fireEvent.change(within(row).getByLabelText('Motif du rejet'), {
+          target: { value: 'Pièce illisible' },
+        });
+        fireEvent.click(within(row).getByRole('button', { name: 'Confirmer le rejet' }));
+        await waitFor(() =>
+          expect(screen.queryByRole('heading', { name: new RegExp(code) })).toBeNull(),
+        );
+      }
+      expect(await item('DS-2120'));
+    });
   });
 
   it('erreur de chargement : message de l’API', async () => {
@@ -167,7 +273,7 @@ describe('Validation (critère 1)', () => {
   });
 
   it('refus de l’API : message dans la carte du dossier, qui reste affiché', async () => {
-    mockApi({ [LIST]: { elements: [visited], suivant: null } }, () =>
+    mockApi({ [FIRST]: { elements: [visited], suivant: null } }, () =>
       Response.json(
         { error: 'stale', message: 'Ce dossier a changé d’étape entre-temps. Rechargez la liste.' },
         { status: 409 },
@@ -208,7 +314,7 @@ describe('Rejet (critère 3)', () => {
   });
 
   it('avec motif : envoie le motif sans espaces autour et retire le dossier', async () => {
-    mockApi({ [LIST]: { elements: [visited, notVisited], suivant: null } }, () =>
+    mockApi({ [FIRST]: { elements: [visited, notVisited], suivant: null } }, () =>
       Response.json({ code: 'DS-2002', etape: 1 }),
     );
     render(<FieldVerificationPage />);
@@ -270,7 +376,7 @@ describe('US-041 : visite sur place', () => {
   });
 
   it('planifie : envoie la date saisie, annonce le rappel de la veille', async () => {
-    mockApi({ [LIST]: { elements: [notVisited], suivant: null } }, () => Response.json(planned));
+    mockApi({ [FIRST]: { elements: [notVisited], suivant: null } }, () => Response.json(planned));
     render(<FieldVerificationPage />);
     const second = await item('DS-2002');
     fireEvent.click(within(second).getByRole('button', { name: /^Planifier la visite/ }));
@@ -297,7 +403,7 @@ describe('US-041 : visite sur place', () => {
     };
 
     it('chaque champ manquant est signalé, l’attestation comprise ; rien n’est envoyé', async () => {
-      mockApi({ [LIST]: { elements: [withPlanned], suivant: null } });
+      mockApi({ [FIRST]: { elements: [withPlanned], suivant: null } });
       const card = await openReport();
       expect(within(card).getByLabelText('Date de la visite').getAttribute('max')).toMatch(
         /^\d{4}-\d{2}-\d{2}$/,
@@ -311,7 +417,7 @@ describe('US-041 : visite sur place', () => {
     });
 
     it('signe : envoie le compte rendu, rend la validation possible', async () => {
-      mockApi({ [LIST]: { elements: [withPlanned], suivant: null } }, () =>
+      mockApi({ [FIRST]: { elements: [withPlanned], suivant: null } }, () =>
         Response.json({ ...realized, realiseeLe: '2026-11-13' }),
       );
       const card = await openReport();
@@ -344,7 +450,7 @@ describe('US-041 : visite sur place', () => {
     });
 
     it('refus de l’API : message dans le formulaire, qui reste ouvert', async () => {
-      mockApi({ [LIST]: { elements: [withPlanned], suivant: null } }, () =>
+      mockApi({ [FIRST]: { elements: [withPlanned], suivant: null } }, () =>
         Response.json({ error: 'invalid_date', message: 'Date refusée.' }, { status: 422 }),
       );
       const card = await openReport();
@@ -358,7 +464,7 @@ describe('US-041 : visite sur place', () => {
   });
 
   it('visite réalisée : avis, empreinte abrégée ; photo facultative jointe', async () => {
-    mockApi({ [LIST]: { elements: [visited], suivant: null } }, () =>
+    mockApi({ [FIRST]: { elements: [visited], suivant: null } }, () =>
       Response.json({ ...realized, photo: true }),
     );
     render(<FieldVerificationPage />);

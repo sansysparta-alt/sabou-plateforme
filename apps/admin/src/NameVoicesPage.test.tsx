@@ -84,6 +84,22 @@ async function openPlant() {
   return (name: string) => within(voicesTable).getByRole('row', { name: new RegExp(name) });
 }
 
+describe('Gabarit de liste (US-019b)', () => {
+  it('recherche sans accents et filtre par fiche, avec le nombre de chaque choix', async () => {
+    render(<NameVoicesPage />);
+    const table = await screen.findByRole('table', { name: 'Fiches du Dictionnaire' });
+    fireEvent.click(screen.getByRole('button', { name: 'Maladies (1)' }));
+    expect(within(table).queryByRole('row', { name: /Vernonie/ })).toBeNull();
+    expect(within(table).getByRole('row', { name: /Paludisme/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Toutes (2)' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher une fiche' }), {
+      target: { value: 'VERNONIE' },
+    });
+    expect(within(table).getByRole('row', { name: /Vernonie/ }));
+    expect(within(table).queryByRole('row', { name: /Paludisme/ })).toBeNull();
+  });
+});
+
 describe('Critère : statuts Brouillon → Traduit → Validé → Publié par langue', () => {
   it('chaque langue montre son statut ; une langue sans voix le dit', async () => {
     const row = await openPlant();

@@ -50,8 +50,11 @@ test('US-050 : créer une fiche plante, ses photos, une seule principale', async
   await expect(page.getByText('Photo ajoutée.')).toBeVisible();
   const leaves = page.getByRole('img', { name: 'Feuilles séchées' });
   await expect(leaves).toBeVisible();
-  // La photo est bien servie par l'API (chargée par le navigateur)
-  expect(await leaves.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+  // La photo est bien servie par l'API (chargée par le navigateur) ; visible ne veut pas dire
+  // chargée : on attend la fin du chargement avant de lire sa largeur
+  await expect
+    .poll(() => leaves.evaluate((img: HTMLImageElement) => (img.complete ? img.naturalWidth : -1)))
+    .toBe(1);
 
   // Seconde photo, puis elle devient la principale : une seule principale
   await add.getByLabel('Photo', { exact: true }).setInputFiles({

@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
-import { decide, dossierAtStep2, stepOf } from './dossiers';
+import { decide, dossierAtStep2, showRunDossiers, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
@@ -28,6 +28,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
 
   await page.goto(APP);
   await page.getByRole('link', { name: 'Vérification terrain' }).click();
+  await showRunDossiers(page);
   const card = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });

@@ -125,21 +125,39 @@ export function Pagination({
   );
 }
 
-function readSize(key: string): number {
+const storageKey = (key: string) => `sabou-par-page-${key}`;
+
+// Taille de page mémorisée pour la liste `key` (10 par défaut). Exportée pour le
+// préchargement : la première page demandée en avance doit être celle que l'écran demandera.
+export function storedPageSize(key: string): number {
   try {
-    const stored = Number(window.localStorage.getItem(`sabou-par-page-${key}`));
+    const stored = Number(window.localStorage.getItem(storageKey(key)));
     return (PAGE_SIZES as readonly number[]).includes(stored) ? stored : PAGE_SIZES[0];
   } catch {
     return PAGE_SIZES[0];
   }
 }
 
+// Taille de page d'une liste, mémorisée pour ce navigateur
+export function usePageSize(key: string) {
+  const [pageSize, setPageSize] = useState(() => storedPageSize(key));
+  const choose = (size: number) => {
+    setPageSize(size);
+    try {
+      window.localStorage.setItem(storageKey(key), String(size));
+    } catch {
+      // Stockage indisponible : le choix vaut pour cette page seulement
+    }
+  };
+  return [pageSize, choose] as const;
+}
+
 // Pagination côté client d'une liste déjà filtrée. `key` nomme la liste (taille de page
 // mémorisée) ; `resetOn` : toute valeur dont le changement ramène à la première page
-// (recherche, filtres).
+// (recherche, filtres). Pour une liste paginée par l'API, voir usePageSize.
 export function usePagination<T>(items: T[], key: string, resetOn: unknown[] = []) {
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(() => readSize(key));
+  const [pageSize, setPageSize] = usePageSize(key);
   // Filtres changés : retour à la première page, calculé pendant le rendu (pas d'effet)
   const resetKey = JSON.stringify(resetOn);
   const [lastResetKey, setLastResetKey] = useState(resetKey);
@@ -160,11 +178,6 @@ export function usePagination<T>(items: T[], key: string, resetOn: unknown[] = [
       onPageSize: (size: number) => {
         setPageSize(size);
         setPage(0);
-        try {
-          window.localStorage.setItem(`sabou-par-page-${key}`, String(size));
-        } catch {
-          // Stockage indisponible : le choix vaut pour cette page seulement
-        }
       },
     },
   };

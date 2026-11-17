@@ -78,6 +78,20 @@ describe('Préchargement de la page (US-017)', () => {
     expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual(['/api/certificats/SAB-2026-PR12-AB3']);
   });
 
+  it('file de dossiers (US-019b) : la première page, à la taille mémorisée pour cette file', () => {
+    const fetchSpy = vi.fn(async (url: string) => Response.json({ url }));
+    vi.stubGlobal('fetch', fetchSpy);
+    window.history.replaceState(null, '', '/consolidation');
+    preloadCurrentPage();
+    window.localStorage.setItem('sabou-par-page-file-consolidation', '25');
+    preloadCurrentPage();
+    window.localStorage.clear();
+    expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+      '/api/dossiers/consolidation?limite=10',
+      '/api/dossiers/consolidation?limite=25',
+    ]);
+  });
+
   it('fiche plante (US-050) : la fiche demandée d’après son code', () => {
     const fetchSpy = vi.fn(async (url: string) => Response.json({ url }));
     vi.stubGlobal('fetch', fetchSpy);

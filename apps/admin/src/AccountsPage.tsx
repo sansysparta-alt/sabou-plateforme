@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, PageHeader, Pagination, StatCard, usePagination } from '@sabou/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  PageHeader,
+  Pagination,
+  StatCard,
+  usePagination,
+  foldText,
+} from '@sabou/ui';
 import type {
   AccountReferences,
   AccountRole,
@@ -39,13 +48,6 @@ const STATUS_FILTERS: [StatusFilter, string][] = [
   ['suspendu', 'Suspendus'],
 ];
 
-// Recherche sans accents ni casse
-const fold = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
-
 export function AccountsPage() {
   const [accounts, setAccounts] = useState<AccountSummary[] | null>(null);
   const [references, setReferences] = useState<AccountReferences | null>(null);
@@ -77,13 +79,13 @@ export function AccountsPage() {
   const all = accounts ?? [];
   const count = (wanted: StatusFilter) =>
     wanted === 'tous' ? all.length : all.filter((account) => account.status === wanted).length;
-  const term = fold(query.trim());
+  const term = foldText(query.trim());
   const filtered = all.filter(
     (account) =>
       (status === 'tous' || account.status === status) &&
       (role === '' || account.role === role) &&
       (term === '' ||
-        fold(`${account.firstName} ${account.lastName} ${account.email}`).includes(term)),
+        foldText(`${account.firstName} ${account.lastName} ${account.email}`).includes(term)),
   );
   // Retour à la première page à chaque changement de recherche ou de filtre
   const { pageItems: shown, paginationProps } = usePagination(filtered, 'comptes', [

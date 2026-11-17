@@ -3,6 +3,7 @@ import { Alert, Badge, Button } from '@sabou/ui';
 import type { ApprovalItem } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { approveDossier, listApproval } from './certification-api';
+import { QUEUES } from './queues';
 import {
   DecisionActions,
   DossierQueuePage,
@@ -20,6 +21,7 @@ export function ApprovalPage() {
       lead="Dossiers expertisés par le Comité scientifique. L’approbation émet le certificat signé, valable 12 mois."
       listTitle="Dossiers à approuver"
       empty="Aucun dossier en attente d’approbation."
+      queue={QUEUES.approval}
       load={listApproval}
       item={DossierItem}
     />

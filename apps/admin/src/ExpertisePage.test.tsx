@@ -42,9 +42,10 @@ function mockApi(elements: ExpertiseItem[], answer = { code: 'DS-3001', etape: 5
         decisions.push({ url, body: JSON.parse(String(init.body)) });
         return Response.json(answer);
       }
-      return url === LIST
-        ? Response.json({ elements, suivant: null })
-        : new Response(null, { status: 404 });
+      // Première page à la taille par défaut ; un dossier décidé n'est plus renvoyé
+      if (url !== `${LIST}?limite=10`) return new Response(null, { status: 404 });
+      const left = elements.filter((e) => !decisions.some((d) => d.url.includes(`/${e.code}/`)));
+      return Response.json({ elements: left, suivant: null, total: left.length });
     }),
   );
 }

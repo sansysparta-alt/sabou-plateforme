@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Badge } from '@sabou/ui';
 import type { FieldVerificationItem } from '@sabou/types';
 import { listFieldVerification } from './certification-api';
+import { QUEUES } from './queues';
 import {
   DecisionActions,
   DossierQueuePage,
@@ -22,6 +23,7 @@ export function FieldVerificationPage() {
       lead="Dossiers soumis dans votre préfecture, en attente de votre décision. Délai cible : 3 jours par dossier."
       listTitle="Dossiers à vérifier"
       empty="Aucun dossier en attente de vérification."
+      queue={QUEUES.fieldVerification}
       load={listFieldVerification}
       item={DossierItem}
     />

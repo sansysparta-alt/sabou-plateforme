@@ -5,7 +5,7 @@
 import { verifyCertificateQr } from '@sabou/qr';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
-import { dossierAtStep, stepOf } from './dossiers';
+import { dossierAtStep, showRunDossiers, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
@@ -20,6 +20,7 @@ test('US-045 : approuver émet un certificat de 12 mois signé par le coffre, QR
 
   await page.goto(APP);
   await page.getByRole('link', { name: 'Approbation des dossiers' }).click();
+  await showRunDossiers(page);
   const card = page
     .getByRole('listitem')
     .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
