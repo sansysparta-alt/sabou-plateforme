@@ -15,6 +15,10 @@
     "./phone": {
       "types": "./dist/phone.d.ts",
       "default": "./dist/phone.js"
+    },
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "default": "./dist/permissions.js"
     }
   },
   "scripts": {

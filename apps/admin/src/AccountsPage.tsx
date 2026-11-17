@@ -3,9 +3,11 @@ import {
   Alert,
   Badge,
   Button,
+  Icon,
   PageHeader,
   Pagination,
   StatCard,
+  Tabs,
   usePagination,
   foldText,
 } from '@sabou/ui';
@@ -26,6 +28,15 @@ import {
   renewInvitation,
   suspendAccount,
 } from './accounts-api';
+import {
+  MATRIX_ROLE_LABELS,
+  MATRIX_ROLES,
+  PERMISSION_GROUPS,
+  ROLE_PROFILES,
+  VOICE_RIGHTS_NOTE,
+  type MatrixRole,
+} from '@sabou/types/permissions';
+import { formatNationalMobile, PHONE_ERROR, toNationalMobile } from '@sabou/types/phone';
 import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
 import { PAGE_HEADERS } from './page-headers';
 
@@ -136,117 +147,235 @@ export function AccountsPage() {
       )}
       {!ready && !loadError && <p>Chargement…</p>}
       {ready && (
-        <>
-          <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
-            <StatCard label="Comptes" value={count('tous')} />
-            <StatCard label="Actifs" value={count('actif')} />
-            <StatCard label="Invitations en attente" value={count('invite')} />
-            <StatCard label="Suspendus" value={count('suspendu')} />
-          </div>
-          <section aria-labelledby="accounts-title" className="ui-section">
-            <h2 id="accounts-title" className="ui-visually-hidden">
-              Comptes d’administration
-            </h2>
-            <div className="ui-toolbar" role="search">
-              <div className="ui-toolbar__search">
-                <label htmlFor={searchId} className="ui-visually-hidden">
-                  Rechercher un compte
-                </label>
-                <input
-                  id={searchId}
-                  className="ui-input"
-                  type="search"
-                  placeholder="Rechercher par nom ou adresse e-mail"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                  }}
-                />
-              </div>
-              <label htmlFor={roleId} className="ui-visually-hidden">
-                Filtrer par rôle
-              </label>
-              <select
-                id={roleId}
-                className="ui-select ui-toolbar__select"
-                value={role}
-                onChange={(event) => {
-                  setRole(event.target.value as AccountRole | '');
-                }}
-              >
-                <option value="">Tous les rôles</option>
-                {ROLES.map((value) => (
-                  <option key={value} value={value}>
-                    {ROLE_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-              <div className="ui-segmented" role="group" aria-label="Filtrer par statut">
-                {STATUS_FILTERS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="ui-segmented__item"
-                    aria-pressed={status === value}
-                    onClick={() => setStatus(value)}
-                  >
-                    {label} ({count(value)})
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="ui-table-block">
-              <div className="ui-table-wrap">
-                <table className="ui-table">
-                  <caption className="ui-visually-hidden">Comptes d’administration</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Compte</th>
-                      <th scope="col">Rôle</th>
-                      <th scope="col">Zone</th>
-                      <th scope="col">Langues de travail</th>
-                      <th scope="col">Statut</th>
-                      <th scope="col" className="ui-table__actions">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((account) => (
-                      <AccountRow
-                        key={account.id}
-                        account={account}
-                        references={references}
-                        onChanged={(text, invitation) => {
-                          setNotice(text);
-                          if (invitation) {
-                            setLink({
-                              name: `${account.firstName} ${account.lastName}`,
-                              invitation,
-                            });
-                          }
-                          void reload();
-                        }}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-                {shown.length === 0 && (
-                  <p className="ui-table-empty">
-                    {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
-                  </p>
-                )}
-              </div>
-              <Pagination
-                {...paginationProps}
-                noun={['compte', 'comptes']}
-                label="Pages des comptes"
-              />
-            </div>
-          </section>
-        </>
+        <Tabs
+          label="Comptes et droits"
+          tabs={[
+            {
+              id: 'comptes',
+              label: 'Comptes',
+              count: all.length,
+              content: accountsTab(),
+            },
+            { id: 'droits', label: 'Rôles et droits', content: <RolesMatrix /> },
+          ]}
+        />
       )}
     </>
+  );
+
+  function accountsTab() {
+    return (
+      <>
+        <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
+          <StatCard label="Comptes" value={count('tous')} />
+          <StatCard label="Actifs" value={count('actif')} />
+          <StatCard label="Invitations en attente" value={count('invite')} />
+          <StatCard label="Suspendus" value={count('suspendu')} />
+        </div>
+        <section aria-labelledby="accounts-title" className="ui-section">
+          <h2 id="accounts-title" className="ui-visually-hidden">
+            Comptes d’administration
+          </h2>
+          <div className="ui-toolbar" role="search">
+            <div className="ui-toolbar__search">
+              <label htmlFor={searchId} className="ui-visually-hidden">
+                Rechercher un compte
+              </label>
+              <input
+                id={searchId}
+                className="ui-input"
+                type="search"
+                placeholder="Rechercher par nom ou adresse e-mail"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                }}
+              />
+            </div>
+            <label htmlFor={roleId} className="ui-visually-hidden">
+              Filtrer par rôle
+            </label>
+            <select
+              id={roleId}
+              className="ui-select ui-toolbar__select"
+              value={role}
+              onChange={(event) => {
+                setRole(event.target.value as AccountRole | '');
+              }}
+            >
+              <option value="">Tous les rôles</option>
+              {ROLES.map((value) => (
+                <option key={value} value={value}>
+                  {ROLE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+            <div className="ui-segmented" role="group" aria-label="Filtrer par statut">
+              {STATUS_FILTERS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="ui-segmented__item"
+                  aria-pressed={status === value}
+                  onClick={() => setStatus(value)}
+                >
+                  {label} ({count(value)})
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="ui-table-block">
+            <div className="ui-table-wrap">
+              <table className="ui-table">
+                <caption className="ui-visually-hidden">Comptes d’administration</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Compte</th>
+                    <th scope="col">Rôle</th>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Langues de travail</th>
+                    <th scope="col">Statut</th>
+                    <th scope="col" className="ui-table__actions">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((account) => (
+                    <AccountRow
+                      key={account.id}
+                      account={account}
+                      references={references}
+                      onChanged={(text, invitation) => {
+                        setNotice(text);
+                        if (invitation) {
+                          setLink({
+                            name: `${account.firstName} ${account.lastName}`,
+                            invitation,
+                          });
+                        }
+                        void reload();
+                      }}
+                    />
+                  ))}
+                </tbody>
+              </table>
+              {shown.length === 0 && (
+                <p className="ui-table-empty">
+                  {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
+                </p>
+              )}
+            </div>
+            <Pagination
+              {...paginationProps}
+              noun={['compte', 'comptes']}
+              label="Pages des comptes"
+            />
+          </div>
+        </section>
+      </>
+    );
+  }
+}
+
+// Matrice des droits (US-012b), en consultation seule : celle du cahier des charges (§3.2),
+// ligne à ligne, puis les précisions des règles métier. Les droits déjà développés sont prouvés
+// conformes au serveur par des tests (packages/db/test/matrice-droits.test.ts, tests de l'API) ;
+// les autres sont marqués « À venir ».
+const PROFILE_ORDER: MatrixRole[] = [
+  'dg',
+  'regional',
+  'prefectoral',
+  'scientifique',
+  'praticien',
+  'citoyen',
+];
+
+function RolesMatrix() {
+  return (
+    <section aria-labelledby="roles-title" className="ui-section">
+      <h2 id="roles-title" className="ui-visually-hidden">
+        Rôles et droits
+      </h2>
+      <p className="ui-muted">
+        Chaque compte a un profil, qui fixe ce qu’il peut faire et sur quelle zone. Profils et
+        droits sont ceux du cahier des charges : ils se consultent ici, ils ne se modifient pas.
+      </p>
+      <ul className="ui-grid ui-grid--wide ui-role-cards">
+        {PROFILE_ORDER.map((role) => (
+          <li key={role} className="ui-card ui-card--plain">
+            <h3 className="ui-role-cards__title">{MATRIX_ROLE_LABELS[role]}</h3>
+            <p className="ui-muted">{ROLE_PROFILES[role].scope}</p>
+            <p>{ROLE_PROFILES[role].mission}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="ui-table-wrap ui-role-matrix">
+        <table className="ui-table">
+          <caption className="ui-visually-hidden">Droits de chaque profil</caption>
+          <thead>
+            <tr>
+              <th scope="col">Droit</th>
+              {MATRIX_ROLES.map((role) => (
+                <th key={role} scope="col" className="ui-table__check">
+                  {MATRIX_ROLE_LABELS[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {PERMISSION_GROUPS.map((group) => (
+            <tbody key={group.title}>
+              <tr>
+                <th
+                  scope="colgroup"
+                  colSpan={MATRIX_ROLES.length + 1}
+                  className="ui-role-matrix__group"
+                >
+                  {group.title}
+                </th>
+              </tr>
+              {group.permissions.map((entry) => (
+                <tr key={entry.id}>
+                  <th scope="row">
+                    <span className="ui-role-matrix__label">
+                      {entry.label}
+                      {!entry.available && <Badge tone="neutral">À venir</Badge>}
+                    </span>
+                    {entry.source && (
+                      <span className="ui-role-matrix__source">Source : {entry.source}</span>
+                    )}
+                  </th>
+                  {MATRIX_ROLES.map((role) => {
+                    const grant = entry.grants[role];
+                    if (grant === undefined) {
+                      return (
+                        <td key={role} className="ui-table__check ui-muted">
+                          <span aria-hidden="true">—</span>
+                          <span className="ui-visually-hidden">Non</span>
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={role} className="ui-table__check">
+                        {grant === true ? (
+                          <>
+                            <Icon name="check" />
+                            <span className="ui-visually-hidden">Oui</span>
+                          </>
+                        ) : (
+                          grant
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+      <p className="ui-field__hint">{VOICE_RIGHTS_NOTE}</p>
+    </section>
   );
 }
 
@@ -338,6 +467,11 @@ function AccountRow({
           <span className="ui-person__text">
             <span className="ui-person__name">{name}</span>
             <span className="ui-person__email">{account.email}</span>
+            {account.phone && (
+              <span className="ui-person__email">
+                {formatNationalMobile(account.phone.replace(/^\+224/, ''))}
+              </span>
+            )}
           </span>
         </span>
       </th>
@@ -399,6 +533,7 @@ interface FormState {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   role: AccountRole | '';
   regionId: string;
   prefectureId: string;
@@ -411,6 +546,7 @@ const EMPTY: FormState = {
   firstName: '',
   lastName: '',
   email: '',
+  phone: '',
   role: '',
   regionId: '',
   prefectureId: '',
@@ -460,6 +596,10 @@ function InviteForm({
       setError('Renseignez le prénom, le nom, l’adresse e-mail et le rôle.');
       return;
     }
+    if (form.phone.trim() && !toNationalMobile(form.phone)) {
+      setError(PHONE_ERROR);
+      return;
+    }
     setSending(true);
     setError(undefined);
     try {
@@ -467,6 +607,7 @@ function InviteForm({
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
+        phone: form.phone.trim() || null,
         role: form.role,
         // Seule la zone du rôle est envoyée ; l'API refuse une zone absente ou en trop
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
@@ -533,24 +674,46 @@ function InviteForm({
               />
             </div>
           </div>
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-email`}>
-              Adresse e-mail
-            </label>
-            <input
-              className="ui-input"
-              id={`${id}-email`}
-              type="email"
-              autoComplete="off"
-              required
-              maxLength={254}
-              aria-describedby={`${id}-email-hint`}
-              value={form.email}
-              onChange={(event) => set('email', event.target.value)}
-            />
-            <p id={`${id}-email-hint`} className="ui-field__hint">
-              Elle sert d’identifiant de connexion.
-            </p>
+          <div className="ui-form-row">
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-email`}>
+                Adresse e-mail
+              </label>
+              <input
+                className="ui-input"
+                id={`${id}-email`}
+                type="email"
+                autoComplete="off"
+                required
+                maxLength={254}
+                aria-describedby={`${id}-email-hint`}
+                value={form.email}
+                onChange={(event) => set('email', event.target.value)}
+              />
+              <p id={`${id}-email-hint`} className="ui-field__hint">
+                Elle sert d’identifiant de connexion.
+              </p>
+            </div>
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-phone`}>
+                Téléphone (facultatif)
+              </label>
+              <input
+                className="ui-input"
+                id={`${id}-phone`}
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                maxLength={30}
+                aria-describedby={`${id}-phone-hint`}
+                value={form.phone}
+                onChange={(event) => set('phone', event.target.value)}
+              />
+              <p id={`${id}-phone-hint`} className="ui-field__hint">
+                Mobile guinéen (par exemple 621 23 45 67), pour être joint par la Direction
+                générale.
+              </p>
+            </div>
           </div>
         </fieldset>
         <fieldset className="ui-form-section">
@@ -565,6 +728,7 @@ function InviteForm({
                 id={`${id}-role`}
                 required
                 value={form.role}
+                aria-describedby={form.role ? `${id}-role-hint` : undefined}
                 onChange={(event) => set('role', event.target.value as AccountRole | '')}
               >
                 <option value="">Choisir un rôle</option>
@@ -574,6 +738,12 @@ function InviteForm({
                   </option>
                 ))}
               </select>
+              {/* Ce que la DG attribue, au moment de le choisir (maquette, diapositive 2) */}
+              {form.role && (
+                <p id={`${id}-role-hint`} className="ui-field__hint">
+                  {ROLE_PROFILES[form.role].scope} · {ROLE_PROFILES[form.role].mission}
+                </p>
+              )}
             </div>
             {form.role === 'regional' && (
               <div className="ui-field">

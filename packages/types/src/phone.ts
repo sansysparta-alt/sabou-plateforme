@@ -14,6 +14,10 @@ export function toNationalMobile(input: string): string | null {
   return NATIONAL_MOBILE.test(digits) ? digits : null;
 }
 
+// Message d'erreur d'un téléphone facultatif (compte d'administration, US-012b)
+export const PHONE_ERROR =
+  'Le téléphone doit être un mobile guinéen : 9 chiffres commençant par 6.';
+
 // Forme internationale, celle de la base et des envois de SMS (+2246XXXXXXXX)
 export function toInternational(national: string): string {
   return `${GUINEA_PREFIX}${national}`;

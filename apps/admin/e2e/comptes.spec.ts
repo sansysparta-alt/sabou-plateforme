@@ -106,6 +106,8 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
 
   // Critère 1 : rôle, zone et langues de travail attribués
   await page.getByLabel('Région').selectOption({ label: 'Kindia' });
+  // Téléphone facultatif (US-012b), saisi librement, enregistré sous la forme +224
+  await page.getByLabel('Téléphone (facultatif)').fill('621 23 45 67');
   await page.getByRole('checkbox', { name: 'Enregistrer en Soussou' }).check();
   await page.getByRole('checkbox', { name: 'Valider en Soussou' }).check();
   await submitInvitation(page);
@@ -129,6 +131,7 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
 
   const row = accountRow(invitee.email)!;
   expect(row).toMatchObject({
+    phone: '+224621234567',
     role: 'regional',
     region: 'Kindia',
     prefecture: null,

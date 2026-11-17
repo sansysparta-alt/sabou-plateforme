@@ -4,6 +4,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { AccountReferences, AccountSummary } from '@sabou/types';
+import { MATRIX_ROLE_LABELS, MATRIX_ROLES, PERMISSIONS } from '@sabou/types/permissions';
+import { PHONE_ERROR } from '@sabou/types/phone';
 import { AccountsPage } from './AccountsPage';
 
 const account = (id: number, firstName: string, lastName: string, extra: Partial<AccountSummary>) =>
@@ -12,6 +14,7 @@ const account = (id: number, firstName: string, lastName: string, extra: Partial
     email: `${firstName.toLowerCase()}@sabou-sante.gn`,
     firstName,
     lastName,
+    phone: null,
     role: 'prefectoral',
     zone: 'Labé',
     status: 'actif',
@@ -22,7 +25,7 @@ const account = (id: number, firstName: string, lastName: string, extra: Partial
 
 const ACCOUNTS: AccountSummary[] = [
   account(1, 'Awa', 'Camara', { role: 'dg', zone: 'National', self: true }),
-  account(2, 'Ibrahima', 'Sow', {}),
+  account(2, 'Ibrahima', 'Sow', { phone: '+224621234567' }),
   account(3, 'Fatoumata', 'Bangoura', { role: 'regional', zone: 'Kindia', status: 'invite' }),
   account(4, 'Sékou', 'Kourouma', { status: 'suspendu' }),
 ];
@@ -45,6 +48,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Libellés à parenthèses : « Valider un praticien (terrain) »
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const rows = () => within(screen.getByRole('table')).getAllByRole('row').slice(1);
 
 describe('Page Comptes', () => {
@@ -56,6 +62,8 @@ describe('Page Comptes', () => {
     expect(rows()).toHaveLength(4);
     const sow = rows()[1]!;
     expect(sow.textContent).toContain('ibrahima@sabou-sante.gn');
+    // Téléphone facultatif, sous l'adresse, sous sa forme lisible (US-012b)
+    expect(sow.textContent).toContain('621 23 45 67');
     expect(within(sow).getByRole('button', { name: /^Suspendre.*Ibrahima Sow$/ }));
     // La DG ne peut pas se suspendre elle-même
     expect(within(rows()[0]!).queryByRole('button')).toBeNull();
@@ -95,5 +103,65 @@ describe('Page Comptes', () => {
     const form = screen.getByRole('region', { name: 'Inviter un compte' });
     fireEvent.click(within(form).getByRole('button', { name: 'Annuler' }));
     expect(screen.queryByRole('region', { name: 'Inviter un compte' })).toBeNull();
+  });
+
+  it('formulaire : le rôle choisi est décrit, un téléphone invalide est refusé avant l’envoi', async () => {
+    render(<AccountsPage />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Inviter un compte' }));
+    const form = screen.getByRole('region', { name: 'Inviter un compte' });
+    const role = within(form).getByRole('combobox', { name: 'Rôle' });
+    fireEvent.change(role, { target: { value: 'regional' } });
+    expect(role.getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(role.getAttribute('aria-describedby')!)?.textContent).toMatch(
+      /^Région · Consolide les dossiers/,
+    );
+    fireEvent.change(within(form).getByLabelText('Prénom'), { target: { value: 'Fanta' } });
+    fireEvent.change(within(form).getByLabelText('Nom'), { target: { value: 'Condé' } });
+    fireEvent.change(within(form).getByLabelText('Adresse e-mail'), {
+      target: { value: 'fanta@sabou-sante.gn' },
+    });
+    fireEvent.change(within(form).getByLabelText('Téléphone (facultatif)'), {
+      target: { value: '0123' },
+    });
+    fireEvent.click(within(form).getByRole('button', { name: 'Créer l’invitation' }));
+    expect((await within(form).findByRole('alert')).textContent).toBe(PHONE_ERROR);
+    // Rien n'est envoyé : seuls les deux chargements de la page ont eu lieu
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).not.toContain(
+      expect.stringMatching(/^\/api\/comptes$/),
+    );
+  });
+});
+
+describe('Onglet Rôles et droits (US-012b)', () => {
+  it('matrice du cahier des charges en consultation : un droit par ligne, un profil par colonne', async () => {
+    render(<AccountsPage />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('tab', { name: 'Rôles et droits' }));
+    const matrix = screen.getByRole('table', { name: 'Droits de chaque profil' });
+    // Première ligne seulement : les intertitres de groupe sont aussi des en-têtes
+    const headers = within(within(matrix).getAllByRole('row')[0]!)
+      .getAllByRole('columnheader')
+      .map((cell) => cell.textContent);
+    expect(headers).toEqual(['Droit', ...MATRIX_ROLES.map((role) => MATRIX_ROLE_LABELS[role])]);
+    // Chaque droit du catalogue : « Oui », le périmètre écrit (« Local »…) ou « Non »
+    for (const entry of PERMISSIONS) {
+      const header = within(matrix).getByRole('rowheader', {
+        name: new RegExp(`^${escapeRegExp(entry.label)}`),
+      });
+      expect(header.textContent?.includes('À venir')).toBe(!entry.available);
+      const cells = within(header.closest('tr')!)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent);
+      expect(cells).toEqual(
+        MATRIX_ROLES.map((role) => {
+          const grant = entry.grants[role];
+          return grant === undefined ? '—Non' : grant === true ? 'Oui' : grant;
+        }),
+      );
+    }
+    // Rien à modifier : ni case à cocher ni bouton dans la matrice
+    expect(within(matrix).queryAllByRole('checkbox')).toEqual([]);
+    expect(within(matrix).queryAllByRole('button')).toEqual([]);
   });
 });

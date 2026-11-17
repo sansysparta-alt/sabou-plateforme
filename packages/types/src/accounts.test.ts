@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inviteRequestSchema } from './accounts.js';
+import { PHONE_ERROR } from './phone.js';
 
 const base = {
   email: 'Fanta.Conde@Sabou-Sante.gn',
@@ -44,5 +45,23 @@ describe('inviteRequestSchema', () => {
       inviteRequestSchema.safeParse({ ...base, role: 'citoyen', regionId: null }).success,
     ).toBe(false);
     expect(inviteRequestSchema.safeParse({ ...base, password: 'x' }).success).toBe(false);
+  });
+});
+
+describe('Téléphone facultatif d’un compte d’administration (US-012b)', () => {
+  it('absent ou vide : null ; saisi librement : forme internationale', () => {
+    expect(inviteRequestSchema.parse(base).phone).toBeNull();
+    expect(inviteRequestSchema.parse({ ...base, phone: '  ' }).phone).toBeNull();
+    expect(inviteRequestSchema.parse({ ...base, phone: null }).phone).toBeNull();
+    for (const input of ['621 23 45 67', '+224 621-23-45-67', '00224621234567']) {
+      expect(inviteRequestSchema.parse({ ...base, phone: input }).phone).toBe('+224621234567');
+    }
+  });
+
+  it('refuse ce qui n’est pas un mobile guinéen, avec un message en français', () => {
+    for (const input of ['0123', '721234567', '+33612345678', 'abc']) {
+      const result = inviteRequestSchema.safeParse({ ...base, phone: input });
+      expect(result.error?.issues.map((issue) => issue.message)).toEqual([PHONE_ERROR]);
+    }
   });
 });

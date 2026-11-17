@@ -6,7 +6,8 @@ import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Logger, Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import type { InviteRequest } from '@sabou/types';
+import { ACCOUNT_ROLES, PHONE_ERROR, type InviteRequest } from '@sabou/types';
+import { grantedRoles } from '@sabou/types/permissions';
 import { AUDIT_LOG, type AuditEntry } from '../audit/audit.log';
 import { SESSION_COOKIE } from '../auth/auth.controller';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
@@ -14,7 +15,12 @@ import { ENV, loadEnv } from '../config/env';
 import { AccountsController, DirectorGuard, InvitationController } from './accounts.controller';
 import { AccountsRepository, type PendingInvitation } from './accounts.repository';
 import { AccountsService, digestToken } from './accounts.service';
-import { IDENTITY_ADMIN, PasswordRejectedError, type IdentityAdmin } from './identity-admin';
+import {
+  IDENTITY_ADMIN,
+  KEYCLOAK_ROLES,
+  PasswordRejectedError,
+  type IdentityAdmin,
+} from './identity-admin';
 
 const APP = 'http://localhost:5173';
 const DG_SUB = '11111111-1111-4111-8111-111111111111';
@@ -42,7 +48,9 @@ class FakeRepository {
   async userIdBySub(sub: string) {
     return sub === DG_SUB ? 1 : null;
   }
-  async createInvited() {
+  invited: InviteRequest[] = [];
+  async createInvited(_trx: never, input: InviteRequest) {
+    this.invited.push(input);
     return 42;
   }
   async issueInvitation() {
@@ -160,6 +168,10 @@ beforeEach(() => {
     ['dg', session(['dg', 'administrateur'])],
     ['regional', session(['admin_regional', 'administrateur'], true, TARGET_SUB)],
     ['dg-sans-otp', session(['dg', 'administrateur'], false)],
+    // Un compte par rôle, avec second facteur : matrice des droits (US-012b)
+    ...ACCOUNT_ROLES.map(
+      (role) => [`role-${role}`, session([KEYCLOAK_ROLES[role], 'administrateur'])] as const,
+    ),
   ]);
   for (const mock of [...Object.values(idp), sessions.revokeAccount, sessions.restoreAccount]) {
     mock.mockClear();
@@ -186,6 +198,7 @@ const invitation: InviteRequest = {
   email: 'fanta.conde@sabou-sante.gn',
   firstName: 'Fanta',
   lastName: 'Condé',
+  phone: null,
   role: 'regional',
   regionId: 3,
   prefectureId: null,
@@ -200,6 +213,14 @@ describe('Accès réservé à la DG (UC-65, R-ACC-04)', () => {
     expect((await call('comptes', { as: 'regional' })).status).toBe(403);
     expect((await call('comptes', { as: 'dg-sans-otp' })).status).toBe(403);
     expect((await call('comptes', { as: 'dg' })).status).toBe(200);
+  });
+
+  it('matrice des droits : seuls les rôles du catalogue gèrent les comptes (US-012b)', async () => {
+    const allowed: string[] = grantedRoles('users.manage');
+    for (const role of ACCOUNT_ROLES) {
+      const response = await call('comptes', { as: `role-${role}` });
+      expect([role, response.status]).toEqual([role, allowed.includes(role) ? 200 : 403]);
+    }
   });
 
   it('refuse une décision envoyée depuis un autre site (falsification de requête)', async () => {
@@ -233,6 +254,24 @@ describe('Invitation (US-012)', () => {
         details: { role: 'regional', region: 3 },
       },
     ]);
+  });
+
+  it('téléphone facultatif : saisi librement, enregistré sous la forme +224 (US-012b)', async () => {
+    const response = await call('comptes', {
+      as: 'dg',
+      body: { ...invitation, phone: ' 621 23.45-67 ' },
+    });
+    expect(response.status).toBe(201);
+    expect(repository.invited.at(-1)).toMatchObject({ phone: '+224621234567' });
+    await call('comptes', { as: 'dg', body: invitation });
+    expect(repository.invited.at(-1)).toMatchObject({ phone: null });
+  });
+
+  it('refuse un téléphone qui n’est pas un mobile guinéen, sans rien écrire', async () => {
+    const response = await call('comptes', { as: 'dg', body: { ...invitation, phone: '0123' } });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { message: string[] }).message).toEqual([PHONE_ERROR]);
+    expect(repository.outcomes).toEqual([]);
   });
 
   it('refuse un rôle régional sans région (critère 2), sans rien écrire', async () => {
