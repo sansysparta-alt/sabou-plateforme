@@ -1,4 +1,12 @@
-import { useEffect, useId, useRef, useState, type ComponentType, type FormEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Alert, Button, PageHeader, TextAreaField } from '@sabou/ui';
 import type { ZonePage } from '@sabou/types';
 import { ApiError } from './accounts-api';
@@ -88,12 +96,20 @@ export function DossierQueuePage<T extends { code: string }>({
       {dossiers === null && !loadError && <p>Chargement…</p>}
       {dossiers !== null && (
         <section aria-labelledby="dossiers-title">
-          <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
-            {listTitle}
-          </h2>
+          <div className="ui-list-title">
+            <h2 id="dossiers-title" ref={heading} tabIndex={-1}>
+              {listTitle}
+            </h2>
+            {/* Nombre de dossiers chargés ; « + » : d'autres suivent */}
+            <span className="ui-tabs__count">
+              {dossiers.length}
+              {next ? '+' : ''}
+              <span className="ui-visually-hidden"> dossier{dossiers.length > 1 ? 's' : ''}</span>
+            </span>
+          </div>
           {dossiers.length === 0 && <p>{empty}</p>}
           {dossiers.length > 0 && (
-            <ul className="ui-stack">
+            <ul className="ui-dossiers">
               {dossiers.map((dossier) => (
                 <Item
                   key={dossier.code}
@@ -114,6 +130,36 @@ export function DossierQueuePage<T extends { code: string }>({
         </section>
       )}
     </>
+  );
+}
+
+// Un dossier de la file, replié sur une ligne (maquette v1.3, US-019) : code, praticien et
+// repères ; ouvert, son détail et les décisions. <details> natif : clavier et lecteurs d'écran
+// sans script, le titre reste dans la navigation par titres.
+export function DossierRow({
+  code,
+  name,
+  meta,
+  children,
+}: {
+  code: string;
+  name: string;
+  meta: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <li className="ui-dossier">
+      <details>
+        <summary className="ui-dossier__summary">
+          <h3 className="ui-dossier__title">
+            {code} · {name}
+          </h3>
+          <span className="ui-dossier__meta">{meta}</span>
+          <span className="ui-dossier__toggle" aria-hidden="true" />
+        </summary>
+        <div className="ui-dossier__body">{children}</div>
+      </details>
+    </li>
   );
 }
 

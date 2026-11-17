@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import { Alert, AppShell, Button, ButtonLink, Card, PageHeader, type NavGroup } from '@sabou/ui';
+import { Alert, AppShell, Button, ButtonLink, PageHeader, type NavGroup } from '@sabou/ui';
 // Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
 // (seuil de temps de blocage de Lighthouse, US-010)
 const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -43,12 +43,17 @@ import {
   profileLabel,
   type SessionUser,
 } from './session';
+// Illustration de la connexion (maquette v1.3), 8 Ko en WebP
+import illustration from './assets/connexion.webp';
 
 type State =
   | { status: 'loading' }
   | { status: 'anonymous' }
   | { status: 'connected'; user: SessionUser }
   | { status: 'error' };
+
+// Navigation hors de l'application (ouverture de la connexion Keycloak), isolée pour les tests
+export const browser = { assign: (url: string) => window.location.assign(url) };
 
 // Paramètre posé par l'API au retour de Keycloak (?erreur=…, ?info=…), lu une fois puis
 // retiré de l'adresse
@@ -61,7 +66,34 @@ function takeParam(name: string): string | undefined {
   return value;
 }
 
+// Connexion perdue en route (?reprise=1, US-019) : relancée une fois ; une deuxième perte en
+// moins de deux minutes (cookies bloqués, par exemple) affiche l'erreur au lieu de boucler
+const RETRY_KEY = 'sabou-reprise-connexion';
+const RETRY_WINDOW_MS = 120_000;
+
+function lostLoginTwice(): boolean {
+  try {
+    const last = Number(window.sessionStorage.getItem(RETRY_KEY));
+    if (last && Date.now() - last < RETRY_WINDOW_MS) return true;
+    window.sessionStorage.setItem(RETRY_KEY, String(Date.now()));
+    return false;
+  } catch {
+    // Stockage indisponible : pas de garde-fou possible, on affiche l'erreur
+    return true;
+  }
+}
+
+function forgetLoginRetry(): void {
+  try {
+    window.sessionStorage.removeItem(RETRY_KEY);
+  } catch {
+    // Stockage indisponible : rien à oublier
+  }
+}
+
 function takeLoginError(): string | undefined {
+  const lost = takeParam('reprise') !== undefined;
+  if (lost && lostLoginTwice()) return LOGIN_ERRORS.connexion;
   const code = takeParam('erreur');
   return code ? (LOGIN_ERRORS[code] ?? LOGIN_ERRORS.connexion) : undefined;
 }
@@ -86,12 +118,18 @@ export function App() {
 function ConnectedApp() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [loginError] = useState(takeLoginError);
+  // Déconnexion volontaire : on reste sur la page d'accueil au lieu de rouvrir la connexion
+  const [loggedOut, setLoggedOut] = useState(false);
   const [mfaJustEnabled] = useState(() => takeParam('info') === 'double-facteur');
 
   useEffect(() => {
     let active = true;
     fetchSession().then(
-      (user) => active && setState(user ? { status: 'connected', user } : { status: 'anonymous' }),
+      (user) => {
+        if (!active) return;
+        if (user) forgetLoginRetry();
+        setState(user ? { status: 'connected', user } : { status: 'anonymous' });
+      },
       () => active && setState({ status: 'error' }),
     );
     return () => {
@@ -99,9 +137,17 @@ function ConnectedApp() {
     };
   }, []);
 
+  // Sans session : la page de connexion unique (Keycloak, US-019) s'ouvre directement. La page
+  // d'accueil ne sert qu'à montrer une erreur de connexion, ou après une déconnexion.
+  const directLogin = state.status === 'anonymous' && !loginError && !loggedOut;
+  useEffect(() => {
+    if (directLogin) browser.assign('/auth/login');
+  }, [directLogin]);
+
   async function onLogout() {
     try {
       await logout();
+      setLoggedOut(true);
       setState({ status: 'anonymous' });
     } catch {
       setState({ status: 'error' });
@@ -116,8 +162,9 @@ function ConnectedApp() {
         nav={navigation(user)}
         currentPath={path()}
         userActions={
-          <Button variant="secondary" icon="logout" onClick={onLogout}>
-            Se déconnecter
+          // Bas de la colonne de navigation : icône seule, nom accessible « Se déconnecter »
+          <Button variant="secondary" icon="logout" onClick={onLogout} title="Se déconnecter">
+            <span className="ui-visually-hidden">Se déconnecter</span>
           </Button>
         }
       >
@@ -126,15 +173,16 @@ function ConnectedApp() {
     );
   }
 
+  if (state.status === 'anonymous' && !directLogin) return <LoginPage error={loginError} />;
+
   return (
     <PublicLayout busy={state.status === 'loading'}>
-      {state.status === 'loading' && <p>Chargement…</p>}
+      {(state.status === 'loading' || directLogin) && <p>Chargement…</p>}
       {state.status === 'error' && (
         <Alert tone="error" title="Service indisponible">
           Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.
         </Alert>
       )}
-      {state.status === 'anonymous' && <LoginPage error={loginError} />}
       {state.status === 'connected' && <Forbidden user={state.user} onLogout={onLogout} />}
     </PublicLayout>
   );
@@ -256,28 +304,54 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
   );
 }
 
+// Connexion (maquette v1.3) : panneau vert à gauche (marque, illustration, accès), garanties de
+// sécurité à droite ; les deux s'empilent sur téléphone. Le formulaire lui-même est celui de
+// Keycloak, ouvert par le bouton.
 function LoginPage({ error }: { error?: string }) {
   return (
-    <>
-      <PageHeader
-        title="Application de gestion"
-        lead="Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du Comité scientifique et aux tradipraticiens."
-      />
-      {error && <Alert tone="error">{error}</Alert>}
-      <div>
-        <ButtonLink variant="primary" href="/auth/login">
-          Se connecter
-        </ButtonLink>
-      </div>
-      <Card title="Vos garanties de sécurité">
-        <ul className="ui-list">
-          <li>Double facteur obligatoire pour tous les administrateurs.</li>
-          <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
-          <li>Session fermée après 30 minutes d’inactivité.</li>
-          <li>Chaque connexion est journalisée.</li>
-        </ul>
-      </Card>
-    </>
+    <div className="ui-login">
+      <a className="ui-skip-link" href="#contenu">
+        Aller au contenu
+      </a>
+      <main id="contenu" className="ui-login__main" tabIndex={-1}>
+        <section className="ui-login__hero" aria-labelledby="connexion-titre">
+          <img
+            className="ui-login__art"
+            src={illustration}
+            alt=""
+            width={960}
+            height={480}
+            decoding="async"
+          />
+          <p className="ui-login__brand">
+            <span className="ui-topbar__mark" aria-hidden="true">
+              S
+            </span>
+            SABOU
+          </p>
+          <p className="ui-login__kicker">Accès sécurisé</p>
+          <h1 id="connexion-titre">Application de gestion</h1>
+          <p className="ui-login__lead">
+            Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du
+            Comité scientifique et aux tradipraticiens.
+          </p>
+          {error && <Alert tone="error">{error}</Alert>}
+          <ButtonLink variant="primary" href="/auth/login" className="ui-login__action">
+            Se connecter
+          </ButtonLink>
+          <p className="ui-login__note">Double facteur obligatoire pour les administrateurs</p>
+        </section>
+        <section className="ui-login__panel" aria-labelledby="garanties-titre">
+          <h2 id="garanties-titre">Vos garanties de sécurité</h2>
+          <ul className="ui-login__list">
+            <li>Double facteur obligatoire pour tous les administrateurs.</li>
+            <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
+            <li>Session fermée après 30 minutes d’inactivité.</li>
+            <li>Chaque connexion est journalisée.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
   );
 }
 

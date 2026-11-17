@@ -1,3 +1,4 @@
+import { Pagination, usePagination } from './Pagination';
 import type { ReactNode } from 'react';
 
 export interface Column<Row> {
@@ -15,6 +16,9 @@ export interface DataTableProps<Row> {
   rows: Row[];
   rowKey: (row: Row) => string | number;
   empty?: string;
+  // Pagination au-delà de 10 lignes (US-019) : nom de la liste (taille de page mémorisée) et
+  // nom des éléments, ex. { key: 'entonnoir-bloques', noun: ['dossier', 'dossiers'] }
+  paginate?: { key: string; noun: readonly [string, string] };
 }
 
 // Tableau de données : en-têtes de colonne réels (<th scope="col">), défilement horizontal
@@ -26,44 +30,53 @@ export function DataTable<Row>({
   rows,
   rowKey,
   empty = 'Aucun élément.',
+  paginate,
 }: DataTableProps<Row>) {
+  // Sans pagination demandée, la clé ne sert à rien et toutes les lignes sont montrées
+  const { pageItems, paginationProps } = usePagination(rows, paginate?.key ?? 'tableau');
+  const shown = paginate ? pageItems : rows;
   return (
-    <div className="ui-table-wrap">
-      <table className="ui-table">
-        <caption className={captionHidden ? 'ui-visually-hidden' : undefined}>{caption}</caption>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th
-                key={column.key}
-                scope="col"
-                className={column.numeric ? 'ui-table__num' : undefined}
-              >
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
+    <div className="ui-table-block">
+      <div className="ui-table-wrap">
+        <table className="ui-table">
+          <caption className={captionHidden ? 'ui-visually-hidden' : undefined}>{caption}</caption>
+          <thead>
             <tr>
-              <td colSpan={columns.length} className="ui-muted">
-                {empty}
-              </td>
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  scope="col"
+                  className={column.numeric ? 'ui-table__num' : undefined}
+                >
+                  {column.header}
+                </th>
+              ))}
             </tr>
-          ) : (
-            rows.map((row) => (
-              <tr key={rowKey(row)}>
-                {columns.map((column) => (
-                  <td key={column.key} className={column.numeric ? 'ui-table__num' : undefined}>
-                    {column.render(row)}
-                  </td>
-                ))}
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="ui-muted">
+                  {empty}
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              shown.map((row) => (
+                <tr key={rowKey(row)}>
+                  {columns.map((column) => (
+                    <td key={column.key} className={column.numeric ? 'ui-table__num' : undefined}>
+                      {column.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {paginate && (
+        <Pagination {...paginationProps} noun={paginate.noun} label={`Pages : ${caption}`} />
+      )}
     </div>
   );
 }

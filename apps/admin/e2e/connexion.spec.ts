@@ -28,12 +28,12 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 }) => {
   const dg = await createUser('dg');
 
+  // Page de connexion unique (US-019) : ouverte directement, panneau SABOU et formulaire
   await page.goto(APP);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Application de gestion');
-  await expectAccessible(page, 'Accueil sans session');
-
-  await page.getByRole('link', { name: 'Se connecter' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Connexion à SABOU');
+  await expect(page.getByRole('complementary', { name: 'Présentation de SABOU' })).toContainText(
+    'Application de gestion',
+  );
   await expect(
     page.getByText('Mot de passe oublié ? Contactez votre administrateur.'),
   ).toBeVisible();
@@ -81,8 +81,11 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   await expect(page).toHaveURL(`${APP}/`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bonjour, Essai dg');
-  // Compte Keycloak de test sans ligne en base : profil dans le bandeau, chiffres refusés en clair
-  await expect(page.getByRole('banner').getByText('Direction Générale')).toBeVisible();
+  // Compte Keycloak de test sans ligne en base : profil en bas du menu (US-019), chiffres
+  // refusés en clair
+  await expect(
+    page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Direction Générale'),
+  ).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('rattaché à aucune zone active');
   expect(await sessionStatus(page)).toBe(200);
   await expectAccessible(page, 'Accueil connecté');

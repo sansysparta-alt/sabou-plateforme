@@ -383,6 +383,18 @@ Décision du maître d’œuvre (12 novembre 2026) : un seul membre du Comité d
 
 ### Sprint 3 — La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié.
 
+#### US-019 · Une application de gestion conforme à la maquette v1.3
+*Socle* · **Must** · 8 points · ajout du 15 novembre 2026, demandé par le maître d'œuvre, placé avant la reprise de US-017 et la fin de S4
+
+> En tant qu'administrateur, je veux des écrans sobres et bien organisés, conformes à la maquette de l'application de gestion (`Plateforme/docs/maquettes/`), afin de trouver tout de suite ce que j'ai à faire.
+
+Critères d'acceptation :
+- Connexion en deux panneaux : vert forêt à gauche (marque, illustration, accès), garanties de sécurité à droite ; empilés sur téléphone.
+- Navigation latérale pleine hauteur sur fond « brume », rubriques en petites capitales, élément actif plein vert.
+- Titres de page sobres, introduction courte, actions principales à droite du titre ; tableaux à en-tête vert et lignes alternées ; chiffres clés en tuiles.
+- Files de dossiers (étapes 2 à 5) : une ligne par dossier (code, praticien, repères, état), ouverte d'un clic pour le détail et la décision.
+- Aucun écran ne régresse en accessibilité (WCAG 2.2 AA) ni en poids (illustration de 8 Ko).
+
 #### US-017 · Une application de gestion rapide en 3G sur chaque page
 *Socle* · **Should** · 3 points (environ 1 jour) · ajout du 8 novembre 2026, placé en S3 par le maître d’œuvre
 

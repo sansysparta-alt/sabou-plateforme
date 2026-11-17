@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
-import { App } from './App';
+import { App, browser } from './App';
 
 const dg: SessionUser = {
   username: 'awa.camara',
@@ -102,15 +102,47 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('sans session : page de connexion, lien vers /auth/login et garanties de sécurité', async () => {
+  it('sans session : la page de connexion unique s’ouvre directement (US-019)', async () => {
     mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(screen.queryByRole('link', { name: 'Se connecter' })).toBeNull();
+    assign.mockRestore();
+  });
+
+  it('connexion perdue en route : relancée une fois, puis erreur à la deuxième perte (US-019)', async () => {
+    mockApi(null);
+    window.sessionStorage.clear();
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(window.location.search).toBe('');
+    cleanup();
+    assign.mockClear();
+    window.history.replaceState(null, '', '/?reprise=1');
+    render(<App />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/La connexion n’a pas abouti/);
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+    window.sessionStorage.clear();
+  });
+
+  it('erreur de connexion : page d’accueil avec le message, lien vers /auth/login et garanties', async () => {
+    mockApi(null);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    window.history.replaceState(null, '', '/?erreur=connexion');
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Application de gestion' }));
+    expect(screen.getByRole('alert').textContent).toMatch(/La connexion n’a pas abouti/);
     expect(screen.getByRole('link', { name: 'Se connecter' }).getAttribute('href')).toBe(
       '/auth/login',
     );
     expect(screen.getByText(/Double facteur obligatoire pour tous les administrateurs/));
     expect(screen.getByText(/bloqué 15 minutes après 5 mots de passe erronés/));
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
   });
 
   it("affiche le motif d'un échec puis le retire de l'adresse", async () => {
@@ -143,8 +175,11 @@ describe('App', () => {
     expect(row.textContent).toMatch(/Mariama Diallo.*Dossier soumis.*2 sur 6/);
     expect(row.textContent).toMatch(/09:30/);
     // Fonctions à venir annoncées, sans lien vers une page qui n'existe pas
-    expect(screen.getByText('Certificats émis').parentElement!.textContent).toMatch(/Sprint 3/);
-    expect(screen.getByRole('heading', { name: 'À venir' }));
+    // Plus de calendrier des sprints sur l'accueil (US-019) ; accès directs dans l'en-tête
+    expect(screen.queryByRole('heading', { name: 'À venir' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Gérer les comptes' }).getAttribute('href')).toBe(
+      '/comptes',
+    );
     expect(screen.queryByRole('link', { name: 'Activer le double facteur' })).toBeNull();
   });
 
