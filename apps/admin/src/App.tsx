@@ -21,6 +21,8 @@ const loaders = {
   diseases: () => import('./DiseasesPage'),
   // US-053 : noms locaux des plantes
   localNames: () => import('./LocalNamesPage'),
+  // US-071 : voix du nom des plantes et des maladies
+  nameVoices: () => import('./NameVoicesPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -47,6 +49,9 @@ const PlantsPage = lazy(() => loaders.plants().then((m) => ({ default: m.PlantsP
 const PlantPage = lazy(() => loaders.plant().then((m) => ({ default: m.PlantPage })));
 const DiseasesPage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasesPage })));
 const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasePage })));
+const NameVoicesPage = lazy(() =>
+  loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
+);
 const LocalNamesPage = lazy(() =>
   loaders.localNames().then((m) => ({ default: m.LocalNamesPage })),
 );
@@ -66,6 +71,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/plantes': loaders.plants,
   '/maladies': loaders.diseases,
   '/noms-locaux': loaders.localNames,
+  '/voix-des-noms': loaders.nameVoices,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande
@@ -81,6 +87,7 @@ const PAGE_DATA: Record<string, string[]> = {
   '/plantes': ['/api/plantes'],
   '/maladies': ['/api/maladies'],
   '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
+  '/voix-des-noms': ['/api/voix-des-noms'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -327,10 +334,15 @@ function navigation(user: SessionUser): NavGroup[] {
     });
   }
   // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
-  // locaux (US-053) pour tout administrateur, saisis par le référent de chaque langue
+  // locaux (US-053) et voix des noms (US-071) pour tout administrateur, chaque geste selon ses
+  // droits dans la langue
   const dictionary: NavGroup = {
     heading: 'Dictionnaire',
-    items: [{ href: '/noms-locaux', label: 'Noms locaux', icon: 'book' }],
+    items: [
+      { href: '/noms-locaux', label: 'Noms locaux', icon: 'book' },
+      // US-071 : voix du nom des plantes et des maladies, par langue
+      { href: '/voix-des-noms', label: 'Voix des noms', icon: 'book' },
+    ],
   };
   if (isDirector(user) || isCommittee(user)) {
     dictionary.items.unshift(
@@ -368,6 +380,7 @@ function navigation(user: SessionUser): NavGroup[] {
 // Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
+  '/voix-des-noms': NameVoicesPage,
   '/entonnoir': FunnelPage,
   '/approbation': ApprovalPage,
   '/rejet-definitif': RejectionPage,
@@ -378,14 +391,17 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
 };
 const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
+  '/voix-des-noms': NameVoicesPage,
   '/verification-terrain': FieldVerificationPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
+  '/voix-des-noms': NameVoicesPage,
   '/consolidation': ConsolidationPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
+  '/voix-des-noms': NameVoicesPage,
   '/expertise': ExpertisePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
