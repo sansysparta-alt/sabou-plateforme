@@ -7,8 +7,10 @@ import { HealthController } from './health/health.controller';
 import { AccountsModule } from './accounts/accounts.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { CertificatesModule } from './certificates/certificates.module';
 import { CertificationModule } from './certification/certification.module';
 import { ReferentialsModule } from './referentials/referentials.module';
+import { RejectionsModule } from './rejections/rejections.module';
 import { SignupModule } from './signup/signup.module';
 import { SmsModule } from './sms/sms.module';
 import { SyncModule } from './sync/sync.module';
@@ -23,6 +25,8 @@ import { VisitsModule } from './visits/visits.module';
     AuthModule,
     AccountsModule,
     CertificationModule,
+    CertificatesModule,
+    RejectionsModule,
     VisitsModule,
     DashboardModule,
     DossiersModule,

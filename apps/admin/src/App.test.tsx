@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
 import { App } from './App';
@@ -82,6 +82,18 @@ function mockApi(session: SessionUser | null | 'panne') {
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+// Pages chargées à la demande (lazy) : leur première transformation par Vite peut dépasser
+// le délai d'attente des tests quand toutes les suites tournent en parallèle (pipeline
+// complet). Préchargées une fois, elles s'affichent aussitôt ; le test vérifie l'écran, pas
+// la vitesse du poste.
+beforeAll(async () => {
+  await Promise.all([
+    import('./Dashboard'),
+    import('./AccountsPage'),
+    import('./ReferentialsPage'),
+  ]);
+}, 60_000);
 
 beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(() => {

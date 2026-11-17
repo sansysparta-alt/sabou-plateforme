@@ -624,3 +624,83 @@
   color: var(--sabou-success);
   font-weight: var(--sabou-weight-semibold);
 }
+
+/* Certificat signé, page à imprimer (US-045) : lisible à l'écran (360 px compris) et sur
+   une feuille A4 en noir et blanc ; le QR garde sa taille et sa marge blanche. */
+.ui-certificate {
+  display: grid;
+  gap: var(--sabou-space-5);
+  max-width: 48rem;
+  padding: var(--sabou-space-6);
+  background: var(--sabou-surface);
+  border: 2px solid var(--sabou-forest);
+  border-radius: var(--sabou-radius-md);
+}
+.ui-certificate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-4);
+}
+.ui-certificate__header {
+  display: grid;
+  gap: var(--sabou-space-2);
+  padding-bottom: var(--sabou-space-4);
+  border-bottom: 1px solid var(--sabou-border);
+}
+.ui-certificate__header h1,
+.ui-certificate__header p {
+  margin: 0;
+}
+.ui-certificate__authority {
+  font-weight: var(--sabou-weight-semibold);
+  color: var(--sabou-forest);
+}
+.ui-certificate__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabou-space-5);
+}
+.ui-certificate__qr {
+  display: grid;
+  justify-items: center;
+  gap: var(--sabou-space-2);
+  max-width: 14rem;
+  margin: 0;
+  text-align: center;
+  font-size: var(--sabou-text-sm);
+}
+.ui-certificate__qr img {
+  width: 200px;
+  height: 200px;
+  background: var(--sabou-surface);
+}
+.ui-certificate__footer {
+  display: grid;
+  gap: var(--sabou-space-1);
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+  overflow-wrap: anywhere;
+}
+.ui-certificate__footer p {
+  margin: 0;
+}
+
+@media print {
+  .ui-topbar,
+  .ui-sidebar,
+  .ui-skip-link,
+  .ui-no-print {
+    display: none !important;
+  }
+  .ui-certificate {
+    max-width: none;
+    border-color: var(--sabou-text);
+    color: var(--sabou-text);
+  }
+  .ui-certificate__footer {
+    color: var(--sabou-text);
+  }
+}

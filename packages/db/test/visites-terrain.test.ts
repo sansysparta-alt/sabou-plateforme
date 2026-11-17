@@ -3,7 +3,7 @@
 // d'exemple ; chaque cas part du même état (transaction annulée). Les messages vérifiés ici
 // sont ceux que l'API traduit en réponses (apps/api/src/visits/visits.repository.ts).
 import { beforeAll, describe, expect, it } from 'vitest';
-import { rmSync } from 'node:fs';
+import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   copyMigrations,
@@ -277,7 +277,12 @@ describe('Migration sur une base qui a déjà des visites réalisées', () => {
   it('garde les visites réalisées avant US-041 (compte rendu en pièce jointe), sans les rendre modifiables', async () => {
     const copy = copyMigrations();
     try {
-      rmSync(join(copy.dir, '20261113120000_visites_terrain.sql'));
+      // Base d'avant US-041 : sa migration et toutes les suivantes sont retirées
+      for (const file of readdirSync(copy.dir)) {
+        if (/^\d{14}_.*\.sql$/.test(file) && file >= '20261113120000') {
+          rmSync(join(copy.dir, file));
+        }
+      }
       copy.rehash();
       const legacy = await createDatabase();
       await legacy.migrate(copy.dir);

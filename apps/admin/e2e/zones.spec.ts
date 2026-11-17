@@ -5,10 +5,22 @@ import { expect, test, type Page } from '@playwright/test';
 import { administrator, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
 
+// Liste complète, page après page (curseur « apres ») : la base locale s'enrichit à chaque
+// exécution des tests, une seule page ne suffit pas à comparer avec un total
 async function list<T>(page: Page, path: string): Promise<T[]> {
-  const response = await page.request.get(`${APP}${path}`);
-  expect(response.status()).toBe(200);
-  return ((await response.json()) as { elements: T[] }).elements;
+  const all: T[] = [];
+  let after: string | null = null;
+  do {
+    const url = new URL(`${APP}${path}`);
+    url.searchParams.set('limite', '100');
+    if (after) url.searchParams.set('apres', after);
+    const response = await page.request.get(url.toString());
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as { elements: T[]; suivant: string | null };
+    all.push(...body.elements);
+    after = body.suivant;
+  } while (after);
+  return all;
 }
 
 test('US-011 : l’admin préfectoral de Labé ne voit que les praticiens de Labé, même par appel direct', async ({
@@ -58,8 +70,8 @@ test('US-016 : le tableau de bord de l’admin préfectoral de Labé ne compte q
     praticiens: number;
     activite: { dossier: string }[];
   };
-  const practitioners = await list<{ code: string }>(page, '/api/praticiens?limite=100');
-  const dossiers = await list<{ code: string }>(page, '/api/dossiers?limite=100');
+  const practitioners = await list<{ code: string }>(page, '/api/praticiens');
+  const dossiers = await list<{ code: string }>(page, '/api/dossiers');
   expect(summary.zone).toBe('Labé');
   expect(summary.praticiens).toBe(practitioners.length);
   const zoneDossiers = new Set(dossiers.map((d) => d.code));

@@ -251,6 +251,9 @@ describe('Garde-fous du schéma', () => {
     expect(rows.map((r) => r.name)).toEqual([
       'contexte_ouvrir',
       'saisie_terrain_recevoir',
+      // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
+      // de l'acteur (05 §2.36)
+      'trg_recette_praticien_rejete',
       'trg_temoignage_notes',
       'verifier_certificat',
       // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)

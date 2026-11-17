@@ -53,6 +53,60 @@ describe('Textes : un seul SMS par message, en français', () => {
     }
   });
 
+  it('US-046 : traitements en attente, nombre et raison, en un SMS', () => {
+    const text = (quota: number, contenu: number, objet = 'DS-1041') =>
+      notificationText({
+        modele: 'dossier.traitements_en_attente',
+        objet,
+        parametres: { etape: 6, quota, contenu },
+      });
+    expect(text(1, 0)).toBe(
+      'SABOU : 1 traitement du dossier DS-1041 est en attente : formule gratuite limitée à 3, certifié au passage à GOLD.',
+    );
+    expect(text(0, 2)).toBe(
+      'SABOU : 2 traitements du dossier DS-1041 sont en attente : plante ou section à compléter.',
+    );
+    expect(text(2, 0)).toBe(
+      'SABOU : 2 traitements du dossier DS-1041 sont en attente : formule gratuite limitée à 3, certifiés au passage à GOLD.',
+    );
+    // Le plus long : deux raisons, 999 traitements, code de dossier le plus long
+    const longest = text(500, 499, CODE)!;
+    expect(longest).toContain('certifiés au passage à GOLD ; plante ou section');
+    expect(isSingleGsm7Sms(longest)).toBe(true);
+    for (const [quota, contenu] of [
+      [0, 0],
+      [-1, 2],
+      [1.5, 0],
+      [1000, 0],
+    ] as const) {
+      expect(text(quota, contenu)).toBe(null);
+    }
+  });
+
+  it('US-047 : rejet définitif, date limite du recours et orientation vers la préfecture', () => {
+    const text = (parametres: { dossier?: string; recoursJusquau?: string }) =>
+      notificationText({ modele: 'praticien.rejet_definitif', objet: 'PR-1042', parametres });
+    // Texte validé par le maître d'œuvre le 14 novembre 2026
+    expect(text({ recoursJusquau: '2026-12-14' })).toBe(
+      "SABOU : rejet définitif de votre certification. Vous pouvez contester cette décision jusqu'au 14/12/2026 auprès de l'administration de votre préfecture.",
+    );
+    expect(text({ dossier: 'DS-1041', recoursJusquau: '2026-12-14' })).toBe(
+      "SABOU : rejet définitif de votre dossier DS-1041. Vous pouvez contester cette décision jusqu'au 14/12/2026 auprès de l'administration de votre préfecture.",
+    );
+    // Le plus long : code de dossier le plus long envisagé
+    const longest = text({ dossier: CODE, recoursJusquau: '2026-12-14' })!;
+    expect(longest.length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
+    expect(isSingleGsm7Sms(longest)).toBe(true);
+    // Donnée mal formée : erreur définitive plutôt qu'un SMS faux
+    for (const parametres of [
+      {},
+      { recoursJusquau: '14/12/2026' },
+      { dossier: 'DS-1; drop', recoursJusquau: '2026-12-14' },
+    ]) {
+      expect(text(parametres)).toBe(null);
+    }
+  });
+
   it('le code d’inscription tient aussi en un SMS', () => {
     expect(isSingleGsm7Sms(signupCodeMessage('123456', 10))).toBe(true);
   });

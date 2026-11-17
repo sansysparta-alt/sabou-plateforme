@@ -121,6 +121,38 @@ services:
       retries: 30
       start_period: 10s
 
+  openbao:
+    # Coffre des clés de signature des certificats (US-045, 05 §2.34). Mode développement :
+    # en mémoire, déverrouillé, vidé à chaque redémarrage (une nouvelle clé est alors créée ;
+    # les certificats déjà émis restent vérifiables par la clé publique gardée en base).
+    # Production : serveur OpenBao à stockage persistant, prévu avec l'hébergement souverain.
+    image: openbao/openbao@sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f # 2.7.2
+    command: [server, -dev, -dev-listen-address=0.0.0.0:8200]
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: ${OPENBAO_ROOT_TOKEN:?}
+      BAO_ADDR: http://127.0.0.1:8200
+    volumes:
+      # Lecture seule : permet de vérifier les droits du jeton de l'API (infra/ci/coffre.sh)
+      - openbao-jeton:/run/openbao:ro
+    healthcheck:
+      test: [CMD-SHELL, 'bao status > /dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  openbao-init:
+    image: openbao/openbao@sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f # 2.7.2
+    entrypoint: [/bin/sh, /init/init.sh]
+    user: root
+    environment:
+      OPENBAO_ROOT_TOKEN: ${OPENBAO_ROOT_TOKEN:?}
+    volumes:
+      - ./openbao/init.sh:/init/init.sh:ro
+      - openbao-jeton:/run/openbao
+    depends_on:
+      openbao:
+        condition: service_healthy
+
   api:
     build:
       context: ../..
@@ -154,11 +186,19 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:?}
       S3_CREATE_BUCKET: 'true'
       VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
+      # Signature des certificats (US-045) : la clé privée reste dans le coffre ; l'API n'a
+      # qu'un jeton limité à « signer » et « lire les clés publiques »
+      OPENBAO_ADDR: http://openbao:8200
+      OPENBAO_TOKEN_FILE: /run/openbao/jeton-api
+    volumes:
+      - openbao-jeton:/run/openbao:ro
     depends_on:
       postgres:
         condition: service_healthy
       seaweedfs:
         condition: service_started
+      openbao-init:
+        condition: service_completed_successfully
     ports:
       - 127.0.0.1:${API_PORT:-4000}:3000
     healthcheck:
@@ -205,3 +245,4 @@ volumes:
   postgres-data:
   valkey-data:
   seaweedfs-data:
+  openbao-jeton:

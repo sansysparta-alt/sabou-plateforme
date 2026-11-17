@@ -24,6 +24,8 @@ const base = {
   SITE_URL: 'https://sabou.example',
   SMS_PROVIDER: 'journal',
   S3_ENDPOINT: 'http://seaweedfs:8333',
+  OPENBAO_ADDR: 'https://openbao:8200',
+  OPENBAO_TOKEN_FILE: '/run/openbao/jeton-api',
   S3_ACCESS_KEY: 'sabou',
   S3_SECRET_KEY: 's'.repeat(32),
   VALKEY_URL: 'rediss://:motdepasse@valkey:6379',
@@ -50,6 +52,7 @@ describe('loadEnv', () => {
       S3_REGION: 'us-east-1',
       S3_PIECES_BUCKET: 'sabou-pieces',
       S3_CREATE_BUCKET: false,
+      OPENBAO_KEY: 'sabou-dg',
     });
   });
 

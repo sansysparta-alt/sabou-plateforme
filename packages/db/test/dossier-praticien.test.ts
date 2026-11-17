@@ -194,7 +194,7 @@ describe('Rejet définitif de moins de 12 mois (critère 3 de US-040, R-CER-04)'
     await expect(
       attempt(`${withDossier}
         ${openContext('dg@sabou-sante.gn')}
-        SELECT dossier_transition(d.id, 'rejet_definitif', 1, 'Fraude documentaire')
+        SELECT praticien_rejeter(d.praticien_id, 1, 'fraude_documentaire', 'Pièce falsifiée')
           FROM dossier_certification d JOIN praticien p ON p.id = d.praticien_id
          WHERE p.code >= 'PR-2';
         SELECT contexte_ouvrir('${KEYCLOAK_ID}');

@@ -21,6 +21,7 @@ export class DossierNotFoundError extends Error {}
 export class DecisionNotAllowedError extends Error {}
 export class StaleDossierError extends Error {}
 export class FieldVisitRequiredError extends Error {}
+export class CertificateRequiredError extends Error {}
 
 // Messages de dossier_transition (schéma initial) ; chaque branche est couverte par un test
 // sur un vrai PostgreSQL (packages/db/test/decision-etape-2.test.ts)
@@ -28,6 +29,9 @@ function translateTransition(error: unknown): never {
   const message = (error as { message?: string }).message ?? '';
   if (message.includes('non habilité')) throw new DecisionNotAllowedError();
   if (message.includes('visite terrain signée requise')) throw new FieldVisitRequiredError();
+  // US-045 : à l'étape 5, la validation passe par l'approbation, qui émet le certificat
+  if (message.includes('certificat signé requis pour approuver'))
+    throw new CertificateRequiredError();
   throw error;
 }
 
