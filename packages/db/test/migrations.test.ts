@@ -1,6 +1,6 @@
 // US-003, critères 1 et 3 : migrations sur base vide avec arrêt sur erreur ;
 // une migration déjà appliquée puis modifiée est détectée et refusée.
-import { appendFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { migrationsDir } from '../src/atlas.ts';
@@ -17,6 +17,20 @@ async function revisions(url: string) {
   );
   return rows as { version: string; error: string | null }[];
 }
+
+// Atlas exécute chaque fichier sans schéma par défaut, alors que les rôles des tests ont
+// déjà sabou dans leur search_path : un oubli passerait les tests et casserait le
+// déploiement (US-049). Seule exception : les droits, tous qualifiés par le schéma.
+describe('Chaque migration fixe son schéma', () => {
+  it.each(migrationFiles.filter((f) => f !== '20261102120100_droits_application.sql'))(
+    '%s commence par SET search_path = sabou',
+    (file) => {
+      expect(readFileSync(join(migrationsDir, file), 'utf8')).toMatch(
+        /^SET search_path = sabou, public;$/m,
+      );
+    },
+  );
+});
 
 describe('Migrations sur une base vide', () => {
   it('réussissent toutes, sans erreur', async () => {
