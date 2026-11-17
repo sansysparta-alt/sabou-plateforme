@@ -19,6 +19,8 @@ const loaders = {
   plant: () => import('./PlantPage'),
   // US-052 : fiches maladies (liste et fiche dans le même module)
   diseases: () => import('./DiseasesPage'),
+  // US-053 : noms locaux des plantes
+  localNames: () => import('./LocalNamesPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -45,6 +47,9 @@ const PlantsPage = lazy(() => loaders.plants().then((m) => ({ default: m.PlantsP
 const PlantPage = lazy(() => loaders.plant().then((m) => ({ default: m.PlantPage })));
 const DiseasesPage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasesPage })));
 const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasePage })));
+const LocalNamesPage = lazy(() =>
+  loaders.localNames().then((m) => ({ default: m.LocalNamesPage })),
+);
 
 // Morceau de la page demandée, d'après la seule adresse
 const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
@@ -60,6 +65,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/expertise': loaders.expertise,
   '/plantes': loaders.plants,
   '/maladies': loaders.diseases,
+  '/noms-locaux': loaders.localNames,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande
@@ -74,6 +80,7 @@ const PAGE_DATA: Record<string, string[]> = {
   '/expertise': ['/api/dossiers/expertise'],
   '/plantes': ['/api/plantes'],
   '/maladies': ['/api/maladies'],
+  '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -319,17 +326,20 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
     });
   }
-  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique
+  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
+  // locaux (US-053) pour tout administrateur, saisis par le référent de chaque langue
+  const dictionary: NavGroup = {
+    heading: 'Dictionnaire',
+    items: [{ href: '/noms-locaux', label: 'Noms locaux', icon: 'book' }],
+  };
   if (isDirector(user) || isCommittee(user)) {
-    groups.push({
-      heading: 'Dictionnaire',
-      items: [
-        { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
-        // US-052
-        { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
-      ],
-    });
+    dictionary.items.unshift(
+      { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
+      // US-052
+      { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
+    );
   }
+  if (user.administrator) groups.push(dictionary);
   if (isDirector(user)) {
     // Pilotage de la DG : entonnoir des 6 étapes (US-048)
     groups[0]!.items.push({
@@ -357,6 +367,7 @@ function navigation(user: SessionUser): NavGroup[] {
 
 // Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
+  '/noms-locaux': LocalNamesPage,
   '/entonnoir': FunnelPage,
   '/approbation': ApprovalPage,
   '/rejet-definitif': RejectionPage,
@@ -366,12 +377,15 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/referentiels': ReferentialsPage,
 };
 const PREFECTORAL_PAGES: Record<string, ComponentType> = {
+  '/noms-locaux': LocalNamesPage,
   '/verification-terrain': FieldVerificationPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
+  '/noms-locaux': LocalNamesPage,
   '/consolidation': ConsolidationPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
+  '/noms-locaux': LocalNamesPage,
   '/expertise': ExpertisePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,

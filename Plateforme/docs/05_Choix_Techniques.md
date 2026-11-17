@@ -768,6 +768,16 @@ La validation par le Comité (statut « validée ») est l'objet de US-051.
 
 **Contrôles du pipeline** : `packages/db/test/traitement-voix.test.ts` (voix publiée avec durée, taille, empreinte, dépositaire et consentement ; sans consentement ; état réservé au dépositaire ; un seul preneur ; échec au troisième essai ; reprise après interruption ; profils et écriture directe) ; `apps/api/src/voices/voice-processing.test.ts` (vrai FFmpeg : 90 s bruitées → WebM Opus de 300 Ko au plus et MP4 AAC « faststart », durée, empreinte ; fichier illisible ; formats reconnus) ; `voices.test.ts` (dépôt, consentement, format, taille, accès, traitement, échec) ; `zones.test.ts` ; l'image de l'API (construction et Trivy) au pipeline complet.
 
+### 2.44 Noms locaux d'une plante (US-053, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Référent linguistique = droit d'enregistrer dans la langue** (`utilisateur_langue.peut_enregistrer`, donné par la DG dans la gestion des comptes) ; la base le vérifie à chaque écriture (`plante_nom_local_*`, `SECURITY DEFINER`) | Pas de nouveau rôle : le droit existe déjà par langue (R-GOV-06) | Rôle « référent » distinct : un rôle par langue à gérer en plus |
+| **Écran « Noms locaux » ouvert à tout administrateur** (lecture), écriture limitée aux langues dont il est référent ; un compte sans langue voit un message | Les référents ne sont pas forcément DG ou Comité, qui seuls tiennent les fiches plantes | Section dans la fiche plante : réservée à la DG et au Comité |
+| **Un seul principal par langue** (index unique partiel) ; le premier nom l'est d'office, le suivant le devient si le principal est retiré | Critère de US-053 ; jamais de langue sans principal tant qu'elle a un nom | Choix laissé libre : langue sans principal possible |
+| **Transcription de recherche seulement** : affichée au référent dans l'application de gestion, jamais renvoyée par la recherche publique (testé en base) | R-LNG-02, R-LNG-13 | — |
+| **Voix du nom = dépôt traité du même compte** (US-070) : l'écran dépose la voix, attend son traitement (relève toutes les 2 s, 90 s au plus), puis enregistre le nom avec le dépôt ; consentement demandé dès qu'une voix est jointe | Le référent qui saisit est celui qui a enregistré : pas de voix d'un tiers rattachée par erreur | Voix obligatoire : la transcription seule sert déjà la recherche, la voix peut suivre |
+
 ### 2.45 Interface de gestion conforme à la maquette v1.3 (US-019, novembre 2026)
 
 | Choix | Pourquoi | Écarté |

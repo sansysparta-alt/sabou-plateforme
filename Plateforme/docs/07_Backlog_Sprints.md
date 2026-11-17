@@ -544,6 +544,8 @@ Critères d’acceptation :
 - Plusieurs noms par langue, un seul principal.
 - La transcription n’apparaît jamais sur les fiches publiques ; elle sert à la recherche.
 
+Réalisation (15 novembre 2026, 05 §2.44) : référent = droit d’enregistrer dans la langue ; écran « Noms locaux » ouvert à tout administrateur (lecture), écriture limitée à ses langues ; voix facultative à la saisie, dépôt traité du même compte, consentement demandé dès qu’une voix est jointe.
+
 #### US-070 · Traiter chaque voix déposée
 *Voix et gouvernance linguistique* · **Must** · 5 points · cas : UC-73
 
