@@ -2,35 +2,94 @@ import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode
 import { Alert, AppShell, Button, ButtonLink, PageHeader, type NavGroup } from '@sabou/ui';
 // Pages chargées à la demande, tableau de bord compris : la page de connexion reste légère en 3G
 // (seuil de temps de blocage de Lighthouse, US-010)
-const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
-const AccountsPage = lazy(() =>
-  import('./AccountsPage').then((m) => ({ default: m.AccountsPage })),
-);
+const loaders = {
+  dashboard: () => import('./Dashboard'),
+  accounts: () => import('./AccountsPage'),
+  referentials: () => import('./ReferentialsPage'),
+  invitation: () => import('./InvitationPage'),
+  fieldVerification: () => import('./FieldVerificationPage'),
+  consolidation: () => import('./ConsolidationPage'),
+  approval: () => import('./ApprovalPage'),
+  certificate: () => import('./CertificatePage'),
+  rejection: () => import('./RejectionPage'),
+  funnel: () => import('./FunnelPage'),
+  expertise: () => import('./ExpertisePage'),
+};
+const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
+const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
 const ReferentialsPage = lazy(() =>
-  import('./ReferentialsPage').then((m) => ({ default: m.ReferentialsPage })),
+  loaders.referentials().then((m) => ({ default: m.ReferentialsPage })),
 );
 const InvitationPage = lazy(() =>
-  import('./InvitationPage').then((m) => ({ default: m.InvitationPage })),
+  loaders.invitation().then((m) => ({ default: m.InvitationPage })),
 );
 const FieldVerificationPage = lazy(() =>
-  import('./FieldVerificationPage').then((m) => ({ default: m.FieldVerificationPage })),
+  loaders.fieldVerification().then((m) => ({ default: m.FieldVerificationPage })),
 );
 const ConsolidationPage = lazy(() =>
-  import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
+  loaders.consolidation().then((m) => ({ default: m.ConsolidationPage })),
 );
-const ApprovalPage = lazy(() =>
-  import('./ApprovalPage').then((m) => ({ default: m.ApprovalPage })),
-);
+const ApprovalPage = lazy(() => loaders.approval().then((m) => ({ default: m.ApprovalPage })));
 const CertificatePage = lazy(() =>
-  import('./CertificatePage').then((m) => ({ default: m.CertificatePage })),
+  loaders.certificate().then((m) => ({ default: m.CertificatePage })),
 );
-const RejectionPage = lazy(() =>
-  import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
-);
-const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
-const ExpertisePage = lazy(() =>
-  import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
-);
+const RejectionPage = lazy(() => loaders.rejection().then((m) => ({ default: m.RejectionPage })));
+const FunnelPage = lazy(() => loaders.funnel().then((m) => ({ default: m.FunnelPage })));
+const ExpertisePage = lazy(() => loaders.expertise().then((m) => ({ default: m.ExpertisePage })));
+
+// Morceau de la page demandée, d'après la seule adresse
+const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
+  '/': loaders.dashboard,
+  '/comptes': loaders.accounts,
+  '/referentiels': loaders.referentials,
+  '/invitation': loaders.invitation,
+  '/verification-terrain': loaders.fieldVerification,
+  '/consolidation': loaders.consolidation,
+  '/approbation': loaders.approval,
+  '/rejet-definitif': loaders.rejection,
+  '/entonnoir': loaders.funnel,
+  '/expertise': loaders.expertise,
+};
+
+// Lectures que chaque page fait à son ouverture, exactement comme elle les demande
+const PAGE_DATA: Record<string, string[]> = {
+  '/': ['/api/tableau-de-bord'],
+  '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
+  '/referentiels': ['/api/referentiels'],
+  '/verification-terrain': ['/api/dossiers/verification-terrain'],
+  '/consolidation': ['/api/dossiers/consolidation'],
+  '/approbation': ['/api/dossiers/approbation'],
+  '/entonnoir': ['/api/entonnoir'],
+  '/expertise': ['/api/dossiers/expertise'],
+};
+const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+
+// US-017 : le morceau de la page et ses données sont demandés dès le démarrage, en même temps
+// que la session, au lieu d'attendre la réponse de celle-ci (en 3G, un aller-retour de 300 ms
+// par étape). D'après la seule adresse : l'affichage reste soumis au profil, et l'API contrôle
+// chaque lecture (un refus n'est jamais repris par une page).
+export function preloadCurrentPage(): void {
+  const current = path();
+  const certificate = CERTIFICATE_PREFIX.exec(current);
+  const load = certificate ? loaders.certificate : PAGE_LOADERS[current];
+  // Échec (réseau coupé) : sans effet ici, la page le signale à son affichage
+  load?.().catch(() => undefined);
+  if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  // Invitation : la consultation, sans effet, avec le jeton du lien (après le #)
+  if (current === '/invitation') {
+    const token = window.location.hash.slice(1);
+    if (/^[\w-]{43}$/.test(token)) {
+      prefetch('/api/invitation/consultation', { method: 'POST', body: { token } });
+    }
+    return;
+  }
+  // Retour de connexion en erreur ou connexion perdue : la page de données ne s'ouvre pas
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('erreur') || params.has('reprise')) return;
+  PAGE_DATA[current]?.forEach((url) => prefetch(url));
+}
+
+import { prefetch } from './prefetch';
 import {
   fetchSession,
   hasManagementAccess,

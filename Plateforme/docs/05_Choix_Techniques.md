@@ -736,6 +736,19 @@ Chaque écran présente ses éléments dans cet ordre, sans les mélanger :
 
 Style : contenu sobre (fond clair, cartes blanches, tableaux neutres) ; la couleur est réservée à la navigation, aux actions et aux états. Le menu latéral (colonne vert forêt, profil et déconnexion en bas, réductible) est commun à tous les écrans (`AppShell`). Garde-fous vérifiés par `tokens.test.ts` : aucune couleur en dur, aucun trait latéral décoratif.
 
+### 2.46 Application de gestion en 3 s en 3G (US-017, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Preact 10 (`preact/compat`) à la place de React** dans l'application de gestion, par alias de compilation (`apps/admin/vite.config.ts`) ; le code reste écrit pour l'interface de React. Code principal : 73 Ko compressés → 14 Ko | En 3G (700 kbit/s), 59 Ko de moins valent environ 0,7 s avant le premier affichage, plus le temps d'analyse sur un processeur bridé. Retour arrière : retirer les alias | Garder React et pré-générer seulement l'ossature : le code principal resterait le goulot (mesure du 14/11 : 3,5 s sur une page sans données) ; Preact 11 : sorti en octobre 2026, trop récent |
+| **Tests unitaires sur Preact** (`@testing-library/preact`, mêmes alias dans `packages/ui` et `apps/admin`) | Les tests vérifient ce qui est livré ; `@sabou/ui` n'est utilisé que par l'application de gestion | Tests sur React et livraison sur Preact : écarts invisibles |
+| **`forwardRef`** pour les composants de `@sabou/ui` qui reçoivent une référence (`Alert`, `Button`, champs) | Preact 10 ne transmet pas `ref` comme simple propriété (nouveauté de React 19) ; `forwardRef` marche avec les deux | — |
+| **Morceau de la page et ses données demandés au démarrage** (`preloadCurrentPage`, `prefetch.ts`), d'après la seule adresse, en même temps que la session ; la page reprend la réponse par `call()`, une fois, dans les 10 s | Deux allers-retours de 300 ms de moins. Le profil décide toujours de l'affichage et l'API contrôle chaque lecture (un refus n'est jamais repris) | Session préchargée dans `index.html` : essayée deux fois (14 et 15/11), la mesure se dégrade (2,90 → 3,01 s sur une page sans données) |
+| **Réponses JSON de l'API compressées par le frontal** (Brotli, sinon gzip) ; le serveur de test (`scripts/serve.mjs`) fait de même. En production : compression du frontal activée pour `application/json` | Comptes : 35 Ko → 3 Ko, 4,1 → 2,95 s | Compression dans l'API : le frontal le fait déjà pour les fichiers |
+| **Mêmes seuils sur toutes les pages** (score 0,90, LCP 3,1 s en 3G) ; l'exception de 4 s (§2.28) est retirée | Mesuré de 2,90 à 3,07 s ; écart de 0,1 s au critère de 3 s accepté par le maître d'œuvre (15/11/2026) jusqu'à l'ossature pré-générée (US-017b) | Garder 3 s : échecs ponctuels du pipeline à quelques dizaines de ms |
+
+Développement : sans React, le rafraîchissement à chaud garde l'état en moins (rechargement de la page à chaque modification).
+
 ## 3. Architecture
 
 ```
