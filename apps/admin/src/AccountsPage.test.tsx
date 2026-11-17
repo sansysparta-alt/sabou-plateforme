@@ -128,13 +128,53 @@ describe('Page Comptes', () => {
       target: { value: '0123' },
     });
     fireEvent.click(within(form).getByRole('button', { name: 'Créer l’invitation' }));
-    expect((await within(form).findByRole('alert')).textContent).toBe(PHONE_ERROR);
+    // Erreurs sous les seuls champs concernés (téléphone, région), pas de bandeau ;
+    // le premier champ à corriger reçoit le focus
+    const phone = within(form).getByLabelText('Téléphone (facultatif)');
+    const region = within(form).getByRole('combobox', { name: 'Région' });
+    expect(within(form).queryByRole('alert')).toBeNull();
+    expect(errorOf(phone)).toBe(PHONE_ERROR);
+    expect(errorOf(region)).toBe('Choisissez une région.');
+    expect(errorOf(within(form).getByLabelText('Prénom'))).toBeNull();
+    expect(document.activeElement).toBe(phone);
     // Rien n'est envoyé : seuls les deux chargements de la page ont eu lieu
     expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).not.toContain(
       expect.stringMatching(/^\/api\/comptes$/),
     );
+    // Corriger un champ efface son erreur
+    fireEvent.change(phone, { target: { value: '621 23 45 67' } });
+    expect(errorOf(phone)).toBeNull();
+  });
+
+  it('formulaire vide : un message court sous chaque champ obligatoire, focus sur le premier', async () => {
+    render(<AccountsPage />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Inviter un compte' }));
+    const form = screen.getByRole('region', { name: 'Inviter un compte' });
+    fireEvent.click(within(form).getByRole('button', { name: 'Créer l’invitation' }));
+    const first = within(form).getByLabelText('Prénom');
+    expect(errorOf(first)).toBe('Saisissez le prénom.');
+    expect(errorOf(within(form).getByLabelText('Nom'))).toBe('Saisissez le nom.');
+    expect(errorOf(within(form).getByLabelText('Adresse e-mail'))).toBe(
+      'Saisissez l’adresse e-mail.',
+    );
+    expect(errorOf(within(form).getByRole('combobox', { name: 'Rôle' }))).toBe(
+      'Choisissez un rôle.',
+    );
+    expect(errorOf(within(form).getByLabelText('Téléphone (facultatif)'))).toBeNull();
+    expect(document.activeElement).toBe(first);
   });
 });
+
+// Message d'erreur relié au champ (aria-invalid, aria-describedby), ou null
+function errorOf(field: HTMLElement): string | null {
+  if (field.getAttribute('aria-invalid') !== 'true') return null;
+  const ids = field.getAttribute('aria-describedby')?.split(' ') ?? [];
+  const error = ids
+    .map((id) => document.getElementById(id))
+    .find((node) => node?.matches('.ui-field__error'));
+  return error?.textContent ?? null;
+}
 
 describe('Onglet Rôles et droits (US-012b)', () => {
   it('matrice du cahier des charges en consultation : un droit par ligne, un profil par colonne', async () => {

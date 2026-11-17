@@ -98,9 +98,9 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
   // Critère 2 : rôle régional sans région, enregistrement refusé
   await fillIdentity(page, invitee, 'Administrateur régional');
   await submitInvitation(page);
-  await expect(page.getByRole('alert')).toHaveText(
-    'Un administrateur régional a une région, et une seule.',
-  );
+  // Refusé avant l'envoi, message sous le champ ; le serveur refuse aussi (tests de l'API)
+  await expect(page.getByText('Choisissez une région.')).toBeVisible();
+  await expect(page.getByLabel('Région')).toBeFocused();
   expect(accountRow(invitee.email)).toBeNull();
   await expectAccessible(page, 'Invitation refusée');
 

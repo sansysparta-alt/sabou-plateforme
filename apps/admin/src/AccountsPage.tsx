@@ -6,8 +6,10 @@ import {
   Icon,
   PageHeader,
   Pagination,
+  SelectField,
   StatCard,
   Tabs,
+  TextField,
   usePagination,
   foldText,
 } from '@sabou/ui';
@@ -553,6 +555,45 @@ const EMPTY: FormState = {
   languages: {},
 };
 
+// Erreurs par champ (WCAG 3.3.1, 3.3.3) : un message court sous le champ concerné, seulement
+// pour ce qui manque ; le premier champ à corriger reçoit le focus
+interface FieldErrors {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  regionId?: string;
+  prefectureId?: string;
+}
+const FIELD_ORDER: (keyof FieldErrors)[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'role',
+  'regionId',
+  'prefectureId',
+];
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function fieldErrors(form: FormState): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!form.firstName.trim()) errors.firstName = 'Saisissez le prénom.';
+  if (!form.lastName.trim()) errors.lastName = 'Saisissez le nom.';
+  if (!form.email.trim()) errors.email = 'Saisissez l’adresse e-mail.';
+  else if (!EMAIL.test(form.email.trim())) {
+    errors.email = 'Adresse e-mail invalide, par exemple nom@domaine.gn.';
+  }
+  if (form.phone.trim() && !toNationalMobile(form.phone)) errors.phone = PHONE_ERROR;
+  if (!form.role) errors.role = 'Choisissez un rôle.';
+  if (form.role === 'regional' && !form.regionId) errors.regionId = 'Choisissez une région.';
+  if (form.role === 'prefectoral' && !form.prefectureId) {
+    errors.prefectureId = 'Choisissez une préfecture.';
+  }
+  return errors;
+}
+
 function InviteForm({
   references,
   onInvited,
@@ -565,10 +606,21 @@ function InviteForm({
   const id = useId();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState<string>();
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [sending, setSending] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  // Identifiant de chaque champ : le premier champ à corriger reçoit le focus
+  const fieldId = (key: keyof FieldErrors) => `${id}-${key}`;
+  // Une saisie efface l'erreur du champ corrigé
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => {
+      if (!(key in current)) return current;
+      const rest = { ...current };
+      delete rest[key as keyof FieldErrors];
+      return rest;
+    });
+  };
 
   useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -590,12 +642,12 @@ function InviteForm({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.role) {
-      setError('Renseignez le prénom, le nom, l’adresse e-mail et le rôle.');
-      return;
-    }
-    if (form.phone.trim() && !toNationalMobile(form.phone)) {
-      setError(PHONE_ERROR);
+    const found = fieldErrors(form);
+    setErrors(found);
+    const first = FIELD_ORDER.find((key) => found[key]);
+    if (first) {
+      setError(undefined);
+      document.getElementById(fieldId(first))?.focus();
       return;
     }
     setSending(true);
@@ -606,7 +658,7 @@ function InviteForm({
         lastName: form.lastName,
         email: form.email,
         phone: form.phone.trim() || null,
-        role: form.role,
+        role: form.role as AccountRole,
         // Seule la zone du rôle est envoyée ; l'API refuse une zone absente ou en trop
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
         prefectureId:
@@ -619,6 +671,7 @@ function InviteForm({
       onInvited(`${form.firstName.trim()} ${form.lastName.trim()}`, invitation);
       setForm(EMPTY);
     } catch (failure) {
+      // Refus du serveur (adresse déjà utilisée…) : message en tête du formulaire
       setError(message(failure));
     } finally {
       setSending(false);
@@ -642,153 +695,111 @@ function InviteForm({
         <fieldset className="ui-form-section">
           <legend className="ui-form-section__legend">Identité</legend>
           <div className="ui-form-row">
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-first`}>
-                Prénom
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-first`}
-                autoComplete="off"
-                required
-                maxLength={80}
-                value={form.firstName}
-                onChange={(event) => set('firstName', event.target.value)}
-              />
-            </div>
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-last`}>
-                Nom
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-last`}
-                autoComplete="off"
-                required
-                maxLength={80}
-                value={form.lastName}
-                onChange={(event) => set('lastName', event.target.value)}
-              />
-            </div>
+            <TextField
+              id={fieldId('firstName')}
+              label="Prénom"
+              autoComplete="off"
+              maxLength={80}
+              value={form.firstName}
+              error={errors.firstName}
+              onChange={(event) => set('firstName', event.target.value)}
+            />
+            <TextField
+              id={fieldId('lastName')}
+              label="Nom"
+              autoComplete="off"
+              maxLength={80}
+              value={form.lastName}
+              error={errors.lastName}
+              onChange={(event) => set('lastName', event.target.value)}
+            />
           </div>
           <div className="ui-form-row">
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-email`}>
-                Adresse e-mail
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-email`}
-                type="email"
-                autoComplete="off"
-                required
-                maxLength={254}
-                aria-describedby={`${id}-email-hint`}
-                value={form.email}
-                onChange={(event) => set('email', event.target.value)}
-              />
-              <p id={`${id}-email-hint`} className="ui-field__hint">
-                Elle sert d’identifiant de connexion.
-              </p>
-            </div>
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-phone`}>
-                Téléphone (facultatif)
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-phone`}
-                type="tel"
-                inputMode="tel"
-                autoComplete="off"
-                maxLength={30}
-                aria-describedby={`${id}-phone-hint`}
-                value={form.phone}
-                onChange={(event) => set('phone', event.target.value)}
-              />
-              <p id={`${id}-phone-hint`} className="ui-field__hint">
-                Mobile guinéen (par exemple 621 23 45 67), pour être joint par la Direction
-                générale.
-              </p>
-            </div>
+            <TextField
+              id={fieldId('email')}
+              label="Adresse e-mail"
+              hint="Elle sert d’identifiant de connexion."
+              type="email"
+              autoComplete="off"
+              maxLength={254}
+              value={form.email}
+              error={errors.email}
+              onChange={(event) => set('email', event.target.value)}
+            />
+            <TextField
+              id={fieldId('phone')}
+              label="Téléphone (facultatif)"
+              hint="Mobile guinéen (par exemple 621 23 45 67), pour être joint par la Direction générale."
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              maxLength={30}
+              value={form.phone}
+              error={errors.phone}
+              onChange={(event) => set('phone', event.target.value)}
+            />
           </div>
         </fieldset>
         <fieldset className="ui-form-section">
           <legend className="ui-form-section__legend">Rôle et zone</legend>
           <div className="ui-form-row">
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-role`}>
-                Rôle
-              </label>
-              <select
-                className="ui-select"
-                id={`${id}-role`}
-                required
-                value={form.role}
-                aria-describedby={form.role ? `${id}-role-hint` : undefined}
-                onChange={(event) => set('role', event.target.value as AccountRole | '')}
+            <SelectField
+              id={fieldId('role')}
+              label="Rôle"
+              // Ce que la DG attribue, au moment de le choisir (maquette, diapositive 2)
+              hint={
+                form.role
+                  ? `${ROLE_PROFILES[form.role].scope} · ${ROLE_PROFILES[form.role].mission}`
+                  : undefined
+              }
+              value={form.role}
+              error={errors.role}
+              onChange={(event) => set('role', event.target.value as AccountRole | '')}
+            >
+              <option value="">Choisir un rôle</option>
+              {ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role]}
+                </option>
+              ))}
+            </SelectField>
+            {form.role === 'regional' && (
+              <SelectField
+                id={fieldId('regionId')}
+                label="Région"
+                value={form.regionId}
+                error={errors.regionId}
+                onChange={(event) => set('regionId', event.target.value)}
               >
-                <option value="">Choisir un rôle</option>
-                {ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
+                <option value="">Choisir une région</option>
+                {references.regions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
                   </option>
                 ))}
-              </select>
-              {/* Ce que la DG attribue, au moment de le choisir (maquette, diapositive 2) */}
-              {form.role && (
-                <p id={`${id}-role-hint`} className="ui-field__hint">
-                  {ROLE_PROFILES[form.role].scope} · {ROLE_PROFILES[form.role].mission}
-                </p>
-              )}
-            </div>
-            {form.role === 'regional' && (
-              <div className="ui-field">
-                <label className="ui-field__label" htmlFor={`${id}-region`}>
-                  Région
-                </label>
-                <select
-                  className="ui-select"
-                  id={`${id}-region`}
-                  required
-                  value={form.regionId}
-                  onChange={(event) => set('regionId', event.target.value)}
-                >
-                  <option value="">Choisir une région</option>
-                  {references.regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              </SelectField>
             )}
             {form.role === 'prefectoral' && (
-              <div className="ui-field">
-                <label className="ui-field__label" htmlFor={`${id}-prefecture`}>
-                  Préfecture
-                </label>
-                <select
-                  className="ui-select"
-                  id={`${id}-prefecture`}
-                  required
-                  value={form.prefectureId}
-                  onChange={(event) => set('prefectureId', event.target.value)}
-                >
-                  <option value="">Choisir une préfecture</option>
-                  {references.regions.map((region) => (
-                    <optgroup key={region.id} label={region.name}>
-                      {references.prefectures
-                        .filter((prefecture) => prefecture.regionId === region.id)
-                        .map((prefecture) => (
-                          <option key={prefecture.id} value={prefecture.id}>
-                            {prefecture.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
+              <SelectField
+                id={fieldId('prefectureId')}
+                label="Préfecture"
+                value={form.prefectureId}
+                error={errors.prefectureId}
+                onChange={(event) => set('prefectureId', event.target.value)}
+              >
+                <option value="">Choisir une préfecture</option>
+                {references.regions.map((region) => (
+                  <optgroup key={region.id} label={region.name}>
+                    {references.prefectures
+                      .filter((prefecture) => prefecture.regionId === region.id)
+                      .map((prefecture) => (
+                        <option key={prefecture.id} value={prefecture.id}>
+                          {prefecture.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </SelectField>
             )}
           </div>
         </fieldset>
