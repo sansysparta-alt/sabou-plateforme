@@ -10,18 +10,21 @@ import 'package:sabou_mobile/shell/rubric.dart';
 import 'package:sabou_mobile/ui/theme.dart';
 
 import '../dossier/fakes.dart';
+import '../signup/fake_signup_server.dart';
 
 void main() {
   late FakeServer server;
   late MemorySecretStore store;
   late FakeLauncher launcher;
   late List<Uri> opened;
+  late FakeSignupServer signupServer;
 
   setUp(() {
     server = FakeServer();
     store = MemorySecretStore();
     launcher = FakeLauncher();
     opened = [];
+    signupServer = FakeSignupServer();
   });
 
   Rubric rubric(String id, String label, SabouProfile profile) => Rubric(
@@ -51,7 +54,7 @@ void main() {
           ),
           rubrics: registry,
           openUrl: (url) async => opened.add(url),
-          signupUrl: Uri.parse('http://site.test/inscription'),
+          signupApi: signupServer.api(),
           siteUrl: Uri.parse('http://site.test'),
           devTools: devTools,
         ),
@@ -83,6 +86,44 @@ void main() {
       expect(find.text('Contenu Agenda'), findsOneWidget);
       expect(find.text('Contenu Mon dossier'), findsNothing);
     });
+  });
+
+  group('US-066 : inscription dans l’application', () {
+    testWidgets(
+      'le compte créé, le praticien est connecté et arrive sur son dossier',
+      (tester) async {
+        await pumpGate(tester);
+        await tap(tester, 'Créer un compte praticien');
+        await tester.enterText(
+          find.byKey(const Key('signup-phone')),
+          '621234567',
+        );
+        await tap(tester, 'Recevoir le code');
+        await tester.enterText(
+          find.byKey(const Key('signup-code')),
+          FakeSignupServer.code,
+        );
+        await tap(tester, 'Vérifier le code');
+        await tester.enterText(
+          find.byKey(const Key('signup-firstName')),
+          'Mariama',
+        );
+        await tester.enterText(
+          find.byKey(const Key('signup-lastName')),
+          'Soumah',
+        );
+        await tester.enterText(
+          find.byKey(const Key('signup-password')),
+          '40718293',
+        );
+        await tester.ensureVisible(find.text('Créer mon compte'));
+        await tap(tester, 'Créer mon compte');
+        expect(launcher.lastLoginHint, '621234567');
+        expect(find.text('Contenu Mon dossier'), findsOneWidget);
+        // Plus aucun renvoi vers l'inscription du site
+        expect(opened, isEmpty);
+      },
+    );
   });
 
   group('Critère 4 : le citoyen passe par le site public', () {

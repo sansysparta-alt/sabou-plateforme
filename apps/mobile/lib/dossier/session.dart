@@ -36,8 +36,9 @@ class SignedOutException implements Exception {
 
 /// Ouverture de la page de connexion ; remplaçable dans les tests.
 abstract interface class LoginLauncher {
-  /// Jetons, ou null si le praticien a fermé la page sans se connecter.
-  Future<Tokens?> login();
+  /// Jetons, ou null si le praticien a fermé la page sans se connecter. [loginHint] : numéro
+  /// déjà rempli sur la page (après l'inscription, US-066).
+  Future<Tokens?> login({String? loginHint});
 }
 
 /// Page de connexion de Keycloak dans un onglet du navigateur (Custom Tabs), par AppAuth.
@@ -48,7 +49,7 @@ class AppAuthLoginLauncher implements LoginLauncher {
   final FlutterAppAuth _appAuth;
 
   @override
-  Future<Tokens?> login() async {
+  Future<Tokens?> login({String? loginHint}) async {
     try {
       final response = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
@@ -57,6 +58,7 @@ class AppAuthLoginLauncher implements LoginLauncher {
           issuer: publicIssuer,
           scopes: const ['openid', 'offline_access'],
           promptValues: const ['login'],
+          loginHint: loginHint,
           // HTTP seulement vers le poste de développement (adb reverse)
           allowInsecureConnections: publicIssuer.startsWith('http://localhost'),
         ),
@@ -125,8 +127,8 @@ class PractitionerSession {
   }
 
   /// Ouvre la page de connexion. Faux si le praticien l'a fermée sans se connecter.
-  Future<bool> signIn() async {
-    final tokens = await _launcher.login();
+  Future<bool> signIn({String? loginHint}) async {
+    final tokens = await _launcher.login(loginHint: loginHint);
     if (tokens == null) return false;
     await _keep(tokens);
     return true;

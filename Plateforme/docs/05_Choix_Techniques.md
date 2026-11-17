@@ -1036,3 +1036,13 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits de langue par défaut selon le rôle, réglage par langue conservé | §2.8, §3.2 | US-012c |
 | Rejet définitif par la DG conservé | §4 (absent) | Écart noté, aucun changement |
 | Découpage administratif d'août 2026 | §1.2 (8 régions, 33 préfectures, dépassé) | §2.58, §2.59 |
+
+### 2.62 Inscription du praticien dans l'application mobile (US-066, 17 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Origine des requêtes d'inscription | L'API accepte l'origine du site **ou l'absence d'en-tête Origin** ; toute autre origine (y compris `null`) reste refusée | Un navigateur envoie toujours Origin avec un POST : une page tierce ne peut toujours pas déclencher de SMS. Un client hors navigateur pouvait déjà forger l'en-tête ; la protection contre les abus reste la limite par numéro et par adresse IP (US-014) |
+| Mot de passe saisi dans l'application | Saisi une fois, à la création du compte, et envoyé à l'API SABOU en HTTPS ; jamais gardé sur le téléphone | Le critère de US-066 exige la création du compte dans l'application. La connexion, elle, passe toujours par la page de Keycloak (RFC 8252, §2.29) |
+| Connexion après l'inscription | La page de connexion de Keycloak s'ouvre avec le numéro déjà rempli (`login_hint`) ; le praticien saisit son mot de passe | Aucun jeton délivré hors de Keycloak : pas d'octroi par mot de passe (ROPC, déconseillé par OAuth 2.1) |
+| Règles de saisie | Reprises en Dart (`signup_rules.dart`) pour dire l'erreur sous le champ avant l'envoi ; l'API refait les mêmes contrôles et reste seule juge | Erreurs immédiates sans réseau ; mêmes cas de test que `@sabou/types` |
+| Langue | Textes de l'inscription en français et en anglais selon la langue du téléphone | Critère 4 de US-066. Le reste de l'application mobile n'est encore qu'en français : écart à traiter avec le récit qui traduira l'application |
