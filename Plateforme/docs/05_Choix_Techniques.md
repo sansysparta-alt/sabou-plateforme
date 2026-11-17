@@ -950,3 +950,13 @@ Décision du maître d’œuvre (17 novembre 2026) : la matrice des permissions 
 | **Langue de l’interface retirée du formulaire d’invitation** : français par défaut (`default('fr')` du schéma), colonne `langue_interface` conservée | Préférence personnelle, que chacun choisira lui-même (sélecteur FR / EN, comme sur les écrans de connexion) quand l’application de gestion sera bilingue ; la DG n’a pas à la décider, et le choix n’était lu nulle part | Choix imposé par la DG à l’invitation |
 | **Erreurs par champ** dans le formulaire d’invitation (composants partagés `TextField` / `SelectField`) : message court sous le seul champ concerné (« Choisissez un rôle. »), contour rouge, `aria-invalid` et `aria-describedby`, focus sur le premier champ à corriger, erreur effacée dès la correction ; bandeau en tête réservé aux refus du serveur | WCAG 3.3.1 et 3.3.3 ; même présentation que les autres formulaires (rejet définitif, visites) ; demande du maître d’œuvre d’alléger les messages | Bandeau unique qui liste tous les champs obligatoires |
 | **Langue d’écoute retirée du formulaire d’invitation** : celle de la région par défaut (`default(null)`), colonne `langue_ecoute` conservée | CdC (langues et régions) : « chaque région dispose de sa langue par défaut […] un utilisateur peut changer de langue à tout moment » ; c’est le choix de la personne, pas de la DG | Choix fixé par la DG à l’invitation |
+
+### 2.57 Erreurs de saisie sous le champ, partout (novembre 2026)
+
+Demande du maître d’œuvre (17 novembre 2026) : alléger les messages d’erreur, selon le cahier des charges (accessibilité) et la référence WCAG 2.2 AA du projet.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Règle commune** : une erreur de saisie (champ vide, format faux) s’affiche sous le seul champ concerné, message court, `aria-invalid` et `aria-describedby`, focus sur le premier champ à corriger, effacée dès la correction ; le message en tête reste aux refus du serveur, aux erreurs de chargement et à la liste de ce qui manque avant une soumission | WCAG 3.3.1 et 3.3.3 ; focus visible (CdC, accessibilité) ; même comportement sur tous les écrans | Bandeau qui liste les champs obligatoires |
+| **Écrans mis à niveau** : gestion (invitation d’un compte, acceptation de l’invitation, photo d’une fiche plante) ; site (inscription, étape du profil ; Studio, maladie, titre et niveau de visibilité). Déjà conformes : visite de terrain, voix des noms, rejet définitif, référentiels, étapes téléphone et code de l’inscription | Inventaire de tous les formulaires ; les autres messages en tête sont des refus du serveur | — |
+
