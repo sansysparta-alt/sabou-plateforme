@@ -18,7 +18,7 @@ lighthouse=${RECIT_LIGHTHOUSE:-1}
 dump_logs() {
   local status=$?
   if ((status != 0)); then
-    docker compose -p sabou logs --no-color --tail=80 api seaweedfs >&2 || true
+    docker compose -p "${COMPOSE_PROJECT_NAME:-sabou}" logs --no-color --tail=80 api seaweedfs >&2 || true
   fi
   return "$status"
 }

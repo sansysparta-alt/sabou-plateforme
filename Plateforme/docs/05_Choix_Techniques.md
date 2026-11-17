@@ -303,7 +303,6 @@ Méthode, quand l'installation par USB est refusée (MIUI : `INSTALL_FAILED_USER
 
 **Essai de bout en bout de la synchronisation sur le téléphone** (7 novembre 2026, `integration_test/synchro_test.dart`, même méthode, services du poste joints par `adb reverse`) : réussi. Le dossier saisi hors réseau est arrivé au serveur au retour du réseau (ligne `saisie_terrain` de la préfecture 4, version 1, vérifiée en base) ; aller-retour téléphone → API → PostgreSQL → PowerSync → téléphone : 720 ms en réseau local. Tous les critères de US-004 sont ainsi vérifiés sur le téléphone d'essai.
 
-
 | Choix | Pourquoi | Écarté |
 |---|---|---|
 | **PowerSync 1.27.2, édition auto-hébergée** (image épinglée par empreinte) dans Docker Compose ; sa base de travail est une base PostgreSQL séparée (`powersync`), pas MongoDB | Un seul moteur de base à exploiter ; télémétrie coupée (`disable_telemetry_sharing`) | Stockage MongoDB : un moteur de plus à sauvegarder et surveiller |
@@ -693,6 +692,18 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 | **Une erreur sur les échéances est journalisée sans retenir les SMS** déjà en file | L'envoi des décisions ne dépend pas de cette tâche | — |
 
 **Contrôles du pipeline** : `packages/db/test/echeance-certificats.test.ts` (critère 1 : dernier jour valable, expiration le lendemain, sortie de l'annuaire, QR ambre, journal unique, autres certificats intacts, révoqué intact ; critère 2 : rien à J-61 ni avant 8 h, un seul SMS au praticien, rattrapage, pas de relance si renouvellement en cours ou certificat révoqué, droits) ; `apps/api/src/sms/sms.test.ts` (texte, erreurs définitives, ordre échéances puis relève, erreur isolée) ; `packages/db/test/zones.test.ts` (liste des fonctions SECURITY DEFINER).
+
+### 2.38 Entonnoir des 6 étapes et dossiers bloqués (US-048, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Calculs dans la base** : `certification_entonnoir()` et `certification_dossiers_bloques()`, **aux droits de l'appelant** (le cloisonnement par zone s'applique ; la DG voit le national) | Prouvés sur un vrai PostgreSQL ; réutilisables pour les tableaux de bord régionaux (US-090 et suivants) sans nouvelle règle | Calcul dans l'API ; fonction SECURITY DEFINER |
+| **Délai moyen** = temps entre l'arrivée dans l'étape (décision précédente, ou ouverture du dossier) et la décision qui en fait sortir, **sur les passages des 12 derniers mois** ; comparé au délai cible de 3 jours (R-CER-07), signalé au-delà | Mesure ce qui s'est réellement passé ; un renvoi à l'étape 1 compte comme une sortie de l'étape 2 | Âge moyen des dossiers en cours (déjà visible dans la liste des bloqués) |
+| **Dossiers bloqués** : en cours, sans décision depuis plus de 15 jours, **étapes 2 à 5 seulement** ; triés du plus ancien ; 100 détaillés, le total toujours donné | À l'étape 1, le dossier attend le praticien, pas une décision de l'administration ; l'étape 6 est immédiate (US-046) | La vue `v_dossiers_bloques` du schéma initial (étape 1 comprise, sans nom ni zone), gardée telle quelle |
+| **API** `GET /api/entonnoir`, réservée à la DG avec second facteur (`DirectorGuard`), sans cache | UC-67 pour la DG ; lecture seule | — |
+| **Écran** « Entonnoir de certification » (rubrique Pilotage de la DG) : deux tableaux (étapes, dossiers bloqués) | Lisibles au lecteur d'écran et sur un petit téléphone, sans bibliothèque graphique de plus | Graphique en entonnoir |
+
+**Contrôles du pipeline** : `packages/db/test/entonnoir-certification.test.ts` (6 étapes, délai moyen du jeu d'exemple, fenêtre de 12 mois, blocage à plus de 15 jours, étape 1 exclue, tri, zones, droits) ; `apps/api/src/dashboard/funnel.test.ts` (DG seule, second facteur, sans cache) ; `apps/admin/src/FunnelPage.test.tsx` et `App.test.tsx` (écran, rubrique réservée) ; `apps/admin/e2e/entonnoir.spec.ts` (bout en bout, accessibilité, refus d'un autre rôle) ; mesure Lighthouse de `/entonnoir`.
 
 ## 3. Architecture
 

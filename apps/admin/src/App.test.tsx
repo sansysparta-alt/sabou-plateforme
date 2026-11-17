@@ -167,6 +167,23 @@ describe('App', () => {
     expect(screen.queryByText('SMS non remis')).toBeNull();
   });
 
+  it('DG : rubrique Entonnoir de certification dans Pilotage, réservée à la DG (US-048)', async () => {
+    mockApi(dg);
+    render(<App />);
+    const link = await screen.findByRole('link', { name: 'Entonnoir de certification' });
+    expect(link.getAttribute('href')).toBe('/entonnoir');
+    cleanup();
+    for (const user of [prefectoral, regional, committee]) {
+      mockApi(user);
+      window.history.replaceState(null, '', '/entonnoir');
+      render(<App />);
+      expect(await screen.findByRole('heading', { level: 1 }));
+      expect(screen.queryByRole('link', { name: 'Entonnoir de certification' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Entonnoir de certification' })).toBeNull();
+      cleanup();
+    }
+  });
+
   it('administrateur préfectoral : pas de rubrique Administration (navigation selon le rôle)', async () => {
     mockApi(prefectoral);
     render(<App />);

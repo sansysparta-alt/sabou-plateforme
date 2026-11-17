@@ -6,6 +6,9 @@
 // reset : arrête et supprime les données (base, cache, fichiers) des volumes locaux ;
 // realm : réimporte les domaines Keycloak « sabou » et « sabou-public » depuis
 //         infra/local/keycloak/ (comptes locaux de ces domaines effacés).
+// Projet Docker : « sabou » (compose.yaml). COMPOSE_PROJECT_NAME en donne un autre, avec ses
+// propres volumes : pour tester une branche dont les migrations divergent de celles déjà
+// appliquées à la base locale, sans effacer celle-ci (arrêter d'abord l'autre projet : mêmes ports).
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
