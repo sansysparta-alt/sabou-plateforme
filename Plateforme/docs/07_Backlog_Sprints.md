@@ -603,6 +603,8 @@ Critères d’acceptation :
 - Chaque transition est historisée et notifiée.
 - Étant donné un praticien rejeté définitivement, quand un régional ou le Comité ouvre sa file, alors les traitements de ce praticien n’y figurent pas (ils ne peuvent déjà plus progresser, US-047). *Ajout du 14 novembre 2026, décision du maître d’œuvre à l’analyse de US-047.*
 
+Réalisation (16 novembre 2026, 05 §2.51) : page de gestion « Traitements à décider » (`/traitements`) commune au régional, au Comité et à la DG ; décision contre le statut vu ; SMS de renvoi sans motif.
+
 #### US-062 · Que la certification d’un traitement soit bloquée s’il est incomplet
 *Traitements et circuit* · **Must** · 3 points · cas : UC-62
 

@@ -24,6 +24,34 @@ const ALL_MESSAGES: [string, number | undefined][] = [
   ['dossier.publie', 6],
 ];
 
+describe('US-061 : SMS du circuit d’un traitement', () => {
+  const TREATMENT = 'REC-1000000';
+  it.each([
+    ['recette.soumise', undefined],
+    ['recette.transmise', undefined],
+    ['recette.expertisee', undefined],
+    ['recette.certifiee', undefined],
+    ['recette.renvoyee', 'brouillon'],
+    ['recette.renvoyee', 'soumise'],
+    ['recette.renvoyee', 'transmise'],
+  ])('%s (%s) tient en un SMS GSM 7 bits, sans le motif', (modele, statut) => {
+    const text = notificationText({ modele, objet: TREATMENT, parametres: { statut } });
+    expect(text).toMatch(/^SABOU : .*votre traitement REC-1000000 /);
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+
+  it('renvoi : le texte dit où va le traitement ; statut inconnu : erreur définitive', () => {
+    const text = (statut?: string) =>
+      notificationText({ modele: 'recette.renvoyee', objet: 'REC-0001', parametres: { statut } });
+    expect(text('brouillon')).toBe(
+      'SABOU : votre traitement REC-0001 vous est renvoyé pour correction. Le motif est dans votre Studio SABOU.',
+    );
+    expect(text('transmise')).toContain('renvoyé au Comité scientifique');
+    expect(text('certifiee')).toBe(null);
+    expect(text()).toBe(null);
+  });
+});
+
 describe('Textes : un seul SMS par message, en français', () => {
   it.each(ALL_MESSAGES)('%s (étape %s) tient en un SMS GSM 7 bits', (modele, etape) => {
     const text = notificationText({ modele, objet: CODE, parametres: { etape } });
