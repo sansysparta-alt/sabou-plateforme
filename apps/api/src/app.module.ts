@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { CertificationModule } from './certification/certification.module';
 import { DiseasesModule } from './diseases/diseases.module';
+import { VoicesModule } from './voices/voices.module';
 import { PlantsModule } from './plants/plants.module';
 import { ReferentialsModule } from './referentials/referentials.module';
 import { RejectionsModule } from './rejections/rejections.module';
@@ -31,6 +32,7 @@ import { VisitsModule } from './visits/visits.module';
     RejectionsModule,
     PlantsModule,
     DiseasesModule,
+    VoicesModule,
     VisitsModule,
     DashboardModule,
     DossiersModule,

@@ -59,6 +59,11 @@ const envSchema = z
     // File des SMS des décisions (US-031) relevée toutes les SMS_POLL_SECONDS (0 : jamais) ;
     // 5 minutes au plus entre la décision et l'envoi
     SMS_POLL_SECONDS: z.coerce.number().int().min(0).max(240).default(30),
+    // Voix déposées (US-070, §2.43) : file relevée toutes les AUDIO_POLL_SECONDS (0 : jamais).
+    // FFmpeg statique et modèle RNNoise copiés dans l'image de l'API (apps/api/Dockerfile).
+    AUDIO_POLL_SECONDS: z.coerce.number().int().min(0).max(300).default(10),
+    FFMPEG_PATH: z.string().min(1).default('/usr/local/bin/ffmpeg'),
+    AUDIO_MODEL_PATH: z.string().min(1).default('/app/assets/rnnoise-cb.rnnn'),
     // Pièces des dossiers (US-040a, §2.26) : stockage objet S3 (SeaweedFS). Seau créé au
     // démarrage sur le poste local seulement ; ailleurs, il est préparé au déploiement.
     S3_ENDPOINT: z.url({ protocol: /^https?$/ }),

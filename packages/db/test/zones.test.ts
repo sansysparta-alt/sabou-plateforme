@@ -272,6 +272,12 @@ describe('Garde-fous du schéma', () => {
       'verifier_certificat',
       // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)
       'visite_rappels_mettre_en_file',
+      // US-070 : dépôt et file de traitement des voix (05 §2.43)
+      'voix_deposer',
+      'voix_depot_echouer',
+      'voix_depot_etat',
+      'voix_depot_terminer',
+      'voix_depots_prendre',
     ]);
     const unsafe = rows.filter(
       (r) =>
