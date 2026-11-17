@@ -17,6 +17,8 @@ const loaders = {
   // Dictionnaire (US-050)
   plants: () => import('./PlantsPage'),
   plant: () => import('./PlantPage'),
+  // US-052 : fiches maladies (liste et fiche dans le même module)
+  diseases: () => import('./DiseasesPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -41,6 +43,8 @@ const FunnelPage = lazy(() => loaders.funnel().then((m) => ({ default: m.FunnelP
 const ExpertisePage = lazy(() => loaders.expertise().then((m) => ({ default: m.ExpertisePage })));
 const PlantsPage = lazy(() => loaders.plants().then((m) => ({ default: m.PlantsPage })));
 const PlantPage = lazy(() => loaders.plant().then((m) => ({ default: m.PlantPage })));
+const DiseasesPage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasesPage })));
+const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasePage })));
 
 // Morceau de la page demandée, d'après la seule adresse
 const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
@@ -55,6 +59,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/entonnoir': loaders.funnel,
   '/expertise': loaders.expertise,
   '/plantes': loaders.plants,
+  '/maladies': loaders.diseases,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande
@@ -68,10 +73,13 @@ const PAGE_DATA: Record<string, string[]> = {
   '/entonnoir': ['/api/entonnoir'],
   '/expertise': ['/api/dossiers/expertise'],
   '/plantes': ['/api/plantes'],
+  '/maladies': ['/api/maladies'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
 const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
+// Fiche maladie (US-052) : /maladies/MA-001, pour la DG et le Comité
+const DISEASE_PATH = /^\/maladies\/(MA-\d{3,10})$/;
 
 // US-017 : le morceau de la page et ses données sont demandés dès le démarrage, en même temps
 // que la session, au lieu d'attendre la réponse de celle-ci (en 3G, un aller-retour de 300 ms
@@ -88,6 +96,11 @@ export function preloadCurrentPage(): void {
   if (plant) {
     loaders.plant().catch(() => undefined);
     return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
+  }
+  const disease = DISEASE_PATH.exec(current);
+  if (disease) {
+    loaders.diseases().catch(() => undefined);
+    return prefetch(`/api/maladies/${encodeURIComponent(disease[1]!)}`);
   }
   // Invitation : la consultation, sans effet, avec le jeton du lien (après le #)
   if (current === '/invitation') {
@@ -310,7 +323,11 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isDirector(user) || isCommittee(user)) {
     groups.push({
       heading: 'Dictionnaire',
-      items: [{ href: '/plantes', label: 'Fiches plantes', icon: 'book' }],
+      items: [
+        { href: '/plantes', label: 'Fiches plantes', icon: 'book' },
+        // US-052
+        { href: '/maladies', label: 'Fiches maladies', icon: 'book' },
+      ],
     });
   }
   if (isDirector(user)) {
@@ -344,6 +361,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/approbation': ApprovalPage,
   '/rejet-definitif': RejectionPage,
   '/plantes': PlantsPage,
+  '/maladies': DiseasesPage,
   '/comptes': AccountsPage,
   '/referentiels': ReferentialsPage,
 };
@@ -356,6 +374,7 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/expertise': ExpertisePage,
   '/plantes': PlantsPage,
+  '/maladies': DiseasesPage,
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
@@ -375,6 +394,14 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
     return (
       <Suspense fallback={<p>Chargement…</p>}>
         <PlantPage code={plant[1]!} canValidate={isCommittee(user)} />
+      </Suspense>
+    );
+  }
+  const disease = isDirector(user) || isCommittee(user) ? DISEASE_PATH.exec(path()) : null;
+  if (disease) {
+    return (
+      <Suspense fallback={<p>Chargement…</p>}>
+        <DiseasePage code={disease[1]!} />
       </Suspense>
     );
   }
