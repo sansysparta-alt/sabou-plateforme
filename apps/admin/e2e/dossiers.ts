@@ -1,5 +1,5 @@
-// Dossiers de test créés directement en base, à une étape donnée du workflow (US-043,
-// US-044) : la saisie des visites terrain arrive avec US-041.
+// Dossiers de test créés directement en base, à une étape donnée du workflow (US-042 à
+// US-044), avec leur visite terrain (US-041).
 import { randomInt } from 'node:crypto';
 import { expect, type Page } from '@playwright/test';
 import { psql } from './audit';
@@ -32,13 +32,54 @@ export function dossierAtStep(
     d AS (
       INSERT INTO sabou.dossier_certification (praticien_id, etape_courante)
       SELECT id, ${step} FROM p RETURNING id, code),
-    cr AS (
-      INSERT INTO sabou.dossier_piece (dossier_id, type, fichier_url, sha256, depose_par)
-      SELECT id, 'compte_rendu_visite', 'pieces/e2e/visite.pdf', repeat('b', 64), ${authorId}
-        FROM d RETURNING id, dossier_id),
     v AS (
-      INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, realisee_le, compte_rendu_piece_id, statut)
-      SELECT dossier_id, ${authorId}, now() - interval '2 days', now() - interval '1 day', id, 'realisee' FROM cr)
+      INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, realisee_le, statut,
+                                        constats, avis, empreinte_sha3, signe_par, signe_le)
+      SELECT id, ${authorId}, now() - interval '2 days', now() - interval '1 day', 'realisee',
+             'Lieu conforme.', 'favorable', repeat('b', 64), ${authorId}, now() - interval '1 day' FROM d)
+    SELECT code FROM d;`);
+  const code = output.trim().split('\n').at(-1)!.trim();
+  expect(code).toMatch(/^DS-\d+$/);
+  return code;
+}
+
+// Praticien neuf et son dossier à l'étape 2, dans la préfecture donnée, avec une visite de
+// l'admin préfectoral indiqué : réalisée avec compte rendu signé, seulement planifiée, ou
+// aucune. Renvoie le code du dossier.
+export function dossierAtStep2(
+  prefecture: 'Labé' | 'Kankan',
+  admin: string,
+  visit: 'realisee' | 'planifiee' | 'aucune',
+): string {
+  // Seuls un identifiant Keycloak vérifié et un numéro tiré au hasard (plage 666…, sans
+  // abonné réel) entrent dans la requête
+  if (!/^[0-9a-f-]{36}$/.test(admin)) throw new Error(`Compte invalide : ${admin}`);
+  if (!['Labé', 'Kankan'].includes(prefecture)) throw new Error(`Préfecture : ${prefecture}`);
+  const phone = `+224666${String(randomInt(0, 1_000_000)).padStart(6, '0')}`;
+  const adminId = `(SELECT id FROM sabou.utilisateur WHERE keycloak_id = '${admin}')`;
+  const visitRows = {
+    realisee: `,
+      v AS (
+        INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, realisee_le, statut,
+                                          constats, avis, empreinte_sha3, signe_par, signe_le)
+        SELECT id, ${adminId}, now() - interval '1 day', now(), 'realisee',
+               'Lieu conforme.', 'favorable', repeat('b', 64), ${adminId}, now() FROM d)`,
+    planifiee: `,
+      v AS (
+        INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, statut)
+        SELECT id, ${adminId}, now() + interval '2 days', 'planifiee' FROM d)`,
+    aucune: '',
+  }[visit];
+  const output = psql(`SET search_path = sabou, public;
+    WITH u AS (
+      INSERT INTO sabou.utilisateur (telephone, prenom, nom, role_code, statut, keycloak_id)
+      VALUES ('${phone}', 'Essai', 'Terrain', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
+    p AS (
+      INSERT INTO sabou.praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale, annees_experience)
+      SELECT u.id, 1, (SELECT id FROM sabou.prefecture WHERE nom = '${prefecture}'), 'pul', 5 FROM u RETURNING id),
+    d AS (
+      INSERT INTO sabou.dossier_certification (praticien_id, etape_courante)
+      SELECT id, 2 FROM p RETURNING id, code)${visitRows}
     SELECT code FROM d;`);
   const code = output.trim().split('\n').at(-1)!.trim();
   expect(code).toMatch(/^DS-\d+$/);

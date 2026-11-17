@@ -21,15 +21,11 @@ const submitted = `${openContext('s.kourouma@exemple.gn')}
   SELECT dossier_transition(1, 'soumis', contexte_utilisateur());`;
 
 // Visite réalisée par l'admin préfectoral de Labé, avec son compte rendu signé (R-CER-06).
-// Saisie directe : l'écran des visites arrive avec US-041.
+// Enregistrée par la fonction de US-041 (visite_realiser).
 const visitDone = `${openContext('prefectoral.labe@sabou-sante.gn')}
-  WITH cr AS (
-    INSERT INTO dossier_piece (dossier_id, type, fichier_url, sha256, depose_par)
-    VALUES (1, 'compte_rendu_visite', 'pieces/test/visite.pdf', repeat('b', 64), contexte_utilisateur())
-    RETURNING id)
-  UPDATE visite_terrain SET statut = 'realisee', realisee_le = now(),
-         compte_rendu_piece_id = (SELECT id FROM cr)
-   WHERE dossier_id = 1;`;
+  SELECT visite_realiser(1, contexte_utilisateur(), vt.id, current_date, 'Lieu conforme.',
+                         'favorable', repeat('b', 64))
+    FROM visite_terrain vt WHERE vt.dossier_id = 1 AND vt.statut = 'planifiee';`;
 
 const as = (email: string, decision: string, motif = 'NULL') =>
   `${openContext(email)}

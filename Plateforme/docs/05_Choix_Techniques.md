@@ -615,6 +615,21 @@ Décisions du maître d'œuvre (12 novembre 2026) : **API SMS d'Orange Guinée**
 
 **Contrôles du pipeline** : `packages/db/test/notification-sms.test.ts` (file, délais, échec, SKIP LOCKED), `apps/api/src/sms/sms.test.ts` (textes, envoi), `apps/admin/src/App.test.tsx`, `apps/admin/e2e/sms.spec.ts` et `apps/site/e2e-compte/dossier.spec.ts` (de bout en bout).
 
+### 2.33 Visites terrain et compte rendu signé (US-041, novembre 2026)
+
+Décision du maître d'œuvre (12 novembre 2026) : le compte rendu est **saisi en ligne** par l'admin préfectoral (connecté avec son second facteur) ; le texte est **figé**, avec son **empreinte SHA3-256**, son **auteur** et l'**heure** de signature au journal d'audit ; la **photo de la fiche papier est facultative**.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Compte rendu dans `visite_terrain`** (constats, avis favorable / avec réserves / défavorable, empreinte, signataire, heure) ; la contrainte `ck_visite_realisee` exige ces champs pour toute visite réalisée ; `compte_rendu_piece_id` devient la photo facultative | Critère 2 tenu par la base, quel que soit le chemin d'écriture | Compte rendu = pièce jointe obligatoire (schéma initial) |
+| **Signature = attestation cochée + session à double facteur + empreinte SHA3-256 calculée par l'API** sur un texte canonique (version du format, dossier, visite, date, avis, auteur, constats en NFC) ; chaque donnée est gardée en base, l'empreinte se recalcule (preuve de bout en bout) | Même algorithme que les certificats (R-QR-02) ; pas de clé de signature par agent à gérer | Signature Ed25519 par agent (clés à distribuer et révoquer pour 33 agents) |
+| **Compte rendu figé par un déclencheur** (`trg_visite_figee`) : une visite réalisée ou annulée ne change plus, propriétaire des tables compris, sauf l'ajout unique de la photo | Le texte signé ne peut pas être retouché après coup | Interdiction par les seuls droits de l'API |
+| **Fonctions `visite_planifier`, `visite_realiser`, `visite_photo_joindre`** : préfectoral actif de la préfecture du praticien, dossier à l'étape 2 ; une seule visite planifiée par dossier (replanifier change la date) ; date prévue dans les **90 prochains jours** ; date réalisée entre la soumission et aujourd'hui | Le cloisonnement par zone seul laisserait planifier l'admin régional et la DG, qui voient le dossier | Contrôle du rôle dans l'API |
+| **Rappel la veille à partir de 8 h** (heure de Conakry), une seule fois par date ; une visite planifiée moins d'un jour avant reçoit son rappel aussitôt ; replanifier le remet à zéro. Mis en file par `visite_rappels_mettre_en_file()` (SECURITY DEFINER, réservée à l'API), appelée avant chaque relève de la file des SMS (§2.32) | Aucun planificateur à ajouter ; pas de SMS la nuit ; le texte (date et code du dossier) tient en un SMS GSM 7 bits | Tâche planifiée séparée ; SMS à la planification (coût en plus, non demandé) |
+| **Écran** : panneau « Visite sur place » dans chaque carte de la vérification terrain ; les annonces passent par la zone d'état unique de la page | Une seule file de travail pour le préfectoral ; une seule zone annoncée par les lecteurs d'écran | Écran d'agenda séparé (à voir avec US-083, visites hors réseau, S8) |
+
+**Contrôles du pipeline** : `packages/db/test/visites-terrain.test.ts` (rappel, compte rendu, figement, habilitation, dates), `packages/types/src/visits.test.ts`, `apps/api/src/visits/*.test.ts` (empreinte, accès, refus), `apps/api/src/sms/sms.test.ts` (texte du rappel), `apps/admin/src/FieldVerificationPage.test.tsx`, `apps/admin/e2e/visites-terrain.spec.ts` (de bout en bout, empreinte recalculée).
+
 ## 3. Architecture
 
 ```

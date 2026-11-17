@@ -30,8 +30,15 @@ export interface QueuedMessage {
   modele: string;
   // Code du dossier (DS-…)
   objet: string;
-  // Données figées à la transition : étape d'arrivée
-  parametres: { etape?: number };
+  // Données figées à la mise en file : étape d'arrivée d'une décision, date et heure d'une
+  // visite (heure de Conakry, 2026-11-20T09:30)
+  parametres: { etape?: number; prevueLe?: string };
+}
+
+// « 2026-11-20T09:30 » → « 20/11/2026 à 09h30 » ; null si la donnée est mal formée
+function visitDate(value: string | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? '');
+  return match ? `${match[3]}/${match[2]}/${match[1]} à ${match[4]}h${match[5]}` : null;
 }
 
 // Texte d'un message de la file, ou null si le modèle est inconnu (erreur définitive)
@@ -53,6 +60,13 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
         : null;
     case 'dossier.rejet_definitif':
       return `SABOU : votre dossier ${objet} est définitivement rejeté. Le motif et les voies de recours sont dans votre espace SABOU.`;
+    case 'visite.rappel': {
+      // Rappel la veille de la visite terrain (US-041)
+      const date = visitDate(parametres.prevueLe);
+      return date
+        ? `SABOU : rappel, l'administration de votre préfecture vous rend visite le ${date} pour votre dossier ${objet}. Merci de vous rendre disponible.`
+        : null;
+    }
     case 'dossier.publie':
       return `SABOU : félicitations, votre certification est publiée (dossier ${objet}). Votre fiche de praticien certifié est visible sur SABOU.`;
     default:

@@ -1,6 +1,5 @@
 import {
   useId,
-  type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
   type ComponentPropsWithRef,
@@ -60,7 +59,7 @@ export function TextField({
   id,
   className,
   ...rest
-}: FieldFrameProps & InputHTMLAttributes<HTMLInputElement>) {
+}: FieldFrameProps & ComponentPropsWithRef<'input'>) {
   const ids = useFieldIds(id, hint, error);
   return (
     <Frame {...ids} label={label} hint={hint} error={error}>

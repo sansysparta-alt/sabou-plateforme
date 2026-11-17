@@ -417,6 +417,8 @@ Critères d’acceptation :
 - Étant donné une visite planifiée, quand la veille arrive, alors un rappel part au praticien.
 - Étant donné une visite réalisée, quand je l’enregistre, alors un compte rendu signé est obligatoire.
 
+Décision du maître d’œuvre (12 novembre 2026) : compte rendu saisi en ligne par l’admin préfectoral, texte figé avec empreinte SHA3-256, auteur et heure au journal d’audit ; photo de la fiche papier facultative (voir 05 §2.33).
+
 #### US-045 · Approuver un dossier et émettre un certificat signé
 *Certification et certificat* · **Must** · 8 points · cas : UC-60
 

@@ -1,4 +1,4 @@
-// US-031 : textes des SMS et envoi de la file. La file elle-même (transaction, délais,
+// US-031 : textes des SMS et envoi de la file ; US-041 : rappel de visite la veille. La file elle-même (transaction, délais,
 // nombre d'essais, échec) est tenue et testée par la base : packages/db/test/notification-sms.test.ts.
 import { describe, expect, it, vi } from 'vitest';
 import type { Env } from '../config/env';
@@ -31,6 +31,26 @@ describe('Textes : un seul SMS par message, en français', () => {
     expect(text).toContain(CODE);
     expect(text!.length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
     expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+
+  it('US-041 : le rappel de visite tient en un SMS et donne la date et l’heure', () => {
+    const text = notificationText({
+      modele: 'visite.rappel',
+      objet: CODE,
+      parametres: { prevueLe: '2026-11-20T09:30' },
+    });
+    expect(text).toBe(
+      "SABOU : rappel, l'administration de votre préfecture vous rend visite le 20/11/2026 à 09h30 pour votre dossier DS-1000000. Merci de vous rendre disponible.",
+    );
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+
+  it('US-041 : un rappel sans date valable est une erreur définitive', () => {
+    for (const prevueLe of [undefined, '2026-11-20', 'demain']) {
+      expect(
+        notificationText({ modele: 'visite.rappel', objet: CODE, parametres: { prevueLe } }),
+      ).toBe(null);
+    }
   });
 
   it('le code d’inscription tient aussi en un SMS', () => {
@@ -76,6 +96,7 @@ describe('Textes : un seul SMS par message, en français', () => {
 function fakeQueue(messages: QueuedSms[], outcome: SmsOutcome = 'envoyee') {
   const recorded: [string, string | null, boolean][] = [];
   const queue: NotificationQueue = {
+    queueVisitReminders: vi.fn(async () => 0),
     take: vi.fn(async (limit: number) => messages.splice(0, limit)),
     async record(id, error, definitive = false) {
       recorded.push([id, error, definitive]);
@@ -114,6 +135,30 @@ describe('Envoi de la file', () => {
     expect(recorded).toEqual([
       ['1', null, false],
       ['2', null, false],
+    ]);
+  });
+
+  it('US-041 : met en file les rappels de visite dus avant chaque relève', async () => {
+    const order: string[] = [];
+    const { queue } = fakeQueue([
+      message('1', { modele: 'visite.rappel', parametres: { prevueLe: '2026-11-20T09:30' } }),
+    ]);
+    queue.queueVisitReminders = vi.fn(async () => {
+      order.push('rappels');
+      return 1;
+    });
+    const take = queue.take;
+    queue.take = vi.fn(async (limit: number) => {
+      order.push('relève');
+      return take(limit);
+    });
+    const sent: string[] = [];
+    const sender: SmsSender = { send: async (_, text) => void sent.push(text) };
+
+    expect(await new SmsDispatcher(env, queue, sender).dispatch()).toBe(1);
+    expect(order).toEqual(['rappels', 'relève']);
+    expect(sent).toEqual([
+      expect.stringContaining('vous rend visite le 20/11/2026 à 09h30') as string,
     ]);
   });
 
@@ -159,6 +204,7 @@ describe('Envoi de la file', () => {
 
   it('une base injoignable n’arrête pas l’envoi : le passage suivant reprend', async () => {
     const queue: NotificationQueue = {
+      queueVisitReminders: () => Promise.reject(new Error('connexion refusée')),
       take: () => Promise.reject(new Error('connexion refusée')),
       record: vi.fn(),
     };

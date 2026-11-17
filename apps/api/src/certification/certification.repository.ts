@@ -14,6 +14,7 @@ import type {
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
 import { inZone } from '../database/zone';
+import { visitOf } from '../visits/visits.repository';
 
 // Refus d'une décision, traduits en réponses par le contrôleur
 export class DossierNotFoundError extends Error {}
@@ -76,8 +77,7 @@ export class CertificationRepository {
     });
   }
 
-  // Dossiers en attente de vérification terrain (étape 2) ; les plus anciens d'abord, pour
-  // tenir le délai de 3 jours par étape (R-CER-07)
+  // Dossiers en attente de vérification terrain (étape 2), avec leur visite (US-041)
   listFieldVerification(
     sub: string,
     query: ZoneListQuery,
@@ -88,7 +88,8 @@ export class CertificationRepository {
                sp.libelle_fr AS specialite, d.type, d.visite_requise AS "visiteRequise",
                to_char(d.etape_entree_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "soumisLe",
                EXISTS (SELECT 1 FROM sabou.visite_terrain vt
-                        WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee"
+                        WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee",
+               ${visitOf(sql.ref('d.id'))} AS visite
           FROM sabou.dossier_certification d
           JOIN sabou.praticien p   ON p.id = d.praticien_id
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id

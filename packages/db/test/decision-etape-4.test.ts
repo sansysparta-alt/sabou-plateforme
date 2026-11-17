@@ -20,13 +20,9 @@ const lastRows = (sql: string) => rowsAt(db.url.app, sql);
 const atStep4 = `${openContext('s.kourouma@exemple.gn')}
   SELECT dossier_transition(1, 'soumis', contexte_utilisateur());
   ${openContext('prefectoral.labe@sabou-sante.gn')}
-  WITH cr AS (
-    INSERT INTO dossier_piece (dossier_id, type, fichier_url, sha256, depose_par)
-    VALUES (1, 'compte_rendu_visite', 'pieces/test/visite.pdf', repeat('b', 64), contexte_utilisateur())
-    RETURNING id)
-  UPDATE visite_terrain SET statut = 'realisee', realisee_le = now(),
-         compte_rendu_piece_id = (SELECT id FROM cr)
-   WHERE dossier_id = 1;
+  SELECT visite_realiser(1, contexte_utilisateur(), vt.id, current_date, 'Lieu conforme.',
+                         'favorable', repeat('b', 64))
+    FROM visite_terrain vt WHERE vt.dossier_id = 1 AND vt.statut = 'planifiee';
   SELECT dossier_transition(1, 'valide', contexte_utilisateur());
   ${openContext('regional.labe@sabou-sante.gn')}
   SELECT dossier_transition(1, 'valide', contexte_utilisateur());`;

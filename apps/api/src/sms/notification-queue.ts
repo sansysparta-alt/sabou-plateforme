@@ -14,7 +14,7 @@ export interface QueuedSms {
   telephone: string | null;
   modele: string;
   objet: string;
-  parametres: { etape?: number };
+  parametres: { etape?: number; prevueLe?: string };
 }
 
 export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';
@@ -22,6 +22,8 @@ export type SmsOutcome = 'envoyee' | 'en_attente' | 'echec';
 // File des SMS (table notification), tenue par les fonctions de la base (migration
 // 20261112120000) : relève sans doublon entre instances, délais et nombre d'essais
 export interface NotificationQueue {
+  // Met en file les rappels de visite dus (la veille, à partir de 8 h) ; renvoie leur nombre
+  queueVisitReminders(): Promise<number>;
   take(limit: number): Promise<QueuedSms[]>;
   // error null : envoyé ; definitive : pas de nouvel essai
   record(id: string, error: string | null, definitive?: boolean): Promise<SmsOutcome>;
@@ -30,6 +32,12 @@ export interface NotificationQueue {
 @Injectable()
 export class PgNotificationQueue implements NotificationQueue {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  async queueVisitReminders(): Promise<number> {
+    const { rows } = await sql<{ nombre: number }>`
+      SELECT sabou.visite_rappels_mettre_en_file() AS nombre`.execute(this.db);
+    return rows[0]!.nombre;
+  }
 
   async take(limit: number): Promise<QueuedSms[]> {
     const { rows } = await sql<QueuedSms>`

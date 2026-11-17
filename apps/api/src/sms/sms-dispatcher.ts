@@ -57,6 +57,8 @@ export class SmsDispatcher implements OnApplicationBootstrap, OnApplicationShutd
   }
 
   private async dispatchOnce(): Promise<number> {
+    // Rappels de visite (US-041) : mis en file avant la relève, ils partent dans ce passage
+    await this.queue.queueVisitReminders();
     const messages = await this.queue.take(BATCH_SIZE);
     // Un à un : le fournisseur limite le débit, et une erreur n'arrête pas le lot
     for (const message of messages) {
