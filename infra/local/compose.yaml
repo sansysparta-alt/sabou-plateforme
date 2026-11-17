@@ -53,6 +53,11 @@ services:
       SABOU_INSCRIPTION_CLIENT_SECRET: ${SABOU_INSCRIPTION_CLIENT_SECRET:?}
       SABOU_PUBLIC_AUDIT_CLIENT_SECRET: ${SABOU_PUBLIC_AUDIT_CLIENT_SECRET:?}
       SABOU_SITE_URL: http://localhost:${SITE_PORT:-3000}
+      # Alertes par e-mail de l'écouteur « email » du domaine « sabou » : changement de mot de
+      # passe, ajout ou retrait du double facteur ; ni les échecs de connexion, ni les
+      # événements génériques UPDATE_CREDENTIAL et REMOVE_CREDENTIAL, qui doubleraient chaque
+      # alerte avec un texte moins clair (« identifiant password »)
+      KC_SPI_EVENTS_LISTENER_EMAIL_INCLUDE_EVENTS: UPDATE_PASSWORD,UPDATE_TOTP,REMOVE_TOTP
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
@@ -68,6 +73,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_healthy
     ports:
       - 127.0.0.1:${KEYCLOAK_PORT:-8080}:8080
     healthcheck:
@@ -82,6 +89,23 @@ services:
       timeout: 5s
       retries: 30
       start_period: 30s
+
+  # Serveur d'envoi d'e-mails de développement : Keycloak lui remet les e-mails (mot de passe
+  # oublié, alertes de sécurité), qui restent sur le poste, lisibles sur http://localhost:8025.
+  # Le vrai serveur d'envoi sera choisi avec le maître d'œuvre à la mise en service.
+  mailpit:
+    image: axllent/mailpit@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231 # v1.33.0
+    environment:
+      MP_MAX_MESSAGES: '500'
+      # Aucun appel sortant (vérification de nouvelle version désactivée)
+      MP_DISABLE_VERSION_CHECK: 'true'
+    ports:
+      - 127.0.0.1:${MAILPIT_PORT:-8025}:8025
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   valkey:
     image: valkey/valkey@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b # 9.1.3-alpine

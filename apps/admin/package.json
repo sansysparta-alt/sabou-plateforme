@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "serve": "node scripts/serve.mjs",
-    "lighthouse": "node scripts/lighthouse.mjs"
+    "lighthouse": "node scripts/lighthouse.mjs",
+    "essai": "playwright test --config essai/playwright.config.ts"
   },
   "dependencies": {
     "@sabou/ui": "workspace:*",
