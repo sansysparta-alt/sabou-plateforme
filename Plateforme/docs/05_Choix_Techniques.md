@@ -680,6 +680,20 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 
 **Contrôles du pipeline** : `packages/db/test/rejet-definitif.test.ts` (critère 1 pour 4 rôles et par `dossier_transition` ; critère 2 sans dossier et avec dossier en cours : statut, certificat révoqué et QR rouge, annuaire, traitements suspendus puis recertifiables, SMS et date du recours, décision et audit ; motifs, avis du Comité, second rejet, traitements en examen bloqués, retrait encore possible, délai de 12 mois, décision non modifiable, RLS), `packages/types/src/rejections.test.ts`, `apps/api/src/rejections/rejections.test.ts` (accès DG seule, validation, traduction des refus), `apps/api/src/sms/sms.test.ts` (texte validé, un SMS), `apps/admin/src/RejectionPage.test.tsx`, `apps/admin/e2e/rejet-definitif.spec.ts` (dossier en cours et praticien certifié de bout en bout, axe ; régional refusé à l'écran et par l'API), Lighthouse (`/rejet-definitif`).
 
+### 2.37 Échéance des certificats et invitation à renouveler (US-049, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Une fonction de base `certificats_echeances_traiter`** (SECURITY DEFINER, réservée à l'API, toutes zones) appelée **avant chaque relève de la file des SMS** | Même mécanisme que les rappels de visite (§2.33) : pas de planificateur de plus ; chaque passage rattrape un arrêt de l'API ; elle n'agit qu'une fois par certificat | Tâche cron séparée (un service de plus), extension `pg_cron` |
+| **Expiration au lendemain de l'échéance, à 0 h, heure de Conakry** : `expire_le` est le dernier jour valable ; statut « expiré », journal `certificat.expire` (automatique, sans auteur) | Le praticien sort de l'annuaire (`v_annuaire_public` ne montre que les certificats actifs), le QR répond ambre (R-QR-05) | Date du serveur (`current_date`) ; l'ancienne fonction `expirer_certificats`, jamais appelée et sans trace, est supprimée |
+| **Statut du praticien inchangé** (« certifié ») | R-CER-09 n'a pas de statut « expiré » ; il retrouve l'annuaire dès son nouveau certificat | Passage à « en attente » |
+| **Une seule invitation par certificat**, le 60e jour avant l'échéance à partir de 8 h (colonne `relance_renouvellement_le`), rattrapée tant que le certificat est actif ; aucune si un dossier de renouvellement est déjà en cours ou si le certificat est révoqué | Pas de SMS la nuit ni en double ; coût SMS maîtrisé | Relances répétées (J-30, J-7) : à décider avec le renouvellement |
+| **SMS `certificat.renouvellement`** : « SABOU : votre certificat SAB-… expire le JJ/MM/AAAA. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire. » (un SMS GSM 7 bits) | Numéro et échéance figés à la mise en file | — |
+| **L'ouverture du dossier de renouvellement** (R-QR-07, contenu proportionné) reste à son récit (sprint 14) | Le critère de US-049 est l'invitation ; d'ici là, aucune donnée réelle | — |
+| **Une erreur sur les échéances est journalisée sans retenir les SMS** déjà en file | L'envoi des décisions ne dépend pas de cette tâche | — |
+
+**Contrôles du pipeline** : `packages/db/test/echeance-certificats.test.ts` (critère 1 : dernier jour valable, expiration le lendemain, sortie de l'annuaire, QR ambre, journal unique, autres certificats intacts, révoqué intact ; critère 2 : rien à J-61 ni avant 8 h, un seul SMS au praticien, rattrapage, pas de relance si renouvellement en cours ou certificat révoqué, droits) ; `apps/api/src/sms/sms.test.ts` (texte, erreurs définitives, ordre échéances puis relève, erreur isolée) ; `packages/db/test/zones.test.ts` (liste des fonctions SECURITY DEFINER).
+
 ## 3. Architecture
 
 ```
