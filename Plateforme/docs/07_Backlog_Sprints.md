@@ -20,6 +20,8 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
 
+Report du 12 novembre 2026 (décision du maître d’œuvre) : US-008 (bascule vers le GitLab souverain, 3 points) sort de S3, qui passe de 34 à 31 points ; il revient au premier sprint qui suit le choix de l’hébergeur souverain (prototype 3.4). D’ici là, le pipeline tourne en local (jusqu’au 1er décembre 2026), puis sur GitHub.
+
 Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; placé en S3 par le maître d’œuvre (8 novembre 2026) : S3 passe de 28 à 31 points.
 
 Ajout du 9 novembre 2026 (décision du maître d’œuvre) : nouveau récit US-018, socle de l’application mobile (thème de la charte, composants communs, navigation selon le profil), 3 points, en S3 : S3 passe de 31 à 34 points ; l’epic E08 passe à 5 récits et 27 points. La connexion des agents préfectoraux dans l’application arrive avec leur première rubrique (US-082, S8).
@@ -39,7 +41,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008, US-017, US-018 | 34 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-017, US-018 | 31 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -460,6 +462,8 @@ Critères d’acceptation :
 - Étant donné un certificat à 60 jours de l’échéance, quand la tâche s’exécute, alors le praticien reçoit une invitation à renouveler.
 
 #### US-008 · Basculer le dépôt et le pipeline sur le GitLab souverain
+*Reporté hors de S3 le 12 novembre 2026 (décision du maître d’œuvre), en attente de l’hébergeur souverain.*
+
 *Fondations techniques* · **Must** · 3 points · cas : —
 
 > En tant qu’équipe, je veux basculer le dépôt et le pipeline de GitHub vers le GitLab auto-hébergé, afin que le code et la chaîne de livraison soient souverains avant toute donnée réelle (E7).
