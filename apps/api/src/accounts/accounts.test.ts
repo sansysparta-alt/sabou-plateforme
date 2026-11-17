@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Logger, Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ACCOUNT_ROLES, PHONE_ERROR, type InviteRequest } from '@sabou/types';
+import { ACCOUNT_ROLES, PHONE_ERROR, PHONE_REQUIRED, type InviteRequest } from '@sabou/types';
 import { grantedRoles } from '@sabou/types/permissions';
 import { AUDIT_LOG, type AuditEntry } from '../audit/audit.log';
 import { SESSION_COOKIE } from '../auth/auth.controller';
@@ -198,7 +198,7 @@ const invitation: InviteRequest = {
   email: 'fanta.conde@sabou-sante.gn',
   firstName: 'Fanta',
   lastName: 'Condé',
-  phone: null,
+  phone: '+224620000099',
   role: 'regional',
   regionId: 3,
   prefectureId: null,
@@ -256,15 +256,29 @@ describe('Invitation (US-012)', () => {
     ]);
   });
 
-  it('téléphone facultatif : saisi librement, enregistré sous la forme +224 (US-012b)', async () => {
+  it('téléphone saisi librement, enregistré sous la forme +224 (US-012b)', async () => {
     const response = await call('comptes', {
       as: 'dg',
       body: { ...invitation, phone: ' 621 23.45-67 ' },
     });
     expect(response.status).toBe(201);
     expect(repository.invited.at(-1)).toMatchObject({ phone: '+224621234567' });
-    await call('comptes', { as: 'dg', body: invitation });
-    expect(repository.invited.at(-1)).toMatchObject({ phone: null });
+  });
+
+  it('téléphone obligatoire pour les quatre profils de gestion (MOE 17/11/2026), sans rien écrire', async () => {
+    const withoutPhone: Record<string, unknown> = { ...invitation };
+    delete withoutPhone.phone;
+    for (const body of [
+      withoutPhone,
+      { ...invitation, phone: '' },
+      { ...invitation, role: 'scientifique', regionId: null, phone: null },
+      { ...invitation, role: 'prefectoral', regionId: null, prefectureId: 4, phone: null },
+    ]) {
+      const response = await call('comptes', { as: 'dg', body });
+      expect(response.status).toBe(400);
+      expect(((await response.json()) as { message: string[] }).message).toEqual([PHONE_REQUIRED]);
+    }
+    expect(repository.outcomes).toEqual([]);
   });
 
   it('refuse un téléphone qui n’est pas un mobile guinéen, sans rien écrire', async () => {
