@@ -692,7 +692,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Mêmes règles et même API que le Studio web (US-060 à US-064) : maladie, plantes ordonnées avec partie utilisée, cycle, 4 sections obligatoires, conservation facultative, consentement et visibilité avant soumission.
 - Liste « Mes traitements » avec l’état de chacun et, pour un traitement en attente, sa raison (US-046).
-- Annotations du Comité visibles sur le traitement (US-064).
+- Motif du dernier renvoi visible sur le traitement ; les annotations du Comité restent internes (décision du maître d'œuvre du 18 novembre 2026, 05 §2.54 et §2.63).
 - Texte seulement ; la voix et le brouillon hors réseau viennent avec US-080 et US-081.
 
 #### US-068 · Retirer le praticien du site public

@@ -1046,3 +1046,16 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Connexion après l'inscription | La page de connexion de Keycloak s'ouvre avec le numéro déjà rempli (`login_hint`) ; le praticien saisit son mot de passe | Aucun jeton délivré hors de Keycloak : pas d'octroi par mot de passe (ROPC, déconseillé par OAuth 2.1) |
 | Règles de saisie | Reprises en Dart (`signup_rules.dart`) pour dire l'erreur sous le champ avant l'envoi ; l'API refait les mêmes contrôles et reste seule juge | Erreurs immédiates sans réseau ; mêmes cas de test que `@sabou/types` |
 | Langue | Textes de l'inscription en français et en anglais selon la langue du téléphone | Critère 4 de US-066. Le reste de l'application mobile n'est encore qu'en français : écart à traiter avec le récit qui traduira l'application |
+
+### 2.63 Studio SABOU mobile, en texte (US-067, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| API | Mêmes routes que le Studio web (`/api/praticien/traitements…`), avec le jeton de l'application (`PractitionerGuard`) ; aucune route nouvelle | Une seule source de règles : la base et l'API, déjà prouvées par `studio.test.ts` |
+| Envoi authentifié | Extrait du dossier dans `practitioner_http.dart`, partagé par le dossier et le Studio | Un seul endroit pour le jeton, le nouvel essai après un refus 401 et la déconnexion |
+| Annotations du Comité | **Non montrées au praticien** ; il voit le motif du dernier renvoi et la raison d'attente (US-046) | Décision du maître d'œuvre du 18 novembre 2026 : les annotations restent des avis internes (§2.54). Critère 3 de US-067 corrigé au backlog |
+| Contrôles dans l'application | Maladie, titre, visibilité avec le consentement : erreur sous le champ avant l'envoi ; bornes (cycle, longueurs) limitées à la saisie, puis contrôlées par l'API | Mêmes contrôles que le Studio web ; l'API reste seule juge |
+| Modifications concurrentes | La date de lecture (`vueLe`) est renvoyée à chaque enregistrement ; le refus « modifié entre-temps » est affiché tel quel | Le même traitement peut être ouvert sur le site et sur le téléphone |
+| Session expirée dans l'écran d'édition | L'écran d'édition est fermé avant le retour à la connexion | Sinon la page de connexion resterait cachée sous l'écran poussé |
+| Langue | Français, comme le reste de l'application (§2.62) | La traduction de l'application est un récit à part |
+| Hors périmètre | Voix et brouillon hors réseau | US-080 et US-081 (S7) |
