@@ -8,7 +8,7 @@
   "defaultLocale": "fr",
   "sslRequired": "external",
   "registrationAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "rememberMe": false,
   "loginWithEmailAllowed": false,
   "duplicateEmailsAllowed": false,
@@ -36,7 +36,14 @@
   "otpPolicyPeriod": 30,
   "otpPolicyLookAheadWindow": 1,
   "otpPolicyCodeReusable": false,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@sabou.local",
+    "fromDisplayName": "SABOU"
+  },
   "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging", "email"],
   "eventsExpiration": 7776000,
   "enabledEventTypes": [
     "LOGIN",
@@ -223,7 +230,75 @@
     }
   ],
   "browserFlow": "sabou-browser",
+  "resetCredentialsFlow": "sabou-reset-credentials",
   "authenticationFlows": [
+    {
+      "alias": "sabou-reset-2fa",
+      "description": "Mot de passe oublié : code de l'application d'authentification ou code de secours, si le compte en est équipé",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 5,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-recovery-authn-code-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "sabou-reset-credentials",
+      "description": "Mot de passe oublié par e-mail (MOE, 17/11/2026). Code du double facteur demandé avant le nouveau mot de passe.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "reset-credentials-choose-user",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "reset-credential-email",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "sabou-reset-2fa",
+          "requirement": "CONDITIONAL",
+          "priority": 25,
+          "authenticatorFlow": true,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "reset-password",
+          "requirement": "REQUIRED",
+          "priority": 30,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
     {
       "alias": "sabou-browser",
       "description": "Connexion SABOU : mot de passe, puis double facteur obligatoire pour les administrateurs (R-ACC-03), proposé aux autres",

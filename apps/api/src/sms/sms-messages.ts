@@ -28,7 +28,8 @@ const STEP: Record<number, string> = {
 
 export interface QueuedMessage {
   modele: string;
-  // Code du dossier (DS-…), ou du praticien pour un rejet définitif sans dossier en cours
+  // Code du dossier (DS-…), du praticien pour un rejet définitif sans dossier en cours, ou
+  // numéro du certificat (SAB-…) pour l'invitation à renouveler
   objet: string;
   // Données figées à la mise en file : étape d'arrivée d'une décision, date et heure d'une
   // visite (heure de Conakry, 2026-11-20T09:30)
@@ -43,6 +44,8 @@ export interface QueuedMessage {
     // du recours (2026-12-14)
     dossier?: string;
     recoursJusquau?: string;
+    // Échéance du certificat (US-049), 2027-01-14
+    expireLe?: string;
   };
 }
 
@@ -138,6 +141,13 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
       const to = TREATMENT_RETURN[parametres.statut ?? ''];
       return to
         ? `SABOU : votre traitement ${objet} ${to} Le motif est dans votre Studio SABOU.`
+        : null;
+    }
+    case 'certificat.renouvellement': {
+      // US-049 : invitation à renouveler, 60 jours avant l'échéance
+      const date = calendarDate(parametres.expireLe);
+      return date && /^SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3}$/.test(objet)
+        ? `SABOU : votre certificat ${objet} expire le ${date}. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire.`
         : null;
     }
     case 'dossier.publie':
