@@ -82,7 +82,8 @@ export const inviteRequestSchema = z
     prefectureId: id.nullable(),
     // Préférence personnelle, choisie par la personne elle-même ; français à l'invitation
     interfaceLanguage: z.enum(['fr', 'en']).default('fr'),
-    listeningLanguage: languageCode.nullable(),
+    // Choix de la personne ; à l'invitation, la langue de sa région (null)
+    listeningLanguage: languageCode.nullable().default(null),
     languages: z.array(workLanguageSchema).max(10),
   })
   .superRefine((value, ctx) => {

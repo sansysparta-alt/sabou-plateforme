@@ -71,5 +71,8 @@ describe('Langue de l’interface : préférence de la personne, pas de la DG', 
     const withoutLanguage: Record<string, unknown> = { ...base };
     delete withoutLanguage.interfaceLanguage;
     expect(inviteRequestSchema.parse(withoutLanguage).interfaceLanguage).toBe('fr');
+    delete withoutLanguage.listeningLanguage;
+    // Langue d'écoute absente : celle de la région (null)
+    expect(inviteRequestSchema.parse(withoutLanguage).listeningLanguage).toBeNull();
   });
 });

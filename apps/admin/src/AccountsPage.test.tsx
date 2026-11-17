@@ -113,6 +113,8 @@ describe('Page Comptes', () => {
     // La langue de l'interface est choisie par la personne elle-même, pas à l'invitation
     expect(within(form).queryByRole('group', { name: 'Langue de l’interface' })).toBeNull();
     expect(within(form).queryByRole('radio')).toBeNull();
+    // La langue d'écoute aussi : la personne la choisit, la langue de sa région par défaut
+    expect(within(form).queryByLabelText(/Langue d’écoute/)).toBeNull();
     const role = within(form).getByRole('combobox', { name: 'Rôle' });
     fireEvent.change(role, { target: { value: 'regional' } });
     expect(role.getAttribute('aria-describedby')).toBeTruthy();
