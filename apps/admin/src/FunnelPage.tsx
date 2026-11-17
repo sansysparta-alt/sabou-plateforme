@@ -3,6 +3,7 @@ import { Alert, Badge, DataTable, PageHeader, type Column } from '@sabou/ui';
 import type { BlockedDossier, CertificationFunnel, FunnelStep } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { fetchFunnel } from './certification-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Entonnoir des 6 étapes et dossiers bloqués (US-048, UC-67, R-CER-07) : écran de la DG, en
 // lecture seule. Deux tableaux plutôt qu'un graphique : lisibles au lecteur d'écran et sur
@@ -101,19 +102,15 @@ export function FunnelPage() {
 
   return (
     <>
-      <PageHeader
-        title="Entonnoir de certification"
-        lead="Dossiers en cours à chaque étape, délais et dossiers bloqués, au niveau national."
-      />
+      <PageHeader {...PAGE_HEADERS['/entonnoir']} />
       {load.status === 'error' && <Alert tone="error">{load.message}</Alert>}
       <section className="ui-section" aria-labelledby="etapes" aria-busy={!data}>
         <h2 id="etapes">Les 6 étapes</h2>
         {data ? (
           <>
-            <p className="ui-muted">
-              Délai cible : {data.delaiCibleJours} jours par étape. Délai moyen calculé sur les
-              dossiers sortis de l’étape au cours des 12 derniers mois.
-            </p>
+            {/* Explication du délai moyen dans l'introduction, pré-générée (US-017b) : ce
+                paragraphe court arrive avec les données sans devenir le plus grand élément */}
+            <p className="ui-muted">Délai cible : {data.delaiCibleJours} jours par étape.</p>
             <DataTable
               caption="Dossiers par étape et délai moyen"
               captionHidden

@@ -19,6 +19,7 @@ import type {
   DiseaseSummary,
 } from '@sabou/types';
 import { ApiError, call } from './accounts-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Fiches maladies du Dictionnaire (US-052, UC-05) : liste, recherche, création et fiche, pour
 // la DG et le Comité scientifique. Dénominations (synonymes) en français ou en anglais : aucun
@@ -80,8 +81,7 @@ export function DiseasesPage() {
   return (
     <>
       <PageHeader
-        title="Fiches maladies"
-        lead="Une fiche par maladie : nom français, nom anglais, dénominations et symptômes. La recherche trouve aussi les dénominations, avec ou sans accents."
+        {...PAGE_HEADERS['/maladies']}
         actions={
           <Button
             variant="primary"

@@ -45,6 +45,8 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
 
   // US-020 : une langue nationale ajoutée, inactive, puis activée…
   const code = await freeLanguageCode(page);
+  const languagesCount = page.getByRole('tab', { name: /^Langues/ }).locator('.ui-tabs__count');
+  const before = Number(await languagesCount.textContent());
   const name = `Langue ${code}`;
   await page.getByRole('button', { name: 'Ajouter une langue' }).click();
   const form = page.getByRole('form', { name: 'Ajouter une langue' });
@@ -53,7 +55,17 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
   await expect(form.getByLabel('Texte')).toBeDisabled();
   await form.getByRole('button', { name: 'Ajouter la langue' }).click();
   await expect(page.getByRole('status')).toHaveText(`Langue ${name} ajoutée, inactive.`);
+  // Liste relue après l'ajout (le message paraît avant) : une langue de plus
+  await expect(languagesCount).toHaveText(String(before + 1));
   const added = languages.getByRole('row').filter({ hasText: `(${code})` });
+  // Tableau paginé par 10 (US-019b) et langues des essais précédents gardées en base : la
+  // langue ajoutée peut être sur une page suivante
+  const pages = page.getByRole('navigation', { name: 'Pages : Langues' });
+  for (let turn = 0; turn < 50 && !(await added.isVisible()); turn += 1) {
+    const next = pages.getByRole('button', { name: /^Suiv/ });
+    if (!(await next.isVisible()) || (await next.isDisabled())) break;
+    await next.click();
+  }
   await expect(added).toContainText('Inactive');
   await added.getByRole('button', { name: `Activer la langue ${name}` }).click();
   await expect(added).toContainText('Active');

@@ -9,14 +9,14 @@ import {
   longDate,
   type OnDecided,
 } from './DossierDecision';
+import { PAGE_HEADERS } from './page-headers';
 
 // Consolidation par l'admin régional (US-043, UC-40) : dossiers de sa région vérifiés sur le
 // terrain (étape 3), transmis au Comité scientifique, ou renvoyés avec motif au préfectoral
 export function ConsolidationPage() {
   return (
     <DossierQueuePage
-      title="Consolidation régionale"
-      lead="Dossiers de votre région vérifiés sur le terrain, en attente de votre décision. Délai cible : 3 jours par dossier."
+      {...PAGE_HEADERS['/consolidation']}
       listTitle="Dossiers à consolider"
       empty="Aucun dossier en attente de consolidation."
       queue={QUEUES.consolidation}

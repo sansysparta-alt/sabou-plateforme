@@ -29,6 +29,7 @@ import {
   nameVoiceAudioUrl,
   recordNameVoice,
 } from './name-voices-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Voix du nom des plantes et des maladies (US-071, UC-33, UC-41) : par langue, la voix suit
 // Brouillon → Traduit → Validé → Publié (R-LNG-10). Le référent enregistre et présente la voix ;
@@ -100,10 +101,7 @@ export function NameVoicesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Voix des noms"
-        lead="La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale."
-      />
+      <PageHeader {...PAGE_HEADERS['/voix-des-noms']} />
       {loadError && <Alert tone="error">{loadError}</Alert>}
       {targets === null && !loadError && <p>Chargement…</p>}
       {targets && (

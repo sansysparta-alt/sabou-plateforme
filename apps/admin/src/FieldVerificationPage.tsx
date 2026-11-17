@@ -12,6 +12,7 @@ import {
   DossierRow,
 } from './DossierDecision';
 import { FieldVisitPanel } from './FieldVisitPanel';
+import { PAGE_HEADERS } from './page-headers';
 
 // Vérification terrain par l'admin préfectoral (US-042, UC-31) : dossiers de sa préfecture
 // à l'étape 2, visite planifiée puis réalisée avec compte rendu signé (US-041, UC-30),
@@ -19,8 +20,7 @@ import { FieldVisitPanel } from './FieldVisitPanel';
 export function FieldVerificationPage() {
   return (
     <DossierQueuePage
-      title="Vérification terrain"
-      lead="Dossiers soumis dans votre préfecture, en attente de votre décision. Délai cible : 3 jours par dossier."
+      {...PAGE_HEADERS['/verification-terrain']}
       listTitle="Dossiers à vérifier"
       empty="Aucun dossier en attente de vérification."
       queue={QUEUES.fieldVerification}

@@ -115,8 +115,12 @@ createServer((req, res) => {
   // /auth : connexion (US-010) ; /api : gestion des comptes et suivantes (lot A)
   if (/^\/(auth|api)(\/|$)/.test(path)) return proxy(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') return res.writeHead(405).end();
-  // Application à page unique : toute adresse inconnue reçoit index.html
-  const file = files.get(path) ?? files.get('/index.html');
+  // Application à page unique : une adresse reçoit son ossature pré-générée si elle en a une
+  // (US-017b, dist/<adresse>/index.html), sinon index.html — comme le frontal de production
+  const file =
+    files.get(path) ??
+    files.get(`${path.replace(/\/$/, '')}/index.html`) ??
+    files.get('/index.html');
   const encoding = encodingFor(req);
   res.writeHead(200, {
     ...HEADERS,

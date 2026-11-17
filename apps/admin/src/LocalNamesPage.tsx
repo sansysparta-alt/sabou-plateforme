@@ -22,6 +22,7 @@ import {
   removeLocalName,
   searchLocalNamesPlants,
 } from './local-names-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Noms locaux d'une plante (US-053, UC-12) : le référent d'une langue saisit, pour chaque
 // plante, ses noms dans cette langue : une transcription en alphabet latin, qui ne sert qu'à la
@@ -89,10 +90,7 @@ export function LocalNamesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Noms locaux des plantes"
-        lead="Le référent d’une langue saisit les noms d’une plante dans cette langue : la voix du nom, et une transcription en alphabet latin qui sert seulement à la recherche."
-      />
+      <PageHeader {...PAGE_HEADERS['/noms-locaux']} />
       {loadError && <Alert tone="error">{loadError}</Alert>}
       {languages === null && !loadError && <p>Chargement…</p>}
       {languages && languages.length === 0 && (

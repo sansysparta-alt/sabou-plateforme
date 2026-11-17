@@ -9,14 +9,14 @@ import {
   longDate,
   type OnDecided,
 } from './DossierDecision';
+import { PAGE_HEADERS } from './page-headers';
 
 // Expertise par le Comité scientifique (US-044, UC-50) : dossiers consolidés de toutes les
 // régions (étape 4), transmis à la DG pour approbation, ou renvoyés avec motif au régional
 export function ExpertisePage() {
   return (
     <DossierQueuePage
-      title="Expertise des dossiers"
-      lead="Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier."
+      {...PAGE_HEADERS['/expertise']}
       listTitle="Dossiers à expertiser"
       empty="Aucun dossier en attente d’expertise."
       queue={QUEUES.expertise}

@@ -27,6 +27,7 @@ import {
   suspendAccount,
 } from './accounts-api';
 import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
+import { PAGE_HEADERS } from './page-headers';
 
 const RIGHTS = [
   ['record', 'Enregistrer'],
@@ -97,8 +98,7 @@ export function AccountsPage() {
   return (
     <>
       <PageHeader
-        title="Comptes"
-        lead="Comptes d’administration : rôle, zone et langues de travail. Une suspension coupe l’accès immédiatement."
+        {...PAGE_HEADERS['/comptes']}
         actions={
           <Button
             variant="primary"

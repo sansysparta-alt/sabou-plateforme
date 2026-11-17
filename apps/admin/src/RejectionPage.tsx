@@ -3,6 +3,7 @@ import { Alert, Badge, Button, PageHeader, TextAreaField, TextField } from '@sab
 import type { RejectionCandidate, RejectionMotive, RejectionResult } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { rejectPractitioner, searchPractitioners } from './certification-api';
+import { PAGE_HEADERS } from './page-headers';
 
 // Rejet définitif d'un praticien par la Direction Générale (US-047, UC-61, R-CER-04).
 // Décisions du maître d'œuvre des 12 et 14 novembre 2026 (05_Choix_Techniques.md §2.36) :
@@ -115,10 +116,7 @@ export function RejectionPage() {
 
   return (
     <>
-      <PageHeader
-        title="Rejet définitif"
-        lead="Réservé à la Direction Générale, pour fraude documentaire, usurpation d’identité ou pratique dangereuse avérée après avis du Comité scientifique. Le praticien dispose de 30 jours pour contester la décision."
-      />
+      <PageHeader {...PAGE_HEADERS['/rejet-definitif']} />
       <form
         className="ui-search-bar"
         role="search"
