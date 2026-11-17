@@ -207,11 +207,9 @@ void main() {
         'anneesExperience': 12,
       });
 
-      // Pièces obligatoires annoncées avant tout dépôt
+      // Pièces obligatoires rappelées avant tout dépôt, sans ton d'erreur
       expect(
-        find.text(
-          'Pièces obligatoires manquantes : pièce d’identité, photo du praticien.',
-        ),
+        find.text('Pièces à déposer : pièce d’identité, photo du praticien.'),
         findsOneWidget,
       );
 
@@ -225,7 +223,7 @@ void main() {
       expect(upload.bodyBytes, [0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]);
       expect(find.text('Pièce d’identité ajoutée.'), findsOneWidget);
       expect(
-        find.text('Pièces obligatoires manquantes : photo du praticien.'),
+        find.text('Pièces à déposer : photo du praticien.'),
         findsOneWidget,
       );
 
@@ -300,11 +298,11 @@ void main() {
       await pumpHome(tester);
       await tapText(tester, 'Se connecter');
       await tapText(tester, 'Enregistrer la fiche');
-      expect(find.text('Choisissez une valeur.'), findsNWidgets(3));
-      expect(
-        find.text('L’expérience se compte en années, de 0 à 80.'),
-        findsOneWidget,
-      );
+      // Un message court sous chaque champ, qui dit quoi choisir
+      expect(find.text('Choisissez la spécialité.'), findsOneWidget);
+      expect(find.text('Choisissez la préfecture.'), findsOneWidget);
+      expect(find.text('Choisissez la langue principale.'), findsOneWidget);
+      expect(find.text('Saisissez un nombre de 0 à 80.'), findsOneWidget);
       expect(server.requests.where((r) => r.method == 'PUT'), isEmpty);
     });
   });
