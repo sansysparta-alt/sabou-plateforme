@@ -68,6 +68,11 @@ export default function Account() {
           <p>Bonjour {state.user.name}.</p>
           <p>Numéro de téléphone : {formatNationalMobile(state.user.username)}</p>
           <div className={styles.actions}>
+            {state.user.roles.includes('praticien') && (
+              <a className={styles.link} href="/studio">
+                Ouvrir le Studio
+              </a>
+            )}
             <button
               type="button"
               className={styles.button}

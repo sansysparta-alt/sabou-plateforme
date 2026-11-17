@@ -17,6 +17,7 @@ import { RejectionsModule } from './rejections/rejections.module';
 import { SignupModule } from './signup/signup.module';
 import { SmsModule } from './sms/sms.module';
 import { SyncModule } from './sync/sync.module';
+import { TreatmentsModule } from './treatments/treatments.module';
 import { VisitsModule } from './visits/visits.module';
 
 // Module racine : chaque domaine (certification, dictionnaire, traitements…) y sera importé
@@ -40,6 +41,7 @@ import { VisitsModule } from './visits/visits.module';
     SignupModule,
     SmsModule,
     SyncModule,
+    TreatmentsModule,
   ],
   controllers: [HealthController],
 })

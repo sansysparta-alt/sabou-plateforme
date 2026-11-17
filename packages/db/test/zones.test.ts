@@ -216,7 +216,6 @@ describe('Garde-fous du schéma', () => {
     forum_discussion: 'US-122',
     litige: 'US-101',
     produit: 'US-142',
-    recette: 'US-060 et US-061',
     signalement_sanitaire: 'US-100',
     // Référentiel public des sous-préfectures, pas une donnée de zone
     sous_prefecture: 'aucun : référentiel public',
@@ -269,6 +268,9 @@ describe('Garde-fous du schéma', () => {
       // US-051 : validation par le seul Comité (05 §2.41)
       'plante_valider',
       'saisie_terrain_recevoir',
+      // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
+      'traitement_enregistrer',
+      'traitement_soumettre',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',

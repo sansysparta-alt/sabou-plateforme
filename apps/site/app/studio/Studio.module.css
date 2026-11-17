@@ -1,0 +1,146 @@
+/* Studio web du praticien (US-060) : une colonne sur téléphone, un peu plus large que les
+   formulaires du compte pour les textes des sections. Cibles de 44 px, contrastes 4,5:1. */
+.page {
+  max-width: 40rem;
+}
+
+.list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.card {
+  padding: 0.75rem 1rem;
+  border: 1px solid #c9c9c9;
+  border-radius: 0.5rem;
+}
+
+.cardTitle {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  font-weight: 600;
+  color: #0b5cad;
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a4a4a;
+}
+
+.status {
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #eef1f4;
+  color: #1a1a1a;
+}
+
+.status[data-status='certifiee'] {
+  background: #e8f3ec;
+  color: #14532d;
+}
+
+.status[data-status='suspendue'],
+.status[data-status='retiree'] {
+  background: #fdecea;
+  color: #8a1c14;
+}
+
+.waiting,
+.motif {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #a15c00;
+  background: #fff6e5;
+  color: #4d2c00;
+}
+
+.group {
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid #c9c9c9;
+  border-radius: 0.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.plants {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+.plant {
+  display: grid;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e3e3e3;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.rowActions button:disabled {
+  color: #6b6b6b;
+  cursor: not-allowed;
+}
+
+.cycle {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.text {
+  min-height: 6rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.english summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #0b5cad;
+}
+
+.summary dt {
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.summary dd {
+  margin: 0;
+}
+
+.alertSlot:focus {
+  outline: none;
+}
+
+.empty:empty {
+  display: none;
+}
+
+/* Texte lu par les lecteurs d'écran seulement (libellés uniques des sections) */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

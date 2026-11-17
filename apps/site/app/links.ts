@@ -2,9 +2,10 @@
 // redirige vers la page de Keycloak : ce sont des liens de navigation complète, pas des
 // liens internes de Next.js.
 
-// Connexion par Keycloak, puis retour sur « Mon compte » ; numéro pré-rempli si connu
-export function loginHref(phone?: string): string {
-  const query = new URLSearchParams({ returnTo: '/compte' });
+// Connexion par Keycloak, puis retour sur « Mon compte » (ou la page indiquée, ex. le
+// Studio) ; numéro pré-rempli si connu
+export function loginHref(phone?: string, returnTo = '/compte'): string {
+  const query = new URLSearchParams({ returnTo });
   if (phone) query.set('identifiant', phone);
   return `/auth/citoyen/login?${query.toString()}`;
 }

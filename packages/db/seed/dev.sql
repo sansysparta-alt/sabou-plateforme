@@ -171,17 +171,7 @@ INSERT INTO maladie_voix (maladie_id, langue_code, audio_id, statut, enregistre_
 INSERT INTO plante_maladie (plante_id, maladie_id) VALUES (1,1),(2,1),(3,1),(4,3),(3,2),(2,5),(4,4);
 
 -- ---------- Traitements ----------
-INSERT INTO section_type (code, ordre, obligatoire, libelle_fr, libelle_en) VALUES
- ('preparation',        1, true,  'Mode de préparation',                       'Preparation'),
- ('consommation',       2, true,  'Modes de consommation',                     'How to take it'),
- ('cycle',              3, true,  'Cycle de traitement',                       'Treatment cycle'),
- ('effets_indesirables',4, true,  'Effets indésirables et contre-indications', 'Side effects and contraindications'),
- ('conservation',       5, false, 'Conservation',                              'Storage');
-
-INSERT INTO contre_indication (code, libelle_fr, libelle_en) VALUES
- ('grossesse','Grossesse','Pregnancy'),('allaitement','Allaitement','Breastfeeding'),
- ('enfant_moins_5_ans','Enfant de moins de 5 ans','Child under 5'),('personne_agee','Personne âgée','Elderly person'),
- ('maladie_chronique','Maladie chronique','Chronic disease');
+-- Sections et contre-indications : posées par la migration 20261116120000_studio_traitement
 
 -- Insérés en brouillon, certifiés ensuite (trg_recette_publiable vérifie plantes, sections, praticien, quota)
 INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, titre_en, cycle_duree_jours, cycle_prises_par_jour, cycle_pause_jours, visibilite) VALUES
