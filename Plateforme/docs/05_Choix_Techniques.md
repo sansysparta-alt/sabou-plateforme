@@ -877,7 +877,7 @@ Développement : sans React, le rafraîchissement à chaud garde l'état en moin
 
 Décision du maître d'œuvre du 16 novembre 2026, après un pipeline bloqué trois heures par une analyse figée faute de mémoire.
 
-- **Durée maximale par étape** : 60 minutes (`STEP_TIMEOUT_MIN`). Au-delà, l'étape est arrêtée avec tous ses processus et échoue.
+- **Durée maximale par étape** : 90 minutes (`STEP_TIMEOUT_MIN`), portée de 60 à 90 par le maître d'œuvre le 18 novembre 2026 : Lighthouse (5 mesures par page, toutes les pages) dépasse 60 minutes sur le poste de 7 Go sans aucune assertion en échec. Le nombre de mesures (5) reste inchangé. Au-delà, l'étape est arrêtée avec tous ses processus et échoue.
 - **Arrêt à la première étape en échec** ; dans les étapes lancées en parallèle, l'échec de l'une arrête les autres.
 - **Rien ne reste derrière** : à la sortie (réussite, échec ou Ctrl+C), les processus restants et les conteneurs lancés par le pipeline sont arrêtés. L'environnement local (Docker Compose) n'est pas touché. Sous Git Bash, l'arrêt suit l'arbre des processus de Git Bash puis `taskkill /T`, car les programmes Windows ne reçoivent pas les signaux de bash.
 - **Pas pendant un essai dans le navigateur** : `pnpm ci:local` refuse de démarrer si l'application de gestion (5173) ou le site (3000) tournent en développement. La mémoire du poste (7,2 Go) ne suffit pas aux deux.

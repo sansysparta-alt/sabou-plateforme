@@ -67,6 +67,8 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       email: `mesure-${tag}@exemple.invalid`,
       firstName: 'Fanta',
       lastName: 'Mesure',
+      // Téléphone obligatoire des comptes de gestion (US-012b, décision du 17/11/2026)
+      phone: '+224620000042',
       role: 'dg',
       regionId: null,
       prefectureId: null,
