@@ -78,9 +78,26 @@ INSERT INTO dossier_piece (dossier_id, type, fichier_url, sha256, depose_par, de
  (3,'identite',           'pieces/ds1043/identite.pdf',     encode(sha256(convert_to('ds1043-identite','UTF8')),'hex'), 8, now() - interval '55 days'),  -- 6
  (3,'photo',              'pieces/ds1043/photo.jpg',        encode(sha256(convert_to('ds1043-photo','UTF8')),'hex'),    8, now() - interval '55 days');  -- 7
 
-INSERT INTO visite_terrain (dossier_id, admin_id, prevue_le, rappel_envoye_le, realisee_le, compte_rendu_piece_id, statut) VALUES
- (2, 3, now() - interval '56 days', now() - interval '57 days', now() - interval '55 days', 2,    'realisee'),
- (1, 3, now() + interval '3 days',  NULL,                       NULL,                       NULL, 'planifiee');
+-- Compte rendu signé (US-041) : empreinte d'exemple, l'API la calcule sur le texte réel
+INSERT INTO visite_terrain (dossier_id, admin_id, prevue_le, rappel_envoye_le, realisee_le, compte_rendu_piece_id, statut,
+                            constats, avis, empreinte_sha3, signe_par, signe_le) VALUES
+ (2, 3, now() - interval '56 days', now() - interval '57 days', now() - interval '55 days', 2,    'realisee',
+  'Lieu d''exercice conforme à la fiche ; plantes séchées à l''abri, registre des patients tenu.', 'favorable',
+  encode(sha256(convert_to('ds1042-compte-rendu','UTF8')),'hex'), 3, now() - interval '55 days'),
+ (1, 3, now() + interval '3 days',  NULL,                       NULL,                       NULL, 'planifiee',
+  NULL, NULL, NULL, NULL, NULL);
+
+-- Certificats avant l'historique : une approbation à l'étape 5 exige le certificat (US-045)
+INSERT INTO cle_signature (kid, cle_publique, active_depuis) VALUES
+ ('exemple-2026', 'MCowBQYDK2VwAyEA-exemple-cle-publique-DG-SABOU-2026', now() - interval '1 year');
+
+INSERT INTO certificat (numero, praticien_id, dossier_id, emis_par, emis_le, expire_le, empreinte_sha3, signature, cle_id)
+SELECT x.numero, x.prat, x.dossier, 1, current_date - x.age, current_date - x.age + 360,
+       encode(sha256(convert_to(x.numero,'UTF8')),'hex'),            -- factice : SHA3-256 calculé par l'application
+       encode(sha256(convert_to('sig-' || x.numero,'UTF8')),'base64'), -- factice : signature Ed25519 calculée par l'application
+       1
+FROM (VALUES ('SAB-2026-PR1042-KX7',2,2,35), ('SAB-2026-PR1043-QD2',3,3,30),
+             ('SAB-2026-PR1044-MN5',4,4,28), ('SAB-2026-PR1045-ZT9',5,5,25)) AS x(numero, prat, dossier, age);
 
 INSERT INTO dossier_historique (dossier_id, etape_depart, etape_arrivee, decision, motif, acteur_id, decide_le) VALUES
  (1,1,2,'soumis', NULL, 6, now() - interval '12 days'),
@@ -92,17 +109,6 @@ INSERT INTO dossier_historique (dossier_id, etape_depart, etape_arrivee, decisio
  (2,5,6,'valide', NULL, 1,  now() - interval '35 days'),
  (2,6,6,'publie', NULL, 1,  now() - interval '35 days'),
  (3,1,2,'soumis', NULL, 8,  now() - interval '55 days');
-
-INSERT INTO cle_signature (cle_publique, active_depuis) VALUES
- ('MCowBQYDK2VwAyEA-exemple-cle-publique-DG-SABOU-2026', now() - interval '1 year');
-
-INSERT INTO certificat (numero, praticien_id, dossier_id, emis_par, emis_le, expire_le, empreinte_sha3, signature, cle_id)
-SELECT x.numero, x.prat, x.dossier, 1, current_date - x.age, current_date - x.age + 360,
-       encode(sha256(convert_to(x.numero,'UTF8')),'hex'),            -- factice : SHA3-256 calculé par l'application
-       encode(sha256(convert_to('sig-' || x.numero,'UTF8')),'base64'), -- factice : signature Ed25519 calculée par l'application
-       1
-FROM (VALUES ('SAB-2026-PR1042-KX7',2,2,35), ('SAB-2026-PR1043-QD2',3,3,30),
-             ('SAB-2026-PR1044-MN5',4,4,28), ('SAB-2026-PR1045-ZT9',5,5,25)) AS x(numero, prat, dossier, age);
 
 -- ---------- Voix (fichiers audio) ----------
 INSERT INTO audio_fichier (chemin, duree_sec, taille_octets, enregistre_par, consentement_voix, consentement_le) VALUES

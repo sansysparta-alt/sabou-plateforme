@@ -39,6 +39,7 @@ import { SESSION_STORE, type SessionData, type SessionStore } from '../auth/sess
 import { ENV, type Env } from '../config/env';
 import { ZoneContextError } from '../database/zone';
 import {
+  CertificateRequiredError,
   CertificationRepository,
   DecisionNotAllowedError,
   DossierNotFoundError,
@@ -117,6 +118,12 @@ function decisionError(error: unknown): never {
     throw new ConflictException({
       error: 'visit_required',
       message: 'Validation impossible : aucune visite réalisée avec compte rendu signé.',
+    });
+  }
+  if (error instanceof CertificateRequiredError) {
+    throw new ConflictException({
+      error: 'certificate_required',
+      message: 'À l’étape 5, approuvez le dossier en émettant son certificat signé.',
     });
   }
   throw error;

@@ -9,7 +9,10 @@ import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
-const FORM_FACTORS = ['mobile', 'desktop'];
+// LH_FORM_FACTORS : « mobile » seul en cours de récit (pnpm ci:recit) ; les deux par défaut
+const FORM_FACTORS = (process.env.LH_FORM_FACTORS ?? 'mobile,desktop').split(',');
+// LH_PAGES (expression régulière) : seules les pages touchées par le récit
+const pageFilter = process.env.LH_PAGES ? new RegExp(process.env.LH_PAGES) : null;
 
 // Outils lancés directement par Node, sans interpréteur de commandes
 const require = createRequire(import.meta.url);
@@ -83,11 +86,16 @@ try {
   ok = true;
   for (const formFactor of FORM_FACTORS) {
     const env = { LH_FORM_FACTOR: formFactor, LH_CPU_SLOWDOWN: String(cpuSlowdown) };
+    let collected = 0;
     groups.forEach((group, index) => {
+      if (pageFilter && !group.urls.some((url) => pageFilter.test(url))) return;
       console.log(`\nLighthouse ${formFactor} : ${group.name}`);
-      const args = ['collect', ...(index > 0 ? ['--additive'] : [])];
+      const args = ['collect', ...(collected > 0 ? ['--additive'] : [])];
       ok = run('lhci', args, { ...env, LH_GROUP: String(index) }) && ok;
+      collected += 1;
     });
+    if (collected === 0)
+      throw new Error(`aucune page ne répond à LH_PAGES=${process.env.LH_PAGES}`);
     printRuns(formFactor);
     // Seuils vérifiés format par format : une même adresse n'est jamais mélangée entre deux
     ok = run('lhci', ['assert'], env) && ok;

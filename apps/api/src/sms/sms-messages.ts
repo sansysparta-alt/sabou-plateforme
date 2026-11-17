@@ -28,10 +28,64 @@ const STEP: Record<number, string> = {
 
 export interface QueuedMessage {
   modele: string;
-  // Code du dossier (DS-…)
+  // Code du dossier (DS-…), du praticien pour un rejet définitif sans dossier en cours, ou
+  // numéro du certificat (SAB-…) pour l'invitation à renouveler
   objet: string;
-  // Données figées à la transition : étape d'arrivée
-  parametres: { etape?: number };
+  // Données figées à la mise en file : étape d'arrivée d'une décision, date et heure d'une
+  // visite (heure de Conakry, 2026-11-20T09:30)
+  parametres: {
+    etape?: number;
+    prevueLe?: string;
+    quota?: number;
+    contenu?: number;
+    // Rejet définitif (US-047) : dossier clos, s'il y en avait un en cours, et dernier jour
+    // du recours (2026-12-14)
+    dossier?: string;
+    recoursJusquau?: string;
+    // Échéance du certificat (US-049), 2027-01-14
+    expireLe?: string;
+  };
+}
+
+// « 2026-11-20T09:30 » → « 20/11/2026 à 09h30 » ; null si la donnée est mal formée
+function visitDate(value: string | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? '');
+  return match ? `${match[3]}/${match[2]}/${match[1]} à ${match[4]}h${match[5]}` : null;
+}
+
+// « 2026-12-14 » → « 14/12/2026 » ; null si la donnée est mal formée
+function calendarDate(value: string | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '');
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : null;
+}
+
+// Rejet définitif (US-047) : texte validé par le maître d'œuvre le 14 novembre 2026. Jusqu'aux
+// litiges (US-101), le recours passe par l'administration de la préfecture.
+function finalRejectionText(dossier: string | undefined, recoursJusquau: string | undefined) {
+  const date = calendarDate(recoursJusquau);
+  if (!date || (dossier !== undefined && !/^DS-\d{1,10}$/.test(dossier))) return null;
+  const subject = dossier ? `votre dossier ${dossier}` : 'votre certification';
+  return `SABOU : rejet définitif de ${subject}. Vous pouvez contester cette décision jusqu'au ${date} auprès de l'administration de votre préfecture.`;
+}
+
+// « 2 traitements du dossier … sont en attente : formule gratuite… » ; null
+// si les nombres sont mal formés (erreur définitive)
+function pendingTreatmentsText(objet: string, quota: number, contenu: number): string | null {
+  const valid = (n: number) => Number.isInteger(n) && n >= 0 && n < 1000;
+  if (!valid(quota) || !valid(contenu) || quota + contenu === 0) return null;
+  const total = quota + contenu;
+  // Quota : la promesse « certifié au passage à GOLD » est tenue par US-141 (critère du 13/11)
+  const reasons = [
+    quota > 0
+      ? `formule gratuite limitée à 3, ${quota === 1 ? 'certifié' : 'certifiés'} au passage à GOLD`
+      : null,
+    contenu > 0 ? 'plante ou section à compléter' : null,
+  ].filter(Boolean);
+  const subject =
+    total === 1
+      ? `1 traitement du dossier ${objet} est en attente`
+      : `${total} traitements du dossier ${objet} sont en attente`;
+  return `SABOU : ${subject} : ${reasons.join(' ; ')}.`;
 }
 
 // Texte d'un message de la file, ou null si le modèle est inconnu (erreur définitive)
@@ -53,6 +107,25 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
         : null;
     case 'dossier.rejet_definitif':
       return `SABOU : votre dossier ${objet} est définitivement rejeté. Le motif et les voies de recours sont dans votre espace SABOU.`;
+    case 'visite.rappel': {
+      // Rappel la veille de la visite terrain (US-041)
+      const date = visitDate(parametres.prevueLe);
+      return date
+        ? `SABOU : rappel, l'administration de votre préfecture vous rend visite le ${date} pour votre dossier ${objet}. Merci de vous rendre disponible.`
+        : null;
+    }
+    case 'dossier.traitements_en_attente':
+      // US-046 : traitements restés « expertisés » à la publication (nombre et raison)
+      return pendingTreatmentsText(objet, parametres.quota ?? 0, parametres.contenu ?? 0);
+    case 'praticien.rejet_definitif':
+      return finalRejectionText(parametres.dossier, parametres.recoursJusquau);
+    case 'certificat.renouvellement': {
+      // US-049 : invitation à renouveler, 60 jours avant l'échéance
+      const date = calendarDate(parametres.expireLe);
+      return date && /^SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3}$/.test(objet)
+        ? `SABOU : votre certificat ${objet} expire le ${date}. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire.`
+        : null;
+    }
     case 'dossier.publie':
       return `SABOU : félicitations, votre certification est publiée (dossier ${objet}). Votre fiche de praticien certifié est visible sur SABOU.`;
     default:

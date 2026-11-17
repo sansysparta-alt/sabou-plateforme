@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
 import { App } from './App';
@@ -83,6 +83,18 @@ function mockApi(session: SessionUser | null | 'panne') {
   return fetchMock;
 }
 
+// Pages chargées à la demande (lazy) : leur première transformation par Vite peut dépasser
+// le délai d'attente des tests quand toutes les suites tournent en parallèle (pipeline
+// complet). Préchargées une fois, elles s'affichent aussitôt ; le test vérifie l'écran, pas
+// la vitesse du poste.
+beforeAll(async () => {
+  await Promise.all([
+    import('./Dashboard'),
+    import('./AccountsPage'),
+    import('./ReferentialsPage'),
+  ]);
+}, 60_000);
+
 beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(() => {
   cleanup();
@@ -153,6 +165,23 @@ describe('App', () => {
     render(<App />);
     expect(await screen.findByText('Administrateur préfectoral · Labé'));
     expect(screen.queryByText('SMS non remis')).toBeNull();
+  });
+
+  it('DG : rubrique Entonnoir de certification dans Pilotage, réservée à la DG (US-048)', async () => {
+    mockApi(dg);
+    render(<App />);
+    const link = await screen.findByRole('link', { name: 'Entonnoir de certification' });
+    expect(link.getAttribute('href')).toBe('/entonnoir');
+    cleanup();
+    for (const user of [prefectoral, regional, committee]) {
+      mockApi(user);
+      window.history.replaceState(null, '', '/entonnoir');
+      render(<App />);
+      expect(await screen.findByRole('heading', { level: 1 }));
+      expect(screen.queryByRole('link', { name: 'Entonnoir de certification' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Entonnoir de certification' })).toBeNull();
+      cleanup();
+    }
   });
 
   it('administrateur préfectoral : pas de rubrique Administration (navigation selon le rôle)', async () => {

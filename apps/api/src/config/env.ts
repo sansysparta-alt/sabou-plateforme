@@ -70,18 +70,30 @@ const envSchema = z
       .regex(/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/)
       .default('sabou-pieces'),
     S3_CREATE_BUCKET: z.stringbool().default(false),
+    // Signature des certificats (US-045, §2.34) : coffre OpenBao, moteur Transit. La clé
+    // privée Ed25519 de la DG ne quitte jamais le coffre ; l'API n'a qu'un jeton limité à
+    // « signer » et « lire les clés publiques », lu dans un fichier à chaque usage (le coffre
+    // peut le remplacer sans redémarrer l'API).
+    OPENBAO_ADDR: z.url({ protocol: /^https?$/ }),
+    OPENBAO_TOKEN_FILE: z.string().min(1),
+    OPENBAO_KEY: z
+      .string()
+      .regex(/^[a-z0-9-]{1,64}$/)
+      .default('sabou-dg'),
     // Mandataires dont l'en-tête X-Forwarded-For fait foi pour l'IP du journal (syntaxe
     // « trust proxy » d'Express). Par défaut : réseaux privés seulement (Docker, proxy interne).
     TRUST_PROXY: z.string().min(1).default('loopback, linklocal, uniquelocal'),
   })
   .superRefine((env, ctx) => {
-    // Sans TLS, les échanges avec Keycloak et le cookie de session seraient lisibles sur le réseau
+    // Sans TLS, les échanges avec Keycloak et le coffre, et le cookie de session, seraient lisibles
+    // sur le réseau
     for (const key of [
       'KEYCLOAK_ISSUER',
       'KEYCLOAK_INTERNAL_URL',
       'ADMIN_APP_URL',
       'PUBLIC_KEYCLOAK_ISSUER',
       'SITE_URL',
+      'OPENBAO_ADDR',
     ] as const) {
       if (env[key]?.startsWith('http:') && !env.KEYCLOAK_ALLOW_HTTP) {
         ctx.addIssue({ code: 'custom', path: [key], message: 'https requis' });

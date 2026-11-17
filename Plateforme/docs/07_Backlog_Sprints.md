@@ -20,6 +20,10 @@ Réestimation du 2 novembre 2026, à la clôture de US-001 : US-007 passe de 2 �
 
 Découpage du 7 novembre 2026 (décision du maître d’œuvre) : US-040 est découpé en US-040a (API et base, 5 points) et US-040b (application mobile, 5 points). S2 passe de 26 à 31 points. Les recettes vocales rejoignent le dossier avec le Studio (S5).
 
+Réestimation du 14 novembre 2026 (décision du maître d’œuvre) : US-047 (rejet définitif) passe de 3 à 5 points, car la DG peut aussi rejeter un praticien déjà certifié sans dossier en cours (R-QR-06) ; S3 passe de 31 à 33 points et l’epic E04 de 44 à 46 points. Un critère est ajouté à US-061 : les traitements d’un praticien rejeté sortent des files.
+
+Report du 12 novembre 2026 (décision du maître d’œuvre) : US-008 (bascule vers le GitLab souverain, 3 points) sort de S3, qui passe de 34 à 31 points ; il revient au premier sprint qui suit le choix de l’hébergeur souverain (prototype 3.4). D’ici là, le pipeline tourne en local (jusqu’au 1er décembre 2026), puis sur GitHub.
+
 Ajout du 8 novembre 2026, soir (décision du maître d’œuvre) : US-016 se termine avec un LCP de 4 s en 3G pour les pages de l’application de gestion qui attendent des données (tableau de bord, Comptes, Référentiels, Invitation), 3 s ailleurs. Le nouveau récit US-017 (environ 1 jour, 3 points) ramène 3 s partout ; placé en S3 par le maître d’œuvre (8 novembre 2026) : S3 passe de 28 à 31 points.
 
 Ajout du 9 novembre 2026 (décision du maître d’œuvre) : nouveau récit US-018, socle de l’application mobile (thème de la charte, composants communs, navigation selon le profil), 3 points, en S3 : S3 passe de 31 à 34 points ; l’epic E08 passe à 5 récits et 27 points. La connexion des agents préfectoraux dans l’application arrive avec leur première rubrique (US-082, S8).
@@ -39,7 +43,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
 | **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
-| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-008, US-017, US-018 | 34 |
+| **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-017, US-018 | 33 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
@@ -76,7 +80,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | E01 | Identité et accès | 2 | 5 | 23 |
 | E02 | Référentiels | 2 | 2 | 5 |
 | E03 | Audit et notifications | 2 | 2 | 8 |
-| E04 | Certification et certificat | 2 | 11 | 44 |
+| E04 | Certification et certificat | 2 | 11 | 46 |
 | E05 | Dictionnaire Impérial | 3 | 4 | 14 |
 | E06 | Traitements et circuit | 3 | 5 | 22 |
 | E07 | Voix et gouvernance linguistique | 3 | 6 | 24 |
@@ -415,6 +419,8 @@ Critères d’acceptation :
 - Étant donné une visite planifiée, quand la veille arrive, alors un rappel part au praticien.
 - Étant donné une visite réalisée, quand je l’enregistre, alors un compte rendu signé est obligatoire.
 
+Décision du maître d’œuvre (12 novembre 2026) : compte rendu saisi en ligne par l’admin préfectoral, texte figé avec empreinte SHA3-256, auteur et heure au journal d’audit ; photo de la fiche papier facultative (voir 05 §2.33).
+
 #### US-045 · Approuver un dossier et émettre un certificat signé
 *Certification et certificat* · **Must** · 8 points · cas : UC-60
 
@@ -434,13 +440,15 @@ Critères d’acceptation :
 - Étant donné un certificat actif, quand la publication s’exécute, alors le praticien passe « certifié » et ses traitements expertisés joints au dossier passent « certifiés ».
 
 #### US-047 · Prononcer un rejet définitif
-*Certification et certificat* · **Must** · 3 points · cas : UC-61
+*Certification et certificat* · **Must** · 5 points · cas : UC-61
 
 > En tant que DG, je veux prononcer un rejet définitif, afin d’écarter un praticien frauduleux ou dangereux.
 
 Critères d’acceptation :
 - Étant donné un autre rôle que la DG, quand il tente un rejet définitif, alors c’est refusé.
 - Étant donné un rejet définitif motivé, quand il est prononcé, alors le praticien passe « rejeté », son certificat est révoqué et il est informé de son recours de 30 jours.
+
+*Précisions du maître d’œuvre (12 et 14 novembre 2026)* : le rejet se prononce sur un dossier en cours ou sur un praticien déjà certifié sans dossier en cours (R-QR-06), d’où 5 points au lieu de 3 ; motif « pratique dangereuse » : date et référence de l’avis du Comité obligatoires ; les traitements certifiés passent « suspendus » (réversible si le recours aboutit), ceux en cours d’examen gardent leur statut mais sortent des files ; jusqu’aux litiges (US-101), le SMS donne la date limite du recours (date du rejet + 30 jours) et oriente vers l’administration de la préfecture.
 
 #### US-048 · L’entonnoir des 6 étapes et les dossiers bloqués
 *Certification et certificat* · **Should** · 3 points · cas : UC-67
@@ -460,6 +468,8 @@ Critères d’acceptation :
 - Étant donné un certificat à 60 jours de l’échéance, quand la tâche s’exécute, alors le praticien reçoit une invitation à renouveler.
 
 #### US-008 · Basculer le dépôt et le pipeline sur le GitLab souverain
+*Reporté hors de S3 le 12 novembre 2026 (décision du maître d’œuvre), en attente de l’hébergeur souverain.*
+
 *Fondations techniques* · **Must** · 3 points · cas : —
 
 > En tant qu’équipe, je veux basculer le dépôt et le pipeline de GitHub vers le GitLab auto-hébergé, afin que le code et la chaîne de livraison soient souverains avant toute donnée réelle (E7).
@@ -538,6 +548,7 @@ Critères d’acceptation :
 - Maladie, 1 à n plantes ordonnées avec partie utilisée, cycle (durée, prises, pause).
 - 4 sections obligatoires + conservation facultative, texte français (et anglais facultatif).
 - Consentement et niveau de visibilité obligatoires avant soumission.
+- Étant donné un traitement resté « expertisé » à la publication de mon dossier (US-046), quand j’ouvre le Studio, alors je vois la raison : formule gratuite limitée à 3 traitements certifiés, ou plante ou section à compléter. La raison est lue sur le traitement (colonne `recette.attente_raison`, écrite par US-046), pas dans le journal d’audit. *Ajout du 13 novembre 2026, demandé par le maître d’œuvre à la livraison de US-046 ; le SMS est déjà envoyé par US-046. Estimation maintenue à 8 points par le maître d’œuvre (13 novembre 2026), à condition que la raison soit enregistrée sur le traitement.*
 
 #### US-061 · Faire avancer un traitement (soumettre, transmettre, expertiser, certifier, rejeter)
 *Traitements et circuit* · **Must** · 5 points · cas : UC-22, UC-42, UC-51, UC-62
@@ -548,6 +559,7 @@ Critères d’acceptation :
 - Seul le rôle prévu, dans sa zone, peut faire chaque transition.
 - Un rejet exige un motif et renvoie à l’étape précédente.
 - Chaque transition est historisée et notifiée.
+- Étant donné un praticien rejeté définitivement, quand un régional ou le Comité ouvre sa file, alors les traitements de ce praticien n’y figurent pas (ils ne peuvent déjà plus progresser, US-047). *Ajout du 14 novembre 2026, décision du maître d’œuvre à l’analyse de US-047.*
 
 #### US-062 · Que la certification d’un traitement soit bloquée s’il est incomplet
 *Traitements et circuit* · **Must** · 3 points · cas : UC-62
@@ -845,6 +857,7 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Formules Gratuit, GOLD, Institution ; délai de grâce de 30 jours.
 - À l’expiration : traitements déjà certifiés maintenus, boutique suspendue.
+- Étant donné des traitements restés « expertisés » à cause du quota de la formule gratuite (`attente_raison` = `quota`, US-046), quand le praticien passe en GOLD, alors ils sont certifiés, comme l’annonce le SMS « certifiés au passage à GOLD ». *Ajout du 13 novembre 2026, demandé par le maître d’œuvre.*
 
 #### US-153 · Renouveler mon certificat
 *Certification et certificat* · **Must** · 3 points · cas : UC-28

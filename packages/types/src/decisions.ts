@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FieldVisit } from './visits.js';
 
 // Décisions du workflow de certification aux étapes 2 à 5 (US-042, US-043, US-044 : un
 // seul appel). Qui peut décider, à quelle étape et dans quelle zone : la base
@@ -52,6 +53,8 @@ export interface FieldVerificationItem {
   visiteRequise: boolean;
   // Une visite réalisée, avec son compte rendu signé, est enregistrée (R-CER-06)
   visiteRealisee: boolean;
+  // Visite planifiée, sinon la dernière réalisée (US-041) ; null si aucune
+  visite: FieldVisit | null;
 }
 
 // Dossier en attente de consolidation régionale (étape 3), dans la région du compte

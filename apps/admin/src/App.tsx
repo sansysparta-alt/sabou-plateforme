@@ -18,6 +18,16 @@ const FieldVerificationPage = lazy(() =>
 const ConsolidationPage = lazy(() =>
   import('./ConsolidationPage').then((m) => ({ default: m.ConsolidationPage })),
 );
+const ApprovalPage = lazy(() =>
+  import('./ApprovalPage').then((m) => ({ default: m.ApprovalPage })),
+);
+const CertificatePage = lazy(() =>
+  import('./CertificatePage').then((m) => ({ default: m.CertificatePage })),
+);
+const RejectionPage = lazy(() =>
+  import('./RejectionPage').then((m) => ({ default: m.RejectionPage })),
+);
+const FunnelPage = lazy(() => import('./FunnelPage').then((m) => ({ default: m.FunnelPage })));
 const ExpertisePage = lazy(() =>
   import('./ExpertisePage').then((m) => ({ default: m.ExpertisePage })),
 );
@@ -176,6 +186,19 @@ function navigation(user: SessionUser): NavGroup[] {
     });
   }
   if (isDirector(user)) {
+    // Pilotage de la DG : entonnoir des 6 étapes (US-048)
+    groups[0]!.items.push({
+      href: '/entonnoir',
+      label: 'Entonnoir de certification',
+      icon: 'clock',
+    });
+    groups.push({
+      heading: 'Certification',
+      items: [
+        { href: '/approbation', label: 'Approbation des dossiers', icon: 'shield' },
+        { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'error' },
+      ],
+    });
     groups.push({
       heading: 'Administration',
       items: [
@@ -189,6 +212,9 @@ function navigation(user: SessionUser): NavGroup[] {
 
 // Pages de chaque profil ; tout autre profil, ou toute autre adresse, mène à l'accueil
 const DIRECTOR_PAGES: Record<string, ComponentType> = {
+  '/entonnoir': FunnelPage,
+  '/approbation': ApprovalPage,
+  '/rejet-definitif': RejectionPage,
   '/comptes': AccountsPage,
   '/referentiels': ReferentialsPage,
 };
@@ -202,7 +228,18 @@ const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/expertise': ExpertisePage,
 };
 
+// Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
+const CERTIFICATE_PATH = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+
 function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEnabled: boolean }) {
+  const certificate = isDirector(user) ? CERTIFICATE_PATH.exec(path()) : null;
+  if (certificate) {
+    return (
+      <Suspense fallback={<p>Chargement…</p>}>
+        <CertificatePage numero={certificate[1]!} />
+      </Suspense>
+    );
+  }
   const Page = isDirector(user)
     ? DIRECTOR_PAGES[path()]
     : isPrefectoral(user)

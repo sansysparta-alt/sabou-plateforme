@@ -1,65 +1,12 @@
 // US-042 : l'admin préfectoral valide ou rejette un dossier à l'étape 2, de bout en bout.
-// Vrai Keycloak (second facteur), vraie API, vraie base. Les dossiers sont créés en base pour
-// chaque test : la saisie des visites terrain arrive avec US-041 (décision du maître
-// d'œuvre du 9/11/2026).
-import { randomInt } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
+// Vrai Keycloak (second facteur), vraie API, vraie base. Les dossiers et leurs visites sont
+// créés en base pour chaque test ; la saisie des visites à l'écran est prouvée par
+// visites-terrain.spec.ts (US-041).
+import { expect, test } from '@playwright/test';
 import { psql } from './audit';
+import { decide, dossierAtStep2, stepOf } from './dossiers';
 import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
-
-// Praticien neuf et son dossier à l'étape 2, dans la préfecture donnée, avec une visite de
-// l'admin préfectoral indiqué : réalisée avec compte rendu signé, ou seulement planifiée.
-// Renvoie le code du dossier.
-function dossierAtStep2(
-  prefecture: 'Labé' | 'Kankan',
-  admin: string,
-  visit: 'realisee' | 'planifiee',
-): string {
-  // Seuls un identifiant Keycloak vérifié et un numéro tiré au hasard (plage 666…, sans
-  // abonné réel) entrent dans la requête
-  if (!/^[0-9a-f-]{36}$/.test(admin)) throw new Error(`Compte invalide : ${admin}`);
-  const phone = `+224666${String(randomInt(0, 1_000_000)).padStart(6, '0')}`;
-  const adminId = `(SELECT id FROM sabou.utilisateur WHERE keycloak_id = '${admin}')`;
-  const visitRows =
-    visit === 'realisee'
-      ? `cr AS (
-           INSERT INTO sabou.dossier_piece (dossier_id, type, fichier_url, sha256, depose_par)
-           SELECT id, 'compte_rendu_visite', 'pieces/e2e/visite.pdf', repeat('b', 64), ${adminId}
-             FROM d RETURNING id, dossier_id),
-         v AS (
-           INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, realisee_le, compte_rendu_piece_id, statut)
-           SELECT dossier_id, ${adminId}, now() - interval '1 day', now(), id, 'realisee' FROM cr)`
-      : `v AS (
-           INSERT INTO sabou.visite_terrain (dossier_id, admin_id, prevue_le, statut)
-           SELECT id, ${adminId}, now() + interval '2 days', 'planifiee' FROM d)`;
-  const output = psql(`SET search_path = sabou, public;
-    WITH u AS (
-      INSERT INTO sabou.utilisateur (telephone, prenom, nom, role_code, statut, keycloak_id)
-      VALUES ('${phone}', 'Essai', 'Terrain', 'praticien', 'actif', gen_random_uuid()) RETURNING id),
-    p AS (
-      INSERT INTO sabou.praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale, annees_experience)
-      SELECT u.id, 1, (SELECT id FROM sabou.prefecture WHERE nom = '${prefecture}'), 'pul', 5 FROM u RETURNING id),
-    d AS (
-      INSERT INTO sabou.dossier_certification (praticien_id, etape_courante)
-      SELECT id, 2 FROM p RETURNING id, code),
-    ${visitRows}
-    SELECT code FROM d;`);
-  const code = output.trim().split('\n').at(-1)!.trim();
-  expect(code).toMatch(/^DS-\d+$/);
-  return code;
-}
-
-const stepOf = (code: string) =>
-  Number(
-    psql(`SELECT etape_courante FROM sabou.dossier_certification WHERE code = '${code}'`).trim(),
-  );
-
-const decide = (page: Page, code: string, body: unknown) =>
-  page.request.post(`${APP}/api/dossiers/${code}/decision`, {
-    headers: { origin: APP },
-    data: body,
-  });
 
 test('US-042 : le préfectoral valide après la visite et rejette avec motif ; hors zone et sans visite, refus', async ({
   page,

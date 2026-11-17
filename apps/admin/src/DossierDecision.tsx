@@ -18,6 +18,8 @@ export const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString('fr-FR', { dateStyle: 'long' });
 
 export type OnDecided = (code: string, notice: string) => void;
+// Annonce un changement sans retirer le dossier (visite planifiée, compte rendu signé)
+export type Announce = (notice: string) => void;
 
 // Page d'une file de dossiers à décider : titre, annonce des décisions (lecteurs d'écran),
 // liste paginée. Chaque page fournit l'affichage d'un dossier. Un dossier décidé quitte la
@@ -36,7 +38,7 @@ export function DossierQueuePage<T extends { code: string }>({
   listTitle: string;
   empty: string;
   load: (after?: string) => Promise<ZonePage<T>>;
-  item: ComponentType<{ dossier: T; onDecided: OnDecided }>;
+  item: ComponentType<{ dossier: T; onDecided: OnDecided; announce: Announce }>;
 }) {
   const [dossiers, setDossiers] = useState<T[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
@@ -93,7 +95,12 @@ export function DossierQueuePage<T extends { code: string }>({
           {dossiers.length > 0 && (
             <ul className="ui-stack">
               {dossiers.map((dossier) => (
-                <Item key={dossier.code} dossier={dossier} onDecided={onDecided} />
+                <Item
+                  key={dossier.code}
+                  dossier={dossier}
+                  onDecided={onDecided}
+                  announce={setNotice}
+                />
               ))}
             </ul>
           )}

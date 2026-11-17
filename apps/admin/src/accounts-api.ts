@@ -22,15 +22,20 @@ export class ApiError extends Error {
 
 const GENERIC = 'Le service est momentanément indisponible. Veuillez réessayer.';
 
-// Appel de l'API ; sans corps : GET, avec corps : POST, sauf méthode donnée
+// Appel de l'API ; sans corps : GET, avec corps : POST, sauf méthode donnée. Un fichier
+// (Blob) part tel quel, sans formulaire multipart ; tout autre corps part en JSON.
 export async function call<T>(path: string, body?: unknown, method?: 'PATCH'): Promise<T> {
   let response: Response;
+  const file = body instanceof Blob;
   try {
     response = await fetch(path, {
       method: method ?? (body === undefined ? 'GET' : 'POST'),
       credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers:
+        body === undefined
+          ? {}
+          : { 'content-type': file ? body.type || 'application/octet-stream' : 'application/json' },
+      body: body === undefined ? undefined : file ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Connexion impossible. Vérifiez votre réseau et réessayez.');
