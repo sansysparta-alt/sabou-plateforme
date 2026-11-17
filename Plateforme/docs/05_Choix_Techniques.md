@@ -129,6 +129,16 @@ Pour faciliter la bascule, la logique du pipeline (lint, tests, compilation, dé
 
 **Décision du maître d'œuvre (12 novembre 2026) : pipeline rapide pendant le récit, complet avant la fusion.** `pnpm ci:recit` (`infra/ci/recit.sh`) ne vérifie que ce que le récit touche depuis `origin/main` : lint, typage, tests et compilation des paquets modifiés et de leurs dépendants (filtre `...[base]` de Turbo), tests de la base au complet, format des fichiers touchés, seuls les specs de bout en bout modifiés (ou `RECIT_SPECS`), Lighthouse à **une** mesure sur téléphone pour les pages de `RECIT_PAGES`, Semgrep sur les fichiers touchés, application mobile si elle a changé, audit des dépendances et des images si le verrou, un Dockerfile ou Compose a changé. **Il ne vaut jamais preuve** : `pnpm ci:local` (pipeline complet, Lighthouse à 5 mesures par page, refus de passer à 3) est lancé avant chaque demande de fusion et sa preuve y est jointe. `all.sh` efface les réglages de `ci:recit` avant de commencer, pour qu'aucun n'allège la preuve. Chaque étape est horodatée (début, fin, durée) ; les contrôles qui n'ont pas besoin de l'environnement local (application mobile, audit, Semgrep, variables d'environnement) tournent en parallèle. Semgrep reçoit ses règles et le code par des flux `tar` (`docker cp`) au lieu d'un dossier partagé : sous Windows, la lecture à travers le partage prenait environ 10 minutes.
 
+**Décision du maître d'œuvre (14 novembre 2026) : pipeline complet une fois par sprint.** Le passage complet en local dure une à deux heures sur le poste (7 Go de RAM : Lighthouse sur 15 pages et 2 formats ≈ 45 min, bout en bout ≈ 15 min, Semgrep, audit et application mobile en parallèle ≈ 45 min), et Docker tombe parfois en cours de route. Désormais :
+
+| Moment | Contrôles |
+|---|---|
+| Chaque récit, pendant le sprint | Lint et format des fichiers touchés ; tests unitaires des paquets touchés et de leurs dépendants ; tests de la base au complet (droits, cloisonnement par zone) ; contre-épreuves |
+| Fin de sprint, avant la fusion dans `main` | Pipeline complet (`pnpm ci:local`), une fois, sur l'état qui arrivera dans `main` : bout en bout et axe, Lighthouse (5 mesures), Semgrep, audit des dépendances et des images, application mobile |
+| Fin de sprint | Liste des vérifications que le maître d'œuvre fait lui-même dans le navigateur (rendu) |
+
+Ce qu'on accepte : une régression d'une page ou d'un parcours que le récit ne touche pas, ou une faille de dépendance, est découverte en fin de sprint et non au récit. Parade : le pipeline complet reste bloquant avant `main`, et les tests de la base (le cœur des règles métier et des droits) tournent à chaque récit. `pnpm ci:recit` reste disponible pour vérifier un récit plus largement quand c'est utile. Au retour du quota GitHub (1er décembre 2026), le pipeline de GitHub tourne sur chaque demande de fusion sans coût pour le poste ; la règle sera revue à ce moment.
+
 ### 2.12 Qualité
 
 | Choix | Usage |
@@ -302,7 +312,6 @@ Lecture : avec la clé brute, le chiffrement coûte environ 3 ms à l'ouverture 
 Méthode, quand l'installation par USB est refusée (MIUI : `INSTALL_FAILED_USER_RESTRICTED`) : compiler le test en application (`flutter build apk --profile --target=integration_test/chiffrement_test.dart`), la déposer sur le téléphone (`adb push`), l'installer depuis le gestionnaire de fichiers, puis lire la ligne `SABOU_MESURE` dans `adb logcat`.
 
 **Essai de bout en bout de la synchronisation sur le téléphone** (7 novembre 2026, `integration_test/synchro_test.dart`, même méthode, services du poste joints par `adb reverse`) : réussi. Le dossier saisi hors réseau est arrivé au serveur au retour du réseau (ligne `saisie_terrain` de la préfecture 4, version 1, vérifiée en base) ; aller-retour téléphone → API → PostgreSQL → PowerSync → téléphone : 720 ms en réseau local. Tous les critères de US-004 sont ainsi vérifiés sur le téléphone d'essai.
-
 
 | Choix | Pourquoi | Écarté |
 |---|---|---|
@@ -679,6 +688,20 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 | **Écran** : page « Rejet définitif » (menu Certification de la DG) ; recherche, fiche avec dossier, certificat et traitements, formulaire (motif, avis du Comité si besoin, faits), **liste des conséquences** avant une case de confirmation ; focus sur le premier champ en erreur, puis sur le message de réussite | Décision grave : la DG voit ce qu'elle va déclencher avant de confirmer (WCAG 3.3.4) | Simple bouton avec boîte de dialogue |
 
 **Contrôles du pipeline** : `packages/db/test/rejet-definitif.test.ts` (critère 1 pour 4 rôles et par `dossier_transition` ; critère 2 sans dossier et avec dossier en cours : statut, certificat révoqué et QR rouge, annuaire, traitements suspendus puis recertifiables, SMS et date du recours, décision et audit ; motifs, avis du Comité, second rejet, traitements en examen bloqués, retrait encore possible, délai de 12 mois, décision non modifiable, RLS), `packages/types/src/rejections.test.ts`, `apps/api/src/rejections/rejections.test.ts` (accès DG seule, validation, traduction des refus), `apps/api/src/sms/sms.test.ts` (texte validé, un SMS), `apps/admin/src/RejectionPage.test.tsx`, `apps/admin/e2e/rejet-definitif.spec.ts` (dossier en cours et praticien certifié de bout en bout, axe ; régional refusé à l'écran et par l'API), Lighthouse (`/rejet-definitif`).
+
+### 2.37 Échéance des certificats et invitation à renouveler (US-049, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Une fonction de base `certificats_echeances_traiter`** (SECURITY DEFINER, réservée à l'API, toutes zones) appelée **avant chaque relève de la file des SMS** | Même mécanisme que les rappels de visite (§2.33) : pas de planificateur de plus ; chaque passage rattrape un arrêt de l'API ; elle n'agit qu'une fois par certificat | Tâche cron séparée (un service de plus), extension `pg_cron` |
+| **Expiration au lendemain de l'échéance, à 0 h, heure de Conakry** : `expire_le` est le dernier jour valable ; statut « expiré », journal `certificat.expire` (automatique, sans auteur) | Le praticien sort de l'annuaire (`v_annuaire_public` ne montre que les certificats actifs), le QR répond ambre (R-QR-05) | Date du serveur (`current_date`) ; l'ancienne fonction `expirer_certificats`, jamais appelée et sans trace, est supprimée |
+| **Statut du praticien inchangé** (« certifié ») | R-CER-09 n'a pas de statut « expiré » ; il retrouve l'annuaire dès son nouveau certificat | Passage à « en attente » |
+| **Une seule invitation par certificat**, le 60e jour avant l'échéance à partir de 8 h (colonne `relance_renouvellement_le`), rattrapée tant que le certificat est actif ; aucune si un dossier de renouvellement est déjà en cours ou si le certificat est révoqué | Pas de SMS la nuit ni en double ; coût SMS maîtrisé | Relances répétées (J-30, J-7) : à décider avec le renouvellement |
+| **SMS `certificat.renouvellement`** : « SABOU : votre certificat SAB-… expire le JJ/MM/AAAA. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire. » (un SMS GSM 7 bits) | Numéro et échéance figés à la mise en file | — |
+| **L'ouverture du dossier de renouvellement** (R-QR-07, contenu proportionné) reste à son récit (sprint 14) | Le critère de US-049 est l'invitation ; d'ici là, aucune donnée réelle | — |
+| **Une erreur sur les échéances est journalisée sans retenir les SMS** déjà en file | L'envoi des décisions ne dépend pas de cette tâche | — |
+
+**Contrôles du pipeline** : `packages/db/test/echeance-certificats.test.ts` (critère 1 : dernier jour valable, expiration le lendemain, sortie de l'annuaire, QR ambre, journal unique, autres certificats intacts, révoqué intact ; critère 2 : rien à J-61 ni avant 8 h, un seul SMS au praticien, rattrapage, pas de relance si renouvellement en cours ou certificat révoqué, droits) ; `apps/api/src/sms/sms.test.ts` (texte, erreurs définitives, ordre échéances puis relève, erreur isolée) ; `packages/db/test/zones.test.ts` (liste des fonctions SECURITY DEFINER).
 
 ### 2.38 Entonnoir des 6 étapes et dossiers bloqués (US-048, novembre 2026)
 
