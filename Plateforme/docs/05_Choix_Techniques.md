@@ -1019,3 +1019,20 @@ Décision du maître d'œuvre (demande #60) : la page de Keycloak est la page de
 | Les changements faits par un administrateur Keycloak (récupération du compte DG) ne sont pas des événements de l'utilisateur : leur alerte, par e-mail et par SMS, relève de l'étape 2.3 de l'alignement | — | — |
 
 Preuve : `apps/admin/e2e/mot-de-passe-oublie.spec.ts` (lien reçu, code exigé, ancien mot de passe refusé, trois e-mails exactement) ; `connexion.spec.ts` vérifie le lien sur la page de connexion.
+
+### 2.61 Alignement sur le cahier des charges : écarts et décisions (17 novembre 2026)
+
+Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le paragraphe du cahier des charges. Récits correspondants : sprints 5b et 5c du backlog.
+
+| Décision | CdC | Conséquence technique |
+|---|---|---|
+| Site = visiteur et citoyen ; mobile = tout le profil Tradipraticien ; gestion = DG, régional, préfectoral, Comité (écart assumé) | §1.3, §6.6 (justifié par §2.10, §8) | Inscription et Studio du praticien dans l'application Flutter (US-066, US-067), retrait du site ensuite (US-068) ; API et base inchangées. Remplace 05 §2.29 (inscription sur le site) et §2.50 (Studio web) |
+| Page de Keycloak = page de connexion, sans page intermédiaire ; démo sans compte reportée | §5.2 | §2.55, §2.60 |
+| Mot de passe oublié : par e-mail pour la gestion (double facteur exigé), par SMS pour le praticien et le citoyen | §5.2 | §2.60 ; US-069 sur le service de SMS existant (simulé jusqu'au contrat) |
+| Téléphone obligatoire des comptes de gestion | Fiche U-001, §9 | §2.56 |
+| Un seul compte DG ; récupération par le rôle technique `administrateur` de Keycloak, journalisée (motif obligatoire), alerte par e-mail et par SMS | §3 | US-024 : index unique en base, outil de récupération, procédure d'exploitation ; première exécution réelle avec le maître d'œuvre (secrets de Keycloak) |
+| Le praticien propose une plante (en revue), seul le Comité valide | §6.5, §6.6 | US-054, US-055 |
+| Dossier terrain créé par l'Admin Préfectoral | §6.4 | US-040c |
+| Droits de langue par défaut selon le rôle, réglage par langue conservé | §2.8, §3.2 | US-012c |
+| Rejet définitif par la DG conservé | §4 (absent) | Écart noté, aucun changement |
+| Découpage administratif d'août 2026 | §1.2 (8 régions, 33 préfectures, dépassé) | §2.58, §2.59 |
