@@ -812,6 +812,17 @@
   }
 }
 
+/* Vignette d'une photo (fiches plantes, US-050) : taille fixe, aucun décalage au chargement */
+.ui-thumb {
+  display: block;
+  width: 10rem;
+  height: 7.5rem;
+  object-fit: cover;
+  border-radius: var(--sabou-radius-sm);
+  border: 1px solid var(--sabou-border);
+  background: var(--sabou-surface);
+}
+
 /* ---------- Connexion (maquette v1.3, US-019) ----------
    Téléphone : panneau vert puis garanties, l'un sous l'autre. Ordinateur : deux colonnes,
    le panneau vert à gauche, sur toute la hauteur, l'illustration en bas. */

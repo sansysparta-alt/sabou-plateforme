@@ -9,6 +9,8 @@ export const PIECE_STORAGE = Symbol('PIECE_STORAGE');
 // n'est servi que par l'API, après contrôle des droits.
 export interface PieceStorage {
   put(key: string, body: Buffer, contentType: string): Promise<void>;
+  // Contenu du fichier, null s'il n'existe pas (photos des fiches plantes, US-050)
+  get(key: string): Promise<Buffer | null>;
   remove(key: string): Promise<void>;
 }
 
@@ -41,6 +43,13 @@ export class S3PieceStorage implements PieceStorage {
       headers: { 'Content-Type': contentType },
     });
     if (!response.ok) throw new Error(`Stockage S3 : dépôt refusé (${response.status})`);
+  }
+
+  async get(key: string): Promise<Buffer | null> {
+    const response = await this.client.fetch(this.url(key), { method: 'GET' });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`Stockage S3 : lecture refusée (${response.status})`);
+    return Buffer.from(await response.arrayBuffer());
   }
 
   async remove(key: string): Promise<void> {

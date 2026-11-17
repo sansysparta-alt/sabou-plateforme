@@ -715,6 +715,23 @@ Décisions du maître d'œuvre des 12 et 14 novembre 2026 : la DG peut rejeter u
 
 **Contrôles du pipeline** : `packages/db/test/entonnoir-certification.test.ts` (6 étapes, délai moyen du jeu d'exemple, fenêtre de 12 mois, blocage à plus de 15 jours, étape 1 exclue, tri, zones, droits) ; `apps/api/src/dashboard/funnel.test.ts` (DG seule, second facteur, sans cache) ; `apps/admin/src/FunnelPage.test.tsx` et `App.test.tsx` (écran, rubrique réservée) ; `apps/admin/e2e/entonnoir.spec.ts` (bout en bout, accessibilité, refus d'un autre rôle) ; mesure Lighthouse de `/entonnoir`.
 
+### 2.40 Fiches plantes et leurs photos (US-050, novembre 2026)
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Fiches et photos écrites seulement par des fonctions de la base** (`plante_creer`, `plante_modifier`, `plante_image_ajouter`, `plante_image_modifier`, `plante_image_retirer`), **SECURITY DEFINER** ; l'API n'a plus le droit d'écrire en direct dans `plante` et `plante_image` | Le rôle (DG ou Comité scientifique) et le journal d'audit ne peuvent pas être contournés ; l'acteur est celui du contexte ouvert pour le compte connecté (`contexte_utilisateur()`), aucun paramètre ne permet d'agir au nom d'un autre | Contrôle du rôle dans l'API seule ; fonctions aux droits de l'appelant avec écriture directe permise |
+| **Nom scientifique unique sans tenir compte de la casse, des accents ni des espaces autour** (index sur `f_norm(btrim(…))`), avec un message qui donne la fiche qui le porte | « Khaya senegalensis » et « khaya Senegalensis » sont la même plante (R-PLA-01) | Unicité stricte du texte |
+| **Codes PL-001…** tirés d'une séquence, en sautant ceux déjà pris | Codes lisibles et stables, compatibles avec une reprise de données | — |
+| **Modification refusée si la fiche a changé depuis sa lecture** (date de dernière modification renvoyée par l'écran) | Deux membres du Comité ne s'écrasent pas | Verrou pessimiste |
+| **Une photo principale toujours présente dès qu'il y a une photo** : la première l'est d'office ; une principale ne perd sa marque qu'en la donnant à une autre ; si elle est retirée, la suivante la remplace | R-PLA-04 : une seule principale, et la fiche publique a toujours son image | Laisser une fiche avec des photos sans principale |
+| **Photos JPEG, PNG ou WebP, 5 Mo au plus, reconnues à leur contenu** ; clé de stockage tirée au hasard ; servies par l'API après contrôle des droits, avec `nosniff` et `default-src 'none'` ; cache privé d'un jour (une photo ne change jamais : une nouvelle a un autre identifiant) | Même règle que les pièces des dossiers (§2.26) ; aucune adresse publique du stockage | Redimensionnement à l'envoi : utile pour la fiche publique, à décider avec elle |
+| **Description de la photo dans l'adresse de l'envoi** (`?alt=…&type=…&principale=…`), le corps étant le fichier | Pas de formulaire multipart ni de bibliothèque de plus (§2.26) | Envoi en deux temps (description puis fichier) : laisse des photos sans fichier |
+| **Écrans** « Fiches plantes » (liste, recherche, création) et fiche (`/plantes/PL-001` : identité, photos), rubrique « Dictionnaire » de la DG et du Comité | UC-05 | — |
+
+La validation par le Comité (statut « validée ») est l'objet de US-051.
+
+**Contrôles du pipeline** : `packages/db/test/fiche-plante.test.ts` (création par la DG et le Comité, refus des autres profils, unicité normalisée, champs obligatoires, modification tracée et refus d'une fiche changée entre-temps, écriture directe interdite, photo principale unique, texte alternatif obligatoire, remplacement de la principale retirée) ; `zones.test.ts` (fonctions SECURITY DEFINER listées) ; `packages/types/src/plants.test.ts` ; `apps/api/src/plants/plants.test.ts` (accès, origine, saisie, refus traduits, formats et taille des photos, fichier retiré si la base refuse, en-têtes de la photo servie) ; `apps/admin/src/PlantsPage.test.tsx` et `App.test.tsx` (écrans, rubrique réservée).
+
 ### 2.45 Interface de gestion conforme à la maquette v1.3 (US-019, novembre 2026)
 
 | Choix | Pourquoi | Écarté |

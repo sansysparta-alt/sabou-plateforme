@@ -78,6 +78,14 @@ describe('Préchargement de la page (US-017)', () => {
     expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual(['/api/certificats/SAB-2026-PR12-AB3']);
   });
 
+  it('fiche plante (US-050) : la fiche demandée d’après son code', () => {
+    const fetchSpy = vi.fn(async (url: string) => Response.json({ url }));
+    vi.stubGlobal('fetch', fetchSpy);
+    window.history.replaceState(null, '', '/plantes/PL-001');
+    preloadCurrentPage();
+    expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual(['/api/plantes/PL-001']);
+  });
+
   it('adresse inconnue : rien n’est demandé', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);

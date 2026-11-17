@@ -2,6 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { DashboardSummary, SessionUser } from '@sabou/types';
 import { App, browser } from './App';
+import { clearPrefetched } from './prefetch';
 
 const dg: SessionUser = {
   username: 'awa.camara',
@@ -98,6 +99,7 @@ beforeAll(async () => {
 beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(() => {
   cleanup();
+  clearPrefetched();
   vi.unstubAllGlobals();
 });
 
@@ -304,6 +306,25 @@ describe('App', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/rattaché à aucune zone active/);
     expect(alert.textContent).not.toMatch(/Forbidden/);
+  });
+
+  it('DG et Comité : rubrique Fiches plantes et sa page ; pas pour le préfectoral (US-050)', async () => {
+    for (const user of [dg, committee]) {
+      mockApi(user);
+      window.history.replaceState(null, '', '/plantes');
+      render(<App />);
+      expect(await screen.findByRole('heading', { level: 1, name: 'Fiches plantes' }));
+      expect(screen.getByRole('link', { name: 'Fiches plantes' }).getAttribute('href')).toBe(
+        '/plantes',
+      );
+      cleanup();
+    }
+    mockApi(prefectoral);
+    window.history.replaceState(null, '', '/plantes');
+    render(<App />);
+    expect(await screen.findByRole('link', { name: 'Vérification terrain' }));
+    expect(screen.queryByRole('link', { name: 'Fiches plantes' })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Fiches plantes' })).toBeNull();
   });
 
   it('praticien : pas de chiffres de zone (réservés aux administrateurs)', async () => {

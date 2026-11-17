@@ -9,6 +9,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { CertificationModule } from './certification/certification.module';
+import { PlantsModule } from './plants/plants.module';
 import { ReferentialsModule } from './referentials/referentials.module';
 import { RejectionsModule } from './rejections/rejections.module';
 import { SignupModule } from './signup/signup.module';
@@ -27,6 +28,7 @@ import { VisitsModule } from './visits/visits.module';
     CertificationModule,
     CertificatesModule,
     RejectionsModule,
+    PlantsModule,
     VisitsModule,
     DashboardModule,
     DossiersModule,

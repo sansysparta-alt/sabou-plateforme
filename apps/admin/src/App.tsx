@@ -14,6 +14,9 @@ const loaders = {
   rejection: () => import('./RejectionPage'),
   funnel: () => import('./FunnelPage'),
   expertise: () => import('./ExpertisePage'),
+  // Dictionnaire (US-050)
+  plants: () => import('./PlantsPage'),
+  plant: () => import('./PlantPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -36,6 +39,8 @@ const CertificatePage = lazy(() =>
 const RejectionPage = lazy(() => loaders.rejection().then((m) => ({ default: m.RejectionPage })));
 const FunnelPage = lazy(() => loaders.funnel().then((m) => ({ default: m.FunnelPage })));
 const ExpertisePage = lazy(() => loaders.expertise().then((m) => ({ default: m.ExpertisePage })));
+const PlantsPage = lazy(() => loaders.plants().then((m) => ({ default: m.PlantsPage })));
+const PlantPage = lazy(() => loaders.plant().then((m) => ({ default: m.PlantPage })));
 
 // Morceau de la page demandée, d'après la seule adresse
 const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
@@ -49,6 +54,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/rejet-definitif': loaders.rejection,
   '/entonnoir': loaders.funnel,
   '/expertise': loaders.expertise,
+  '/plantes': loaders.plants,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande
@@ -61,8 +67,11 @@ const PAGE_DATA: Record<string, string[]> = {
   '/approbation': ['/api/dossiers/approbation'],
   '/entonnoir': ['/api/entonnoir'],
   '/expertise': ['/api/dossiers/expertise'],
+  '/plantes': ['/api/plantes'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
+// Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
+const PLANT_PATH = /^\/plantes\/(PL-\d{3,10})$/;
 
 // US-017 : le morceau de la page et ses données sont demandés dès le démarrage, en même temps
 // que la session, au lieu d'attendre la réponse de celle-ci (en 3G, un aller-retour de 300 ms
@@ -75,6 +84,11 @@ export function preloadCurrentPage(): void {
   // Échec (réseau coupé) : sans effet ici, la page le signale à son affichage
   load?.().catch(() => undefined);
   if (certificate) return prefetch(`/api/certificats/${encodeURIComponent(certificate[1]!)}`);
+  const plant = PLANT_PATH.exec(current);
+  if (plant) {
+    loaders.plant().catch(() => undefined);
+    return prefetch(`/api/plantes/${encodeURIComponent(plant[1]!)}`);
+  }
   // Invitation : la consultation, sans effet, avec le jeton du lien (après le #)
   if (current === '/invitation') {
     const token = window.location.hash.slice(1);
@@ -292,6 +306,13 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [{ href: '/expertise', label: 'Expertise des dossiers', icon: 'folder' }],
     });
   }
+  // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique
+  if (isDirector(user) || isCommittee(user)) {
+    groups.push({
+      heading: 'Dictionnaire',
+      items: [{ href: '/plantes', label: 'Fiches plantes', icon: 'book' }],
+    });
+  }
   if (isDirector(user)) {
     // Pilotage de la DG : entonnoir des 6 étapes (US-048)
     groups[0]!.items.push({
@@ -322,6 +343,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/entonnoir': FunnelPage,
   '/approbation': ApprovalPage,
   '/rejet-definitif': RejectionPage,
+  '/plantes': PlantsPage,
   '/comptes': AccountsPage,
   '/referentiels': ReferentialsPage,
 };
@@ -333,6 +355,7 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/expertise': ExpertisePage,
+  '/plantes': PlantsPage,
 };
 
 // Certificat à imprimer (US-045) : /certificats/<numéro>, ouvert à la DG après l'approbation
@@ -344,6 +367,14 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
     return (
       <Suspense fallback={<p>Chargement…</p>}>
         <CertificatePage numero={certificate[1]!} />
+      </Suspense>
+    );
+  }
+  const plant = isDirector(user) || isCommittee(user) ? PLANT_PATH.exec(path()) : null;
+  if (plant) {
+    return (
+      <Suspense fallback={<p>Chargement…</p>}>
+        <PlantPage code={plant[1]!} />
       </Suspense>
     );
   }
