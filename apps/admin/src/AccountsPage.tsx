@@ -537,7 +537,6 @@ interface FormState {
   role: AccountRole | '';
   regionId: string;
   prefectureId: string;
-  interfaceLanguage: 'fr' | 'en';
   listeningLanguage: string;
   languages: Record<string, Omit<WorkLanguage, 'code'>>;
 }
@@ -550,7 +549,6 @@ const EMPTY: FormState = {
   role: '',
   regionId: '',
   prefectureId: '',
-  interfaceLanguage: 'fr',
   listeningLanguage: '',
   languages: {},
 };
@@ -613,7 +611,6 @@ function InviteForm({
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
         prefectureId:
           form.role === 'prefectoral' && form.prefectureId ? Number(form.prefectureId) : null,
-        interfaceLanguage: form.interfaceLanguage,
         listeningLanguage: form.listeningLanguage || null,
         languages: Object.entries(form.languages)
           .filter(([, rights]) => rights.record || rights.translate || rights.validate)
@@ -795,99 +792,77 @@ function InviteForm({
             )}
           </div>
         </fieldset>
+        {/* Langue de l'interface : préférence personnelle, choisie par la personne elle-même
+            (sélecteur FR / EN), pas par la DG ; français par défaut */}
         <fieldset className="ui-form-section">
-          <legend className="ui-form-section__legend">Langues</legend>
-          <div className="ui-form-row">
-            <fieldset className="ui-fieldset">
-              <legend className="ui-fieldset__legend">Langue de l’interface</legend>
-              <div className="ui-choice-row">
-                {(
-                  [
-                    ['fr', 'Français'],
-                    ['en', 'Anglais'],
-                  ] as const
-                ).map(([code, label]) => (
-                  <label key={code} className="ui-choice">
-                    <input
-                      type="radio"
-                      name={`${id}-interface`}
-                      value={code}
-                      checked={form.interfaceLanguage === code}
-                      onChange={() => set('interfaceLanguage', code)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-listening`}>
-                Langue d’écoute préférée (voix)
-              </label>
-              <select
-                className="ui-select"
-                id={`${id}-listening`}
-                value={form.listeningLanguage}
-                onChange={(event) => set('listeningLanguage', event.target.value)}
-              >
-                <option value="">Celle de la région</option>
-                {voiceLanguages.map((language) => (
-                  <option key={language.code} value={language.code}>
-                    {language.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <legend className="ui-form-section__legend">Langues et voix</legend>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-listening`}>
+              Langue d’écoute préférée
+            </label>
+            <select
+              className="ui-select"
+              id={`${id}-listening`}
+              value={form.listeningLanguage}
+              onChange={(event) => set('listeningLanguage', event.target.value)}
+            >
+              <option value="">Celle de la région</option>
+              {voiceLanguages.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {language.name}
+                </option>
+              ))}
+            </select>
           </div>
-        </fieldset>
-        <fieldset className="ui-form-section" aria-describedby={`${id}-rights-hint`}>
-          <legend className="ui-form-section__legend">Langues de travail</legend>
-          <p id={`${id}-rights-hint`} className="ui-field__hint">
-            Cochez ce que la personne peut faire dans chaque langue ; rien à cocher si elle ne
-            travaille pas sur les voix.
-          </p>
-          {/* Une ligne par langue, une colonne par droit : quinze langues tiennent sur un écran */}
-          <div className="ui-table-wrap ui-check-matrix">
-            <table className="ui-table">
-              <caption className="ui-visually-hidden">Droits par langue de travail</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Langue</th>
-                  {RIGHTS.map(([right, label]) => (
-                    <th key={right} scope="col" className="ui-table__check">
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {voiceLanguages.map((language) => (
-                  <tr key={language.code}>
-                    <th scope="row">{language.name}</th>
+          <fieldset className="ui-fieldset" aria-describedby={`${id}-rights-hint`}>
+            <legend className="ui-fieldset__legend">Langues de travail</legend>
+            <p id={`${id}-rights-hint`} className="ui-field__hint">
+              Cochez ce que la personne peut faire dans chaque langue ; rien à cocher si elle ne
+              travaille pas sur les voix.
+            </p>
+            {/* Une ligne par langue, une colonne par droit : quinze langues tiennent sur un écran */}
+            <div className="ui-table-wrap ui-check-matrix">
+              <table className="ui-table">
+                <caption className="ui-visually-hidden">Droits par langue de travail</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Langue</th>
                     {RIGHTS.map(([right, label]) => (
-                      <td key={right} className="ui-table__check">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={form.languages[language.code]?.[right] ?? false}
-                            onChange={(event) =>
-                              setRight(language.code, right, event.target.checked)
-                            }
-                          />
-                          <span className="ui-visually-hidden">
-                            {label} en {language.name}
-                          </span>
-                          <span className="ui-check-matrix__short" aria-hidden="true">
-                            {label}
-                          </span>
-                        </label>
-                      </td>
+                      <th key={right} scope="col" className="ui-table__check">
+                        {label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {voiceLanguages.map((language) => (
+                    <tr key={language.code}>
+                      <th scope="row">{language.name}</th>
+                      {RIGHTS.map(([right, label]) => (
+                        <td key={right} className="ui-table__check">
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={form.languages[language.code]?.[right] ?? false}
+                              onChange={(event) =>
+                                setRight(language.code, right, event.target.checked)
+                              }
+                            />
+                            <span className="ui-visually-hidden">
+                              {label} en {language.name}
+                            </span>
+                            <span className="ui-check-matrix__short" aria-hidden="true">
+                              {label}
+                            </span>
+                          </label>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </fieldset>
         </fieldset>
         <div className="ui-form__actions">
           <button type="submit" className="ui-button ui-button--primary" disabled={sending}>

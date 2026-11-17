@@ -110,6 +110,9 @@ describe('Page Comptes', () => {
     await screen.findByRole('table');
     fireEvent.click(screen.getByRole('button', { name: 'Inviter un compte' }));
     const form = screen.getByRole('region', { name: 'Inviter un compte' });
+    // La langue de l'interface est choisie par la personne elle-même, pas à l'invitation
+    expect(within(form).queryByRole('group', { name: 'Langue de l’interface' })).toBeNull();
+    expect(within(form).queryByRole('radio')).toBeNull();
     const role = within(form).getByRole('combobox', { name: 'Rôle' });
     fireEvent.change(role, { target: { value: 'regional' } });
     expect(role.getAttribute('aria-describedby')).toBeTruthy();

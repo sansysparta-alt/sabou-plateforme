@@ -65,3 +65,11 @@ describe('Téléphone facultatif d’un compte d’administration (US-012b)', ()
     }
   });
 });
+
+describe('Langue de l’interface : préférence de la personne, pas de la DG', () => {
+  it('absente de l’invitation : français par défaut', () => {
+    const withoutLanguage: Record<string, unknown> = { ...base };
+    delete withoutLanguage.interfaceLanguage;
+    expect(inviteRequestSchema.parse(withoutLanguage).interfaceLanguage).toBe('fr');
+  });
+});

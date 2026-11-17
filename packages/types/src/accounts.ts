@@ -80,7 +80,8 @@ export const inviteRequestSchema = z
     role: accountRoleSchema,
     regionId: id.nullable(),
     prefectureId: id.nullable(),
-    interfaceLanguage: z.enum(['fr', 'en']),
+    // Préférence personnelle, choisie par la personne elle-même ; français à l'invitation
+    interfaceLanguage: z.enum(['fr', 'en']).default('fr'),
     listeningLanguage: languageCode.nullable(),
     languages: z.array(workLanguageSchema).max(10),
   })
@@ -93,6 +94,8 @@ export const inviteRequestSchema = z
     }
   });
 export type InviteRequest = z.infer<typeof inviteRequestSchema>;
+// Ce qu'envoie l'application (champs à valeur par défaut facultatifs)
+export type InviteRequestInput = z.input<typeof inviteRequestSchema>;
 
 // Lien à transmettre par la DG ; le jeton est dans le fragment (#), jamais envoyé au serveur
 // qui sert la page ni inscrit dans les journaux des mandataires
