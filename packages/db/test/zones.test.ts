@@ -249,6 +249,8 @@ describe('Garde-fous du schéma', () => {
         WHERE p.prosecdef ORDER BY 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      // US-049 : échéances des certificats, toutes zones, réservée à l'API (05 §2.37)
+      'certificats_echeances_traiter',
       'contexte_ouvrir',
       'saisie_terrain_recevoir',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
