@@ -132,5 +132,5 @@ FROM signalement_sanitaire WHERE statut <> 'clos' ORDER BY (gravite = 'grave') D
 SELECT fs.id, fs.message_id, fs.motif, fs.signale_le FROM forum_signalement fs
 WHERE fs.traite_le IS NULL AND fs.signale_le < now() - interval '48 hours';
 
--- 11. Tâche quotidienne : expiration des certificats
-SELECT expirer_certificats();
+-- 11. Tâche quotidienne : expiration des certificats et invitations à renouveler (US-049)
+SELECT * FROM certificats_echeances_traiter();

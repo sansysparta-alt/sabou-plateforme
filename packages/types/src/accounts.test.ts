@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { inviteRequestSchema } from './accounts.js';
-import { PHONE_ERROR } from './phone.js';
+import { PHONE_ERROR, PHONE_REQUIRED } from './phone.js';
 
 const base = {
   email: 'Fanta.Conde@Sabou-Sante.gn',
   firstName: ' Fanta ',
   lastName: 'Condé',
+  phone: '621 23 45 67',
   role: 'regional',
   regionId: 3,
   prefectureId: null,
@@ -48,11 +49,14 @@ describe('inviteRequestSchema', () => {
   });
 });
 
-describe('Téléphone facultatif d’un compte d’administration (US-012b)', () => {
-  it('absent ou vide : null ; saisi librement : forme internationale', () => {
-    expect(inviteRequestSchema.parse(base).phone).toBeNull();
-    expect(inviteRequestSchema.parse({ ...base, phone: '  ' }).phone).toBeNull();
-    expect(inviteRequestSchema.parse({ ...base, phone: null }).phone).toBeNull();
+describe('Téléphone obligatoire d’un compte de gestion (US-012b, MOE 17/11/2026)', () => {
+  it('absent ou vide : refusé ; saisi librement : forme internationale', () => {
+    const withoutPhone: Record<string, unknown> = { ...base };
+    delete withoutPhone.phone;
+    for (const invitation of [withoutPhone, { ...base, phone: '  ' }, { ...base, phone: null }]) {
+      const result = inviteRequestSchema.safeParse(invitation);
+      expect(result.error?.issues.map((issue) => issue.message)).toEqual([PHONE_REQUIRED]);
+    }
     for (const input of ['621 23 45 67', '+224 621-23-45-67', '00224621234567']) {
       expect(inviteRequestSchema.parse({ ...base, phone: input }).phone).toBe('+224621234567');
     }

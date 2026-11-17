@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PHONE_ERROR, toInternational, toNationalMobile } from './phone.js';
+import { PHONE_ERROR, PHONE_REQUIRED, toInternational, toNationalMobile } from './phone.js';
 
 // Gestion des comptes (lot A : US-012, US-013). Schémas partagés par l'API, qui valide
 // chaque requête, et par l'application de gestion, qui valide ses formulaires.
@@ -55,16 +55,20 @@ export function zoneError(
   }
 }
 
-// Téléphone facultatif d'un compte d'administration (fiche U-001 du cahier des charges) : pour
-// être joint par la DG, jamais identifiant de connexion (l'e-mail l'est). Mobile guinéen saisi
-// librement, enregistré sous la forme internationale (+2246XXXXXXXX).
-export const optionalPhoneSchema = z
+// Téléphone d'un compte de gestion (fiche U-001 du cahier des charges), obligatoire pour les
+// quatre profils (décision du maître d'œuvre du 17/11/2026) : alertes et notifications par SMS
+// du §9. Jamais identifiant de connexion (l'e-mail l'est). Mobile guinéen saisi librement,
+// enregistré sous la forme internationale (+2246XXXXXXXX).
+export const accountPhoneSchema = z
   .string()
   .trim()
   .max(30)
   .nullish()
   .transform((value, ctx) => {
-    if (!value) return null;
+    if (!value) {
+      ctx.addIssue({ code: 'custom', message: PHONE_REQUIRED });
+      return z.NEVER;
+    }
     const national = toNationalMobile(value);
     if (national) return toInternational(national);
     ctx.addIssue({ code: 'custom', message: PHONE_ERROR });
@@ -76,7 +80,7 @@ export const inviteRequestSchema = z
     email: z.email().max(254).toLowerCase(),
     firstName: name,
     lastName: name,
-    phone: optionalPhoneSchema,
+    phone: accountPhoneSchema,
     role: accountRoleSchema,
     regionId: id.nullable(),
     prefectureId: id.nullable(),
