@@ -85,7 +85,8 @@ export const inviteRequestSchema = z
     lastName: name,
     phone: accountPhoneSchema,
     role: z.enum(INVITABLE_ROLES, {
-      error: 'Rôle à choisir parmi régional, préfectoral ou Comité scientifique : il n’y a qu’un seul compte DG.',
+      error:
+        'Rôle à choisir parmi régional, préfectoral ou Comité scientifique : il n’y a qu’un seul compte DG.',
     }),
     regionId: id.nullable(),
     prefectureId: id.nullable(),
