@@ -1069,3 +1069,16 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Studio web | Pages, styles et tests retirés du site ; l'API et la base restent (Studio mobile, US-067) | Critère 2 de US-068 |
 | Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
 | Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |
+
+### 2.66 Proposition d'une plante par le praticien (US-054, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Ce que saisit le praticien | Nom français obligatoire ; nom scientifique, famille et description (1 000 caractères) facultatifs | Décision du maître d'œuvre du 18 novembre 2026 : beaucoup de tradipraticiens ne connaissent pas le nom scientifique (+1 point) |
+| Fiche « en revue » incomplète | `nom_scientifique` et `famille` acceptent NULL ; contrainte `ck_plante_validee_identifiee` : jamais validée sans eux ; `plante_valider` le dit en clair | Le Comité complète l'identité botanique avant de valider (US-051, US-055) |
+| Auteur | Colonne `proposee_par`, journal `plante.proposee` ; affichée sur la fiche dans la gestion avec la description | Critère 1 de US-054 |
+| Abus | 10 propositions « en revue » au plus par praticien, tenu par la base | Une suite de propositions automatiques est arrêtée sans service externe |
+| Écriture | `plante_proposer` (`SECURITY DEFINER`), réservée au rôle `praticien` ; route `POST /api/praticien/plantes` (jeton de l'application, §2.64) | Même modèle que les autres écritures : la base est seule juge |
+| Dans le Studio mobile | « Proposer une plante absente de la liste » depuis l'écran d'édition ; la plante créée est choisie dans la première ligne vide | Le praticien continue son traitement sans attendre ; il ne sera certifié qu'après la validation (trg_recette_publiable) |
+| `plante_modifier` | Comparaisons et journal en `IS DISTINCT FROM` | Les anciennes valeurs NULL d'une fiche proposée sont tracées quand le Comité la complète |
+| Textes | Aucune aide n'invite à écrire un nom en langue nationale | Langues nationales en voix uniquement |

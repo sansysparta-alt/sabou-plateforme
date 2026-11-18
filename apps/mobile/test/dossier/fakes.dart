@@ -72,6 +72,9 @@ class FakeServer {
 
   // État du Studio (US-067) : traitements du praticien, par code
   final treatments = <String, Map<String, Object?>>{};
+
+  /// Plantes proposées par le praticien (US-054), corps reçus.
+  final proposals = <Map<String, Object?>>[];
   int _treatmentSeq = 1000;
   int _clock = 0;
 
@@ -344,6 +347,18 @@ class FakeServer {
     }
     if (request.method == 'GET' && path == 'studio/referentiels') {
       return _json(200, studioReferentials);
+    }
+    // US-054 : plante proposée, créée « en revue »
+    if (request.method == 'POST' && path == 'plantes') {
+      final body = jsonDecode(request.body) as Map<String, Object?>;
+      proposals.add(body);
+      final sci = body['nomScientifique'] as String?;
+      return _json(201, {
+        'code': 'PLA-0${100 + proposals.length}',
+        'nomFr': body['nomFr'],
+        'nomScientifique': sci == null || sci.isEmpty ? null : sci,
+        'validee': false,
+      });
     }
     if (request.method == 'GET' && path == 'traitements') {
       const summary = [

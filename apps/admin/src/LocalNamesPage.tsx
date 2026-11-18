@@ -126,7 +126,12 @@ export function LocalNamesPage() {
               {
                 key: 'scientifique',
                 header: 'Nom scientifique',
-                render: (row) => <i>{row.nomScientifique}</i>,
+                render: (row) =>
+                  row.nomScientifique ? (
+                    <i>{row.nomScientifique}</i>
+                  ) : (
+                    <span className="ui-muted">—</span>
+                  ),
               },
               { key: 'noms', header: 'Noms locaux', render: (row) => row.noms },
               {

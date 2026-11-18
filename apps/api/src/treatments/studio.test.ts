@@ -15,6 +15,8 @@ import { ZoneContextError } from '../database/zone';
 import { PractitionerGuard } from '../dossiers/dossiers.controller';
 import { StudioController } from './studio.controller';
 import {
+  PlantProposalLimitError,
+  PlantProposalRefusedError,
   StudioNoProfileError,
   StudioRepository,
   TreatmentIncompleteError,
@@ -82,6 +84,11 @@ const repository = {
     calls.push(['save', sub, code, seen, fields]);
     if (failure) throw failure;
     return DETAIL;
+  },
+  async propose(sub: string, input: unknown) {
+    calls.push(['propose', sub, input]);
+    if (failure) throw failure;
+    return { code: 'PL-007', nomFr: 'Kinkéliba rouge', nomScientifique: null, validee: false };
   },
   async submit(sub: string, _ip: unknown, code: string) {
     calls.push(['submit', sub, code]);
@@ -322,5 +329,61 @@ describe('Critère : raison de l’attente lue sur le traitement (US-046)', () =
     const response = await call('GET', 'traitements/REC-0001');
     expect(response.status).toBe(200);
     expect(await response.json()).toHaveProperty('attenteRaison');
+  });
+});
+
+// US-054 : proposer une plante qui manque au Dictionnaire
+describe('US-054 : proposition d’une plante par le praticien', () => {
+  it('nom français seul : transmis à la base avec le compte du jeton, fiche en revue', async () => {
+    const response = await call('POST', 'plantes', {
+      body: { nomFr: '  Kinkéliba rouge ', description: 'Arbuste des savanes' },
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({
+      code: 'PL-007',
+      nomFr: 'Kinkéliba rouge',
+      nomScientifique: null,
+      validee: false,
+    });
+    expect(calls).toEqual([
+      [
+        'propose',
+        SUB,
+        {
+          nomFr: 'Kinkéliba rouge',
+          nomScientifique: null,
+          famille: null,
+          description: 'Arbuste des savanes',
+        },
+      ],
+    ]);
+  });
+
+  it('nom français absent, champ inconnu ou auteur imposé : refusé avant la base', async () => {
+    expect((await call('POST', 'plantes', { body: { nomFr: ' ' } })).status).toBe(400);
+    expect(
+      (await call('POST', 'plantes', { body: { nomFr: 'Plante', proposeePar: 'PR-1042' } })).status,
+    ).toBe(400);
+    expect(calls).toEqual([]);
+  });
+
+  it('nom scientifique déjà pris, ou trop de propositions en attente : 409 expliqué', async () => {
+    failure = new PlantProposalRefusedError('Ce nom scientifique est déjà utilisé.');
+    const duplicate = await call('POST', 'plantes', { body: { nomFr: 'Plante' } });
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: 'duplicate' });
+    failure = new PlantProposalLimitError('10 en attente.');
+    const tooMany = await call('POST', 'plantes', { body: { nomFr: 'Plante' } });
+    expect(tooMany.status).toBe(409);
+    expect(await tooMany.json()).toMatchObject({ error: 'too_many' });
+  });
+
+  it('réservée au praticien : sans jeton 401, citoyen 403', async () => {
+    expect((await call('POST', 'plantes', { token: null, body: { nomFr: 'P' } })).status).toBe(401);
+    expect(
+      (await call('POST', 'plantes', { token: 'jeton.citoyen.ok', body: { nomFr: 'P' } })).status,
+    ).toBe(403);
+    expect(calls).toEqual([]);
   });
 });

@@ -35,6 +35,7 @@ const PLANT: PlantDetail = {
   famille: 'Combretaceae',
   nomFr: 'Kinkéliba',
   nomEn: null,
+  proposition: null,
   statut: 'en_revue',
   modifieLe: '2026-11-15T10:00:00.000000Z',
   validation: null,

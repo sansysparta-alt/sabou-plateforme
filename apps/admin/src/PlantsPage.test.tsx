@@ -32,6 +32,7 @@ const PLANT: PlantDetail = {
   famille: 'Meliaceae',
   nomFr: 'Caïlcédrat',
   nomEn: 'African mahogany',
+  proposition: null,
   statut: 'validee',
   modifieLe: '2026-11-15T10:00:00.123456Z',
   validation: { par: 'Aboubacar Diakité', le: '2026-11-15T09:00:00Z' },
@@ -288,6 +289,22 @@ describe('US-051 : validation par le Comité', () => {
     const [url, init] = lastCall();
     expect([url, init.method]).toEqual(['/api/plantes/PL-001/validation', 'POST']);
     expect(JSON.parse(init.body as string)).toEqual({ vueLe: PLANT.modifieLe });
+  });
+
+  // US-054 : fiche proposée par un praticien, sans identité botanique
+  it('fiche proposée : auteur et description ; le Comité doit compléter avant de valider', async () => {
+    handler = () =>
+      Response.json({
+        ...inReview,
+        nomScientifique: null,
+        famille: null,
+        proposition: { par: 'Mamadou Diallo', description: 'Arbuste des savanes' },
+      });
+    render(<PlantPage code="PL-001" canValidate />);
+    expect(await screen.findByText(/Proposée par le praticien Mamadou Diallo/));
+    expect(screen.getByText(/« Arbuste des savanes »/));
+    expect(screen.getByText(/Complétez le nom scientifique et la famille/));
+    expect(screen.queryByRole('button', { name: 'Valider la fiche' })).toBeNull();
   });
 
   it('hors Comité : pas de bouton, la règle est rappelée', async () => {

@@ -342,6 +342,94 @@ void main() {
     });
   });
 
+  // Affichage de la liste après un déplacement : la liste montre la plante de la ligne
+  testWidgets('après « Monter », chaque liste affiche la plante de sa ligne', (
+    tester,
+  ) async {
+    await pumpStudio(tester);
+    await tapText(tester, 'Nouveau traitement');
+    await choose(tester, 'plante-0', 'Neem (Azadirachta indica)');
+    await tapText(tester, 'Ajouter une plante');
+    await choose(tester, 'plante-1', 'Kinkéliba (Combretum micranthum)');
+    await tester.ensureVisible(find.text('Monter').at(1));
+    await tester.tap(find.text('Monter').at(1));
+    await tester.pumpAndSettle();
+    Finder shownIn(int index, String text) => find.descendant(
+      of: find.byKey(Key('studio-plante-$index')),
+      matching: find.text(text),
+    );
+    expect(shownIn(0, 'Kinkéliba (Combretum micranthum)'), findsOneWidget);
+    expect(shownIn(1, 'Neem (Azadirachta indica)'), findsOneWidget);
+  });
+
+  group('US-054 : proposer une plante absente de la liste', () {
+    testWidgets(
+      'nom français seul : proposée, choisie dans la ligne vide, en attente du Comité',
+      (tester) async {
+        await pumpStudio(tester);
+        await tapText(tester, 'Nouveau traitement');
+        await tapText(tester, 'Proposer une plante absente de la liste');
+        expect(find.text('Proposer une plante'), findsOneWidget);
+
+        // Nom français obligatoire : erreur sous le champ, rien n'est envoyé
+        await tapText(tester, 'Envoyer la proposition');
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('proposer-nomFr')))
+              .decoration
+              ?.errorText,
+          'Indiquez le nom de la plante en français.',
+        );
+        expect(server.proposals, isEmpty);
+
+        await tester.enterText(
+          find.byKey(const Key('proposer-nomFr')),
+          ' Kinkéliba rouge ',
+        );
+        await tester.enterText(
+          find.byKey(const Key('proposer-description')),
+          'Arbuste des savanes',
+        );
+        await tapText(tester, 'Envoyer la proposition');
+        expect(server.proposals, [
+          {
+            'nomFr': 'Kinkéliba rouge',
+            'nomScientifique': '',
+            'famille': '',
+            'description': 'Arbuste des savanes',
+          },
+        ]);
+        // Retour à l'écran d'édition : plante choisie, signalée en revue
+        expect(find.text('Proposer une plante'), findsNothing);
+        expect(
+          find.textContaining('Plante « Kinkéliba rouge » proposée'),
+          findsOneWidget,
+        );
+        expect(find.text('Kinkéliba rouge'), findsWidgets);
+        expect(find.textContaining('En revue par le Comité'), findsOneWidget);
+      },
+    );
+
+    testWidgets('refus de l’API affiché tel quel (trop de propositions)', (
+      tester,
+    ) async {
+      await pumpStudio(tester);
+      await tapText(tester, 'Nouveau traitement');
+      await tapText(tester, 'Proposer une plante absente de la liste');
+      await tester.enterText(find.byKey(const Key('proposer-nomFr')), 'Plante');
+      server.nextStudioRefusal = null;
+      server.offline = true;
+      await tapText(tester, 'Envoyer la proposition');
+      expect(
+        find.text(
+          'La demande n’a pas abouti. Vérifiez le réseau, puis réessayez.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Proposer une plante'), findsOneWidget);
+    });
+  });
+
   group('Critère 2 : « Mes traitements », état et raison d’attente', () {
     testWidgets('liste vide : invitation à créer le premier', (tester) async {
       await pumpStudio(tester);
