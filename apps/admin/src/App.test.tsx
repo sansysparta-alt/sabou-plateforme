@@ -135,18 +135,17 @@ describe('App', () => {
     window.sessionStorage.clear();
   });
 
-  it('erreur de connexion : page d’accueil avec le message, lien vers /auth/login et garanties', async () => {
+  it('erreur de connexion : message et « Réessayer », sans répéter les garanties (affichées par Keycloak)', async () => {
     mockApi(null);
     const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
     window.history.replaceState(null, '', '/?erreur=connexion');
     render(<App />);
-    expect(await screen.findByRole('heading', { level: 1, name: 'Application de gestion' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Connexion impossible' }));
     expect(screen.getByRole('alert').textContent).toMatch(/La connexion n’a pas abouti/);
-    expect(screen.getByRole('link', { name: 'Se connecter' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Réessayer la connexion' }).getAttribute('href')).toBe(
       '/auth/login',
     );
-    expect(screen.getByText(/Double facteur obligatoire pour tous les administrateurs/));
-    expect(screen.getByText(/bloqué 15 minutes après 5 mots de passe erronés/));
+    expect(screen.queryByText(/bloqué 15 minutes après 5 mots de passe erronés/)).toBeNull();
     expect(assign).not.toHaveBeenCalled();
     assign.mockRestore();
   });
@@ -370,11 +369,14 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Accès non autorisé' }));
   });
 
-  it('déconnexion : POST /auth/logout puis retour à la page de connexion', async () => {
+  it('déconnexion : POST /auth/logout puis directement la connexion Keycloak, sans page intermédiaire', async () => {
     const fetchMock = mockApi(dg);
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Se déconnecter' }));
-    expect(await screen.findByRole('link', { name: 'Se connecter' }));
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('/auth/login'));
+    expect(screen.queryByRole('link', { name: 'Se connecter' })).toBeNull();
+    assign.mockRestore();
     expect(fetchMock).toHaveBeenCalledWith(
       '/auth/logout',
       expect.objectContaining({ method: 'POST' }),

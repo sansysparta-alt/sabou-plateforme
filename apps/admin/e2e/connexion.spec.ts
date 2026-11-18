@@ -34,19 +34,17 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   await expect(page.getByRole('complementary', { name: 'Présentation de SABOU' })).toContainText(
     'Application de gestion',
   );
-  await expect(
-    page.getByText('Mot de passe oublié ? Contactez votre administrateur.'),
-  ).toBeVisible();
+  // Mot de passe oublié par e-mail pour les comptes de gestion (MOE, 17/11/2026)
+  await expect(page.getByRole('link', { name: 'Mot de passe oublié ?' })).toBeVisible();
   await expectAccessible(page, 'Connexion Keycloak');
 
   await submitPassword(page, dg);
   // Pas d'accès tant que le second facteur n'est pas configuré
   await expect(page.locator('#kc-totp-settings')).toBeVisible();
   expect(await sessionStatus(page)).toBe(401);
-  // Encadré général du thème (template.ftl) : avertissement annoncé, icône dessinée décorative
-  const notice = page.getByRole('status').filter({ hasText: /authentification/i });
-  await expect(notice).toBeVisible();
-  await expect(notice.locator('svg.sabou-alert__icon[aria-hidden="true"]')).toBeVisible();
+  // Titre seul, sans avis qui le répète (refonte de l'authentification, §2.55)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Double authentification');
+  await expect(page.locator('.sabou-alert')).toHaveCount(0);
   await expectAccessible(page, 'Configuration du code à usage unique');
 
   const secret = await configureTotp(page);
@@ -57,22 +55,16 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   await page.locator('#kcRecoveryCodesConfirmationCheck').check();
   await page.locator('#saveRecoveryAuthnCodesBtn').click();
 
-  // Le code tout juste enregistré est demandé aussitôt (niveau 2 seul, §2.28) : pas de
-  // mot de passe à retaper, pas de session sans lui
-  await expect(page.locator('#otp')).toBeVisible();
-  await expect(page.getByLabel('Mot de passe', { exact: true })).toBeHidden();
-  expect(await sessionStatus(page)).toBe(401);
-  await expectAccessible(page, 'Saisie du code juste après l’activation');
-  // Un code ne sert qu'une fois par période de 30 s
-  await page.waitForTimeout(msUntilNextPeriod());
-  await page.locator('#otp').fill(totp(secret));
-  await page.getByRole('button', { name: 'Connexion' }).click();
+  // Le code vient d'être saisi et vérifié à la configuration : ni mot de passe ni code
+  // redemandés, directement le tableau de bord (§2.55)
+  await expect(page).toHaveURL(new RegExp(`^${APP}/`));
+  expect(await sessionStatus(page)).toBe(200);
   await expect(page.getByRole('status')).toContainText('Double facteur activé');
 
   // Connexion suivante : mot de passe, puis code de l'application d'authentification
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, dg);
   await expect(page.locator('#otp')).toBeVisible();
@@ -97,7 +89,7 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   // Déconnexion : session de l'API fermée, et Keycloak redemande l'identification
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   expect(await sessionStatus(page)).toBe(401);
   await startLogin(page);
   await expect(page.getByLabel('Mot de passe', { exact: true })).toBeVisible();
@@ -125,11 +117,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   // Mot de passe redemandé avant de modifier la sécurité du compte
   await submitPassword(page, praticien);
   const secret = await configureTotp(page);
-  // Code demandé aussitôt, sans retaper le mot de passe (§2.28)
-  await expect(page.locator('#otp')).toBeVisible();
-  await page.waitForTimeout(msUntilNextPeriod());
-  await page.locator('#otp').fill(totp(secret));
-  await page.getByRole('button', { name: 'Connexion' }).click();
+  // Code saisi et vérifié à la configuration : pas de nouvelle demande (§2.55)
   await expect(page.getByRole('status')).toContainText('Double facteur activé');
   await expect(page.getByText('Double facteur actif')).toBeVisible();
   await expectAccessible(page, 'Double facteur activé');
@@ -137,7 +125,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   // Une fois activé, il lui est demandé à chaque connexion
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, praticien);
   await expect(page.locator('#otp')).toBeVisible();
@@ -149,7 +137,7 @@ test('praticien et citoyen : double facteur proposé, pas imposé', async ({ pag
   const citoyen = await createUser('citoyen');
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   // Déconnexion terminée (sessions de l'API et de Keycloak closes) avant de continuer
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
   await startLogin(page);
   await submitPassword(page, citoyen);
   await expect(page).toHaveURL(`${APP}/`);
@@ -207,7 +195,7 @@ test('journal d’audit : échec, connexion et déconnexion, avec l’IP (US-030
   await submitPassword(page, user);
   await expect(page).toHaveURL(`${APP}/`);
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
-  await expect(page.getByRole('link', { name: 'Se connecter' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/`));
 
   await expect
     .poll(() => auditLines(user.id).map((line) => `${line.source}:${line.action}`), AUDIT_DELAY)

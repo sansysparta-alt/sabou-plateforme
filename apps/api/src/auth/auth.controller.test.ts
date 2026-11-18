@@ -76,9 +76,13 @@ class FakeIdp implements IdentityProvider {
     claims: this.claims,
     refreshToken: 'jeton-de-rafraichissement',
   }));
+  // Code à usage unique enregistré pendant la connexion : non, par défaut
+  otpConfiguredSince = vi.fn<NonNullable<IdentityProvider['otpConfiguredSince']>>(
+    async () => false,
+  );
   async startLogin(returnTo: string, action?: LoginAction) {
     const state = randomBytes(16).toString('base64url');
-    const tx = { state, nonce: 'n', codeVerifier: 'v', returnTo };
+    const tx = { state, nonce: 'n', codeVerifier: 'v', returnTo, startedAt: Date.now() };
     return { url: `http://keycloak.test/auth?state=${state}&action=${action ?? ''}`, tx };
   }
 }
@@ -241,6 +245,21 @@ describe('GET /auth/callback', () => {
     expect([...store.logins.values()]).toEqual([
       expect.objectContaining({ returnTo: '/dossiers', stepUp: true }),
     ]);
+  });
+
+  it('administrateur qui vient de configurer et vérifier son code : session ouverte sans nouvelle demande', async () => {
+    idp.otpConfiguredSince.mockResolvedValueOnce(true);
+    const response = await loginAs(['comite', 'administrateur'], ['pwd'], '/dossiers');
+    expect(response.headers.get('location')).toBe(`${APP}/dossiers?info=double-facteur`);
+    expect(idp.otpConfiguredSince).toHaveBeenCalledWith('u-1', expect.any(Number));
+    expect([...store.sessions.values()][0]).toMatchObject({ secondFactor: true });
+  });
+
+  it('vérification du code configuré impossible (Keycloak injoignable) : relance au niveau 2, comme avant', async () => {
+    idp.otpConfiguredSince.mockRejectedValueOnce(new Error('injoignable'));
+    const response = await loginAs(['comite', 'administrateur'], ['pwd']);
+    expect(response.headers.get('location')).toMatch(/action=step-up$/);
+    expect(store.sessions.size).toBe(0);
   });
 
   it('administrateur toujours sans second facteur après la relance : refusé, session Keycloak fermée (R-ACC-03)', async () => {

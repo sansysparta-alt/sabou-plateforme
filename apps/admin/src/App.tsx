@@ -153,8 +153,6 @@ import {
   profileLabel,
   type SessionUser,
 } from './session';
-// Illustration de la connexion (maquette v1.3), 8 Ko en WebP
-import illustration from './assets/connexion.webp';
 
 type State =
   | { status: 'loading' }
@@ -229,7 +227,6 @@ function ConnectedApp() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [loginError] = useState(takeLoginError);
   // Déconnexion volontaire : on reste sur la page d'accueil au lieu de rouvrir la connexion
-  const [loggedOut, setLoggedOut] = useState(false);
   const [mfaJustEnabled] = useState(() => takeParam('info') === 'double-facteur');
 
   useEffect(() => {
@@ -247,9 +244,9 @@ function ConnectedApp() {
     };
   }, []);
 
-  // Sans session : la page de connexion unique (Keycloak, US-019) s'ouvre directement. La page
-  // d'accueil ne sert qu'à montrer une erreur de connexion, ou après une déconnexion.
-  const directLogin = state.status === 'anonymous' && !loginError && !loggedOut;
+  // Sans session : la page de connexion unique (Keycloak, US-019) s'ouvre directement, y compris
+  // après une déconnexion. Seule une connexion qui vient d'échouer affiche son message.
+  const directLogin = state.status === 'anonymous' && !loginError;
   useEffect(() => {
     if (directLogin) browser.assign('/auth/login');
   }, [directLogin]);
@@ -257,7 +254,6 @@ function ConnectedApp() {
   async function onLogout() {
     try {
       await logout();
-      setLoggedOut(true);
       setState({ status: 'anonymous' });
     } catch {
       setState({ status: 'error' });
@@ -283,7 +279,7 @@ function ConnectedApp() {
     );
   }
 
-  if (state.status === 'anonymous' && !directLogin) return <LoginPage error={loginError} />;
+  if (state.status === 'anonymous' && loginError) return <LoginErrorPage error={loginError} />;
 
   // Lecture de la session : l'ossature de la page, identique à celle du HTML pré-généré
   if (state.status === 'loading') return <LoadingShell path={path()} />;
@@ -476,54 +472,20 @@ function ConnectedPage({ user, mfaJustEnabled }: { user: SessionUser; mfaJustEna
   );
 }
 
-// Connexion (maquette v1.3) : panneau vert à gauche (marque, illustration, accès), garanties de
-// sécurité à droite ; les deux s'empilent sur téléphone. Le formulaire lui-même est celui de
-// Keycloak, ouvert par le bouton.
-function LoginPage({ error }: { error?: string }) {
+// Connexion impossible (refonte de l'authentification) : seul écran de l'application avant
+// Keycloak, quand une connexion vient d'échouer ; sinon Keycloak s'ouvre directement. Le message
+// et un bouton pour réessayer, sans répéter les garanties (affichées par Keycloak).
+function LoginErrorPage({ error }: { error: string }) {
   return (
-    <div className="ui-login">
-      <a className="ui-skip-link" href="#contenu">
-        Aller au contenu
-      </a>
-      <main id="contenu" className="ui-login__main" tabIndex={-1}>
-        <section className="ui-login__hero" aria-labelledby="connexion-titre">
-          <img
-            className="ui-login__art"
-            src={illustration}
-            alt=""
-            width={960}
-            height={480}
-            decoding="async"
-          />
-          <p className="ui-login__brand">
-            <span className="ui-topbar__mark" aria-hidden="true">
-              S
-            </span>
-            SABOU
-          </p>
-          <p className="ui-login__kicker">Accès sécurisé</p>
-          <h1 id="connexion-titre">Application de gestion</h1>
-          <p className="ui-login__lead">
-            Espace réservé aux équipes de la Direction Générale, des régions, des préfectures, du
-            Comité scientifique et aux tradipraticiens.
-          </p>
-          {error && <Alert tone="error">{error}</Alert>}
-          <ButtonLink variant="primary" href="/auth/login" className="ui-login__action">
-            Se connecter
-          </ButtonLink>
-          <p className="ui-login__note">Double facteur obligatoire pour les administrateurs</p>
-        </section>
-        <section className="ui-login__panel" aria-labelledby="garanties-titre">
-          <h2 id="garanties-titre">Vos garanties de sécurité</h2>
-          <ul className="ui-login__list">
-            <li>Double facteur obligatoire pour tous les administrateurs.</li>
-            <li>Compte bloqué 15 minutes après 5 mots de passe erronés.</li>
-            <li>Session fermée après 30 minutes d’inactivité.</li>
-            <li>Chaque connexion est journalisée.</li>
-          </ul>
-        </section>
-      </main>
-    </div>
+    <PublicLayout>
+      <PageHeader title="Connexion impossible" />
+      <Alert tone="error">{error}</Alert>
+      <div className="ui-form__actions">
+        <ButtonLink variant="primary" href="/auth/login">
+          Réessayer la connexion
+        </ButtonLink>
+      </div>
+    </PublicLayout>
   );
 }
 

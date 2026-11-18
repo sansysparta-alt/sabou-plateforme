@@ -178,13 +178,25 @@ export abstract class OidcAuthController {
       return this.fail(res, 'connexion');
     }
     const { claims, refreshToken } = result;
-    const secondFactor = claims.amr.includes('otp');
+    let secondFactor = claims.amr.includes('otp');
+    let justConfigured = false;
     const isAdministrator = claims.roles.includes(ADMINISTRATOR_ROLE);
     // Second facteur activé pendant cette connexion (§2.28) : Keycloak l'a configuré sans le
     // faire saisir, « amr » ne contient pas « otp ». Une seule relance, sur la même session
     // Keycloak, demande le niveau 2 : seul le code est saisi. La session Keycloak reste donc
     // ouverte ici ; si le code manque encore au retour, le refus ci-dessous s'applique.
     const justEnabled = isAdministrator || req.query.kc_action_status === 'success';
+    // Second facteur configuré pendant cette connexion : le code a été saisi et vérifié à
+    // l'écran de configuration ; pas de nouvelle demande (sans réponse : relance ci-dessous)
+    if (!secondFactor && justEnabled && !tx.stepUp && tx.startedAt && this.idp.otpConfiguredSince) {
+      justConfigured = await this.idp
+        .otpConfiguredSince(claims.sub, tx.startedAt)
+        .catch((error: unknown) => {
+          this.logger.warn(`Second facteur non vérifié : ${(error as Error).name}`);
+          return false;
+        });
+      secondFactor = justConfigured;
+    }
     if (!secondFactor && justEnabled && !tx.stepUp) {
       const next = await this.idp.startLogin(tx.returnTo, 'step-up');
       this.logger.log(`Connexion : ${claims.sub} relancé au niveau 2 (second facteur activé)`);
@@ -261,7 +273,7 @@ export abstract class OidcAuthController {
     res.clearCookie(this.space.loginCookie, COOKIE_OPTIONS);
     const target = new URL(tx.returnTo, this.space.appUrl);
     // Second facteur activé puis saisi (relance de niveau 2) : l'application le confirme
-    if (tx.stepUp) target.searchParams.set('info', 'double-facteur');
+    if (tx.stepUp || justConfigured) target.searchParams.set('info', 'double-facteur');
     res.redirect(303, target.href);
   }
 

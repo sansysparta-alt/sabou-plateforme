@@ -33,11 +33,13 @@ export async function startLogin(page: Page) {
   await expect(page).toHaveURL(new RegExp(`^${KEYCLOAK}/realms/sabou/`));
 }
 
-// Écran « configurer l'authentification par mobile » : lit le secret, saisit le code
+// Écran « activer la double authentification » : lit le secret, saisit le code. Le nom de
+// l'appareil est pré-rempli (« Téléphone – date du jour »), sans champ à remplir.
 export async function configureTotp(page: Page): Promise<string> {
   const secret = await page.locator('input[name="totpSecret"]').inputValue();
+  await expect(page.locator('#userLabel')).toHaveValue(/^Téléphone – \d{2}\/\d{2}\/\d{4}$/);
+  await expect(page.locator('#userLabel')).toBeHidden();
   await page.locator('#totp').fill(totp(secret));
-  await page.locator('#userLabel').fill('Téléphone de service');
   await page.locator('#saveTOTPBtn').click();
   return secret;
 }
@@ -46,15 +48,17 @@ export async function sessionStatus(page: Page): Promise<number> {
   return (await page.request.get(`${APP}/auth/session`)).status();
 }
 
-// Première connexion d'un administrateur : mot de passe, configuration du TOTP et des codes
-// de secours, puis saisie aussitôt du code (§2.20, §2.28). Renvoie le secret TOTP.
+// Première connexion d'un administrateur : mot de passe, configuration du TOTP (code saisi et
+// vérifié) et des codes de secours, puis directement l'application (§2.20, §2.55). Renvoie le
+// secret TOTP.
 export async function firstAdministratorLogin(page: Page, user: TestUser): Promise<string> {
   await startLogin(page);
   await submitPassword(page, user);
   const secret = await configureTotp(page);
   await page.locator('#kcRecoveryCodesConfirmationCheck').check();
   await page.locator('#saveRecoveryAuthnCodesBtn').click();
-  await submitCode(page, secret);
+  await expect(page).toHaveURL(new RegExp(`^${APP}/`));
+  expect(await sessionStatus(page)).toBe(200);
   return secret;
 }
 

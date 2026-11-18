@@ -2,6 +2,7 @@ import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { AccountsRepository } from '../accounts/accounts.repository';
 import { ENV, type Env } from '../config/env';
+import { KeycloakServiceAccount } from '../keycloak/service-account';
 import {
   AuthController,
   CITIZEN_IDENTITY_PROVIDER,
@@ -38,7 +39,14 @@ export const VALKEY = Symbol('VALKEY');
     {
       provide: IDENTITY_PROVIDER,
       inject: [ENV],
-      useFactory: (env: Env) => new KeycloakIdentityProvider(env, adminClient(env)),
+      // Compte de service « sabou-comptes » (view-users) : vérifie qu'un second facteur
+      // configuré pendant la connexion a bien été enregistré, sans redemander le code
+      useFactory: (env: Env) =>
+        new KeycloakIdentityProvider(
+          env,
+          adminClient(env),
+          new KeycloakServiceAccount(env, env.COMPTES_CLIENT_ID, env.COMPTES_CLIENT_SECRET),
+        ),
     },
     {
       provide: CITIZEN_IDENTITY_PROVIDER,

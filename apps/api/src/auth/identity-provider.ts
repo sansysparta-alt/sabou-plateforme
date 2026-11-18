@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { KeycloakServiceAccount } from '../keycloak/service-account';
 import * as oidc from 'openid-client';
 import type { Env } from '../config/env';
 import type { LoginTransaction } from './session.store';
@@ -32,7 +34,13 @@ export interface IdentityProvider {
   ): Promise<{ claims: IdentityClaims; refreshToken: string }>;
   // Ferme la session Keycloak (déconnexion côté serveur, sans passer par le navigateur)
   logout(refreshToken: string): Promise<void>;
+  // Code à usage unique enregistré depuis `since` (ms) : Keycloak ne l'enregistre qu'après la
+  // saisie d'un code valide, le second facteur a donc été prouvé pendant cette connexion.
+  // Absent : pas de vérification possible (la relance de niveau 2 s'applique).
+  otpConfiguredSince?(sub: string, since: number): Promise<boolean>;
 }
+
+const credentialsSchema = z.array(z.object({ type: z.string(), createdDate: z.number() }).loose());
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
@@ -67,9 +75,24 @@ export class KeycloakIdentityProvider implements IdentityProvider {
   constructor(
     private readonly env: Env,
     private readonly client: OidcClient,
+    // Compte de service qui lit les comptes (view-users) : administration seulement
+    private readonly users?: KeycloakServiceAccount,
   ) {
     this.redirectUri = client.redirectUri;
+    if (!users) this.otpConfiguredSince = undefined;
   }
+
+  // Écart d'horloge toléré entre l'API et Keycloak
+  private static readonly CLOCK_SKEW_MS = 5_000;
+
+  otpConfiguredSince? = async (sub: string, since: number): Promise<boolean> => {
+    if (!/^[0-9a-f-]{36}$/.test(sub)) return false;
+    const response = await this.users!.request(`/users/${sub}/credentials`);
+    const credentials = credentialsSchema.parse(await response.json());
+    return credentials.some(
+      (c) => c.type === 'otp' && c.createdDate >= since - KeycloakIdentityProvider.CLOCK_SKEW_MS,
+    );
+  };
 
   // Découverte paresseuse : l'API démarre même si Keycloak n'est pas encore prêt ;
   // un échec n'est pas mis en cache, la tentative suivante recommence.
@@ -122,6 +145,7 @@ export class KeycloakIdentityProvider implements IdentityProvider {
       nonce: oidc.randomNonce(),
       codeVerifier,
       returnTo,
+      startedAt: Date.now(),
     };
     const url = oidc.buildAuthorizationUrl(config, {
       redirect_uri: this.redirectUri,

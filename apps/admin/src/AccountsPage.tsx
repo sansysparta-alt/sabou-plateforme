@@ -491,178 +491,233 @@ function InviteForm({
   return (
     <section aria-labelledby={`${id}-title`} className="ui-card ui-card--plain">
       <h2 id={`${id}-title`}>Inviter un compte</h2>
+      <p className="ui-muted">
+        Le prénom, le nom, l’adresse e-mail et le rôle sont obligatoires. Un lien d’invitation est
+        créé, à transmettre à la personne.
+      </p>
       <form className="ui-form" onSubmit={onSubmit} noValidate>
         {error && (
           <Alert tone="error" ref={errorRef}>
             {error}
           </Alert>
         )}
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-first`}>
-            Prénom
-          </label>
-          <input
-            className="ui-input"
-            id={`${id}-first`}
-            autoComplete="off"
-            required
-            maxLength={80}
-            value={form.firstName}
-            onChange={(event) => set('firstName', event.target.value)}
-          />
-        </div>
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-last`}>
-            Nom
-          </label>
-          <input
-            className="ui-input"
-            id={`${id}-last`}
-            autoComplete="off"
-            required
-            maxLength={80}
-            value={form.lastName}
-            onChange={(event) => set('lastName', event.target.value)}
-          />
-        </div>
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-email`}>
-            Adresse e-mail (identifiant de connexion)
-          </label>
-          <input
-            className="ui-input"
-            id={`${id}-email`}
-            type="email"
-            autoComplete="off"
-            required
-            maxLength={254}
-            value={form.email}
-            onChange={(event) => set('email', event.target.value)}
-          />
-        </div>
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-role`}>
-            Rôle
-          </label>
-          <select
-            className="ui-select"
-            id={`${id}-role`}
-            required
-            value={form.role}
-            onChange={(event) => set('role', event.target.value as AccountRole | '')}
-          >
-            <option value="">Choisir un rôle</option>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>
-                {ROLE_LABELS[role]}
-              </option>
-            ))}
-          </select>
-        </div>
-        {form.role === 'regional' && (
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-region`}>
-              Région
-            </label>
-            <select
-              className="ui-select"
-              id={`${id}-region`}
-              required
-              value={form.regionId}
-              onChange={(event) => set('regionId', event.target.value)}
-            >
-              <option value="">Choisir une région</option>
-              {references.regions.map((region) => (
-                <option key={region.id} value={region.id}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        {form.role === 'prefectoral' && (
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-prefecture`}>
-              Préfecture
-            </label>
-            <select
-              className="ui-select"
-              id={`${id}-prefecture`}
-              required
-              value={form.prefectureId}
-              onChange={(event) => set('prefectureId', event.target.value)}
-            >
-              <option value="">Choisir une préfecture</option>
-              {references.regions.map((region) => (
-                <optgroup key={region.id} label={region.name}>
-                  {references.prefectures
-                    .filter((prefecture) => prefecture.regionId === region.id)
-                    .map((prefecture) => (
-                      <option key={prefecture.id} value={prefecture.id}>
-                        {prefecture.name}
-                      </option>
-                    ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-        )}
-        <fieldset className="ui-fieldset">
-          <legend className="ui-fieldset__legend">Langue de l’interface</legend>
-          {(
-            [
-              ['fr', 'Français'],
-              ['en', 'Anglais'],
-            ] as const
-          ).map(([code, label]) => (
-            <label key={code} className="ui-choice">
+        <fieldset className="ui-form-section">
+          <legend className="ui-form-section__legend">Identité</legend>
+          <div className="ui-form-row">
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-first`}>
+                Prénom
+              </label>
               <input
-                type="radio"
-                name={`${id}-interface`}
-                value={code}
-                checked={form.interfaceLanguage === code}
-                onChange={() => set('interfaceLanguage', code)}
+                className="ui-input"
+                id={`${id}-first`}
+                autoComplete="off"
+                required
+                maxLength={80}
+                value={form.firstName}
+                onChange={(event) => set('firstName', event.target.value)}
               />
-              {label}
+            </div>
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-last`}>
+                Nom
+              </label>
+              <input
+                className="ui-input"
+                id={`${id}-last`}
+                autoComplete="off"
+                required
+                maxLength={80}
+                value={form.lastName}
+                onChange={(event) => set('lastName', event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="ui-field">
+            <label className="ui-field__label" htmlFor={`${id}-email`}>
+              Adresse e-mail
             </label>
-          ))}
+            <input
+              className="ui-input"
+              id={`${id}-email`}
+              type="email"
+              autoComplete="off"
+              required
+              maxLength={254}
+              aria-describedby={`${id}-email-hint`}
+              value={form.email}
+              onChange={(event) => set('email', event.target.value)}
+            />
+            <p id={`${id}-email-hint`} className="ui-field__hint">
+              Elle sert d’identifiant de connexion.
+            </p>
+          </div>
         </fieldset>
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-listening`}>
-            Langue d’écoute préférée (voix)
-          </label>
-          <select
-            className="ui-select"
-            id={`${id}-listening`}
-            value={form.listeningLanguage}
-            onChange={(event) => set('listeningLanguage', event.target.value)}
-          >
-            <option value="">Celle de la région</option>
-            {voiceLanguages.map((language) => (
-              <option key={language.code} value={language.code}>
-                {language.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <fieldset className="ui-fieldset">
-          <legend className="ui-fieldset__legend">Langues de travail</legend>
-          <p className="ui-field__hint">Cochez ce que la personne peut faire dans chaque langue.</p>
-          {voiceLanguages.map((language) => (
-            <fieldset key={language.code} className="ui-fieldset ui-card ui-card--plain">
-              <legend className="ui-fieldset__legend">{language.name}</legend>
-              {RIGHTS.map(([right, label]) => (
-                <label key={right} className="ui-choice">
-                  <input
-                    type="checkbox"
-                    checked={form.languages[language.code]?.[right] ?? false}
-                    onChange={(event) => setRight(language.code, right, event.target.checked)}
-                  />
-                  {label}
+        <fieldset className="ui-form-section">
+          <legend className="ui-form-section__legend">Rôle et zone</legend>
+          <div className="ui-form-row">
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-role`}>
+                Rôle
+              </label>
+              <select
+                className="ui-select"
+                id={`${id}-role`}
+                required
+                value={form.role}
+                onChange={(event) => set('role', event.target.value as AccountRole | '')}
+              >
+                <option value="">Choisir un rôle</option>
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {form.role === 'regional' && (
+              <div className="ui-field">
+                <label className="ui-field__label" htmlFor={`${id}-region`}>
+                  Région
                 </label>
-              ))}
+                <select
+                  className="ui-select"
+                  id={`${id}-region`}
+                  required
+                  value={form.regionId}
+                  onChange={(event) => set('regionId', event.target.value)}
+                >
+                  <option value="">Choisir une région</option>
+                  {references.regions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {form.role === 'prefectoral' && (
+              <div className="ui-field">
+                <label className="ui-field__label" htmlFor={`${id}-prefecture`}>
+                  Préfecture
+                </label>
+                <select
+                  className="ui-select"
+                  id={`${id}-prefecture`}
+                  required
+                  value={form.prefectureId}
+                  onChange={(event) => set('prefectureId', event.target.value)}
+                >
+                  <option value="">Choisir une préfecture</option>
+                  {references.regions.map((region) => (
+                    <optgroup key={region.id} label={region.name}>
+                      {references.prefectures
+                        .filter((prefecture) => prefecture.regionId === region.id)
+                        .map((prefecture) => (
+                          <option key={prefecture.id} value={prefecture.id}>
+                            {prefecture.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </fieldset>
+        <fieldset className="ui-form-section">
+          <legend className="ui-form-section__legend">Langues</legend>
+          <div className="ui-form-row">
+            <fieldset className="ui-fieldset">
+              <legend className="ui-fieldset__legend">Langue de l’interface</legend>
+              <div className="ui-choice-row">
+                {(
+                  [
+                    ['fr', 'Français'],
+                    ['en', 'Anglais'],
+                  ] as const
+                ).map(([code, label]) => (
+                  <label key={code} className="ui-choice">
+                    <input
+                      type="radio"
+                      name={`${id}-interface`}
+                      value={code}
+                      checked={form.interfaceLanguage === code}
+                      onChange={() => set('interfaceLanguage', code)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
             </fieldset>
-          ))}
+            <div className="ui-field">
+              <label className="ui-field__label" htmlFor={`${id}-listening`}>
+                Langue d’écoute préférée (voix)
+              </label>
+              <select
+                className="ui-select"
+                id={`${id}-listening`}
+                value={form.listeningLanguage}
+                onChange={(event) => set('listeningLanguage', event.target.value)}
+              >
+                <option value="">Celle de la région</option>
+                {voiceLanguages.map((language) => (
+                  <option key={language.code} value={language.code}>
+                    {language.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset className="ui-form-section" aria-describedby={`${id}-rights-hint`}>
+          <legend className="ui-form-section__legend">Langues de travail</legend>
+          <p id={`${id}-rights-hint`} className="ui-field__hint">
+            Cochez ce que la personne peut faire dans chaque langue ; rien à cocher si elle ne
+            travaille pas sur les voix.
+          </p>
+          {/* Une ligne par langue, une colonne par droit : quinze langues tiennent sur un écran */}
+          <div className="ui-table-wrap ui-check-matrix">
+            <table className="ui-table">
+              <caption className="ui-visually-hidden">Droits par langue de travail</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Langue</th>
+                  {RIGHTS.map(([right, label]) => (
+                    <th key={right} scope="col" className="ui-table__check">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {voiceLanguages.map((language) => (
+                  <tr key={language.code}>
+                    <th scope="row">{language.name}</th>
+                    {RIGHTS.map(([right, label]) => (
+                      <td key={right} className="ui-table__check">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={form.languages[language.code]?.[right] ?? false}
+                            onChange={(event) =>
+                              setRight(language.code, right, event.target.checked)
+                            }
+                          />
+                          <span className="ui-visually-hidden">
+                            {label} en {language.name}
+                          </span>
+                          <span className="ui-check-matrix__short" aria-hidden="true">
+                            {label}
+                          </span>
+                        </label>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </fieldset>
         <div className="ui-form__actions">
           <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
