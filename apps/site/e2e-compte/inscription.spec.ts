@@ -48,9 +48,13 @@ test('critère 1 : un numéro valide reçoit un code par SMS ; le compte est cr�
   await page.getByLabel('Prénom', { exact: true }).fill('Aïssatou');
   await page.getByLabel('Mot de passe', { exact: true }).fill('12345678');
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
-  await expect(page.locator('#inscription-erreur')).toHaveText(
+  // Erreur sous le champ concerné, qui reçoit le focus (WCAG 3.3.1)
+  const password = page.getByLabel('Mot de passe', { exact: true });
+  await expect(page.locator('#password-erreur')).toHaveText(
     'Ce mot de passe est trop facile à deviner.',
   );
+  await expect(password).toHaveAttribute('aria-invalid', 'true');
+  await expect(password).toBeFocused();
   await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Créer mon compte' }).click();
   await expect(page.getByRole('heading', { name: 'Votre compte est créé' })).toBeFocused();
