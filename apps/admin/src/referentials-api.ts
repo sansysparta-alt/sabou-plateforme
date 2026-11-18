@@ -2,6 +2,8 @@ import type {
   CreateLanguage,
   CreateSpecialty,
   CreateTerritory,
+  Redistricting,
+  RedistrictingPreview,
   Referentials,
   TerritoryLevel,
   UpdateLanguage,
@@ -28,3 +30,8 @@ export const createContraindication = (input: CreateSpecialty) =>
   call<void>(`${BASE}/contre-indications`, input);
 export const updateContraindication = (id: number, input: UpdateSpecialty) =>
   call<void>(`${BASE}/contre-indications/${id}`, input, 'PATCH');
+// US-022 : redécoupage, aperçu puis application
+export const previewRedistricting = (input: Redistricting) =>
+  call<RedistrictingPreview>(`${BASE}/redecoupage/apercu`, input);
+export const redistrict = (input: Redistricting) =>
+  call<RedistrictingPreview>(`${BASE}/redecoupage`, input);

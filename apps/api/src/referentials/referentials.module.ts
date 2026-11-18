@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AccountsRepository } from '../accounts/accounts.repository';
 import { DirectorGuard } from '../accounts/accounts.controller';
+import { IDENTITY_ADMIN, KeycloakIdentityAdmin } from '../accounts/identity-admin';
 import { AuthModule } from '../auth/auth.module';
+import { ENV, type Env } from '../config/env';
 import { ReferentialsController } from './referentials.controller';
 import { ReferentialsRepository } from './referentials.repository';
 import { ReferentialsService } from './referentials.service';
@@ -10,6 +12,17 @@ import { ReferentialsService } from './referentials.service';
 @Module({
   imports: [AuthModule],
   controllers: [ReferentialsController],
-  providers: [AccountsRepository, ReferentialsRepository, ReferentialsService, DirectorGuard],
+  providers: [
+    AccountsRepository,
+    ReferentialsRepository,
+    ReferentialsService,
+    DirectorGuard,
+    // US-022 : une fusion suspend des comptes préfectoraux (accès Keycloak coupé)
+    {
+      provide: IDENTITY_ADMIN,
+      inject: [ENV],
+      useFactory: (env: Env) => new KeycloakIdentityAdmin(env),
+    },
+  ],
 })
 export class ReferentialsModule {}

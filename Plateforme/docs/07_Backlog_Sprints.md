@@ -279,7 +279,7 @@ Critères d’acceptation :
 - Étant donné la liste initiale, quand on l’affiche, alors les 8 spécialités du cahier des charges v1.3 sont présentes, en français et en anglais.
 
 #### US-022 · Suivre un redécoupage administratif (rattacher, découper, fusionner)
-*Référentiels* · **Must** · 8 points · cas : UC-65 · raffiné le 17 novembre 2026 (décision du maître d’œuvre), prochain récit après US-023
+*Référentiels* · **Must** · 8 points · cas : UC-65 · raffiné le 17 novembre 2026 (décision du maître d’œuvre) ; réponses du maître d’œuvre du 17 novembre : comptes préfectoraux d’une préfecture fusionnée suspendus jusqu’à réaffectation, découpage par sous-préfectures, territoire d’origine sur le certificat, pas d’annulation (opération inverse) ; choix techniques §2.59
 
 > En tant que DG, je veux suivre un redécoupage administratif depuis l’écran Référentiels, afin que la plateforme reste à jour sans modification du code ni redéploiement.
 

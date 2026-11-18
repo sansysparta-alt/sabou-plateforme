@@ -8,10 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import { Alert, Badge, Button, PageHeader, Pagination, Tabs, usePagination } from '@sabou/ui';
+import { REDISTRICTING_LABELS } from '@sabou/types';
 import type {
   CreateSpecialty,
   Language,
   LanguageType,
+  RedistrictingOperation,
+  RedistrictingPreview,
   Referentials,
   Specialty,
   TerritoryLevel,
@@ -25,6 +28,8 @@ import {
   createSpecialty,
   createTerritory,
   fetchReferentials,
+  previewRedistricting,
+  redistrict,
   renameTerritory,
   updateContraindication,
   updateLanguage,
@@ -406,7 +411,7 @@ function LanguageForm({ onDone }: { onDone: OnDone }) {
 
 function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDone }) {
   // Un seul formulaire ouvert à la fois, sous l'en-tête du panneau
-  const [open, setOpen] = useState<'ajouter' | 'renommer' | null>(null);
+  const [open, setOpen] = useState<'ajouter' | 'renommer' | 'redecouper' | null>(null);
   const languageName = (code: string) =>
     data.languages.find((language) => language.code === code)?.name ?? code;
   return (
@@ -416,14 +421,16 @@ function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDo
       </h2>
       <div className="ui-panel-header">
         <p>
-          La région naturelle fixe la langue vocale proposée par défaut. La fusion de territoires
-          fera l’objet d’une évolution à part.
+          La région naturelle fixe la langue vocale proposée par défaut. Un redécoupage
+          (rattachement, découpage, fusion) se fait ici, sans modifier le code : un territoire
+          remplacé reste en base, inactif.
         </p>
         <div className="ui-form__actions">
           {(
             [
               ['ajouter', 'Ajouter un territoire'],
               ['renommer', 'Renommer un territoire'],
+              ['redecouper', 'Redécouper'],
             ] as const
           ).map(([value, label]) => (
             <Button
@@ -441,6 +448,7 @@ function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDo
       </div>
       {open === 'ajouter' && <TerritoryForm data={data} onDone={onDone} />}
       {open === 'renommer' && <RenameForm data={data} onDone={onDone} />}
+      {open === 'redecouper' && <RedistrictForm data={data} onDone={onDone} />}
       <div className="ui-table-wrap">
         <table className="ui-table">
           <caption className="ui-visually-hidden">Territoires</caption>
@@ -467,9 +475,10 @@ function TerritoriesSection({ data, onDone }: { data: Referentials; onDone: OnDo
                     {prefectures
                       .map((p) => {
                         const subs = data.subPrefectures.filter((s) => s.parentId === p.id);
+                        const name = p.active ? p.name : `${p.name} (remplacée)`;
                         return subs.length
-                          ? `${p.name} (${subs.map((s) => s.name).join(', ')})`
-                          : p.name;
+                          ? `${name} (${subs.map((s) => s.name).join(', ')})`
+                          : name;
                       })
                       .join(' ; ') || 'Aucune'}
                   </td>
@@ -494,14 +503,16 @@ function options(data: Referentials, level: TerritoryLevel) {
   }
 }
 
+// Rattachements possibles : les territoires actifs seulement (un territoire remplacé ne
+// reçoit plus rien, R-ACC-08)
 function parents(data: Referentials, level: TerritoryLevel) {
   switch (level) {
     case 'regions':
       return data.naturalRegions;
     case 'prefectures':
-      return data.regions;
+      return data.regions.filter((r) => r.active);
     default:
-      return data.prefectures;
+      return data.prefectures.filter((p) => p.active);
   }
 }
 
@@ -678,6 +689,250 @@ function RenameForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
       <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
         Renommer
       </button>
+    </form>
+  );
+}
+
+// ---------- Redécoupage (US-022) ----------
+// Trois opérations, chacune en deux temps : la DG voit d'abord ce qui bouge, puis confirme.
+// Pas d'annulation : on corrige par l'opération inverse, journalisée elle aussi.
+
+const REDISTRICTING_FIELDS: Record<
+  RedistrictingOperation,
+  { object: string; target: string; done: (p: RedistrictingPreview) => string }
+> = {
+  rattacher_prefecture: {
+    object: 'Préfecture',
+    target: 'Nouvelle région',
+    done: (p) => `Préfecture ${p.object} rattachée à la région ${p.target}.`,
+  },
+  rattacher_sous_prefecture: {
+    object: 'Sous-préfecture',
+    target: 'Nouvelle préfecture',
+    done: (p) => `Sous-préfecture ${p.object} rattachée à la préfecture ${p.target}.`,
+  },
+  fusionner_prefectures: {
+    object: 'Préfecture absorbée (devient inactive)',
+    target: 'Préfecture conservée',
+    done: (p) => `Préfecture ${p.object} fusionnée dans ${p.target}.`,
+  },
+};
+
+const EFFECT_LABELS: Record<RedistrictingPreview['administrators'][number]['effect'], string> = {
+  gagne: 'gagne ce territoire',
+  perd: 'perd ce territoire',
+  suspendu: 'compte suspendu jusqu’à sa réaffectation',
+};
+
+function RedistrictForm({ data, onDone }: { data: Referentials; onDone: OnDone }) {
+  const id = useId();
+  const [operation, setOperation] = useState<RedistrictingOperation>('rattacher_prefecture');
+  const [objectId, setObjectId] = useState('');
+  const [targetId, setTargetId] = useState('');
+  const [preview, setPreview] = useState<RedistrictingPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const previewRef = useRef<HTMLDivElement>(null);
+  const fields = REDISTRICTING_FIELDS[operation];
+
+  const activePrefectures = data.prefectures.filter((p) => p.active);
+  const objects =
+    operation === 'rattacher_sous_prefecture'
+      ? data.subPrefectures.filter((s) => s.active)
+      : activePrefectures;
+  const targets = (
+    operation === 'rattacher_prefecture' ? data.regions.filter((r) => r.active) : activePrefectures
+  ).filter((t) => operation !== 'fusionner_prefectures' || String(t.id) !== objectId);
+
+  // Toute modification du choix efface l'aperçu : on confirme toujours ce qu'on a vu
+  const change = (apply: () => void) => {
+    apply();
+    setPreview(null);
+    setError(undefined);
+  };
+
+  useEffect(() => {
+    if (preview) previewRef.current?.focus();
+  }, [preview]);
+
+  async function attempt(work: () => Promise<void>) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await work();
+    } catch (failure) {
+      setError(message(failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const input = () => ({ operation, objectId: Number(objectId), targetId: Number(targetId) });
+
+  function onPreview(event: FormEvent) {
+    event.preventDefault();
+    if (!objectId || !targetId) {
+      setError('Choisissez le territoire et son nouveau rattachement.');
+      return;
+    }
+    void attempt(async () => setPreview(await previewRedistricting(input())));
+  }
+
+  function onConfirm() {
+    void attempt(async () => {
+      const result = await redistrict(input());
+      onDone(fields.done(result));
+      setPreview(null);
+      setObjectId('');
+      setTargetId('');
+    });
+  }
+
+  return (
+    <form
+      className="ui-form ui-card ui-card--plain"
+      onSubmit={onPreview}
+      aria-labelledby={`${id}-t`}
+      noValidate
+    >
+      <h3 id={`${id}-t`}>Redécouper</h3>
+      <ErrorText error={error} />
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-op`}>
+          Opération
+        </label>
+        <select
+          className="ui-select"
+          id={`${id}-op`}
+          value={operation}
+          onChange={(e) =>
+            change(() => {
+              setOperation(e.target.value as RedistrictingOperation);
+              setObjectId('');
+              setTargetId('');
+            })
+          }
+        >
+          {(Object.keys(REDISTRICTING_LABELS) as RedistrictingOperation[]).map((value) => (
+            <option key={value} value={value}>
+              {REDISTRICTING_LABELS[value]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-object`}>
+          {fields.object}
+        </label>
+        <select
+          className="ui-select"
+          id={`${id}-object`}
+          required
+          value={objectId}
+          onChange={(e) => change(() => setObjectId(e.target.value))}
+        >
+          <option value="">Choisir…</option>
+          {objects.map((territory) => (
+            <option key={territory.id} value={territory.id}>
+              {territory.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="ui-field">
+        <label className="ui-field__label" htmlFor={`${id}-target`}>
+          {fields.target}
+        </label>
+        <select
+          className="ui-select"
+          id={`${id}-target`}
+          required
+          value={targetId}
+          onChange={(e) => change(() => setTargetId(e.target.value))}
+        >
+          <option value="">Choisir…</option>
+          {targets.map((territory) => (
+            <option key={territory.id} value={territory.id}>
+              {territory.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {!preview && (
+        <button type="submit" className="ui-button ui-button--primary" disabled={busy}>
+          Voir ce qui bouge
+        </button>
+      )}
+      {preview && (
+        <div
+          className="ui-card ui-card--plain"
+          ref={previewRef}
+          tabIndex={-1}
+          role="region"
+          aria-labelledby={`${id}-preview`}
+        >
+          <h4 id={`${id}-preview`}>
+            {REDISTRICTING_LABELS[preview.operation]} : {preview.object} (aujourd’hui{' '}
+            {preview.before}) vers {preview.target}
+          </h4>
+          <dl className="ui-facts">
+            <dt>Praticiens</dt>
+            <dd>{preview.practitioners}</dd>
+            <dt>Dossiers</dt>
+            <dd>{preview.dossiers}</dd>
+            {preview.operation === 'fusionner_prefectures' && (
+              <>
+                <dt>Sous-préfectures</dt>
+                <dd>{preview.subPrefectures}</dd>
+              </>
+            )}
+            {preview.others > 0 && (
+              <>
+                <dt>Autres éléments (demandes, alertes, litiges…)</dt>
+                <dd>{preview.others}</dd>
+              </>
+            )}
+            <dt>Administrateurs</dt>
+            <dd>
+              {preview.administrators.length === 0 ? (
+                'Aucun administrateur ne change de territoire.'
+              ) : (
+                <ul>
+                  {preview.administrators.map((admin) => (
+                    <li key={`${admin.id}-${admin.effect}`}>
+                      {admin.name} (
+                      {admin.role === 'regional' ? 'admin régional' : 'admin préfectoral'}) :{' '}
+                      {EFFECT_LABELS[admin.effect]}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </dl>
+          <p>
+            Les certificats déjà émis gardent leur territoire d’origine. Pas d’annulation : pour
+            revenir en arrière, faites l’opération inverse.
+          </p>
+          <div className="ui-form__actions">
+            <button
+              type="button"
+              className="ui-button ui-button--primary"
+              disabled={busy}
+              onClick={onConfirm}
+            >
+              Confirmer le redécoupage
+            </button>
+            <button
+              type="button"
+              className="ui-button ui-button--secondary"
+              disabled={busy}
+              onClick={() => setPreview(null)}
+            >
+              Revenir au choix
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

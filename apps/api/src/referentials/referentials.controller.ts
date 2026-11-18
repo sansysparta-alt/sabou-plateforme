@@ -16,10 +16,12 @@ import {
   languageCodeSchema,
   createSpecialtySchema,
   createTerritorySchema,
+  redistrictingSchema,
   renameTerritorySchema,
   territoryLevelSchema,
   updateLanguageSchema,
   updateSpecialtySchema,
+  type RedistrictingPreview,
   type Referentials,
 } from '@sabou/types';
 import { DirectorGuard, actor, parse, type SessionRequest } from '../accounts/accounts.controller';
@@ -96,6 +98,24 @@ export class ReferentialsController {
     @Req() req: SessionRequest,
   ): Promise<void> {
     return this.service.updateContraindication(id, parse(updateSpecialtySchema, body), actor(req));
+  }
+
+  // US-022 : redécoupage. Déclaré avant « :level » pour ne pas être pris pour un niveau.
+  // L'aperçu est un POST : il porte le même corps que l'application et ne se met pas en cache.
+  @Post('redecoupage/apercu')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  previewRedistricting(
+    @Body() body: unknown,
+    @Req() req: SessionRequest,
+  ): Promise<RedistrictingPreview> {
+    return this.service.previewRedistricting(parse(redistrictingSchema, body), actor(req));
+  }
+
+  @Post('redecoupage')
+  @HttpCode(200)
+  redistrict(@Body() body: unknown, @Req() req: SessionRequest): Promise<RedistrictingPreview> {
+    return this.service.redistrict(parse(redistrictingSchema, body), actor(req));
   }
 
   @Post(':level')

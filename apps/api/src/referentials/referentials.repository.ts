@@ -5,6 +5,8 @@ import type {
   CreateSpecialty,
   Language,
   NaturalRegion,
+  Redistricting,
+  RedistrictingPreview,
   Referentials,
   Specialty,
   Territory,
@@ -44,7 +46,7 @@ export class ReferentialsRepository {
     const territories = (level: TerritoryLevel) => {
       const { table, parent } = LEVELS[level];
       return sql<Territory>`
-        SELECT id, nom AS name, ${sql.ref(parent)} AS "parentId"
+        SELECT id, nom AS name, ${sql.ref(parent)} AS "parentId", active
           FROM ${sql.table(`sabou.${table}`)} ORDER BY nom`.execute(this.db);
     };
     const [
@@ -135,6 +137,44 @@ export class ReferentialsRepository {
     return rows[0]?.previous ?? null;
   }
 
+  // US-022 : aperçu (lecture seule) et application d'un redécoupage, par les fonctions de
+  // la base (SECURITY DEFINER : elles déplacent des lignes de toutes les zones et
+  // vérifient elles-mêmes que l'acteur est un compte DG actif)
+  async previewRedistricting(
+    input: Redistricting,
+    actorId: number,
+    trx?: Trx,
+  ): Promise<RedistrictingPreview> {
+    const { rows } = await sql<{ r: DbPreview }>`
+      SELECT sabou.redecoupage_apercu(${input.operation}, ${input.objectId}::smallint,
+                                      ${input.targetId}::smallint, ${actorId}::bigint) AS r`.execute(
+      trx ?? this.db,
+    );
+    return toPreview(rows[0]!.r);
+  }
+
+  async applyRedistricting(
+    trx: Trx,
+    input: Redistricting,
+    actorId: number,
+  ): Promise<RedistrictingPreview> {
+    const { rows } = await sql<{ r: DbPreview }>`
+      SELECT sabou.redecoupage_appliquer(${input.operation}, ${input.objectId}::smallint,
+                                         ${input.targetId}::smallint, ${actorId}::bigint) AS r`.execute(
+      trx,
+    );
+    return toPreview(rows[0]!.r);
+  }
+
+  // Identifiants Keycloak des comptes suspendus par une fusion : l'API coupe leurs accès
+  async keycloakIds(ids: number[], trx: Trx): Promise<string[]> {
+    if (ids.length === 0) return [];
+    const { rows } = await sql<{ keycloakId: string }>`
+      SELECT keycloak_id::text AS "keycloakId" FROM sabou.utilisateur
+       WHERE id = ANY(${ids}::bigint[]) AND keycloak_id IS NOT NULL`.execute(trx);
+    return rows.map((r) => r.keycloakId);
+  }
+
   async createSpecialty(trx: Trx, input: CreateSpecialty): Promise<number> {
     const { rows } = await sql<{ id: number }>`
       INSERT INTO sabou.specialite (code, libelle_fr, libelle_en)
@@ -173,3 +213,40 @@ export class ReferentialsRepository {
     return numAffectedRows === 1n;
   }
 }
+
+// Aperçu tel que renvoyé par la base (clés en français, comme les colonnes)
+interface DbPreview {
+  operation: RedistrictingPreview['operation'];
+  objet: string;
+  avant: string;
+  cible: string;
+  praticiens: number;
+  dossiers: number;
+  sousPrefectures: number;
+  autres: number;
+  administrateurs: {
+    id: number;
+    nom: string;
+    email: string;
+    role: 'regional' | 'prefectoral';
+    effet: 'gagne' | 'perd' | 'suspendu';
+  }[];
+}
+
+const toPreview = (r: DbPreview): RedistrictingPreview => ({
+  operation: r.operation,
+  object: r.objet,
+  before: r.avant,
+  target: r.cible,
+  practitioners: r.praticiens,
+  dossiers: r.dossiers,
+  subPrefectures: r.sousPrefectures,
+  others: r.autres,
+  administrators: r.administrateurs.map((a) => ({
+    id: a.id,
+    name: a.nom,
+    email: a.email,
+    role: a.role,
+    effect: a.effet,
+  })),
+});
