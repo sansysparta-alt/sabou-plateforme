@@ -278,15 +278,31 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Étant donné la liste initiale, quand on l’affiche, alors les 8 spécialités du cahier des charges v1.3 sont présentes, en français et en anglais.
 
-#### US-022 · Fusionner deux territoires
-*Référentiels* · **Could** · à estimer au raffinement · cas : UC-65
+#### US-022 · Suivre un redécoupage administratif (rattacher, découper, fusionner)
+*Référentiels* · **Must** · 8 points · cas : UC-65 · raffiné le 17 novembre 2026 (décision du maître d’œuvre), prochain récit après US-023
 
-> En tant que DG, je veux fusionner deux territoires, afin de suivre un redécoupage administratif.
+> En tant que DG, je veux suivre un redécoupage administratif depuis l’écran Référentiels, afin que la plateforme reste à jour sans modification du code ni redéploiement.
 
-Ajouté le 6 novembre 2026, sorti de US-020 (décision du maître d'œuvre, 05 §2.24) : la fusion rattache praticiens, dossiers et comptes à une autre zone, opération difficile à défaire. Sprint à fixer au raffinement.
+Critères d’acceptation :
+- Étant donné une préfecture, quand la DG la rattache à une autre région, alors l’administrateur de l’ancienne région ne voit plus ses praticiens et dossiers, celui de la nouvelle les voit, et l’opération est journalisée.
+- Étant donné une sous-préfecture, quand la DG la rattache à une autre préfecture (découpage), alors ses praticiens et leurs dossiers suivent, et l’opération est journalisée.
+- Étant donné deux préfectures fusionnées, quand on consulte les praticiens de la préfecture conservée, alors ceux de l’ancienne y figurent, l’ancienne reste en base, inactive, et l’opération est journalisée.
+- Avant chaque opération, la DG voit ce qui bouge : comptes, praticiens, dossiers, administrateurs qui perdent ou gagnent des territoires ; elle confirme.
+- Les certificats déjà émis et les statistiques passées gardent leur territoire d’origine.
 
-Critères d’acceptation (à compléter au raffinement) :
-- Étant donné deux préfectures fusionnées, quand on consulte les praticiens de la préfecture conservée, alors ceux de l'ancienne y figurent et l'opération est journalisée.
+#### US-023 · Charger le découpage administratif d’août 2026
+*Référentiels* · **Must** · 2 points · cas : — · ajouté le 17 novembre 2026 (décision du maître d’œuvre), à faire en premier à la reprise
+
+> En tant que DG, je veux que la plateforme suive le découpage en vigueur, afin que chaque compte et chaque praticien soit dans la bonne zone.
+
+Source : liste fournie par le maître d’œuvre le 17 novembre 2026 (10 régions administratives, 44 préfectures ; décision du maître d’œuvre de la retenir).
+
+Critères d’acceptation :
+- Régions ajoutées : Siguiri (Haute Guinée, malinké par défaut), Beyla (Guinée Forestière, guerzé par défaut).
+- Préfectures ajoutées (11) : Kamsar (Boké) ; Timbo (Mamou) ; Tokounou, Djalakoro, Sabadou-Baranama (Kankan) ; Doko, Siguirini, Kintinia (Siguiri) ; Sinko, Kouankan, Karala (Beyla).
+- Préfectures rattachées à leur nouvelle région : Siguiri → Siguiri ; Beyla → Beyla.
+- Conakry reste une région à une préfecture ; ses 13 communes seront traitées avec US-022 si besoin.
+- Migration versionnée ; jeu d’exemple et tests de cloisonnement mis à jour (Siguiri n’est plus dans la région de Kankan) ; suite complète de la base verte.
 
 #### US-030 · Un journal de toutes les décisions et connexions, non modifiable
 *Audit et notifications* · **Must** · 3 points · cas : —

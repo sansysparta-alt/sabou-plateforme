@@ -1,6 +1,7 @@
 // Lot B (US-011) : cloisonnement par zone de bout en bout. Vrai Keycloak (second facteur),
 // vraie API, vraie base : l'appel direct à l'API ne renvoie que la zone du compte.
-// Jeu d'exemple : PR-1041 et PR-1042 à Labé ; PR-1043 à Siguiri (région de Kankan).
+// Jeu d'exemple : PR-1041 et PR-1042 à Labé ; PR-1043 à Siguiri (région de Siguiri depuis le
+// découpage d'août 2026, US-023).
 import { expect, test, type Page } from '@playwright/test';
 import { administrator, firstAdministratorLogin } from './helpers';
 import { APP } from './keycloak';
@@ -45,15 +46,16 @@ test('US-011 : l’admin préfectoral de Labé ne voit que les praticiens de Lab
   expect(new Set(next.map((p) => p.prefecture))).toEqual(new Set(['Labé']));
 });
 
-test('US-011 : l’admin régional de Kankan ne voit que les dossiers des préfectures de sa région', async ({
+test('US-011 : l’admin régional de Siguiri ne voit que les dossiers des préfectures de sa région', async ({
   page,
 }) => {
-  const user = await administrator('admin_regional', { region: 'Kankan' });
+  const user = await administrator('admin_regional', { region: 'Siguiri' });
   await firstAdministratorLogin(page, user);
 
   const dossiers = await list<{ code: string; prefecture: string }>(page, '/api/dossiers');
   expect(dossiers.map((d) => d.code)).toContain('DS-1043');
-  for (const dossier of dossiers) expect(['Kankan', 'Siguiri']).toContain(dossier.prefecture);
+  for (const dossier of dossiers)
+    expect(['Siguiri', 'Doko', 'Siguirini', 'Kintinia']).toContain(dossier.prefecture);
 });
 
 test('US-016 : le tableau de bord de l’admin préfectoral de Labé ne compte que sa zone', async ({

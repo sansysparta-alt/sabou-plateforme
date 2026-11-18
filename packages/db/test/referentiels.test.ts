@@ -73,7 +73,7 @@ const moveVoice = (code: string) =>
                                        ORDER BY 1, 2 LIMIT 1)`;
 
 describe('Référentiel initial (migration, sans jeu d’exemple)', () => {
-  it('une base seulement migrée contient rôles, langues, 8 régions, 34 zones préfectorales et 8 spécialités', async () => {
+  it('une base seulement migrée contient rôles, langues, 10 régions (découpage d’août 2026), 45 zones préfectorales et 8 spécialités', async () => {
     const empty = await createDatabase();
     await empty.migrate();
     const { rows } = await runSql(
@@ -89,8 +89,8 @@ describe('Référentiel initial (migration, sans jeu d’exemple)', () => {
       roles: 6,
       langues: 6,
       naturelles: 4,
-      regions: 8,
-      prefectures: 34,
+      regions: 10,
+      prefectures: 45,
       specialites: 8,
     });
   });

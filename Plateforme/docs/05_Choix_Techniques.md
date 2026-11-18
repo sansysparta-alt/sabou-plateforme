@@ -984,6 +984,15 @@ Demande du maître d’œuvre (17 novembre 2026) : alléger les messages d’err
 | **Application mobile** : les champs affichaient déjà l’erreur dessous (validateurs Flutter) ; messages rendus précis (« Choisissez la spécialité. », « Saisissez un nombre de 0 à 80. ») ; les pièces obligatoires non déposées deviennent un rappel neutre (« Pièces à déposer : … »), l’erreur ne s’affichant qu’au refus de la soumission | Un bandeau rouge permanent avant toute action inquiète sans raison ; « Choisissez une valeur. » ne disait pas quoi choisir | — |
 | **Écrans mis à niveau** : gestion (invitation d’un compte, acceptation de l’invitation, photo d’une fiche plante) ; site (inscription, étape du profil ; Studio, maladie, titre et niveau de visibilité). Déjà conformes : visite de terrain, voix des noms, rejet définitif, référentiels, étapes téléphone et code de l’inscription | Inventaire de tous les formulaires ; les autres messages en tête sont des refus du serveur | — |
 
+### 2.58 Découpage administratif : une donnée, pas du code (novembre 2026)
+
+Décision du maître d’œuvre (17 novembre 2026) : suivre le découpage d’août 2026 (10 régions, 44 préfectures) et rendre tout redécoupage faisable par la DG.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Découpage d’août 2026 chargé par une migration versionnée** (US-023), avec mise à jour du jeu d’exemple et des tests de cloisonnement | Changement de référence à appliquer partout à la fois et testé ; l’écran ne sait pas encore rattacher une préfecture à une autre région | Saisie à la main dans l’écran ; modification d’une migration déjà appliquée |
+| **Redécoupage depuis l’écran Référentiels** (US-022) : rattacher, découper, fusionner, avec aperçu de ce qui bouge, confirmation, journal ; territoire remplacé conservé inactif | CdC (menu Réseau territorial : création, fusion, renommage) ; un décret ne doit plus demander de redéploiement ; l’historique (certificats, statistiques) reste juste | Redéploiement à chaque réforme ; suppression des anciens territoires |
+
 ### 2.60 Mot de passe oublié et alertes de sécurité par e-mail (décision MOE du 17 novembre 2026)
 
 Décision du maître d'œuvre (demande #60) : la page de Keycloak est la page de connexion du §5.2 ; « Mot de passe oublié » par e-mail pour les quatre profils de gestion ; alerte par e-mail à chaque changement de mot de passe ou de double facteur. Le praticien et le citoyen (domaine `sabou-public`) gardent le renvoi vers l'administrateur en attendant la réinitialisation par SMS (alignement, étape 2.2).
