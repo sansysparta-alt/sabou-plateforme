@@ -1036,3 +1036,11 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits de langue par défaut selon le rôle, réglage par langue conservé | §2.8, §3.2 | US-012c |
 | Rejet définitif par la DG conservé | §4 (absent) | Écart noté, aucun changement |
 | Découpage administratif d'août 2026 | §1.2 (8 régions, 33 préfectures, dépassé) | §2.58, §2.59 |
+
+### 2.65 Validation des fiches plantes : le Comité seul (US-055, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Qui valide une fiche plante | **Le Comité scientifique seul**, par l'application, l'API et la base | §6.5 du cahier des charges et décision du maître d'œuvre du 18 novembre 2026. **Écart au §6.2**, qui listait « ajout, validation, export JSON » pour la DG |
+| Droits de la DG | Ajout et modification des fiches (créées « en revue »), export quand il sera livré ; pas de validation | Même décision |
+| Réalisation | Rien à changer dans le code : `plante_valider` refuse tout autre rôle depuis US-051, l'API n'écrit plus le statut en direct, le bouton n'est montré qu'au Comité. Preuve ajoutée au niveau de l'application | Les tests de US-051 (base, API, écran) prouvent déjà les trois niveaux |

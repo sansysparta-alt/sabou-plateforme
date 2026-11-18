@@ -62,6 +62,19 @@ const SUMMARY: DashboardSummary = {
   },
 };
 
+// Fiche proposée, en attente du Comité (US-055)
+const PLANT_IN_REVIEW = {
+  code: 'PL-009',
+  nomScientifique: 'Combretum glutinosum',
+  famille: 'Combretaceae',
+  nomFr: 'Quinquéliba rouge',
+  nomEn: null,
+  statut: 'en_revue',
+  modifieLe: '2026-11-18T10:00:00.000Z',
+  validation: null,
+  images: [],
+};
+
 // Réponses de l'API, par adresse
 function mockApi(session: SessionUser | null | 'panne') {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -70,6 +83,7 @@ function mockApi(session: SessionUser | null | 'panne') {
       return session ? Response.json(session) : new Response(null, { status: 401 });
     }
     if (url === '/api/tableau-de-bord') return Response.json(SUMMARY);
+    if (url === '/api/plantes/PL-009') return Response.json(PLANT_IN_REVIEW);
     if (
       url === '/api/dossiers/verification-terrain?limite=10' ||
       url === '/api/dossiers/consolidation?limite=10' ||
@@ -335,6 +349,22 @@ describe('App', () => {
     expect(await screen.findByRole('link', { name: 'Vérification terrain' }));
     expect(screen.queryByRole('link', { name: 'Fiches plantes' })).toBeNull();
     expect(screen.queryByRole('heading', { level: 1, name: 'Fiches plantes' })).toBeNull();
+  });
+
+  // US-055 : seul le Comité valide une fiche plante ; la DG crée et modifie, sans valider
+  it('fiche en revue : « Valider la fiche » pour le Comité seulement, pas pour la DG', async () => {
+    for (const [user, shown] of [
+      [committee, true],
+      [dg, false],
+    ] as const) {
+      mockApi(user);
+      window.history.replaceState(null, '', '/plantes/PL-009');
+      render(<App />);
+      await connected();
+      expect(await screen.findByRole('heading', { level: 1, name: /Quinquéliba rouge/ }));
+      expect(screen.queryByRole('button', { name: 'Valider la fiche' }) !== null).toBe(shown);
+      cleanup();
+    }
   });
 
   it('praticien : pas de chiffres de zone (réservés aux administrateurs)', async () => {
