@@ -20,14 +20,16 @@ test('mot de passe oublié par SMS depuis la page de connexion : sessions fermé
   await signUpThroughApi(phone, 'Fanta', OLD_PASSWORD);
 
   // Une session ouverte ailleurs (téléphone perdu, par exemple)
-  const elsewhere = await browser.newPage();
+  const elsewhereContext = await browser.newContext();
+  const elsewhere = await elsewhereContext.newPage();
   await elsewhere.goto('/connexion');
   await elsewhere.getByRole('link', { name: 'Se connecter' }).click();
   await keycloakLogin(elsewhere, phone, OLD_PASSWORD);
   await expect(elsewhere.getByText('Bonjour Fanta.')).toBeVisible();
 
   // Lien « Mot de passe oublié ? » de la page de Keycloak, vers la page du site
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto('/connexion');
   await page.getByRole('link', { name: 'Se connecter' }).click();
   await page.getByRole('link', { name: 'Mot de passe oublié ?' }).click();
@@ -44,10 +46,11 @@ test('mot de passe oublié par SMS depuis la page de connexion : sessions fermé
   await expectAccessible(page, 'Mot de passe oublié : nouveau mot de passe');
   await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(NEW_PASSWORD);
   await page.getByRole('button', { name: 'Changer le mot de passe' }).click();
-  await expect(page.getByRole('heading', { name: 'Votre mot de passe est changé' })).toBeVisible();
+  const done = page.getByRole('region', { name: 'Votre mot de passe est changé' });
+  await expect(done).toBeVisible();
 
   // L'ancien mot de passe est refusé, le nouveau accepté
-  await page.getByRole('link', { name: 'Se connecter' }).click();
+  await done.getByRole('link', { name: 'Se connecter' }).click();
   await keycloakLogin(page, phone, OLD_PASSWORD);
   await expect(page.getByText('Numéro de téléphone ou mot de passe incorrect.')).toBeVisible();
   await keycloakLogin(page, phone, NEW_PASSWORD);
@@ -61,6 +64,7 @@ test('mot de passe oublié par SMS depuis la page de connexion : sessions fermé
   await expect
     .poll(() => auditActions(phone), { timeout: 20_000, intervals: [1_000] })
     .toEqual(expect.arrayContaining(['application:compte.mot_de_passe_reinitialise']));
+  await Promise.all([context.close(), elsewhereContext.close()]);
 });
 
 test('numéro sans compte : même écran, aucun SMS envoyé', async ({ page }) => {
