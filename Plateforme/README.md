@@ -18,7 +18,8 @@ Plateforme/
 │   ├── 05_Choix_Techniques.md
 │   ├── 06_Cas_Utilisation.md
 │   ├── 07_Backlog_Sprints.md
-│   └── 07_Backlog_import_GitLab.csv
+│   ├── 07_Backlog_import_GitLab.csv
+│   └── 08_Exploitation_Recuperation_DG.md
 ```
 
 Les scripts SQL v2 (`database/01_schema.sql`, `02_seed.sql`, `03_queries.sql`) ont été exécutés et corrigés au récit US-003, puis remplacés (décision du maître d'œuvre, novembre 2026) par le paquet [`packages/db`](../packages/db/README.md) du dépôt : migrations versionnées, jeu d'exemple et requêtes d'exemple, prouvés par des tests. L'historique Git conserve les fichiers d'origine.
@@ -39,6 +40,7 @@ Les anciennes versions (cahier des charges et maquettes v1.2, conception v1) son
 | 8 | `docs/06_Cas_Utilisation.md` | 55 cas d'utilisation par acteur (7 détaillés), reliés aux règles | À jour |
 | 9 | `docs/07_Backlog_Sprints.md` (une version PDF existe, conservée hors de ce dossier) | Backlog priorisé (79 récits avec critères d'acceptation), 19 sprints, Definition of Ready et of Done | À jour |
 | 10 | `docs/07_Backlog_import_GitLab.csv` | Les 79 récits au format d'import des issues GitLab | À jour |
+| 10 bis | `docs/08_Exploitation_Recuperation_DG.md` | Exploitation : récupérer le compte DG (procédure d'une page, US-024) | À jour |
 | 11 | `docs/maquettes/` | Maquettes v1.3 du site public (23 diapositives) et de l'application de gestion (29) | À jour (v1.3) |
 
 ## Règles clés à retenir

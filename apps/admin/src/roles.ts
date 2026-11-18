@@ -11,6 +11,8 @@ export const ROLE_LABELS: Record<AccountRole, string> = {
 };
 
 export const ROLES = Object.keys(ROLE_LABELS) as AccountRole[];
+// Rôles proposés à l'invitation : un seul compte DG (US-024), jamais invité
+export const INVITABLE_ROLES = ROLES.filter((role) => role !== 'dg');
 
 export const STATUS_LABELS: Record<AccountStatus, string> = {
   invite: 'Invitation en attente',

@@ -16,6 +16,7 @@ import {
 import type {
   AccountReferences,
   AccountRole,
+  InvitableRole,
   AccountStatus,
   AccountSummary,
   InvitationLink,
@@ -44,7 +45,7 @@ import {
   PHONE_REQUIRED,
   toNationalMobile,
 } from '@sabou/types/phone';
-import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
+import { BADGE_TONES, INVITABLE_ROLES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
 import { PAGE_HEADERS } from './page-headers';
 
 const RIGHTS = [
@@ -662,7 +663,7 @@ function InviteForm({
         lastName: form.lastName,
         email: form.email,
         phone: form.phone.trim(),
-        role: form.role as AccountRole,
+        role: form.role as InvitableRole,
         // Seule la zone du rôle est envoyée ; l'API refuse une zone absente ou en trop
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
         prefectureId:
@@ -760,7 +761,7 @@ function InviteForm({
               onChange={(event) => set('role', event.target.value as AccountRole | '')}
             >
               <option value="">Choisir un rôle</option>
-              {ROLES.map((role) => (
+              {INVITABLE_ROLES.map((role) => (
                 <option key={role} value={role}>
                   {ROLE_LABELS[role]}
                 </option>

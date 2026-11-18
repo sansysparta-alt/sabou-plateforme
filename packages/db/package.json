@@ -10,7 +10,8 @@
     "test": "vitest run",
     "migrate": "node src/cli.ts migrate",
     "seed": "node src/cli.ts seed",
-    "hash": "node src/cli.ts hash"
+    "hash": "node src/cli.ts hash",
+    "dg:reinitialiser": "node src/cli.ts dg-reinitialiser"
   },
   "dependencies": {
     "pg": "^8.23.1"
