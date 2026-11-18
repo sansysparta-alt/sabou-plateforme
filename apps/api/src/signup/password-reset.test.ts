@@ -6,7 +6,7 @@
 // Critère 2 : code à usage unique, durée limitée, essais limités ; réinitialisation journalisée.
 // Critère 3 : le double facteur n'est pas touché (seul le mot de passe est remplacé).
 import 'reflect-metadata';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -24,7 +24,7 @@ import { SIGNUP_CODE_ATTEMPTS } from './signup.store';
 
 const SITE = 'http://localhost:3000';
 const KNOWN = '621234567';
-const KEYCLOAK_ID = '0b9e3a52-6f43-4e0c-9c1f-5d2f8f4f6a10';
+const KEYCLOAK_ID = randomUUID();
 
 const store = new MemoryStore();
 const sms = { sent: [] as { to: string; text: string }[] };
