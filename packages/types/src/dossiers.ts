@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nationalMobileSchema, personName } from './citizens.js';
 
 // Dossier de certification du praticien (US-040a, 05_Choix_Techniques.md §2.26)
 
@@ -94,4 +95,35 @@ export interface DossierError {
   message: string;
   // missing_pieces : liste des pièces obligatoires manquantes (critère 2 de US-040)
   piecesManquantes?: PractitionerPieceType[];
+}
+
+// Dossier terrain (US-040c) : créé par l'Admin Préfectoral pour un praticien sans smartphone.
+// Préfecture : celle de l'agent (pas de choix). Le compte du praticien est créé sans mot de
+// passe : le SMS l'invite à le définir par « mot de passe oublié » (US-069).
+export const fieldDossierCreateSchema = z.strictObject({
+  telephone: nationalMobileSchema,
+  prenom: personName('prénom', 50),
+  nom: personName('nom', 80),
+  specialiteId: z.number().int().positive(),
+  sousPrefectureId: z.number().int().positive().nullable().default(null),
+  languePrincipale: z.string().regex(/^[a-z]{2,3}$/, 'Langue inconnue.'),
+  anneesExperience: z
+    .number()
+    .int()
+    .min(0, 'L’expérience se compte en années, de 0 à 80.')
+    .max(80, 'L’expérience se compte en années, de 0 à 80.'),
+});
+export type FieldDossierCreate = z.output<typeof fieldDossierCreateSchema>;
+export type FieldDossierCreateInput = z.input<typeof fieldDossierCreateSchema>;
+
+// Dossier terrain en cours de constitution (étape 1), vu par l'agent qui l'a créé
+export interface FieldDossier {
+  code: string;
+  praticien: string;
+  // Forme nationale (9 chiffres)
+  telephone: string;
+  specialite: string;
+  creeLe: string;
+  pieces: DossierPiece[];
+  piecesManquantes: PractitionerPieceType[];
 }

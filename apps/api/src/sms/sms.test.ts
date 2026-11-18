@@ -11,6 +11,7 @@ import { createSmsSender } from './sms.module';
 // Code de dossier le plus long envisagé (un million de dossiers)
 const CODE = 'DS-1000000';
 const ALL_MESSAGES: [string, number | undefined][] = [
+  ['dossier.terrain_cree', undefined],
   ['dossier.soumis', 2],
   ['dossier.valide', 3],
   ['dossier.valide', 4],

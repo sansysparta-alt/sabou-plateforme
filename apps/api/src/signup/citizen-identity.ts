@@ -12,7 +12,9 @@ export interface NewCitizen {
   firstName: string;
   // Praticien seulement (porté par le certificat)
   lastName?: string;
-  password: string;
+  // Absent : compte sans mot de passe, défini ensuite par « mot de passe oublié » (dossier
+  // terrain créé par l'agent préfectoral, US-040c)
+  password?: string;
   role: SignupProfile;
 }
 
@@ -58,7 +60,9 @@ export class KeycloakCitizenIdentity implements CitizenIdentity {
           enabled: true,
           firstName: citizen.firstName,
           ...(citizen.lastName ? { lastName: citizen.lastName } : {}),
-          credentials: [{ type: 'password', value: citizen.password, temporary: false }],
+          ...(citizen.password
+            ? { credentials: [{ type: 'password', value: citizen.password, temporary: false }] }
+            : {}),
         },
       });
     } catch (error) {
