@@ -13,6 +13,7 @@ import {
   PIECE_LABELS,
   type FieldDossier,
   type FieldDossierCreate,
+  type FieldDossierReferentials,
   type PractitionerPieceType,
   type SubmissionReceipt,
 } from '@sabou/types';
@@ -106,6 +107,10 @@ export class FieldDossiersService {
       });
       return toHttp(error);
     }
+  }
+
+  referentials(sub: string): Promise<FieldDossierReferentials> {
+    return this.repository.referentials(sub).catch(toHttp);
   }
 
   list(sub: string): Promise<FieldDossier[]> {

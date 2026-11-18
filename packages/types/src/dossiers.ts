@@ -127,3 +127,11 @@ export interface FieldDossier {
   pieces: DossierPiece[];
   piecesManquantes: PractitionerPieceType[];
 }
+
+// Listes du formulaire du dossier terrain : sous-préfectures de la préfecture de l'agent
+export interface FieldDossierReferentials {
+  prefecture: string;
+  specialites: { id: number; libelle: string }[];
+  sousPrefectures: { id: number; nom: string }[];
+  langues: { code: string; nom: string }[];
+}

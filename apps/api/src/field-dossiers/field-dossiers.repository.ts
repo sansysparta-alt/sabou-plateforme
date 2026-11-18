@@ -5,6 +5,7 @@ import {
   type DossierPiece,
   type FieldDossier,
   type FieldDossierCreate,
+  type FieldDossierReferentials,
   type PractitionerPieceType,
 } from '@sabou/types';
 import { AUDIT_LOG, normalizeIp, type AuditLog } from '../audit/audit.log';
@@ -77,6 +78,34 @@ export class FieldDossiersRepository {
       } catch (error) {
         translate(error);
       }
+    });
+  }
+
+  // Listes du formulaire, valeurs actives ; sous-préfectures de la préfecture de l'agent
+  referentials(sub: string): Promise<FieldDossierReferentials> {
+    return inZone(this.db, sub, async (trx) => {
+      const prefecture = await sql<{ nom: string }>`
+        SELECT pf.nom FROM sabou.utilisateur u JOIN sabou.prefecture pf ON pf.id = u.prefecture_id
+         WHERE u.id = sabou.contexte_utilisateur() AND u.role_code = 'prefectoral'`.execute(trx);
+      if (!prefecture.rows[0]) throw new FieldDossierForbiddenError();
+      const specialites = await sql<FieldDossierReferentials['specialites'][number]>`
+        SELECT id, libelle_fr AS libelle FROM sabou.specialite WHERE active ORDER BY libelle_fr`.execute(
+        trx,
+      );
+      const sousPrefectures = await sql<FieldDossierReferentials['sousPrefectures'][number]>`
+        SELECT sp.id, sp.nom FROM sabou.sous_prefecture sp
+          JOIN sabou.utilisateur u ON u.prefecture_id = sp.prefecture_id
+         WHERE u.id = sabou.contexte_utilisateur() AND sp.active ORDER BY sp.nom`.execute(trx);
+      const langues = await sql<FieldDossierReferentials['langues'][number]>`
+        SELECT code, nom_fr AS nom FROM sabou.langue WHERE active ORDER BY ordre, code`.execute(
+        trx,
+      );
+      return {
+        prefecture: prefecture.rows[0].nom,
+        specialites: specialites.rows,
+        sousPrefectures: sousPrefectures.rows,
+        langues: langues.rows,
+      };
     });
   }
 

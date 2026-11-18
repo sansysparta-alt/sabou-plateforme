@@ -20,6 +20,7 @@ import {
   fieldDossierCreateSchema,
   pieceTypeSchema,
   type FieldDossier,
+  type FieldDossierReferentials,
   type SubmissionReceipt,
 } from '@sabou/types';
 import { parse } from '../accounts/accounts.controller';
@@ -45,6 +46,12 @@ const UPLOAD_CONTENT_TYPES = [
 @UseGuards(AdministratorGuard)
 export class FieldDossiersController {
   constructor(private readonly service: FieldDossiersService) {}
+
+  @Get('referentiels')
+  @Header('Cache-Control', 'no-store')
+  referentials(@Req() req: SessionRequest): Promise<FieldDossierReferentials> {
+    return this.service.referentials(req.session!.sub);
+  }
 
   @Get()
   @Header('Cache-Control', 'no-store')
