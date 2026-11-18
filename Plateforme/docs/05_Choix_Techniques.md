@@ -1098,3 +1098,18 @@ Décision du maître d'ouvrage du 18 novembre 2026 : page du site (citoyen), éc
 | Journal | `compte.mot_de_passe_reinitialise` (compte, adresse IP, moyen `sms`) dans le journal d'audit SABOU | Critère 2 de US-069 |
 | Lien depuis Keycloak | `sabouSiteUrl=${env.SABOU_SITE_URL}` dans `theme.properties` du thème `sabou-public` : le lien mène à la page du site pour tous les clients du domaine, application mobile comprise | Keycloak lit l'environnement de son conteneur ; pas de « reset credentials » de Keycloak, qui passerait par e-mail |
 | Connexion après le changement | Site : lien « Se connecter » avec le numéro ; application : page de Keycloak avec le numéro déjà rempli (`login_hint`, §2.62) | Aucun jeton délivré hors de Keycloak |
+
+### 2.69 Dossier terrain créé par l'Admin Préfectoral (US-040c, 18 novembre 2026)
+
+Décision du maître d'ouvrage du 18 novembre 2026 : le compte du praticien est créé par l'agent **sans mot de passe** ; le SMS l'invite à le définir par « mot de passe oublié » (US-069, §2.68).
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Application | Écran « Dossiers terrain » de l'application de gestion, menu du préfectoral | Le préfectoral relève de l'encadrement (règle de séparation du 17/11). La saisie hors réseau de ce dossier dans l'application mobile viendra avec US-080/US-082 |
+| Préfecture | Toujours celle de l'agent, lue en base ; aucune préfecture acceptée du client | Cloisonnement (US-011) : l'agent ne crée rien hors de sa zone |
+| Auteur | `dossier_certification.cree_par` (l'agent), posé à la création seulement, jamais modifié (déclencheur `trg_dossier_terrain`) | Critère 2 : le dossier mentionne qu'il a été créé par l'agent ; un praticien ne peut pas forger cette mention |
+| Création | Compte Keycloak du domaine public sans mot de passe (compte de service `sabou-inscription`), puis `dossier_terrain_ouvrir()` dans le contexte de l'agent : compte, fiche, dossier et SMS en file en une transaction, plus la ligne d'audit `dossier.terrain_cree` ; si la base refuse, le compte Keycloak est retiré | Ni compte orphelin, ni dossier sans compte ; numéro déjà inscrit : 409, le praticien passe par l'application |
+| Étape 1 | L'agent dépose et retire les pièces du **seul dossier qu'il a créé** (`trg_piece_terrain`) et le soumet : la règle de l'étape 1 de `dossier_transition` accepte, en plus du praticien, l'agent auteur de la préfecture du praticien | Le dossier entre ensuite dans le circuit habituel, inchangé (étapes 2 à 6) |
+| SMS | `dossier.terrain_cree` à la création (inviter à créer le mot de passe), puis `dossier.soumis` comme pour tout dossier ; un seul SMS GSM 7 bits chacun | Critère 2 ; coût et lisibilité sur tout téléphone |
+
+Point signalé au maître d'œuvre : l'agent qui crée le dossier terrain est aussi celui qui le vérifie à l'étape 2 (seul préfectoral de sa préfecture). Les étapes 3 à 6 (région, Comité, DG) restent des regards indépendants ; aucune règle du cahier des charges n'impose un autre vérificateur pour l'étape 2, mais le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, pour les voix) pourrait être étendu.
