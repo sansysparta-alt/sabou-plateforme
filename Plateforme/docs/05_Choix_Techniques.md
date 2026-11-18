@@ -1112,7 +1112,7 @@ Décision du maître d'ouvrage du 18 novembre 2026 : le compte du praticien est 
 | Étape 1 | L'agent dépose et retire les pièces du **seul dossier qu'il a créé** (`trg_piece_terrain`) et le soumet : la règle de l'étape 1 de `dossier_transition` accepte, en plus du praticien, l'agent auteur de la préfecture du praticien | Le dossier entre ensuite dans le circuit habituel, inchangé (étapes 2 à 6) |
 | SMS | `dossier.terrain_cree` à la création (inviter à créer le mot de passe), puis `dossier.soumis` comme pour tout dossier ; un seul SMS GSM 7 bits chacun | Critère 2 ; coût et lisibilité sur tout téléphone |
 
-Point signalé au maître d'œuvre : l'agent qui crée le dossier terrain est aussi celui qui le vérifie à l'étape 2 (seul préfectoral de sa préfecture). Les étapes 3 à 6 (région, Comité, DG) restent des regards indépendants ; aucune règle du cahier des charges n'impose un autre vérificateur pour l'étape 2, mais le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, pour les voix) pourrait être étendu.
+**Séparation des tâches à l'étape 2** (décision du maître d'œuvre du 19 novembre 2026) : l'agent qui a créé le dossier terrain ne le vérifie pas lui-même. La règle de l'étape 2 de `dossier_transition` refuse l'agent auteur (`cree_par`), y compris pour un renvoi ; un autre agent préfectoral de la même préfecture le vérifie. C'est le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, R-GOV-07), étendu à la certification. Solution de repli quand la préfecture n'a qu'un agent : l'administrateur régional désigne l'agent de vérification (US-040d).
 
 ### 2.70 Un seul compte DG, récupérable par l'administrateur technique (US-024, 18 novembre 2026)
 
@@ -1127,4 +1127,4 @@ Décisions du maître d'ouvrage des 17 et 18 novembre 2026 : un seul compte DG ;
 | Journal | `journal_audit` source `exploitation`, action `compte.dg_reinitialise` : opérateur, compte d'administration, motif, moyens, horodatage ; la base refuse une ligne de l'exploitation sans opérateur ou avec un motif de moins de 10 caractères (`ck_audit_exploitation`) | Critère 3 : qui, quand, pourquoi, motif obligatoire |
 | Alertes | E-mail de Keycloak (le lien d'actions) et SMS `compte.dg_reinitialise` en file, dans la même transaction que le journal, validée seulement si Keycloak a tout accepté | Critère 4 ; les changements faits par un administrateur ne déclenchent pas l'écouteur `email` (§2.60) |
 
-Première exécution réelle : avec le maître d'œuvre, sur son poste (secrets de Keycloak).
+Décisions du maître d'œuvre du 19 novembre 2026 : la suspension des DG en trop (la plus récente reste active) est acceptée ; la première exécution réelle de `dg:reinitialiser` se fait avec le maître d'œuvre, sur son poste (secrets de Keycloak).

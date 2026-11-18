@@ -127,7 +127,10 @@ BEGIN
              WHEN 1 THEN v_usr.id = v_pra.utilisateur_id
                          OR (v_dos.cree_par = v_usr.id AND v_usr.role_code = 'prefectoral'
                              AND v_usr.prefecture_id = v_pra.prefecture_id)
+             -- Séparation des tâches (décision du maître d'œuvre du 19/11) : l'agent qui a
+             -- créé le dossier terrain ne le vérifie pas lui-même
              WHEN 2 THEN v_usr.role_code = 'prefectoral' AND v_usr.prefecture_id = v_pra.prefecture_id
+                         AND v_dos.cree_par IS DISTINCT FROM v_usr.id
              WHEN 3 THEN v_usr.role_code = 'regional' AND v_usr.region_admin_id = v_region
              WHEN 4 THEN v_usr.role_code = 'scientifique'
              ELSE v_usr.role_code = 'dg'

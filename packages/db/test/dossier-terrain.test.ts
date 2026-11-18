@@ -113,6 +113,33 @@ describe('Critère 1 : l’agent préfectoral crée le compte, la fiche et le do
   });
 });
 
+// Décision du maître d'œuvre du 19/11 : séparation des tâches à l'étape 2
+describe('L’agent auteur ne vérifie pas lui-même le dossier terrain (étape 2)', () => {
+  const atStep2 = `${open()} ${piece('identite')} ${piece('photo')} ${submit}`;
+  const decide = (decision: string) =>
+    `SELECT dossier_transition(${fieldDossier}, '${decision}', contexte_utilisateur(), 'motif du test');`;
+  // Second agent préfectoral actif, dans la préfecture de l'auteur
+  const SECOND_AGENT_ID = '70707070-7070-4070-8070-707070707070';
+  const secondAgent = `
+    INSERT INTO utilisateur (email, telephone, prenom, nom, role_code, statut, keycloak_id, prefecture_id)
+    SELECT 'prefectoral.second@exemple.test', '+224661234569', 'Fatoumata', 'Bah', 'prefectoral',
+           'actif', '${SECOND_AGENT_ID}', prefecture_id
+      FROM utilisateur WHERE id = contexte_utilisateur();
+    SELECT contexte_ouvrir('${SECOND_AGENT_ID}');`;
+
+  it('l’auteur ne peut ni valider ni renvoyer son propre dossier terrain', async () => {
+    for (const decision of ['valide', 'rejete']) {
+      await expect(attempt(`${atStep2} ${decide(decision)}`)).rejects.toThrow(/non habilité/);
+    }
+  });
+
+  it('un autre agent de la même préfecture le vérifie', async () => {
+    const [row] = await rows(`${atStep2} ${secondAgent} ${decide('rejete')}
+      SELECT etape_courante FROM dossier_certification WHERE id = ${fieldDossier}`);
+    expect(row).toEqual({ etape_courante: 1 });
+  });
+});
+
 describe('Seul l’agent auteur agit sur le dossier terrain à l’étape 1', () => {
   it('un autre préfectoral ne voit ni ne touche le dossier (autre préfecture)', async () => {
     await expect(
