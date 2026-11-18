@@ -974,6 +974,16 @@ Décision du maître d’œuvre (17 novembre 2026) : la matrice des permissions 
 | **Erreurs par champ** dans le formulaire d’invitation (composants partagés `TextField` / `SelectField`) : message court sous le seul champ concerné (« Choisissez un rôle. »), contour rouge, `aria-invalid` et `aria-describedby`, focus sur le premier champ à corriger, erreur effacée dès la correction ; bandeau en tête réservé aux refus du serveur | WCAG 3.3.1 et 3.3.3 ; même présentation que les autres formulaires (rejet définitif, visites) ; demande du maître d’œuvre d’alléger les messages | Bandeau unique qui liste tous les champs obligatoires |
 | **Langue d’écoute retirée du formulaire d’invitation** : celle de la région par défaut (`default(null)`), colonne `langue_ecoute` conservée | CdC (langues et régions) : « chaque région dispose de sa langue par défaut […] un utilisateur peut changer de langue à tout moment » ; c’est le choix de la personne, pas de la DG | Choix fixé par la DG à l’invitation |
 
+### 2.57 Erreurs de saisie sous le champ, partout (novembre 2026)
+
+Demande du maître d’œuvre (17 novembre 2026) : alléger les messages d’erreur, selon le cahier des charges (accessibilité) et la référence WCAG 2.2 AA du projet.
+
+| Choix | Pourquoi | Écarté |
+|---|---|---|
+| **Règle commune** : une erreur de saisie (champ vide, format faux) s’affiche sous le seul champ concerné, message court, `aria-invalid` et `aria-describedby`, focus sur le premier champ à corriger, effacée dès la correction ; le message en tête reste aux refus du serveur, aux erreurs de chargement et à la liste de ce qui manque avant une soumission | WCAG 3.3.1 et 3.3.3 ; focus visible (CdC, accessibilité) ; même comportement sur tous les écrans | Bandeau qui liste les champs obligatoires |
+| **Application mobile** : les champs affichaient déjà l’erreur dessous (validateurs Flutter) ; messages rendus précis (« Choisissez la spécialité. », « Saisissez un nombre de 0 à 80. ») ; les pièces obligatoires non déposées deviennent un rappel neutre (« Pièces à déposer : … »), l’erreur ne s’affichant qu’au refus de la soumission | Un bandeau rouge permanent avant toute action inquiète sans raison ; « Choisissez une valeur. » ne disait pas quoi choisir | — |
+| **Écrans mis à niveau** : gestion (invitation d’un compte, acceptation de l’invitation, photo d’une fiche plante) ; site (inscription, étape du profil ; Studio, maladie, titre et niveau de visibilité). Déjà conformes : visite de terrain, voix des noms, rejet définitif, référentiels, étapes téléphone et code de l’inscription | Inventaire de tous les formulaires ; les autres messages en tête sont des refus du serveur | — |
+
 ### 2.60 Mot de passe oublié et alertes de sécurité par e-mail (décision MOE du 17 novembre 2026)
 
 Décision du maître d'œuvre (demande #60) : la page de Keycloak est la page de connexion du §5.2 ; « Mot de passe oublié » par e-mail pour les quatre profils de gestion ; alerte par e-mail à chaque changement de mot de passe ou de double facteur. Le praticien et le citoyen (domaine `sabou-public`) gardent le renvoi vers l'administrateur en attendant la réinitialisation par SMS (alignement, étape 2.2).

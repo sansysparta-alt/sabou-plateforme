@@ -123,7 +123,9 @@ test('US-012 : invitation acceptée, le compte a exactement le rôle, la zone et
   await invitePage.getByLabel('Choisissez un mot de passe').fill('court');
   await invitePage.getByLabel('Saisissez-le une seconde fois').fill('court');
   await invitePage.getByRole('button', { name: 'Enregistrer mon mot de passe' }).click();
-  await expect(invitePage.getByRole('alert')).toContainText('au moins 12 caractères');
+  // Message sous le champ concerné, qui reçoit le focus
+  await expect(invitePage.getByText('Au moins 12 caractères.')).toBeVisible();
+  await expect(invitePage.getByLabel('Choisissez un mot de passe')).toBeFocused();
   await invitePage.context().close();
 
   const accepted = await accept(browser, link, invitee);

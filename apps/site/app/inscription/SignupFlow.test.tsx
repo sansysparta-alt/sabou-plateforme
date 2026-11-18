@@ -33,6 +33,16 @@ function fill(label: RegExp, value: string) {
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 }
 
+// Message d'erreur relié au champ (aria-invalid, aria-describedby), ou null
+function errorOf(field: HTMLElement): string | null {
+  if (field.getAttribute('aria-invalid') !== 'true') return null;
+  const ids = field.getAttribute('aria-describedby')?.split(' ') ?? [];
+  return (
+    ids.map((id) => document.getElementById(id)).find((node) => node?.id.endsWith('-erreur'))
+      ?.textContent ?? null
+  );
+}
+
 function submit(name: RegExp) {
   fireEvent.click(screen.getByRole('button', { name }));
 }
@@ -106,7 +116,11 @@ describe('Inscription du citoyen', () => {
     fill(/^prénom$/i, 'Fanta');
     fill(/^mot de passe$/i, '40718293');
     submit(/créer mon compte/i);
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Indiquez votre nom.');
+    // Message sous le champ Nom, qui reçoit le focus ; pas de message commun
+    const lastName = screen.getByLabelText(/^nom$/i);
+    expect(errorOf(lastName)).toBe('Indiquez votre nom.');
+    expect(document.activeElement).toBe(lastName);
+    expect(screen.queryByRole('alert')).toBeNull();
 
     answers.compte = [{ status: 200, body: { status: 'created' } }];
     fill(/^nom$/i, 'Camara');
@@ -187,7 +201,9 @@ describe('Inscription du citoyen', () => {
     fill(/^prénom$/i, 'Awa');
     fill(/^mot de passe$/i, '12345678');
     submit(/créer mon compte/i);
-    expect(screen.getByRole('alert').textContent).toMatch(/trop facile/);
+    const password = screen.getByLabelText(/^mot de passe$/i);
+    expect(errorOf(password)).toMatch(/trop facile/);
+    expect(document.activeElement).toBe(password);
     expect(calls.map((c) => c.path)).toEqual(['code', 'verification']);
   });
 

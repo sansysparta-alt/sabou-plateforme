@@ -116,12 +116,28 @@ function toFields(form: Form, refs: StudioReferentials): TreatmentFieldsInput {
 // Création et modification d'un traitement au Studio web (US-060, UC-21) : maladie, plantes
 // ordonnées avec la partie utilisée, cycle, 4 sections obligatoires et la conservation, en
 // français (anglais facultatif) ; consentement et niveau de visibilité avant la soumission.
+interface FieldErrors {
+  maladie?: string;
+  titreFr?: string;
+  visibilite?: string;
+}
+const FIELD_ORDER: (keyof FieldErrors)[] = ['maladie', 'titreFr', 'visibilite'];
+// Champ qui reçoit le focus : pour la visibilité, le premier bouton radio
+const FIELD_IDS: Record<keyof FieldErrors, string> = {
+  maladie: 'maladie',
+  titreFr: 'titre-fr',
+  visibilite: 'visibilite-premier',
+};
+
 export default function TreatmentEditor({ code }: { code: string | null }) {
   const [state, setState] = useState<State>({ name: 'loading' });
   const [form, setForm] = useState<Form>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Erreurs de saisie, chacune sous son champ (WCAG 3.3.1) ; le message en tête reste aux refus
+  // du serveur et à la liste de ce qui manque avant la soumission
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -183,7 +199,26 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
   const { refs, treatment } = state;
   if (treatment && treatment.statut !== 'brouillon') return <ReadOnly treatment={treatment} />;
 
-  const update = (change: Partial<Form>) => setForm((current) => ({ ...current, ...change }));
+  const update = (change: Partial<Form>) => {
+    setForm((current) => ({ ...current, ...change }));
+    // Une saisie efface l'erreur du champ corrigé
+    setFieldErrors((current) => {
+      const rest = { ...current };
+      for (const key of Object.keys(change)) delete rest[key as keyof FieldErrors];
+      return rest;
+    });
+  };
+  const invalid = (key: keyof FieldErrors, help?: string) => ({
+    'aria-invalid': fieldErrors[key] ? true : undefined,
+    'aria-describedby':
+      [help, fieldErrors[key] ? `${key}-erreur` : undefined].filter(Boolean).join(' ') || undefined,
+  });
+  const fieldError = (key: keyof FieldErrors) =>
+    fieldErrors[key] ? (
+      <p id={`${key}-erreur`} className={forms.error}>
+        {fieldErrors[key]}
+      </p>
+    ) : null;
   const setPlant = (key: number, change: Partial<PlantRow>) =>
     update({ plantes: form.plantes.map((p) => (p.key === key ? { ...p, ...change } : p)) });
   const movePlant = (index: number, step: -1 | 1) => {
@@ -216,12 +251,16 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
   async function save(): Promise<TreatmentDetail | null> {
     setError(null);
     setNotice(null);
-    if (!form.maladie || form.titreFr.trim() === '') {
-      setError('Choisissez la maladie et donnez un titre au traitement.');
-      return null;
-    }
+    const found: FieldErrors = {};
+    if (!form.maladie) found.maladie = 'Choisissez la maladie soignée.';
+    if (form.titreFr.trim() === '') found.titreFr = 'Donnez un titre au traitement.';
     if (form.consentement && !form.visibilite) {
-      setError('Choisissez le niveau de visibilité avec votre consentement.');
+      found.visibilite = 'Choisissez le niveau de visibilité.';
+    }
+    setFieldErrors(found);
+    const first = FIELD_ORDER.find((key) => found[key]);
+    if (first) {
+      document.getElementById(FIELD_IDS[first])?.focus();
       return null;
     }
     const fields = toFields(form, refs);
@@ -308,6 +347,7 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
             id="maladie"
             className={forms.input}
             value={form.maladie}
+            {...invalid('maladie')}
             onChange={(e) => update({ maladie: e.target.value })}
           >
             <option value="">Choisir…</option>
@@ -317,6 +357,7 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
               </option>
             ))}
           </select>
+          {fieldError('maladie')}
         </div>
         <div className={forms.field}>
           <label className={forms.label} htmlFor="titre-fr">
@@ -327,8 +368,10 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
             className={forms.input}
             maxLength={150}
             value={form.titreFr}
+            {...invalid('titreFr')}
             onChange={(e) => update({ titreFr: e.target.value })}
           />
+          {fieldError('titreFr')}
         </div>
         <div className={forms.field}>
           <label className={forms.label} htmlFor="titre-en">
@@ -538,11 +581,16 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
             J’accepte que ce traitement soit examiné par SABOU puis, une fois certifié, publié selon
             le niveau de visibilité choisi.
           </label>
-          <fieldset className={forms.choices} disabled={!form.consentement}>
+          <fieldset
+            className={forms.choices}
+            disabled={!form.consentement}
+            {...invalid('visibilite')}
+          >
             <legend>Niveau de visibilité</legend>
-            {(Object.keys(VISIBILITY_LABELS) as Visibility[]).map((v) => (
+            {(Object.keys(VISIBILITY_LABELS) as Visibility[]).map((v, index) => (
               <label key={v} className={forms.choice}>
                 <input
+                  id={index === 0 ? FIELD_IDS.visibilite : undefined}
                   type="radio"
                   name="visibilite"
                   value={v}
@@ -554,6 +602,7 @@ export default function TreatmentEditor({ code }: { code: string | null }) {
                 </span>
               </label>
             ))}
+            {fieldError('visibilite')}
           </fieldset>
         </fieldset>
 

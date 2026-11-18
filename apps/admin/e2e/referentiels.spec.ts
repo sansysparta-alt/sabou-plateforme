@@ -18,6 +18,20 @@ async function freeLanguageCode(page: Page): Promise<string> {
   }
 }
 
+// Tableau des langues paginé par 10 (US-019b) : avance jusqu'à la page de la langue cherchée
+async function languagesPageOf(page: Page, code: string): Promise<void> {
+  const table = page.getByRole('table', { name: 'Langues' });
+  // Tableau chargé d'abord (le français est toujours en première page)
+  await expect(table.getByRole('rowheader', { name: /^Français/ })).toBeVisible();
+  const row = table.getByRole('row').filter({ hasText: `(${code})` });
+  const pages = page.getByRole('navigation', { name: 'Pages : Langues' });
+  for (let turn = 0; turn < 50 && !(await row.isVisible()); turn += 1) {
+    const next = pages.getByRole('button', { name: /^Suiv/ });
+    if (!(await next.isVisible()) || (await next.isDisabled())) break;
+    await next.click();
+  }
+}
+
 test('la DG paramètre langues, territoires et spécialités sans modifier le code', async ({
   page,
 }) => {
@@ -60,22 +74,27 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
   const added = languages.getByRole('row').filter({ hasText: `(${code})` });
   // Tableau paginé par 10 (US-019b) et langues des essais précédents gardées en base : la
   // langue ajoutée peut être sur une page suivante
-  const pages = page.getByRole('navigation', { name: 'Pages : Langues' });
-  for (let turn = 0; turn < 50 && !(await added.isVisible()); turn += 1) {
-    const next = pages.getByRole('button', { name: /^Suiv/ });
-    if (!(await next.isVisible()) || (await next.isDisabled())) break;
-    await next.click();
-  }
+  await languagesPageOf(page, code);
   await expect(added).toContainText('Inactive');
   await added.getByRole('button', { name: `Activer la langue ${name}` }).click();
   await expect(added).toContainText('Active');
 
-  // … est aussitôt proposée dans la gestion des comptes : langue de travail et d'écoute
+  // … est aussitôt proposée dans la gestion des comptes, comme langue de travail
   await page.goto(`${APP}/comptes`);
   await page.getByRole('button', { name: 'Inviter un compte' }).click();
   const invite = page.getByRole('region', { name: 'Inviter un compte' });
-  await expect(invite.getByRole('group', { name })).toBeVisible();
-  await expect(invite.getByRole('option', { name })).toBeAttached();
+  await expect(invite.getByRole('rowheader', { name, exact: true })).toBeVisible();
+
+  // … puis désactivée : la base de bout en bout reste dans son état (cinq langues de voix du
+  // cahier des charges), et une langue inactive n'est plus proposée
+  await page.goto(`${APP}/referentiels#langues`);
+  await languagesPageOf(page, code);
+  const again = languages.getByRole('row').filter({ hasText: `(${code})` });
+  await again.getByRole('button', { name: `Désactiver la langue ${name}` }).click();
+  await expect(again).toContainText('Inactive');
+  await page.goto(`${APP}/comptes`);
+  await page.getByRole('button', { name: 'Inviter un compte' }).click();
+  await expect(invite.getByRole('rowheader', { name, exact: true })).toHaveCount(0);
 
   // US-021 : les 8 spécialités, en français et en anglais
   await page.goto(`${APP}/referentiels#specialites`);

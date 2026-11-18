@@ -223,10 +223,11 @@ class _DossierPageState extends State<DossierPage> {
           if (_view != null) ...[
             const SizedBox(height: SabouSpace.s6),
             const SectionTitle('Mes pièces'),
+            // Ce qui reste à déposer : simple rappel, pas une erreur ; le refus du serveur, lui,
+            // s'affiche en erreur si le praticien soumet un dossier incomplet
             if (_editable && _missing.isNotEmpty)
               StatusMessage(
-                kind: StatusKind.error,
-                'Pièces obligatoires manquantes : '
+                'Pièces à déposer : '
                 '${_missing.map((m) => pieceLabels[m]?.toLowerCase() ?? m).join(', ')}.',
               ),
             for (final type in pieceLabels.keys) _pieceSection(type),
@@ -249,8 +250,9 @@ class _DossierPageState extends State<DossierPage> {
     final subPrefectures = lists.subPrefectures
         .where((s) => s.prefectureId == _prefecture)
         .toList();
-    String? required(Object? value) =>
-        value == null ? 'Choisissez une valeur.' : null;
+    // Message court sous la liste concernée, qui dit quoi choisir
+    String? Function(Object?) required(String what) =>
+        (value) => value == null ? 'Choisissez $what.' : null;
     return Form(
       key: _formKey,
       child: Column(
@@ -265,7 +267,7 @@ class _DossierPageState extends State<DossierPage> {
                 DropdownMenuItem(value: s.id, child: Text(s.label)),
             ],
             onChanged: enabled ? (v) => setState(() => _specialty = v) : null,
-            validator: required,
+            validator: required('la spécialité'),
           ),
           const SizedBox(height: SabouSpace.s3),
           DropdownButtonFormField<int>(
@@ -282,7 +284,7 @@ class _DossierPageState extends State<DossierPage> {
                     _subPrefecture = null;
                   })
                 : null,
-            validator: required,
+            validator: required('la préfecture'),
           ),
           const SizedBox(height: SabouSpace.s3),
           DropdownButtonFormField<int?>(
@@ -315,7 +317,7 @@ class _DossierPageState extends State<DossierPage> {
                 DropdownMenuItem(value: l.code, child: Text(l.name)),
             ],
             onChanged: enabled ? (v) => setState(() => _language = v) : null,
-            validator: required,
+            validator: required('la langue principale'),
           ),
           const SizedBox(height: SabouSpace.s3),
           TextFormField(
@@ -330,7 +332,7 @@ class _DossierPageState extends State<DossierPage> {
             validator: (value) {
               final years = int.tryParse(value ?? '');
               return years == null || years > 80
-                  ? 'L’expérience se compte en années, de 0 à 80.'
+                  ? 'Saisissez un nombre de 0 à 80.'
                   : null;
             },
           ),

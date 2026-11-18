@@ -242,6 +242,27 @@ describe('Fiche plante', () => {
     expect(init.body).toBe(file);
   });
 
+  it('ajouter une photo sans fichier : message sous le champ Photo, focus dessus, rien envoyé', async () => {
+    render(<PlantPage code="PL-001" />);
+    const form = (await screen.findByRole('heading', { name: 'Ajouter une photo' })).closest(
+      'form',
+    )!;
+    const calls = fetchMock.mock.calls.length;
+    fireEvent.change(within(form).getByLabelText(/^Texte alternatif(?! en anglais)/), {
+      target: { value: 'Feuilles' },
+    });
+    fireEvent.click(within(form).getByRole('button', { name: 'Ajouter la photo' }));
+    const photo = within(form).getByLabelText(/^Photo(?! principale)/);
+    expect(photo.getAttribute('aria-invalid')).toBe('true');
+    const described = photo.getAttribute('aria-describedby')!.split(' ');
+    expect(described.map((id) => document.getElementById(id)?.textContent)).toContain(
+      'Choisissez la photo à ajouter.',
+    );
+    expect(document.activeElement).toBe(photo);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(fetchMock.mock.calls.length).toBe(calls);
+  });
+
   it('fiche introuvable : message, et lien de retour', async () => {
     handler = () => Response.json({ message: 'Fiche plante introuvable.' }, { status: 404 });
     render(<PlantPage code="PL-999" />);

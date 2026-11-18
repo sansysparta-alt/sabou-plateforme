@@ -443,16 +443,21 @@ function AddImageForm({
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  // Erreur de saisie sous le champ Photo ; le bandeau reste aux refus du serveur
+  const [fileError, setFileError] = useState<string>();
+  const fileId = useId();
   // Nouveau formulaire après chaque ajout (champs vidés)
   const [round, setRound] = useState(0);
 
   async function onSubmit(fields: PlantImageFields) {
-    if (!file) {
-      setError('Choisissez la photo à ajouter.');
-      return;
-    }
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError('La photo fait au plus 5 Mo.');
+    const invalid = !file
+      ? 'Choisissez la photo à ajouter.'
+      : file.size > IMAGE_MAX_BYTES
+        ? 'La photo fait au plus 5 Mo.'
+        : undefined;
+    setFileError(invalid);
+    if (!file || invalid) {
+      document.getElementById(fileId)?.focus();
       return;
     }
     setBusy(true);
@@ -488,10 +493,15 @@ function AddImageForm({
             label="Photo"
             hint="JPEG, PNG ou WebP, 5 Mo au plus."
             type="file"
+            id={fileId}
             accept={ACCEPTED}
             // Contrôlé par l'écran (message clair) plutôt que par le navigateur
             aria-required="true"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            error={fileError}
+            onChange={(event) => {
+              setFile(event.target.files?.[0] ?? null);
+              setFileError(undefined);
+            }}
           />
         }
       />

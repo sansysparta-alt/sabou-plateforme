@@ -153,11 +153,20 @@ describe('Critère : maladie, 1 à n plantes ordonnées avec partie utilisée, c
     expect(within(second).queryByRole('option', { name: /Neem/ })).toBeNull();
   });
 
-  it('sans maladie ni titre : message, aucun appel', async () => {
+  it('sans maladie ni titre : message sous chaque champ, focus sur le premier, aucun appel', async () => {
     await openNew();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Choisissez la maladie');
+    const disease = screen.getByLabelText('Maladie soignée');
+    expect(errorOf(disease)).toBe('Choisissez la maladie soignée.');
+    expect(errorOf(screen.getByLabelText('Titre du traitement'))).toBe(
+      'Donnez un titre au traitement.',
+    );
+    expect(document.activeElement).toBe(disease);
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(writes()).toEqual([]);
+    // Corriger un champ efface son erreur
+    select('Maladie soignée', 'MA-001');
+    expect(errorOf(disease)).toBeNull();
   });
 });
 
@@ -178,7 +187,9 @@ describe('Critère : consentement et niveau de visibilité obligatoires avant so
     type('Titre du traitement', 'Essai');
     fireEvent.click(screen.getByRole('checkbox', { name: /J’accepte/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('niveau de visibilité');
+    const group = screen.getByRole('group', { name: 'Niveau de visibilité' });
+    expect(errorOf(group)).toBe('Choisissez le niveau de visibilité.');
+    expect(document.activeElement).toBe(screen.getAllByRole('radio')[0]);
     expect(writes()).toEqual([]);
   });
 
@@ -316,3 +327,13 @@ describe('US-063 : contre-indications structurées', () => {
     expect(kept).toHaveProperty('checked', true);
   });
 });
+
+// Message d'erreur relié au champ (aria-invalid, aria-describedby), ou null
+function errorOf(field: HTMLElement): string | null {
+  if (field.getAttribute('aria-invalid') !== 'true') return null;
+  const ids = field.getAttribute('aria-describedby')?.split(' ') ?? [];
+  return (
+    ids.map((id) => document.getElementById(id)).find((node) => node?.id.endsWith('-erreur'))
+      ?.textContent ?? null
+  );
+}

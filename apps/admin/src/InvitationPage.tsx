@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, PageHeader } from '@sabou/ui';
+import { Alert, PageHeader, TextField } from '@sabou/ui';
 import type { InvitationPreview } from '@sabou/types';
 import { acceptInvitation, ApiError, previewInvitation } from './accounts-api';
 import { ROLE_LABELS } from './roles';
@@ -96,6 +96,8 @@ function PasswordForm({
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string>();
+  // Erreurs de saisie sous le champ concerné ; le bandeau reste aux refus du serveur
+  const [errors, setErrors] = useState<{ password?: string; confirmation?: string }>({});
   const [sending, setSending] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
@@ -105,12 +107,16 @@ function PasswordForm({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (password.length < MIN_PASSWORD) {
-      setError(`Le mot de passe doit compter au moins ${MIN_PASSWORD} caractères.`);
-      return;
-    }
-    if (password !== confirmation) {
-      setError('Les deux mots de passe ne sont pas identiques.');
+    const found =
+      password.length < MIN_PASSWORD
+        ? { password: `Au moins ${MIN_PASSWORD} caractères.` }
+        : password !== confirmation
+          ? { confirmation: 'Les deux saisies ne sont pas identiques.' }
+          : {};
+    setErrors(found);
+    if (found.password || found.confirmation) {
+      setError(undefined);
+      document.getElementById(`${id}-${found.password ? 'password' : 'confirmation'}`)?.focus();
       return;
     }
     setSending(true);
@@ -139,41 +145,33 @@ function PasswordForm({
         )}
         {/* Identifiant lu par les gestionnaires de mots de passe */}
         <input type="hidden" name="username" autoComplete="username" value={preview.email} />
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-password`}>
-            Choisissez un mot de passe
-          </label>
-          <p id={`${id}-hint`} className="ui-field__hint">
-            {MIN_PASSWORD} caractères au moins. Une phrase de plusieurs mots est facile à retenir.
-          </p>
-          <input
-            className="ui-input"
-            id={`${id}-password`}
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={MIN_PASSWORD}
-            maxLength={128}
-            aria-describedby={`${id}-hint`}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-        <div className="ui-field">
-          <label className="ui-field__label" htmlFor={`${id}-confirmation`}>
-            Saisissez-le une seconde fois
-          </label>
-          <input
-            className="ui-input"
-            id={`${id}-confirmation`}
-            type="password"
-            autoComplete="new-password"
-            required
-            maxLength={128}
-            value={confirmation}
-            onChange={(event) => setConfirmation(event.target.value)}
-          />
-        </div>
+        <TextField
+          id={`${id}-password`}
+          label="Choisissez un mot de passe"
+          hint={`${MIN_PASSWORD} caractères au moins. Une phrase de plusieurs mots est facile à retenir.`}
+          type="password"
+          autoComplete="new-password"
+          maxLength={128}
+          value={password}
+          error={errors.password}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            setErrors({});
+          }}
+        />
+        <TextField
+          id={`${id}-confirmation`}
+          label="Saisissez-le une seconde fois"
+          type="password"
+          autoComplete="new-password"
+          maxLength={128}
+          value={confirmation}
+          error={errors.confirmation}
+          onChange={(event) => {
+            setConfirmation(event.target.value);
+            setErrors({});
+          }}
+        />
         <button type="submit" className="ui-button ui-button--primary" disabled={sending}>
           {sending ? 'Enregistrement…' : 'Enregistrer mon mot de passe'}
         </button>

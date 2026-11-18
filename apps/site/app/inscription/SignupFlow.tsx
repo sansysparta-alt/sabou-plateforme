@@ -58,10 +58,20 @@ function errorText(error: SignupError & { retryAfter?: number }): string {
   return error.message;
 }
 
+interface FieldErrors {
+  firstName?: string;
+  lastName?: string;
+  password?: string;
+}
+const FIELD_ORDER: (keyof FieldErrors)[] = ['firstName', 'lastName', 'password'];
+
 export default function SignupFlow() {
   const [step, setStep] = useState<Step>({ name: 'phone' });
   const [profile, setProfile] = useState<Profile>('citoyen');
   const [error, setError] = useState<string | null>(null);
+  // Erreurs de saisie de l'étape « profil », chacune sous son champ (WCAG 3.3.1) ; le message
+  // commun reste aux refus du serveur
+  const [fields, setFields] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -78,6 +88,7 @@ export default function SignupFlow() {
 
   function go(next: Step, message: string | null = null) {
     setError(null);
+    setFields({});
     setNotice(message);
     setStep(next);
   }
@@ -141,17 +152,16 @@ export default function SignupFlow() {
     const firstName = String(form.get('firstName') ?? '').trim();
     const lastName = String(form.get('lastName') ?? '').trim();
     const password = String(form.get('password') ?? '');
-    if (!firstName) {
-      setError('Indiquez votre prénom.');
-      return;
-    }
-    if (profile === 'praticien' && !lastName) {
-      setError('Indiquez votre nom.');
-      return;
-    }
+    const found: FieldErrors = {};
+    if (!firstName) found.firstName = 'Indiquez votre prénom.';
+    if (profile === 'praticien' && !lastName) found.lastName = 'Indiquez votre nom.';
     const refused = citizenPasswordError(password, phone);
-    if (refused) {
-      setError(refused);
+    if (refused) found.password = refused;
+    setFields(found);
+    const invalid = FIELD_ORDER.find((key) => found[key]);
+    if (invalid) {
+      setError(null);
+      document.getElementById(invalid)?.focus();
       return;
     }
     void run(async () => {
@@ -176,6 +186,27 @@ export default function SignupFlow() {
     });
   }
 
+  // Message sous un champ de l'étape « profil » : relié au champ, effacé dès la saisie
+  const fieldError = (key: keyof FieldErrors) =>
+    fields[key] ? (
+      <p id={`${key}-erreur`} className={styles.error}>
+        {fields[key]}
+      </p>
+    ) : null;
+  const fieldProps = (key: keyof FieldErrors, help?: string) => ({
+    'aria-invalid': fields[key] ? true : undefined,
+    'aria-describedby':
+      [help, fields[key] ? `${key}-erreur` : undefined, error ? errorId : undefined]
+        .filter(Boolean)
+        .join(' ') || undefined,
+    onChange: () =>
+      setFields((current) => {
+        if (!current[key]) return current;
+        const rest = { ...current };
+        delete rest[key];
+        return rest;
+      }),
+  });
   const errorId = 'inscription-erreur';
   const described = (help: string) => (error ? `${help} ${errorId}` : help);
   const errorBlock = error ? (
@@ -331,11 +362,12 @@ export default function SignupFlow() {
                 maxLength={50}
                 required
                 className={styles.input}
-                aria-describedby={described('prenom-aide')}
+                {...fieldProps('firstName', 'prenom-aide')}
               />
               <p id="prenom-aide" className={styles.help}>
                 Affiché avec vos témoignages.
               </p>
+              {fieldError('firstName')}
             </div>
             {profile === 'praticien' ? (
               <div className={styles.field}>
@@ -350,7 +382,9 @@ export default function SignupFlow() {
                   maxLength={80}
                   required
                   className={styles.input}
+                  {...fieldProps('lastName')}
                 />
+                {fieldError('lastName')}
               </div>
             ) : null}
             <div className={styles.field}>
@@ -364,12 +398,13 @@ export default function SignupFlow() {
                 autoComplete="new-password"
                 required
                 className={styles.input}
-                aria-describedby={described('motdepasse-aide')}
+                {...fieldProps('password', 'motdepasse-aide')}
               />
               <p id="motdepasse-aide" className={styles.help}>
                 8 caractères au moins ; des chiffres seuls suffisent. Évitez votre numéro et les
                 suites comme 12345678.
               </p>
+              {fieldError('password')}
             </div>
             {errorBlock}
             {submit('Créer mon compte')}

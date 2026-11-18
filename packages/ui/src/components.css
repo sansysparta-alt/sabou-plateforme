@@ -133,6 +133,20 @@
   font-size: var(--sabou-text-sm);
   color: var(--sabou-text-muted);
 }
+/* Valeur fixée, affichée à la place d'un champ quand il n'y a rien à choisir (zone d'un rôle
+   national) : même hauteur qu'un champ, sans bordure ni flèche */
+.ui-field__value {
+  display: flex;
+  align-items: center;
+  min-height: var(--sabou-target);
+  margin: 0;
+  padding: var(--sabou-space-2) var(--sabou-space-3);
+  border-radius: var(--sabou-radius-sm);
+  background: var(--sabou-bg);
+}
+.ui-field__value--muted {
+  color: var(--sabou-text-muted);
+}
 .ui-field__error {
   display: flex;
   gap: var(--sabou-space-1);
