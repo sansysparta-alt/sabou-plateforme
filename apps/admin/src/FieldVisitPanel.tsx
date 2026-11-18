@@ -128,7 +128,7 @@ function VisitSummary({
   if (!visit) {
     return (
       <div className="ui-form__actions">
-        <Button variant="secondary" icon="clock" onClick={onPlan}>
+        <Button variant="secondary" icon="calendar" onClick={onPlan}>
           Planifier la visite <span className="ui-visually-hidden">du dossier {code}</span>
         </Button>
       </div>

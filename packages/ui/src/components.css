@@ -226,6 +226,19 @@
   padding-top: var(--sabou-space-5);
   border-top: 1px solid var(--sabou-border);
 }
+/* Formulaire en carte : les boutons d'enregistrement restent visibles en bas de l'écran tant que
+   le formulaire n'est pas entièrement affiché ; ils reprennent leur place à la fin du formulaire. */
+.ui-card--plain > .ui-form__actions:last-child,
+.ui-card--plain > .ui-form > .ui-form__actions:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin: 0 calc(-1 * var(--sabou-space-5)) calc(-1 * var(--sabou-space-5));
+  padding: var(--sabou-space-4) var(--sabou-space-5);
+  border-top: 1px solid var(--sabou-border);
+  border-radius: 0 0 var(--sabou-radius-md) var(--sabou-radius-md);
+  background: var(--sabou-surface);
+}
 /* Légende flottante : elle devient un élément de la grille, l'écart s'applique comme à un titre */
 .ui-form-section__legend {
   float: left;
@@ -642,6 +655,14 @@
   background: color-mix(in srgb, var(--sabou-on-dark) 16%, transparent);
   font-weight: var(--sabou-weight-semibold);
 }
+.ui-nav__link svg {
+  flex: none;
+  color: var(--sabou-on-dark-muted);
+  transition: color var(--sabou-transition);
+}
+.ui-nav__link:hover svg {
+  color: var(--sabou-on-dark);
+}
 .ui-nav__link[aria-current='page'] svg {
   color: var(--sabou-gold);
 }
@@ -762,7 +783,17 @@
     position: sticky;
     top: 0;
     height: 100vh;
+    overflow: hidden;
+  }
+  /* Marque en haut, profil et déconnexion en bas restent fixes ; seules les rubriques défilent
+     si l'écran est bas (le léger débord garde le contour de focus visible) */
+  .ui-nav {
+    min-height: 0;
     overflow-y: auto;
+    margin: -6px;
+    padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--sabou-on-dark) 30%, transparent) transparent;
   }
   .ui-sidebar__brand,
   .ui-sidebar__collapse {
@@ -816,6 +847,44 @@
 }
 .ui-page-header__lead {
   color: var(--sabou-text-muted);
+}
+/* Ordinateur : l'en-tête de page reste en haut pendant le défilement (titre et action principale
+   à portée). Fond pleine largeur de la zone de contenu (border-image), découpé par .ui-main. */
+@media (min-width: 60rem) {
+  .ui-main {
+    overflow-x: clip;
+  }
+  .ui-page-header {
+    position: sticky;
+    top: -1px;
+    z-index: 5;
+    margin-block: calc(-1 * var(--sabou-space-3));
+    padding-block: var(--sabou-space-3);
+    background: var(--sabou-bg);
+    border-image: linear-gradient(var(--sabou-bg), var(--sabou-bg)) fill 0 / 0 / 0 100vmax;
+  }
+  .ui-page-header::after {
+    content: '';
+    position: absolute;
+    inset: auto -100vmax 0;
+    height: 1px;
+    background: var(--sabou-border);
+    box-shadow: 0 2px 6px rgb(11 61 46 / 0.08);
+    opacity: 0;
+    transition: opacity var(--sabou-transition);
+  }
+  .ui-page-header[data-stuck='true'] {
+    align-items: center;
+  }
+  .ui-page-header[data-stuck='true']::after {
+    opacity: 1;
+  }
+  .ui-page-header[data-stuck='true'] h1 {
+    font-size: var(--sabou-text-xl);
+  }
+  .ui-page-header[data-stuck='true'] .ui-page-header__lead {
+    display: none;
+  }
 }
 .ui-grid {
   display: grid;

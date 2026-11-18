@@ -102,7 +102,7 @@ export function Dashboard({
               <ButtonLink variant="secondary" href="/comptes" icon="users">
                 Gérer les comptes
               </ButtonLink>
-              <ButtonLink variant="secondary" href="/referentiels" icon="book">
+              <ButtonLink variant="secondary" href="/referentiels" icon="database">
                 Gérer les référentiels
               </ButtonLink>
             </div>

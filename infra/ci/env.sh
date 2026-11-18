@@ -39,9 +39,10 @@ child_pids() {
 }
 
 # Durée maximale d'une étape, en minutes : une étape figée (mémoire du poste saturée) est
-# arrêtée au lieu de bloquer le pipeline pendant des heures (décision du 16 novembre 2026).
+# arrêtée au lieu de bloquer le pipeline pendant des heures (décision du 16 novembre 2026 ;
+# 90 min depuis le 18 novembre : Lighthouse, 5 mesures par page, dépasse 60 min sur le poste).
 # STEP_TIMEOUT_SEC (secondes) sert à la contre-épreuve.
-STEP_TIMEOUT_MIN=${STEP_TIMEOUT_MIN:-60}
+STEP_TIMEOUT_MIN=${STEP_TIMEOUT_MIN:-90}
 
 # Étape horodatée : début, fin et durée dans le journal du pipeline, pour repérer la plus lente.
 # Au-delà de STEP_TIMEOUT_MIN, l'étape est arrêtée avec tous ses processus et échoue.

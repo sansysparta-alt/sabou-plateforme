@@ -7,6 +7,15 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Éléments fixes (bandeau sur téléphone, en-tête de page sur ordinateur, barre d'actions des
+     formulaires) : un élément qui reçoit le focus n'est jamais caché dessous (WCAG 2.2, 2.4.11) */
+  scroll-padding-top: calc(var(--sabou-topbar-height) + var(--sabou-space-3));
+  scroll-padding-bottom: 5.5rem;
+}
+@media (min-width: 60rem) {
+  html {
+    scroll-padding-top: 6rem;
+  }
 }
 body {
   margin: 0;
