@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ACCOUNT_ROLES } from './accounts.js';
 import {
+  defaultWorkLanguages,
   MATRIX_ROLES,
   PERMISSION_GROUPS,
   PERMISSIONS,
@@ -44,5 +45,24 @@ describe('Catalogue des droits (US-012b)', () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const entry of PERMISSIONS) expect(grantedRoles(entry.id).length).toBeGreaterThan(0);
     expect(grantedRoles('users.manage')).toEqual(['dg']);
+  });
+});
+
+// US-012c : droits de langue par défaut selon le rôle
+describe('Droits de langue préremplis (US-012c)', () => {
+  it('préfectoral : enregistre et traduit ; régional : valide ; dans la langue de la région', () => {
+    expect(defaultWorkLanguages('prefectoral', 'pul')).toEqual([
+      { code: 'pul', record: true, translate: true, validate: false },
+    ]);
+    expect(defaultWorkLanguages('regional', 'sus')).toEqual([
+      { code: 'sus', record: false, translate: false, validate: true },
+    ]);
+  });
+
+  it('DG et Comité : aucun droit par langue ; sans zone choisie : rien', () => {
+    expect(defaultWorkLanguages('dg', 'sus')).toEqual([]);
+    expect(defaultWorkLanguages('scientifique', 'sus')).toEqual([]);
+    expect(defaultWorkLanguages('regional', null)).toEqual([]);
+    expect(defaultWorkLanguages('', 'sus')).toEqual([]);
   });
 });

@@ -10,7 +10,7 @@
 // Chaque droit déjà développé (available) est prouvé conforme au serveur par un test qui essaie
 // l'action avec chaque profil : packages/db/test/matrice-droits.test.ts pour les droits appliqués
 // par la base, les tests de l'API pour la gestion des comptes et les fiches plantes.
-import type { AccountRole } from './accounts.js';
+import type { AccountRole, WorkLanguage } from './accounts.js';
 
 // Profils du §3.2, dans l'ordre de ses colonnes
 export type MatrixRole = 'praticien' | AccountRole | 'citoyen';
@@ -283,3 +283,21 @@ export function grantedRoles(id: string): MatrixRole[] {
 // attribuées à l'invitation ; personne ne valide sa propre voix
 export const VOICE_RIGHTS_NOTE =
   'Les droits sur les voix suivent aussi les langues de travail de chaque compte (enregistrer, traduire, valider), attribuées à l’invitation. Personne ne valide sa propre voix.';
+
+// Droits de langue préremplis à l'invitation, selon le rôle (US-012c, CdC §2.8, §3.2) : le
+// préfectoral enregistre et traduit, le régional valide, dans la langue de sa région ; la DG
+// publie par son rôle (pas de case par langue) ; le Comité n'a pas de droit de langue. Le
+// réglage langue par langue reste possible ensuite. « Résumer » viendra avec US-072 (S6).
+export function defaultWorkLanguages(
+  role: AccountRole | '',
+  regionLanguage: string | null,
+): WorkLanguage[] {
+  if (!regionLanguage) return [];
+  if (role === 'prefectoral') {
+    return [{ code: regionLanguage, record: true, translate: true, validate: false }];
+  }
+  if (role === 'regional') {
+    return [{ code: regionLanguage, record: false, translate: false, validate: true }];
+  }
+  return [];
+}

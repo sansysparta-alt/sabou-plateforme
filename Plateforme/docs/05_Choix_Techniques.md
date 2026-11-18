@@ -1036,3 +1036,12 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits de langue par défaut selon le rôle, réglage par langue conservé | §2.8, §3.2 | US-012c |
 | Rejet définitif par la DG conservé | §4 (absent) | Écart noté, aucun changement |
 | Découpage administratif d'août 2026 | §1.2 (8 régions, 33 préfectures, dépassé) | §2.58, §2.59 |
+
+### 2.67 Droits de langue préremplis selon le rôle (US-012c, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Langue préremplie | Langue vocale par défaut de la région naturelle de la zone (région du régional, région de la préfecture du préfectoral), lue dans les référentiels des comptes | R-LNG-07 : la région fixe la langue vocale par défaut |
+| Droits par défaut | Préfectoral : enregistrer et traduire ; régional : valider ; DG et Comité : aucune case | Critère 1. La DG publie par son rôle (droit de la matrice, pas de case par langue) ; « résumer » n'existe pas encore (US-072, S6) |
+| Moment | À chaque choix du rôle ou de la zone, les cases sont recalculées ; le réglage manuel reste possible ensuite | Critère 2 ; un changement de rôle ne garde pas des droits qui ne lui conviennent pas |
+| Emplacement | `defaultWorkLanguages` dans `@sabou/types/permissions`, module sans zod | L'application de gestion ne télécharge pas zod (réseau 3G) |

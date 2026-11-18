@@ -42,8 +42,10 @@ export class AccountsRepository {
 
   async references(): Promise<AccountReferences> {
     const [regions, prefectures, languages] = await Promise.all([
-      sql<{ id: number; name: string }>`
-        SELECT id, nom AS name FROM sabou.region_admin WHERE active ORDER BY nom`.execute(this.db),
+      sql<{ id: number; name: string; language: string }>`
+        SELECT r.id, r.nom AS name, n.langue_defaut_code AS language
+          FROM sabou.region_admin r JOIN sabou.region_naturelle n ON n.id = r.region_naturelle_id
+         WHERE r.active ORDER BY r.nom`.execute(this.db),
       sql<{ id: number; name: string; regionId: number }>`
         SELECT id, nom AS name, region_admin_id AS "regionId"
           FROM sabou.prefecture WHERE active ORDER BY nom`.execute(this.db),

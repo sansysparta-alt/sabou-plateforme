@@ -127,7 +127,8 @@ export const accountSummarySchema = z.strictObject({
 export type AccountSummary = z.infer<typeof accountSummarySchema>;
 
 export const accountReferencesSchema = z.strictObject({
-  regions: z.array(z.strictObject({ id, name: z.string() })),
+  // Langue vocale par défaut de la région (sa région naturelle, R-LNG-07) : droits préremplis
+  regions: z.array(z.strictObject({ id, name: z.string(), language: languageCode })),
   prefectures: z.array(z.strictObject({ id, name: z.string(), regionId: id })),
   languages: z.array(
     z.strictObject({ code: languageCode, name: z.string(), text: z.boolean(), voice: z.boolean() }),

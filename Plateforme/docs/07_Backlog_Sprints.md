@@ -769,6 +769,8 @@ Critères d’acceptation :
 - Par défaut : le praticien et le préfectoral enregistrent ; le préfectoral résume et traduit ; le régional valide la langue de sa région ; la DG publie.
 - Le réglage langue par langue reste possible.
 
+Réalisation (18 novembre 2026, 05 §2.67) : à l'invitation, le choix du rôle et de la zone préremplit les droits dans la langue vocale de la région (sa région naturelle) : préfectoral = enregistrer et traduire, régional = valider. La DG publie par son rôle et le Comité n'a pas de droit de langue : rien n'est coché pour eux. « Résumer » arrivera avec US-072 (S6). Le praticien ne passe pas par l'invitation : ses droits d'enregistrement suivront avec US-080.
+
 ### Écarts au cahier des charges et décisions de l’alignement (17 novembre 2026)
 
 | Sujet | Décision | CdC |

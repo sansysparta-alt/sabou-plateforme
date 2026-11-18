@@ -36,6 +36,7 @@ import {
   PERMISSION_GROUPS,
   ROLE_PROFILES,
   VOICE_RIGHTS_NOTE,
+  defaultWorkLanguages,
   type MatrixRole,
 } from '@sabou/types/permissions';
 import {
@@ -630,6 +631,27 @@ function InviteForm({
     if (error) errorRef.current?.focus();
   }, [error]);
 
+  // US-012c : à chaque choix du rôle ou de la zone, droits de langue préremplis selon le rôle,
+  // dans la langue de la région (celle de la préfecture pour le préfectoral) ; modifiables
+  function setZone(change: Partial<Pick<FormState, 'role' | 'regionId' | 'prefectureId'>>) {
+    for (const [key, value] of Object.entries(change)) {
+      set(key as 'role' | 'regionId' | 'prefectureId', value as never);
+    }
+    setForm((current) => {
+      const regionId =
+        current.role === 'prefectoral'
+          ? references.prefectures.find((p) => String(p.id) === current.prefectureId)?.regionId
+          : Number(current.regionId) || undefined;
+      const language = references.regions.find((r) => r.id === regionId)?.language ?? null;
+      return {
+        ...current,
+        languages: Object.fromEntries(
+          defaultWorkLanguages(current.role, language).map(({ code, ...rights }) => [code, rights]),
+        ),
+      };
+    });
+  }
+
   function setRight(code: string, right: (typeof RIGHTS)[number][0], value: boolean) {
     setForm((current) => {
       const rights = current.languages[code] ?? {
@@ -757,7 +779,7 @@ function InviteForm({
               }
               value={form.role}
               error={errors.role}
-              onChange={(event) => set('role', event.target.value as AccountRole | '')}
+              onChange={(event) => setZone({ role: event.target.value as AccountRole | '' })}
             >
               <option value="">Choisir un rôle</option>
               {ROLES.map((role) => (
@@ -772,7 +794,7 @@ function InviteForm({
                 label="Région"
                 value={form.regionId}
                 error={errors.regionId}
-                onChange={(event) => set('regionId', event.target.value)}
+                onChange={(event) => setZone({ regionId: event.target.value })}
               >
                 <option value="">Choisir une région</option>
                 {references.regions.map((region) => (
@@ -788,7 +810,7 @@ function InviteForm({
                 label="Préfecture"
                 value={form.prefectureId}
                 error={errors.prefectureId}
-                onChange={(event) => set('prefectureId', event.target.value)}
+                onChange={(event) => setZone({ prefectureId: event.target.value })}
               >
                 <option value="">Choisir une préfecture</option>
                 {references.regions.map((region) => (
