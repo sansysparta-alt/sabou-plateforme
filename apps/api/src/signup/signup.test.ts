@@ -13,61 +13,11 @@ import { CITIZEN_IDENTITY, type CitizenIdentity, type NewCitizen } from './citiz
 import { SignupController } from './signup.controller';
 import { SignupRepository } from './signup.repository';
 import { LIMITS, SignupService } from './signup.service';
-import {
-  SIGNUP_CODE_ATTEMPTS,
-  SIGNUP_STORE,
-  type CodeCheck,
-  type SignupStore,
-} from './signup.store';
+import { MemoryStore } from './memory-store.fake';
+import { SIGNUP_CODE_ATTEMPTS, SIGNUP_STORE } from './signup.store';
 import { SMS_SENDER, type SmsSender } from '../sms/sms';
 
 const SITE = 'http://localhost:3000';
-
-// Même contrat que ValkeySignupStore, en mémoire
-class MemoryStore implements SignupStore {
-  codes = new Map<string, { code: string; attempts: number }>();
-  tickets = new Map<string, string>();
-  counters = new Map<string, number>();
-  async hit(key: string, limit: number, windowSeconds: number) {
-    const count = (this.counters.get(key) ?? 0) + 1;
-    this.counters.set(key, count);
-    return count > limit ? windowSeconds : null;
-  }
-  async saveCode(phone: string, code: string) {
-    this.codes.set(phone, { code, attempts: 0 });
-  }
-  async checkCode(phone: string, code: string): Promise<CodeCheck> {
-    const entry = this.codes.get(phone);
-    if (!entry) return { result: 'expired' };
-    if (entry.code === code) {
-      this.codes.delete(phone);
-      return { result: 'valid' };
-    }
-    entry.attempts += 1;
-    const remainingAttempts = SIGNUP_CODE_ATTEMPTS - entry.attempts;
-    if (remainingAttempts <= 0) {
-      this.codes.delete(phone);
-      return { result: 'expired' };
-    }
-    return { result: 'invalid', remainingAttempts };
-  }
-  async issueTicket(phone: string) {
-    const ticket = randomBytes(32).toString('base64url');
-    this.tickets.set(ticket, phone);
-    return ticket;
-  }
-  async peekTicket(ticket: string) {
-    return this.tickets.get(ticket) ?? null;
-  }
-  async takeTicket(ticket: string) {
-    const phone = this.tickets.get(ticket) ?? null;
-    this.tickets.delete(ticket);
-    return phone;
-  }
-  async restoreTicket(ticket: string, phone: string) {
-    this.tickets.set(ticket, phone);
-  }
-}
 
 const store = new MemoryStore();
 const sms = { sent: [] as { to: string; text: string }[] } satisfies Record<string, unknown>;
@@ -91,6 +41,8 @@ const identity = {
   deleteAccount: vi.fn(async (id: string) => {
     identity.accounts.delete(id);
   }),
+  resetPassword: vi.fn(async () => undefined),
+  signOutEverywhere: vi.fn(async () => undefined),
 } satisfies CitizenIdentity & Record<string, unknown>;
 // Utilisateurs de la plateforme : numéro international → identifiant
 const repository = {
@@ -416,7 +368,13 @@ describe('Protections', () => {
     const { ticket } = (await verified.json()) as { ticket: string };
     const created = await post(
       'compte',
-      { ticket, profile: 'praticien', firstName: 'Mariama', lastName: 'Soumah', password: '40718293' },
+      {
+        ticket,
+        profile: 'praticien',
+        firstName: 'Mariama',
+        lastName: 'Soumah',
+        password: '40718293',
+      },
       null,
     );
     expect(await created.json()).toEqual({ status: 'created' });

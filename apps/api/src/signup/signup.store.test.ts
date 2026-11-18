@@ -117,3 +117,16 @@ describe('Limites', () => {
     expect(await store.hit('code:tel:621234568', 3, 3600)).toBeNull();
   });
 });
+
+describe('Espaces de clés (US-069)', () => {
+  it('un code, un ticket ou une limite de l’inscription ne vaut rien pour le mot de passe oublié', async () => {
+    const reset = new ValkeySignupStore(valkey, 'mot-de-passe');
+    await store.saveCode('621234567', '123456');
+    expect(await reset.checkCode('621234567', '123456')).toEqual({ result: 'expired' });
+    const ticket = await store.issueTicket('621234567');
+    expect(await reset.peekTicket(ticket)).toBeNull();
+    for (let i = 0; i < 3; i += 1) await store.hit('code:tel:621234567', 3, 3600);
+    expect(await reset.hit('code:tel:621234567', 3, 3600)).toBeNull();
+    expect(await valkey.exists('sabou:mot-de-passe:limite:code:tel:621234567')).toBe(1);
+  });
+});

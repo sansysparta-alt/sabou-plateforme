@@ -26,6 +26,17 @@ export class SignupRepository {
     return rows[0]?.found ?? false;
   }
 
+  // Compte actif du domaine public pour ce numéro (US-069) ; null s'il n'y en a pas
+  async findActiveAccount(phone: string): Promise<{ id: number; keycloakId: string } | null> {
+    const { rows } = await sql<{ id: number; keycloak_id: string }>`
+      SELECT id::int, keycloak_id::text
+        FROM sabou.utilisateur
+       WHERE role_code IN ('citoyen', 'praticien') AND telephone = ${phone}
+         AND statut = 'actif' AND keycloak_id IS NOT NULL`.execute(this.db);
+    const row = rows[0];
+    return row ? { id: row.id, keycloakId: row.keycloak_id } : null;
+  }
+
   async createAccount(
     trx: Trx,
     account: {

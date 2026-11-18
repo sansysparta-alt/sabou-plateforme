@@ -46,3 +46,8 @@ export class JournalSmsSender implements SmsSender {
 export function signupCodeMessage(code: string, minutes: number): string {
   return `SABOU : votre code est ${code}. Il expire dans ${minutes} minutes. Ne le donnez à personne.`;
 }
+
+// Mot de passe oublié (US-069) : dit ce que le code permet, pour qu'un SMS non demandé alerte
+export function passwordResetCodeMessage(code: string, minutes: number): string {
+  return `SABOU : code ${code} pour changer votre mot de passe. Il expire dans ${minutes} minutes. Si vous n'avez rien demandé, ignorez ce message.`;
+}
