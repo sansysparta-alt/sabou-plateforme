@@ -1059,3 +1059,13 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Session expirée dans l'écran d'édition | L'écran d'édition est fermé avant le retour à la connexion | Sinon la page de connexion resterait cachée sous l'écran poussé |
 | Langue | Français, comme le reste de l'application (§2.62) | La traduction de l'application est un récit à part |
 | Hors périmètre | Voix et brouillon hors réseau | US-080 et US-081 (S7) |
+
+### 2.64 Le site ne sert plus que le grand public (US-068, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Inscription du site | Profil « citoyen » seul ; la page invite le praticien à installer l'application mobile. L'ancien lien `?profil=praticien` mène à la même page | Critère 1 de US-068 ; le praticien s'inscrit dans l'application (US-066, §2.62) |
+| Lien vers la boutique d'applications | Aucun pour l'instant : texte seul | L'application n'est pas encore publiée ; le lien viendra avec sa publication |
+| Studio web | Pages, styles et tests retirés du site ; l'API et la base restent (Studio mobile, US-067) | Critère 2 de US-068 |
+| Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
+| Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |

@@ -67,12 +67,14 @@ export default function Account() {
         <>
           <p>Bonjour {state.user.name}.</p>
           <p>Numéro de téléphone : {formatNationalMobile(state.user.username)}</p>
+          {/* US-068 : sur le site, un praticien n'a que les fonctions du citoyen */}
+          {state.user.roles.includes('praticien') && (
+            <p className={styles.notice}>
+              Votre dossier de certification et vos traitements sont dans l’application mobile
+              SABOU.
+            </p>
+          )}
           <div className={styles.actions}>
-            {state.user.roles.includes('praticien') && (
-              <a className={styles.link} href="/studio">
-                Ouvrir le Studio
-              </a>
-            )}
             <button
               type="button"
               className={styles.button}

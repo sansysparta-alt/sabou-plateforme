@@ -1,7 +1,7 @@
 // Outils des tests du compte citoyen (lot D) : numéros fictifs, codes du faux fournisseur
 // de SMS (journal de l'API), contrôle axe (WCAG 2.2 AA).
 import { execFileSync } from 'node:child_process';
-import { randomInt } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
@@ -163,3 +163,69 @@ export async function expectAccessible(page: Page, screen: string): Promise<void
     ),
   ).toEqual([]);
 }
+
+// Connexion de l'application mobile (US-040b, §2.29), rejouée par les tests de bout en bout :
+// seule voie vers les routes du praticien depuis US-068.
+const KEYCLOAK_PUBLIC = `http://localhost:${process.env.KEYCLOAK_PORT ?? 8080}/realms/sabou-public`;
+export const OIDC = `${KEYCLOAK_PUBLIC}/protocol/openid-connect`;
+export const CLIENT_ID = 'sabou-mobile';
+export const REDIRECT_URI = 'gn.sabou.mobile:/oauth2redirect';
+
+export interface Tokens {
+  access_token: string;
+  refresh_token: string;
+  refresh_expires_in: number;
+  scope: string;
+}
+
+export const claims = (jwt: string) =>
+  JSON.parse(Buffer.from(jwt.split('.')[1]!, 'base64url').toString()) as Record<string, unknown>;
+
+// Ce que fait l'application (flutter_appauth) : page de Keycloak dans le navigateur, retour
+// vers le schéma de l'application avec le code, échange du code avec le vérificateur PKCE
+export async function signInLikeTheApp(
+  page: Page,
+  phone: string,
+  password: string,
+): Promise<Tokens> {
+  const verifier = randomBytes(32).toString('base64url');
+  const state = randomBytes(16).toString('base64url');
+  const authorize = new URL(`${OIDC}/auth`);
+  authorize.search = new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: 'openid offline_access',
+    state,
+    code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+    code_challenge_method: 'S256',
+    prompt: 'login',
+  }).toString();
+  await page.goto(authorize.href);
+  await page.getByLabel('Numéro de téléphone').fill(phone);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  // Le navigateur ne sait pas ouvrir « gn.sabou.mobile: » : on lit la redirection elle-même
+  const [redirect] = await Promise.all([
+    page.waitForResponse((r) => r.headers()['location']?.startsWith(REDIRECT_URI) ?? false),
+    page.getByRole('button', { name: 'Connexion' }).click(),
+  ]);
+  const back = new URL(redirect.headers()['location']!);
+  expect(back.searchParams.get('state')).toBe(state);
+
+  const exchange = await fetch(`${OIDC}/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: CLIENT_ID,
+      code: back.searchParams.get('code')!,
+      redirect_uri: REDIRECT_URI,
+      code_verifier: verifier,
+    }),
+  });
+  expect(exchange.status).toBe(200);
+  return (await exchange.json()) as Tokens;
+}
+
+export const bearer = (token: string, init: RequestInit = {}) =>
+  ({ ...init, headers: { ...init.headers, authorization: `Bearer ${token}` } }) as RequestInit;
