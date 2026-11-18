@@ -58,7 +58,7 @@ export class AccountsRepository {
   async list(currentSub: string): Promise<AccountSummary[]> {
     const { rows } = await sql<AccountSummary>`
       SELECT u.id::int AS id, u.email, u.prenom AS "firstName", u.nom AS "lastName",
-             u.role_code AS role, u.statut AS status,
+             u.telephone AS phone, u.role_code AS role, u.statut AS status,
              coalesce(p.nom, r.nom, 'National') AS zone,
              coalesce(u.keycloak_id = ${asUuid(currentSub)}::uuid, false) AS self,
              coalesce((
@@ -89,9 +89,9 @@ export class AccountsRepository {
   async createInvited(trx: Trx, input: InviteRequest): Promise<number> {
     const { rows } = await sql<{ id: number }>`
       INSERT INTO sabou.utilisateur
-        (email, prenom, nom, role_code, region_admin_id, prefecture_id,
+        (email, prenom, nom, telephone, role_code, region_admin_id, prefecture_id,
          langue_interface, langue_ecoute, statut)
-      VALUES (${input.email}, ${input.firstName}, ${input.lastName}, ${input.role},
+      VALUES (${input.email}, ${input.firstName}, ${input.lastName}, ${input.phone}, ${input.role},
               ${input.regionId}, ${input.prefectureId}, ${input.interfaceLanguage},
               ${input.listeningLanguage}, 'invite')
       RETURNING id::int AS id`.execute(trx);

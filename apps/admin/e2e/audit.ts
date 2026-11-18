@@ -60,6 +60,7 @@ export function accountAuditActions(accountId: number): string[] {
 export interface AccountRow {
   id: number;
   role: string;
+  phone: string | null;
   region: string | null;
   prefecture: string | null;
   status: string;
@@ -72,6 +73,7 @@ export function accountRow(email: string): AccountRow | null {
   // Adresses de test seulement : rien d'autre n'entre dans la requête
   if (!/^[a-z0-9.-]+@exemple\.invalid$/.test(email)) throw new Error(`Adresse invalide : ${email}`);
   const out = psql(`SELECT json_build_object('id', u.id, 'role', u.role_code, 'region', r.nom,
+      'phone', u.telephone,
       'prefecture', p.nom, 'status', u.statut, 'keycloakId', u.keycloak_id,
       'languages', coalesce((SELECT json_agg(json_build_object('code', l.langue_code,
         'record', l.peut_enregistrer, 'translate', l.peut_traduire, 'validate', l.peut_valider)

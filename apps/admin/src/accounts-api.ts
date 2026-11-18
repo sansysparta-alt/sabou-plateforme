@@ -3,7 +3,7 @@ import type {
   AccountSummary,
   InvitationLink,
   InvitationPreview,
-  InviteRequest,
+  InviteRequestInput,
 } from '@sabou/types';
 import { requestKey, takePrefetched } from './prefetch';
 
@@ -67,7 +67,7 @@ export async function call<T>(
 
 export const listAccounts = () => call<AccountSummary[]>('/api/comptes');
 export const fetchReferences = () => call<AccountReferences>('/api/comptes/referentiels');
-export const inviteAccount = (request: InviteRequest) =>
+export const inviteAccount = (request: InviteRequestInput) =>
   call<InvitationLink>('/api/comptes', request);
 export const renewInvitation = (id: number) =>
   call<InvitationLink>(`/api/comptes/${id}/invitation`, {});

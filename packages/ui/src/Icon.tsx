@@ -19,6 +19,8 @@ const paths = {
   close: 'M18 6 6 18M6 6l12 12',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9',
   plus: 'M12 5v14m-7-7h14',
+  // Droit accordé dans la matrice des rôles (US-012b)
+  check: 'M20 6 9 17l-5-5',
   // Réduire ou rouvrir la navigation latérale (US-019)
   'chevron-left': 'm15 18-6-6 6-6',
   arrowRight: 'M5 12h14m-6-6 6 6-6 6',

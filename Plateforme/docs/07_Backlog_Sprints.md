@@ -41,7 +41,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | Sprint | Phase du CdC | Objectif du sprint (livrable démontrable seul) | Récits | Points |
 |---|---|---|---|---|
 | **S0** | 1. Cadrage (fin de la phase 1) | L’équipe peut développer et tester ; les trois prototypes techniques sont tranchés. | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-009 | 35 |
-| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-013, US-014, US-020, US-021, US-030, US-015 | 33 |
+| **S1** | 2. Socle et sécurité | Un administrateur se connecte avec double facteur et ne voit que les données de sa zone. | US-010, US-011, US-012, US-012b, US-013, US-014, US-020, US-021, US-030, US-015 | 35 |
 | **S2** | 2. Socle et sécurité | Un praticien soumet son dossier ; il est validé sur le terrain, consolidé et expertisé ; il reçoit un SMS à chaque étape. | US-016, US-031, US-040a, US-040b, US-042, US-043, US-044 | 31 |
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-017, US-018 | 33 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
@@ -227,6 +227,17 @@ Critères d’acceptation :
 - Étant donné une invitation envoyée, quand la personne l’accepte, alors son compte a exactement le rôle, la zone et les langues attribués.
 - Étant donné un rôle régional sans région, quand la DG enregistre, alors l’enregistrement est refusé.
 - Décisions du maître d’œuvre du 6 novembre 2026 (lot A, avec US-013) : invitation par lien à usage unique valable 72 h, que la DG transmet elle-même (aucun service d’envoi) ; l’invité choisit son mot de passe et, s’il est administrateur, active le double facteur. Keycloak est la seule source des mots de passe et du double facteur : la table `utilisateur` garde le rôle, la zone, les langues et l’identifiant Keycloak.
+
+#### US-012b · Consulter les rôles et leurs droits ; téléphone du compte
+*Identité et accès* · **Must** · 2 points · cas : UC-65 · ajouté le 17 novembre 2026 (décision du maître d’œuvre)
+
+> En tant que DG, je veux consulter ce que chaque profil peut faire et joindre un administrateur par téléphone, afin d’attribuer le bon rôle et d’organiser les équipes.
+
+Critères d’acceptation :
+- Étant donné la page Comptes, quand la DG ouvre l’onglet « Rôles et droits », alors elle voit la matrice des permissions du cahier des charges (§3.2), ligne à ligne et profil par profil, puis les précisions des règles métier avec leur source ; les droits pas encore développés sont marqués « À venir » ; rien n’y est modifiable.
+- Chaque droit développé affiché est celui que le serveur applique : un test essaie l’action avec chaque profil et échoue si la matrice et le serveur divergent.
+- Étant donné le formulaire d’invitation, quand la DG choisit un rôle, alors le périmètre et la mission de ce rôle s’affichent sous le choix (maquette de gestion, diapositive 2).
+- Le téléphone est obligatoire pour les quatre profils de gestion (décision du maître d’œuvre du 17/11/2026) ; un mobile guinéen saisi librement est enregistré sous la forme +224 ; un numéro absent ou d’un autre format est refusé avec un message, sans rien enregistrer. L’identifiant de connexion reste l’adresse e-mail.
 
 #### US-013 · Suspendre un compte en un clic
 *Identité et accès* · **Must** · 2 points · cas : UC-65

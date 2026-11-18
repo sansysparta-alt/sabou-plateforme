@@ -3,9 +3,13 @@ import {
   Alert,
   Badge,
   Button,
+  Icon,
   PageHeader,
   Pagination,
+  SelectField,
   StatCard,
+  Tabs,
+  TextField,
   usePagination,
   foldText,
 } from '@sabou/ui';
@@ -26,6 +30,20 @@ import {
   renewInvitation,
   suspendAccount,
 } from './accounts-api';
+import {
+  MATRIX_ROLE_LABELS,
+  MATRIX_ROLES,
+  PERMISSION_GROUPS,
+  ROLE_PROFILES,
+  VOICE_RIGHTS_NOTE,
+  type MatrixRole,
+} from '@sabou/types/permissions';
+import {
+  formatNationalMobile,
+  PHONE_ERROR,
+  PHONE_REQUIRED,
+  toNationalMobile,
+} from '@sabou/types/phone';
 import { BADGE_TONES, ROLE_LABELS, ROLES, STATUS_LABELS } from './roles';
 import { PAGE_HEADERS } from './page-headers';
 
@@ -136,117 +154,235 @@ export function AccountsPage() {
       )}
       {!ready && !loadError && <p>Chargement…</p>}
       {ready && (
-        <>
-          <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
-            <StatCard label="Comptes" value={count('tous')} />
-            <StatCard label="Actifs" value={count('actif')} />
-            <StatCard label="Invitations en attente" value={count('invite')} />
-            <StatCard label="Suspendus" value={count('suspendu')} />
-          </div>
-          <section aria-labelledby="accounts-title" className="ui-section">
-            <h2 id="accounts-title" className="ui-visually-hidden">
-              Comptes d’administration
-            </h2>
-            <div className="ui-toolbar" role="search">
-              <div className="ui-toolbar__search">
-                <label htmlFor={searchId} className="ui-visually-hidden">
-                  Rechercher un compte
-                </label>
-                <input
-                  id={searchId}
-                  className="ui-input"
-                  type="search"
-                  placeholder="Rechercher par nom ou adresse e-mail"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                  }}
-                />
-              </div>
-              <label htmlFor={roleId} className="ui-visually-hidden">
-                Filtrer par rôle
-              </label>
-              <select
-                id={roleId}
-                className="ui-select ui-toolbar__select"
-                value={role}
-                onChange={(event) => {
-                  setRole(event.target.value as AccountRole | '');
-                }}
-              >
-                <option value="">Tous les rôles</option>
-                {ROLES.map((value) => (
-                  <option key={value} value={value}>
-                    {ROLE_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-              <div className="ui-segmented" role="group" aria-label="Filtrer par statut">
-                {STATUS_FILTERS.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="ui-segmented__item"
-                    aria-pressed={status === value}
-                    onClick={() => setStatus(value)}
-                  >
-                    {label} ({count(value)})
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="ui-table-block">
-              <div className="ui-table-wrap">
-                <table className="ui-table">
-                  <caption className="ui-visually-hidden">Comptes d’administration</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Compte</th>
-                      <th scope="col">Rôle</th>
-                      <th scope="col">Zone</th>
-                      <th scope="col">Langues de travail</th>
-                      <th scope="col">Statut</th>
-                      <th scope="col" className="ui-table__actions">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((account) => (
-                      <AccountRow
-                        key={account.id}
-                        account={account}
-                        references={references}
-                        onChanged={(text, invitation) => {
-                          setNotice(text);
-                          if (invitation) {
-                            setLink({
-                              name: `${account.firstName} ${account.lastName}`,
-                              invitation,
-                            });
-                          }
-                          void reload();
-                        }}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-                {shown.length === 0 && (
-                  <p className="ui-table-empty">
-                    {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
-                  </p>
-                )}
-              </div>
-              <Pagination
-                {...paginationProps}
-                noun={['compte', 'comptes']}
-                label="Pages des comptes"
-              />
-            </div>
-          </section>
-        </>
+        <Tabs
+          label="Comptes et droits"
+          tabs={[
+            {
+              id: 'comptes',
+              label: 'Comptes',
+              count: all.length,
+              content: accountsTab(),
+            },
+            { id: 'droits', label: 'Rôles et droits', content: <RolesMatrix /> },
+          ]}
+        />
       )}
     </>
+  );
+
+  function accountsTab() {
+    return (
+      <>
+        <div className="ui-grid ui-grid--stats" aria-label="Chiffres des comptes" role="group">
+          <StatCard label="Comptes" value={count('tous')} />
+          <StatCard label="Actifs" value={count('actif')} />
+          <StatCard label="Invitations en attente" value={count('invite')} />
+          <StatCard label="Suspendus" value={count('suspendu')} />
+        </div>
+        <section aria-labelledby="accounts-title" className="ui-section">
+          <h2 id="accounts-title" className="ui-visually-hidden">
+            Comptes d’administration
+          </h2>
+          <div className="ui-toolbar" role="search">
+            <div className="ui-toolbar__search">
+              <label htmlFor={searchId} className="ui-visually-hidden">
+                Rechercher un compte
+              </label>
+              <input
+                id={searchId}
+                className="ui-input"
+                type="search"
+                placeholder="Rechercher par nom ou adresse e-mail"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                }}
+              />
+            </div>
+            <label htmlFor={roleId} className="ui-visually-hidden">
+              Filtrer par rôle
+            </label>
+            <select
+              id={roleId}
+              className="ui-select ui-toolbar__select"
+              value={role}
+              onChange={(event) => {
+                setRole(event.target.value as AccountRole | '');
+              }}
+            >
+              <option value="">Tous les rôles</option>
+              {ROLES.map((value) => (
+                <option key={value} value={value}>
+                  {ROLE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+            <div className="ui-segmented" role="group" aria-label="Filtrer par statut">
+              {STATUS_FILTERS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="ui-segmented__item"
+                  aria-pressed={status === value}
+                  onClick={() => setStatus(value)}
+                >
+                  {label} ({count(value)})
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="ui-table-block">
+            <div className="ui-table-wrap">
+              <table className="ui-table">
+                <caption className="ui-visually-hidden">Comptes d’administration</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Compte</th>
+                    <th scope="col">Rôle</th>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Langues de travail</th>
+                    <th scope="col">Statut</th>
+                    <th scope="col" className="ui-table__actions">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((account) => (
+                    <AccountRow
+                      key={account.id}
+                      account={account}
+                      references={references}
+                      onChanged={(text, invitation) => {
+                        setNotice(text);
+                        if (invitation) {
+                          setLink({
+                            name: `${account.firstName} ${account.lastName}`,
+                            invitation,
+                          });
+                        }
+                        void reload();
+                      }}
+                    />
+                  ))}
+                </tbody>
+              </table>
+              {shown.length === 0 && (
+                <p className="ui-table-empty">
+                  {all.length === 0 ? 'Aucun compte.' : 'Aucun compte ne correspond.'}
+                </p>
+              )}
+            </div>
+            <Pagination
+              {...paginationProps}
+              noun={['compte', 'comptes']}
+              label="Pages des comptes"
+            />
+          </div>
+        </section>
+      </>
+    );
+  }
+}
+
+// Matrice des droits (US-012b), en consultation seule : celle du cahier des charges (§3.2),
+// ligne à ligne, puis les précisions des règles métier. Les droits déjà développés sont prouvés
+// conformes au serveur par des tests (packages/db/test/matrice-droits.test.ts, tests de l'API) ;
+// les autres sont marqués « À venir ».
+const PROFILE_ORDER: MatrixRole[] = [
+  'dg',
+  'regional',
+  'prefectoral',
+  'scientifique',
+  'praticien',
+  'citoyen',
+];
+
+function RolesMatrix() {
+  return (
+    <section aria-labelledby="roles-title" className="ui-section">
+      <h2 id="roles-title" className="ui-visually-hidden">
+        Rôles et droits
+      </h2>
+      <p className="ui-muted">
+        Chaque compte a un profil, qui fixe ce qu’il peut faire et sur quelle zone. Profils et
+        droits sont ceux du cahier des charges : ils se consultent ici, ils ne se modifient pas.
+      </p>
+      <ul className="ui-grid ui-grid--wide ui-role-cards">
+        {PROFILE_ORDER.map((role) => (
+          <li key={role} className="ui-card ui-card--plain">
+            <h3 className="ui-role-cards__title">{MATRIX_ROLE_LABELS[role]}</h3>
+            <p className="ui-muted">{ROLE_PROFILES[role].scope}</p>
+            <p>{ROLE_PROFILES[role].mission}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="ui-table-wrap ui-role-matrix">
+        <table className="ui-table">
+          <caption className="ui-visually-hidden">Droits de chaque profil</caption>
+          <thead>
+            <tr>
+              <th scope="col">Droit</th>
+              {MATRIX_ROLES.map((role) => (
+                <th key={role} scope="col" className="ui-table__check">
+                  {MATRIX_ROLE_LABELS[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {PERMISSION_GROUPS.map((group) => (
+            <tbody key={group.title}>
+              <tr>
+                <th
+                  scope="colgroup"
+                  colSpan={MATRIX_ROLES.length + 1}
+                  className="ui-role-matrix__group"
+                >
+                  {group.title}
+                </th>
+              </tr>
+              {group.permissions.map((entry) => (
+                <tr key={entry.id}>
+                  <th scope="row">
+                    <span className="ui-role-matrix__label">
+                      {entry.label}
+                      {!entry.available && <Badge tone="neutral">À venir</Badge>}
+                    </span>
+                    {entry.source && (
+                      <span className="ui-role-matrix__source">Source : {entry.source}</span>
+                    )}
+                  </th>
+                  {MATRIX_ROLES.map((role) => {
+                    const grant = entry.grants[role];
+                    if (grant === undefined) {
+                      return (
+                        <td key={role} className="ui-table__check ui-muted">
+                          <span aria-hidden="true">—</span>
+                          <span className="ui-visually-hidden">Non</span>
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={role} className="ui-table__check">
+                        {grant === true ? (
+                          <>
+                            <Icon name="check" />
+                            <span className="ui-visually-hidden">Oui</span>
+                          </>
+                        ) : (
+                          grant
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+      <p className="ui-field__hint">{VOICE_RIGHTS_NOTE}</p>
+    </section>
   );
 }
 
@@ -338,6 +474,11 @@ function AccountRow({
           <span className="ui-person__text">
             <span className="ui-person__name">{name}</span>
             <span className="ui-person__email">{account.email}</span>
+            {account.phone && (
+              <span className="ui-person__email">
+                {formatNationalMobile(account.phone.replace(/^\+224/, ''))}
+              </span>
+            )}
           </span>
         </span>
       </th>
@@ -399,11 +540,10 @@ interface FormState {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   role: AccountRole | '';
   regionId: string;
   prefectureId: string;
-  interfaceLanguage: 'fr' | 'en';
-  listeningLanguage: string;
   languages: Record<string, Omit<WorkLanguage, 'code'>>;
 }
 
@@ -411,13 +551,52 @@ const EMPTY: FormState = {
   firstName: '',
   lastName: '',
   email: '',
+  phone: '',
   role: '',
   regionId: '',
   prefectureId: '',
-  interfaceLanguage: 'fr',
-  listeningLanguage: '',
   languages: {},
 };
+
+// Erreurs par champ (WCAG 3.3.1, 3.3.3) : un message court sous le champ concerné, seulement
+// pour ce qui manque ; le premier champ à corriger reçoit le focus
+interface FieldErrors {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  regionId?: string;
+  prefectureId?: string;
+}
+const FIELD_ORDER: (keyof FieldErrors)[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'role',
+  'regionId',
+  'prefectureId',
+];
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function fieldErrors(form: FormState): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!form.firstName.trim()) errors.firstName = 'Saisissez le prénom.';
+  if (!form.lastName.trim()) errors.lastName = 'Saisissez le nom.';
+  if (!form.email.trim()) errors.email = 'Saisissez l’adresse e-mail.';
+  else if (!EMAIL.test(form.email.trim())) {
+    errors.email = 'Adresse e-mail invalide, par exemple nom@domaine.gn.';
+  }
+  if (!form.phone.trim()) errors.phone = PHONE_REQUIRED;
+  else if (!toNationalMobile(form.phone)) errors.phone = PHONE_ERROR;
+  if (!form.role) errors.role = 'Choisissez un rôle.';
+  if (form.role === 'regional' && !form.regionId) errors.regionId = 'Choisissez une région.';
+  if (form.role === 'prefectoral' && !form.prefectureId) {
+    errors.prefectureId = 'Choisissez une préfecture.';
+  }
+  return errors;
+}
 
 function InviteForm({
   references,
@@ -431,10 +610,21 @@ function InviteForm({
   const id = useId();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState<string>();
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [sending, setSending] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  // Identifiant de chaque champ : le premier champ à corriger reçoit le focus
+  const fieldId = (key: keyof FieldErrors) => `${id}-${key}`;
+  // Une saisie efface l'erreur du champ corrigé
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => {
+      if (!(key in current)) return current;
+      const rest = { ...current };
+      delete rest[key as keyof FieldErrors];
+      return rest;
+    });
+  };
 
   useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -456,8 +646,12 @@ function InviteForm({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.role) {
-      setError('Renseignez le prénom, le nom, l’adresse e-mail et le rôle.');
+    const found = fieldErrors(form);
+    setErrors(found);
+    const first = FIELD_ORDER.find((key) => found[key]);
+    if (first) {
+      setError(undefined);
+      document.getElementById(fieldId(first))?.focus();
       return;
     }
     setSending(true);
@@ -467,13 +661,12 @@ function InviteForm({
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
-        role: form.role,
+        phone: form.phone.trim(),
+        role: form.role as AccountRole,
         // Seule la zone du rôle est envoyée ; l'API refuse une zone absente ou en trop
         regionId: form.role === 'regional' && form.regionId ? Number(form.regionId) : null,
         prefectureId:
           form.role === 'prefectoral' && form.prefectureId ? Number(form.prefectureId) : null,
-        interfaceLanguage: form.interfaceLanguage,
-        listeningLanguage: form.listeningLanguage || null,
         languages: Object.entries(form.languages)
           .filter(([, rights]) => rights.record || rights.translate || rights.validate)
           .map(([code, rights]) => ({ code, ...rights })),
@@ -481,6 +674,7 @@ function InviteForm({
       onInvited(`${form.firstName.trim()} ${form.lastName.trim()}`, invitation);
       setForm(EMPTY);
     } catch (failure) {
+      // Refus du serveur (adresse déjà utilisée…) : message en tête du formulaire
       setError(message(failure));
     } finally {
       setSending(false);
@@ -492,8 +686,8 @@ function InviteForm({
     <section aria-labelledby={`${id}-title`} className="ui-card ui-card--plain">
       <h2 id={`${id}-title`}>Inviter un compte</h2>
       <p className="ui-muted">
-        Le prénom, le nom, l’adresse e-mail et le rôle sont obligatoires. Un lien d’invitation est
-        créé, à transmettre à la personne.
+        Tous les champs sont obligatoires, téléphone compris (alertes et notifications par SMS). Un
+        lien d’invitation est créé, à transmettre à la personne.
       </p>
       <form className="ui-form" onSubmit={onSubmit} noValidate>
         {error && (
@@ -504,172 +698,116 @@ function InviteForm({
         <fieldset className="ui-form-section">
           <legend className="ui-form-section__legend">Identité</legend>
           <div className="ui-form-row">
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-first`}>
-                Prénom
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-first`}
-                autoComplete="off"
-                required
-                maxLength={80}
-                value={form.firstName}
-                onChange={(event) => set('firstName', event.target.value)}
-              />
-            </div>
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-last`}>
-                Nom
-              </label>
-              <input
-                className="ui-input"
-                id={`${id}-last`}
-                autoComplete="off"
-                required
-                maxLength={80}
-                value={form.lastName}
-                onChange={(event) => set('lastName', event.target.value)}
-              />
-            </div>
+            <TextField
+              id={fieldId('firstName')}
+              label="Prénom"
+              autoComplete="off"
+              maxLength={80}
+              value={form.firstName}
+              error={errors.firstName}
+              onChange={(event) => set('firstName', event.target.value)}
+            />
+            <TextField
+              id={fieldId('lastName')}
+              label="Nom"
+              autoComplete="off"
+              maxLength={80}
+              value={form.lastName}
+              error={errors.lastName}
+              onChange={(event) => set('lastName', event.target.value)}
+            />
           </div>
-          <div className="ui-field">
-            <label className="ui-field__label" htmlFor={`${id}-email`}>
-              Adresse e-mail
-            </label>
-            <input
-              className="ui-input"
-              id={`${id}-email`}
+          <div className="ui-form-row">
+            <TextField
+              id={fieldId('email')}
+              label="Adresse e-mail"
+              hint="Elle sert d’identifiant de connexion."
               type="email"
               autoComplete="off"
-              required
               maxLength={254}
-              aria-describedby={`${id}-email-hint`}
               value={form.email}
+              error={errors.email}
               onChange={(event) => set('email', event.target.value)}
             />
-            <p id={`${id}-email-hint`} className="ui-field__hint">
-              Elle sert d’identifiant de connexion.
-            </p>
+            <TextField
+              id={fieldId('phone')}
+              label="Téléphone"
+              hint="Mobile guinéen (par exemple 621 23 45 67), pour les alertes et notifications par SMS."
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              maxLength={30}
+              value={form.phone}
+              error={errors.phone}
+              onChange={(event) => set('phone', event.target.value)}
+            />
           </div>
         </fieldset>
         <fieldset className="ui-form-section">
           <legend className="ui-form-section__legend">Rôle et zone</legend>
           <div className="ui-form-row">
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-role`}>
-                Rôle
-              </label>
-              <select
-                className="ui-select"
-                id={`${id}-role`}
-                required
-                value={form.role}
-                onChange={(event) => set('role', event.target.value as AccountRole | '')}
+            <SelectField
+              id={fieldId('role')}
+              label="Rôle"
+              // Ce que la DG attribue, au moment de le choisir (maquette, diapositive 2)
+              hint={
+                form.role
+                  ? `${ROLE_PROFILES[form.role].scope} · ${ROLE_PROFILES[form.role].mission}`
+                  : undefined
+              }
+              value={form.role}
+              error={errors.role}
+              onChange={(event) => set('role', event.target.value as AccountRole | '')}
+            >
+              <option value="">Choisir un rôle</option>
+              {ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role]}
+                </option>
+              ))}
+            </SelectField>
+            {form.role === 'regional' && (
+              <SelectField
+                id={fieldId('regionId')}
+                label="Région"
+                value={form.regionId}
+                error={errors.regionId}
+                onChange={(event) => set('regionId', event.target.value)}
               >
-                <option value="">Choisir un rôle</option>
-                {ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
+                <option value="">Choisir une région</option>
+                {references.regions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name}
                   </option>
                 ))}
-              </select>
-            </div>
-            {form.role === 'regional' && (
-              <div className="ui-field">
-                <label className="ui-field__label" htmlFor={`${id}-region`}>
-                  Région
-                </label>
-                <select
-                  className="ui-select"
-                  id={`${id}-region`}
-                  required
-                  value={form.regionId}
-                  onChange={(event) => set('regionId', event.target.value)}
-                >
-                  <option value="">Choisir une région</option>
-                  {references.regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              </SelectField>
             )}
             {form.role === 'prefectoral' && (
-              <div className="ui-field">
-                <label className="ui-field__label" htmlFor={`${id}-prefecture`}>
-                  Préfecture
-                </label>
-                <select
-                  className="ui-select"
-                  id={`${id}-prefecture`}
-                  required
-                  value={form.prefectureId}
-                  onChange={(event) => set('prefectureId', event.target.value)}
-                >
-                  <option value="">Choisir une préfecture</option>
-                  {references.regions.map((region) => (
-                    <optgroup key={region.id} label={region.name}>
-                      {references.prefectures
-                        .filter((prefecture) => prefecture.regionId === region.id)
-                        .map((prefecture) => (
-                          <option key={prefecture.id} value={prefecture.id}>
-                            {prefecture.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
+              <SelectField
+                id={fieldId('prefectureId')}
+                label="Préfecture"
+                value={form.prefectureId}
+                error={errors.prefectureId}
+                onChange={(event) => set('prefectureId', event.target.value)}
+              >
+                <option value="">Choisir une préfecture</option>
+                {references.regions.map((region) => (
+                  <optgroup key={region.id} label={region.name}>
+                    {references.prefectures
+                      .filter((prefecture) => prefecture.regionId === region.id)
+                      .map((prefecture) => (
+                        <option key={prefecture.id} value={prefecture.id}>
+                          {prefecture.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </SelectField>
             )}
           </div>
         </fieldset>
-        <fieldset className="ui-form-section">
-          <legend className="ui-form-section__legend">Langues</legend>
-          <div className="ui-form-row">
-            <fieldset className="ui-fieldset">
-              <legend className="ui-fieldset__legend">Langue de l’interface</legend>
-              <div className="ui-choice-row">
-                {(
-                  [
-                    ['fr', 'Français'],
-                    ['en', 'Anglais'],
-                  ] as const
-                ).map(([code, label]) => (
-                  <label key={code} className="ui-choice">
-                    <input
-                      type="radio"
-                      name={`${id}-interface`}
-                      value={code}
-                      checked={form.interfaceLanguage === code}
-                      onChange={() => set('interfaceLanguage', code)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <div className="ui-field">
-              <label className="ui-field__label" htmlFor={`${id}-listening`}>
-                Langue d’écoute préférée (voix)
-              </label>
-              <select
-                className="ui-select"
-                id={`${id}-listening`}
-                value={form.listeningLanguage}
-                onChange={(event) => set('listeningLanguage', event.target.value)}
-              >
-                <option value="">Celle de la région</option>
-                {voiceLanguages.map((language) => (
-                  <option key={language.code} value={language.code}>
-                    {language.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </fieldset>
+        {/* Langue de l'interface et langue d'écoute : choix de la personne elle-même, à tout
+            moment (CdC, langues et régions) ; par défaut le français et la langue de sa région */}
         <fieldset className="ui-form-section" aria-describedby={`${id}-rights-hint`}>
           <legend className="ui-form-section__legend">Langues de travail</legend>
           <p id={`${id}-rights-hint`} className="ui-field__hint">

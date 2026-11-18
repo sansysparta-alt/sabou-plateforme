@@ -5,7 +5,9 @@ import 'reflect-metadata';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import type { PlantDetail } from '@sabou/types';
+import { ACCOUNT_ROLES, type PlantDetail } from '@sabou/types';
+import { grantedRoles } from '@sabou/types/permissions';
+import { KEYCLOAK_ROLES } from '../accounts/identity-admin';
 import { SESSION_COOKIE } from '../auth/auth.controller';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { ENV, type Env } from '../config/env';
@@ -153,6 +155,10 @@ beforeEach(() => {
     ['dg', session(['dg', 'administrateur'])],
     ['dg-sans-facteur', session(['dg', 'administrateur'], false)],
     ['regional', session(['admin_regional', 'administrateur'])],
+    // Un compte par rôle, avec second facteur : matrice des droits (US-012b)
+    ...ACCOUNT_ROLES.map(
+      (role) => [`role-${role}`, session([KEYCLOAK_ROLES[role], 'administrateur'])] as const,
+    ),
   ]);
 });
 
@@ -185,6 +191,14 @@ const fields = {
 const imageQuery = '?alt=Feuilles%20s%C3%A9ch%C3%A9es&type=feuille&principale=true';
 
 describe('Accès : DG et Comité scientifique avec second facteur', () => {
+  it('matrice des droits : seuls les rôles du catalogue ouvrent les fiches plantes (US-012b)', async () => {
+    const allowed: string[] = grantedRoles('plants.edit');
+    for (const role of ACCOUNT_ROLES) {
+      const response = await request('GET', '/api/plantes', undefined, { cookie: `role-${role}` });
+      expect([role, response.status]).toEqual([role, allowed.includes(role) ? 200 : 403]);
+    }
+  });
+
   it('refuse sans session, un autre profil, la DG sans second facteur', async () => {
     expect((await request('GET', '/api/plantes', undefined, { cookie: 'aucune' })).status).toBe(
       401,

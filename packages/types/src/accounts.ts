@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PHONE_ERROR, PHONE_REQUIRED, toInternational, toNationalMobile } from './phone.js';
 
 // Gestion des comptes (lot A : US-012, US-013). Schémas partagés par l'API, qui valide
 // chaque requête, et par l'application de gestion, qui valide ses formulaires.
@@ -54,16 +55,39 @@ export function zoneError(
   }
 }
 
+// Téléphone d'un compte de gestion (fiche U-001 du cahier des charges), obligatoire pour les
+// quatre profils (décision du maître d'œuvre du 17/11/2026) : alertes et notifications par SMS
+// du §9. Jamais identifiant de connexion (l'e-mail l'est). Mobile guinéen saisi librement,
+// enregistré sous la forme internationale (+2246XXXXXXXX).
+export const accountPhoneSchema = z
+  .string()
+  .trim()
+  .max(30)
+  .nullish()
+  .transform((value, ctx) => {
+    if (!value) {
+      ctx.addIssue({ code: 'custom', message: PHONE_REQUIRED });
+      return z.NEVER;
+    }
+    const national = toNationalMobile(value);
+    if (national) return toInternational(national);
+    ctx.addIssue({ code: 'custom', message: PHONE_ERROR });
+    return z.NEVER;
+  });
+
 export const inviteRequestSchema = z
   .strictObject({
     email: z.email().max(254).toLowerCase(),
     firstName: name,
     lastName: name,
+    phone: accountPhoneSchema,
     role: accountRoleSchema,
     regionId: id.nullable(),
     prefectureId: id.nullable(),
-    interfaceLanguage: z.enum(['fr', 'en']),
-    listeningLanguage: languageCode.nullable(),
+    // Préférence personnelle, choisie par la personne elle-même ; français à l'invitation
+    interfaceLanguage: z.enum(['fr', 'en']).default('fr'),
+    // Choix de la personne ; à l'invitation, la langue de sa région (null)
+    listeningLanguage: languageCode.nullable().default(null),
     languages: z.array(workLanguageSchema).max(10),
   })
   .superRefine((value, ctx) => {
@@ -75,6 +99,8 @@ export const inviteRequestSchema = z
     }
   });
 export type InviteRequest = z.infer<typeof inviteRequestSchema>;
+// Ce qu'envoie l'application (champs à valeur par défaut facultatifs)
+export type InviteRequestInput = z.input<typeof inviteRequestSchema>;
 
 // Lien à transmettre par la DG ; le jeton est dans le fragment (#), jamais envoyé au serveur
 // qui sert la page ni inscrit dans les journaux des mandataires
@@ -90,6 +116,7 @@ export const accountSummarySchema = z.strictObject({
   email: z.string(),
   firstName: z.string(),
   lastName: z.string(),
+  phone: z.string().nullable(),
   role: accountRoleSchema,
   zone: z.string(),
   status: accountStatusSchema,

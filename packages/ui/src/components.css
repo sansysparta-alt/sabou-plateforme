@@ -265,6 +265,53 @@
 .ui-check-matrix tbody tr:hover {
   background: var(--sabou-bg);
 }
+/* Matrice des rôles et droits (US-012b), en consultation : groupes de droits en intertitres,
+   colonnes des rôles centrées ; les noms de rôles peuvent passer sur deux lignes */
+.ui-role-matrix thead th.ui-table__check {
+  white-space: normal;
+  text-align: center;
+}
+.ui-role-matrix .ui-table td.ui-table__check {
+  width: 7.5rem;
+  text-align: center;
+  color: var(--sabou-institution);
+}
+.ui-role-matrix .ui-table td.ui-table__check.ui-muted {
+  color: var(--sabou-text-muted);
+}
+.ui-role-matrix .ui-table tbody th[scope='row'] {
+  font-weight: var(--sabou-weight-regular);
+}
+.ui-role-matrix .ui-role-matrix__group {
+  background: var(--sabou-bg);
+  font-size: var(--sabou-text-sm);
+  font-weight: var(--sabou-weight-semibold);
+  color: var(--sabou-text-muted);
+}
+/* Libellé du droit et sa pastille « À venir » ; source d'une précision, en petit dessous */
+.ui-role-matrix__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-1) var(--sabou-space-2);
+}
+.ui-role-matrix__source {
+  display: block;
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+}
+/* Cartes des rôles : nom, périmètre, mission */
+.ui-role-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ui-role-cards > li > * + * {
+  margin-top: var(--sabou-space-1);
+}
+.ui-role-cards__title {
+  font-size: var(--sabou-text-md);
+}
 /* Libellé du droit à côté de la case, visible sur téléphone seulement (le nom accessible complet
    reste porté par le texte masqué) */
 .ui-check-matrix__short {
