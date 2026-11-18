@@ -1113,3 +1113,18 @@ Décision du maître d'ouvrage du 18 novembre 2026 : le compte du praticien est 
 | SMS | `dossier.terrain_cree` à la création (inviter à créer le mot de passe), puis `dossier.soumis` comme pour tout dossier ; un seul SMS GSM 7 bits chacun | Critère 2 ; coût et lisibilité sur tout téléphone |
 
 Point signalé au maître d'œuvre : l'agent qui crée le dossier terrain est aussi celui qui le vérifie à l'étape 2 (seul préfectoral de sa préfecture). Les étapes 3 à 6 (région, Comité, DG) restent des regards indépendants ; aucune règle du cahier des charges n'impose un autre vérificateur pour l'étape 2, mais le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, pour les voix) pourrait être étendu.
+
+### 2.70 Un seul compte DG, récupérable par l'administrateur technique (US-024, 18 novembre 2026)
+
+Décisions du maître d'ouvrage des 17 et 18 novembre 2026 : un seul compte DG ; récupération par un script d'exploitation (`pnpm dg:reinitialiser --motif "…"`), sans écran. Procédure : `08_Exploitation_Recuperation_DG.md`.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Unicité | Index unique partiel `ux_utilisateur_dg_unique` (une seule ligne `role_code = 'dg'` active) ; l'API ne propose plus le rôle DG à l'invitation (`INVITABLE_ROLES`) et traduit le refus de la base (réactivation, ancienne invitation) en 409 expliqué | La règle tient même si l'API change ; une invitation de DG encore en attente est refusée à son activation |
+| Bases existantes | La migration laisse active la DG la plus récente et suspend les autres (bases de test seulement : une base réelle n'en a qu'une) ; rien n'est supprimé. Les tests de bout en bout suspendent la DG précédente avant d'en créer une | Sinon l'index ne se crée pas sur une base de test qui porte plusieurs DG d'essai |
+| Récupération | Script `packages/db/src/dg-reset.ts` : sessions fermées, double facteur retiré (par défaut) et/ou mise à jour du mot de passe demandée, par `execute-actions-email` de Keycloak (lien de 12 h envoyé **à la DG**) | L'opérateur ne connaît ni ne choisit aucun code : pas de porte dérobée. Pas d'emprunt d'identité, pas de jeton pour la DG |
+| Accès du script | Compte d'administration de Keycloak (domaine `master`) et migrateur de la base, lus dans le `.env` du poste d'exploitation | Aucun secret nouveau ; en production, un compte d'administration technique nominatif dans `master` (à créer avec le maître d'œuvre) |
+| Journal | `journal_audit` source `exploitation`, action `compte.dg_reinitialise` : opérateur, compte d'administration, motif, moyens, horodatage ; la base refuse une ligne de l'exploitation sans opérateur ou avec un motif de moins de 10 caractères (`ck_audit_exploitation`) | Critère 3 : qui, quand, pourquoi, motif obligatoire |
+| Alertes | E-mail de Keycloak (le lien d'actions) et SMS `compte.dg_reinitialise` en file, dans la même transaction que le journal, validée seulement si Keycloak a tout accepté | Critère 4 ; les changements faits par un administrateur ne déclenchent pas l'écouteur `email` (§2.60) |
+
+Première exécution réelle : avec le maître d'œuvre, sur son poste (secrets de Keycloak).
