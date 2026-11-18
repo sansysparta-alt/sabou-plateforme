@@ -1,5 +1,7 @@
-// API d'inscription simulée (US-066) : réponses au format de l'API réelle (signup.controller,
-// SignupErrorCode). Les règles elles-mêmes sont prouvées par les tests de l'API.
+// API d'inscription (US-066) et du mot de passe oublié (US-069) simulées : réponses au format
+// de l'API réelle (signup.controller, password-reset.controller, SignupErrorCode). Les règles
+// elles-mêmes sont prouvées par les tests de l'API. Chemins du mot de passe oublié notés
+// « reset/… ».
 import 'dart:convert';
 import 'dart:io' show SocketException;
 
@@ -21,6 +23,9 @@ class FakeSignupServer {
   bool offline = false;
   int remainingAttempts = 4;
 
+  /// Prochain nouveau mot de passe refusé : demande expirée.
+  bool expireNextTicket = false;
+
   late final client = MockClient(_handle);
 
   SignupApi api() =>
@@ -28,10 +33,33 @@ class FakeSignupServer {
 
   Future<http.Response> _handle(http.Request request) async {
     if (offline) throw const SocketException('pas de réseau');
-    final path = request.url.path.replaceFirst('/api/inscription/', '');
+    final path = request.url.path
+        .replaceFirst('/api/inscription/', '')
+        .replaceFirst('/api/mot-de-passe-oublie/', 'reset/');
     final body = jsonDecode(request.body) as Map<String, dynamic>;
     requests.add((path: path, body: body, origin: request.headers['origin']));
     switch (path) {
+      case 'reset/code':
+        return http.Response('', 202);
+      case 'reset/verification':
+        if (body['code'] != code) {
+          remainingAttempts--;
+          return _json({
+            'error': 'code_invalid',
+            'message': 'Code incorrect.',
+            'remainingAttempts': remainingAttempts,
+          }, 400);
+        }
+        return _json({'ticket': ticket});
+      case 'reset/nouveau':
+        if (expireNextTicket) {
+          expireNextTicket = false;
+          return _json({
+            'error': 'ticket_invalid',
+            'message': 'Cette demande a expiré. Recommencez avec votre numéro.',
+          }, 400);
+        }
+        return http.Response('', 204);
       case 'code':
         return http.Response('', 202);
       case 'verification':

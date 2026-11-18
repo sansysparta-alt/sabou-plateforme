@@ -142,7 +142,7 @@ function post(path: string, body: unknown, origin: string | null = SITE) {
 async function lastCode(): Promise<string> {
   await new Promise((resolve) => setImmediate(resolve));
   const text = sms.sent.at(-1)?.text ?? '';
-  return /code (\d{6})/.exec(text)?.[1] ?? '';
+  return /code est (\d{6})/.exec(text)?.[1] ?? '';
 }
 
 async function ticketFor(phone: string): Promise<string> {

@@ -93,6 +93,35 @@ void main() {
     });
   });
 
+  group('US-069 : mot de passe oublié dans l’application', () {
+    testWidgets(
+      'le mot de passe changé, le praticien se connecte et arrive sur son dossier',
+      (tester) async {
+        await pumpGate(tester);
+        await tap(tester, 'Mot de passe oublié ?');
+        await tester.enterText(
+          find.byKey(const Key('reset-phone')),
+          '621234567',
+        );
+        await tap(tester, 'Recevoir le code');
+        await tester.enterText(
+          find.byKey(const Key('reset-code')),
+          FakeSignupServer.code,
+        );
+        await tap(tester, 'Vérifier le code');
+        await tester.enterText(
+          find.byKey(const Key('reset-password')),
+          '40718293',
+        );
+        await tap(tester, 'Changer le mot de passe');
+        await tester.ensureVisible(find.text('Se connecter'));
+        await tap(tester, 'Se connecter');
+        expect(launcher.lastLoginHint, '621234567');
+        expect(find.text('Contenu Mon dossier'), findsOneWidget);
+      },
+    );
+  });
+
   group('US-066 : inscription dans l’application', () {
     testWidgets(
       'le compte créé, le praticien est connecté et arrive sur son dossier',
