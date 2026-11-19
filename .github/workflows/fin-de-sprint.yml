@@ -44,6 +44,8 @@ jobs:
             apps/site/.lighthouseci/
           retention-days: 14
           if-no-files-found: ignore
+          # Dossiers .lighthouse et .lighthouseci : ignorés par défaut par l'action
+          include-hidden-files: true
 
   audit:
     name: Analyse des dépendances (Trivy)
