@@ -32,8 +32,12 @@ function parse<S extends z.ZodType>(schema: S, body: unknown): z.output<S> {
   return result.data;
 }
 
-// Inscription d'un citoyen (lot D : US-014) ou d'un praticien (US-040a). Sans session : seule
-// l'origine du site est acceptée, pour qu'une autre page ne déclenche pas d'envoi de SMS.
+// Inscription d'un citoyen (lot D : US-014) ou d'un praticien (US-040a, depuis l'application
+// mobile : US-066). Sans session. Un navigateur envoie toujours l'en-tête Origin avec un POST :
+// seule celle du site est acceptée, pour qu'une autre page ne déclenche pas d'envoi de SMS.
+// Une requête sans Origin ne vient pas d'un navigateur (application mobile) ; un tel client
+// pourrait de toute façon forger l'en-tête : la protection contre les abus reste la limite
+// par numéro et par adresse IP (05_Choix_Techniques.md §2.62).
 @Controller('api/inscription')
 export class SignupController {
   private readonly siteOrigin: string;
@@ -53,7 +57,7 @@ export class SignupController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    this.requireSite(req);
+    this.requireSiteOrApp(req);
     const { phone } = parse(signupCodeRequestSchema, body);
     await this.withRetryAfter(res, () => this.service.requestCode(phone, req.ip));
   }
@@ -66,7 +70,7 @@ export class SignupController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignupVerifyResult> {
-    this.requireSite(req);
+    this.requireSiteOrApp(req);
     const { phone, code } = parse(signupVerifyRequestSchema, body);
     return this.withRetryAfter(res, () => this.service.verify(phone, code, req.ip));
   }
@@ -75,7 +79,7 @@ export class SignupController {
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   complete(@Body() body: unknown, @Req() req: Request): Promise<SignupCompleteResult> {
-    this.requireSite(req);
+    this.requireSiteOrApp(req);
     const { ticket, profile, firstName, lastName, password } = parse(
       signupCompleteRequestSchema,
       body,
@@ -88,8 +92,9 @@ export class SignupController {
     );
   }
 
-  private requireSite(req: Request): void {
-    if (req.headers.origin !== this.siteOrigin) throw new ForbiddenException();
+  private requireSiteOrApp(req: Request): void {
+    const { origin } = req.headers;
+    if (origin !== undefined && origin !== this.siteOrigin) throw new ForbiddenException();
   }
 
   // Limite atteinte : délai d'attente dans l'en-tête Retry-After (RFC 9110)

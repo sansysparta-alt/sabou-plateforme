@@ -38,10 +38,12 @@ class FakeLauncher implements LoginLauncher {
     expiresAt: DateTime.now().add(const Duration(minutes: 5)),
   );
   int calls = 0;
+  String? lastLoginHint;
 
   @override
-  Future<Tokens?> login() async {
+  Future<Tokens?> login({String? loginHint}) async {
     calls++;
+    lastLoginHint = loginHint;
     return next;
   }
 }

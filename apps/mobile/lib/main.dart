@@ -13,6 +13,7 @@ import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/session.dart';
 import 'shell/gate.dart';
+import 'signup/signup_api.dart';
 import 'sync/database_key.dart' show DeviceSecretStore;
 import 'ui/theme.dart';
 
@@ -53,7 +54,7 @@ class _SabouAppState extends State<SabouApp> {
         session: session,
         rubrics: rubrics,
         openUrl: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
-        signupUrl: Uri.parse('$publicSiteUrl/inscription?profil=praticien'),
+        signupApi: SignupApi(baseUrl: Uri.parse(practitionerApiUrl)),
         siteUrl: Uri.parse(publicSiteUrl),
         devTools: devToolsButton(debug: kDebugMode),
       ),

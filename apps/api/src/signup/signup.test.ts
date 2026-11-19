@@ -402,10 +402,30 @@ describe('Critère 2 : un numéro déjà inscrit se voit proposer de se connecte
 
 describe('Protections', () => {
   it('refuse une requête venue d’une autre origine (pas de SMS déclenché par un autre site)', async () => {
-    for (const origin of [null, 'https://autre.example', 'http://localhost:5173']) {
-      expect((await post('code', { phone: '621234567' }, origin)).status).toBe(403);
+    for (const origin of ['https://autre.example', 'http://localhost:5173', 'null']) {
+      for (const path of ['code', 'verification', 'compte']) {
+        expect((await post(path, { phone: '621234567' }, origin)).status).toBe(403);
+      }
     }
     expect(sms.sent).toHaveLength(0);
+  });
+
+  it('accepte l’application mobile, qui n’envoie pas d’en-tête Origin (US-066)', async () => {
+    expect((await post('code', { phone: '621234567' }, null)).status).toBe(202);
+    const verified = await post('verification', { phone: '621234567', code: lastCode() }, null);
+    const { ticket } = (await verified.json()) as { ticket: string };
+    const created = await post(
+      'compte',
+      {
+        ticket,
+        profile: 'praticien',
+        firstName: 'Mariama',
+        lastName: 'Soumah',
+        password: '40718293',
+      },
+      null,
+    );
+    expect(await created.json()).toEqual({ status: 'created' });
   });
 
   it(`limite à ${LIMITS.codePerPhone.limit} codes par numéro et par heure (Retry-After)`, async () => {
