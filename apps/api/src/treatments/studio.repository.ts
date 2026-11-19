@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import type {
+  PlantProposal,
   StudioReferentials,
   SubmissionGap,
   TreatmentDetail,
@@ -18,6 +19,8 @@ export class TreatmentStaleError extends Error {}
 export class TreatmentNoDossierError extends Error {}
 export class TreatmentRejectedPractitionerError extends Error {}
 export class TreatmentInvalidError extends Error {}
+export class PlantProposalRefusedError extends Error {}
+export class PlantProposalLimitError extends Error {}
 export class TreatmentIncompleteError extends Error {
   constructor(readonly gaps: SubmissionGap[]) {
     super('Traitement incomplet');
@@ -84,6 +87,33 @@ export class StudioRepository {
       sections: sections.rows,
       contreIndications: contreIndications.rows,
     };
+  }
+
+  // US-054 : proposition d'une plante qui manque au Dictionnaire ; la base la crée « en revue »
+  // avec le praticien comme auteur (plante_proposer)
+  propose(sub: string, input: PlantProposal): Promise<StudioReferentials['plantes'][number]> {
+    return inZone(this.db, sub, async (trx) => {
+      try {
+        const { rows } = await sql<StudioReferentials['plantes'][number]>`
+          SELECT code, nom_fr AS "nomFr", nom_scientifique AS "nomScientifique", false AS validee
+            FROM sabou.plante_proposer(${input.nomFr}, ${input.nomScientifique}, ${input.famille},
+                                       ${input.description})`.execute(trx);
+        return rows[0]!;
+      } catch (error) {
+        const message = (error as { message?: string }).message ?? '';
+        if (message.includes('déjà utilisé par la fiche')) {
+          throw new PlantProposalRefusedError(
+            `${message.replace(/^.*Nom scientifique/, 'Ce nom scientifique')} : choisissez cette plante dans la liste.`,
+          );
+        }
+        if (message.includes('plantes en attente')) {
+          throw new PlantProposalLimitError(
+            'Vous avez déjà 10 plantes en attente du Comité scientifique : attendez sa réponse avant d’en proposer d’autres.',
+          );
+        }
+        throw error;
+      }
+    });
   }
 
   list(sub: string): Promise<TreatmentSummary[]> {

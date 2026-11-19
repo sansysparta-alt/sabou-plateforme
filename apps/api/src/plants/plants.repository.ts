@@ -208,8 +208,12 @@ export class PlantsRepository {
              CASE WHEN p.valide_par IS NULL THEN NULL ELSE jsonb_build_object(
                'par', u.prenom || ' ' || u.nom,
                'le', to_char(p.valide_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')) END
-               AS validation
+               AS validation,
+             -- Proposition d'un praticien (US-054) : son nom et sa description
+             CASE WHEN p.proposee_par IS NULL THEN NULL ELSE jsonb_build_object(
+               'par', a.prenom || ' ' || a.nom, 'description', p.description) END AS proposition
         FROM sabou.plante p LEFT JOIN sabou.utilisateur u ON u.id = p.valide_par
+        LEFT JOIN sabou.utilisateur a ON a.id = p.proposee_par
        WHERE p.code = ${code}`.execute(trx);
     const plant = rows[0];
     if (!plant) throw new PlantNotFoundError();

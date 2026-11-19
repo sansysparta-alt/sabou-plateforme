@@ -1078,6 +1078,19 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits de la DG | Ajout et modification des fiches (créées « en revue »), export quand il sera livré ; pas de validation | Même décision |
 | Réalisation | Rien à changer dans le code : `plante_valider` refuse tout autre rôle depuis US-051, l'API n'écrit plus le statut en direct, le bouton n'est montré qu'au Comité. Preuve ajoutée au niveau de l'application | Les tests de US-051 (base, API, écran) prouvent déjà les trois niveaux |
 
+### 2.66 Proposition d'une plante par le praticien (US-054, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Ce que saisit le praticien | Nom français obligatoire ; nom scientifique, famille et description (1 000 caractères) facultatifs | Décision du maître d'œuvre du 18 novembre 2026 : beaucoup de tradipraticiens ne connaissent pas le nom scientifique (+1 point) |
+| Fiche « en revue » incomplète | `nom_scientifique` et `famille` acceptent NULL ; contrainte `ck_plante_validee_identifiee` : jamais validée sans eux ; `plante_valider` le dit en clair | Le Comité complète l'identité botanique avant de valider (US-051, US-055) |
+| Auteur | Colonne `proposee_par`, journal `plante.proposee` ; affichée sur la fiche dans la gestion avec la description | Critère 1 de US-054 |
+| Abus | 10 propositions « en revue » au plus par praticien, tenu par la base | Une suite de propositions automatiques est arrêtée sans service externe |
+| Écriture | `plante_proposer` (`SECURITY DEFINER`), réservée au rôle `praticien` ; route `POST /api/praticien/plantes` (jeton de l'application, §2.64) | Même modèle que les autres écritures : la base est seule juge |
+| Dans le Studio mobile | « Proposer une plante absente de la liste » depuis l'écran d'édition ; la plante créée est choisie dans la première ligne vide | Le praticien continue son traitement sans attendre ; il ne sera certifié qu'après la validation (trg_recette_publiable) |
+| `plante_modifier` | Comparaisons et journal en `IS DISTINCT FROM` | Les anciennes valeurs NULL d'une fiche proposée sont tracées quand le Comité la complète |
+| Textes | Aucune aide n'invite à écrire un nom en langue nationale | Langues nationales en voix uniquement |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.

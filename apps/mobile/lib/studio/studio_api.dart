@@ -25,9 +25,19 @@ class CodeLabel {
 
 class StudioPlant {
   const StudioPlant(this.code, this.name, this.scientificName, this.validated);
+
+  factory StudioPlant.fromJson(Map<String, dynamic> p) => StudioPlant(
+    p['code'] as String,
+    p['nomFr'] as String,
+    p['nomScientifique'] as String?,
+    p['validee'] as bool,
+  );
+
   final String code;
   final String name;
-  final String scientificName;
+
+  /// Absent tant qu'une plante proposée par un praticien n'est pas complétée (US-054).
+  final String? scientificName;
 
   /// Fiche validée par le Comité ; sinon le traitement attend sa validation.
   final bool validated;
@@ -57,12 +67,7 @@ class StudioReferentials {
         ],
         plants: [
           for (final p in json['plantes'] as List)
-            StudioPlant(
-              p['code'] as String,
-              p['nomFr'] as String,
-              p['nomScientifique'] as String,
-              p['validee'] as bool,
-            ),
+            StudioPlant.fromJson(p as Map<String, dynamic>),
         ],
         sections: [
           for (final s in json['sections'] as List)
@@ -77,6 +82,14 @@ class StudioReferentials {
             CodeLabel(c['code'] as String, c['libelleFr'] as String),
         ],
       );
+
+  /// Mêmes listes, avec une plante de plus (proposée à l'instant, US-054).
+  StudioReferentials withPlant(StudioPlant plant) => StudioReferentials(
+    diseases: diseases,
+    plants: [...plants, plant],
+    sections: sections,
+    contraindications: contraindications,
+  );
 
   final List<CodeLabel> diseases;
   final List<StudioPlant> plants;
@@ -335,6 +348,25 @@ class StudioApi {
       'vueLe': readAt,
       'fields': fields.toJson(),
     }),
+  );
+
+  /// US-054 : propose une plante qui manque au Dictionnaire ; créée « en revue ».
+  Future<StudioPlant> proposePlant({
+    required String nameFr,
+    String scientificName = '',
+    String family = '',
+    String description = '',
+  }) async => StudioPlant.fromJson(
+    _object(
+      await _check(
+        await _http.sendJson('POST', 'plantes', {
+          'nomFr': nameFr,
+          'nomScientifique': scientificName,
+          'famille': family,
+          'description': description,
+        }),
+      ),
+    ),
   );
 
   Future<TreatmentDetail> submit(String code) async => _detail(

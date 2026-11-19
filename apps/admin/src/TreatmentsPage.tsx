@@ -139,8 +139,15 @@ function TreatmentItem({
       <h4>Plantes, dans l’ordre</h4>
       <ol>
         {treatment.plantes.map((plant) => (
-          <li key={plant.nomScientifique}>
-            {plant.nomFr} (<i>{plant.nomScientifique}</i>){plant.partie ? ` — ${plant.partie}` : ''}{' '}
+          <li key={plant.nomFr}>
+            {plant.nomFr}
+            {plant.nomScientifique && (
+              <>
+                {' '}
+                (<i>{plant.nomScientifique}</i>)
+              </>
+            )}
+            {plant.partie ? ` — ${plant.partie}` : ''}{' '}
             {!plant.validee && <Badge tone="warning">En revue par le Comité</Badge>}
           </li>
         ))}

@@ -40,8 +40,9 @@ const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
 const fieldsOf = (plant: PlantDetail): PlantFields => ({
-  nomScientifique: plant.nomScientifique,
-  famille: plant.famille,
+  // Fiche proposée par un praticien (US-054) : nom scientifique et famille à compléter
+  nomScientifique: plant.nomScientifique ?? '',
+  famille: plant.famille ?? '',
   nomFr: plant.nomFr,
   nomEn: plant.nomEn ?? '',
 });
@@ -118,9 +119,14 @@ function PlantValidation({
   const [error, setError] = useState<string>();
   const [done, setDone] = useState(false);
   const [statusLabel, tone] = STATUS[plant.statut];
+  // La base refuse de valider une fiche sans identité botanique (US-054)
+  const identified = plant.nomScientifique !== null && plant.famille !== null;
 
   async function onValidate() {
-    if (!window.confirm(`Valider la fiche ${plant.code} (${plant.nomScientifique}) ?`)) return;
+    if (
+      !window.confirm(`Valider la fiche ${plant.code} (${plant.nomScientifique ?? plant.nomFr}) ?`)
+    )
+      return;
     setBusy(true);
     setError(undefined);
     try {
@@ -145,15 +151,27 @@ function PlantValidation({
           </>
         )}
       </p>
+      {plant.proposition && (
+        <p>
+          Proposée par le praticien {plant.proposition.par}
+          {plant.proposition.description && <> : « {plant.proposition.description} »</>}
+        </p>
+      )}
       <div role="status">{done && <Alert tone="success">Fiche validée.</Alert>}</div>
       {error && <Alert tone="error">{error}</Alert>}
       {plant.statut === 'en_revue' &&
         (canValidate ? (
-          <div>
-            <Button variant="primary" icon="success" disabled={busy} onClick={onValidate}>
-              {busy ? 'Validation…' : 'Valider la fiche'}
-            </Button>
-          </div>
+          identified ? (
+            <div>
+              <Button variant="primary" icon="success" disabled={busy} onClick={onValidate}>
+                {busy ? 'Validation…' : 'Valider la fiche'}
+              </Button>
+            </div>
+          ) : (
+            <p className="ui-muted">
+              Complétez le nom scientifique et la famille ci-dessous avant de valider la fiche.
+            </p>
+          )
         ) : (
           <p className="ui-muted">
             Une fiche en revue attend la validation du Comité scientifique ; d’ici là, elle ne peut

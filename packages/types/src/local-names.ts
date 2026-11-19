@@ -27,14 +27,14 @@ export interface LocalName {
 
 export interface LocalNamesPlant {
   code: string;
-  nomScientifique: string;
+  nomScientifique: string | null;
   nomFr: string;
   noms: LocalName[];
 }
 
 export interface LocalNamesPlantSummary {
   code: string;
-  nomScientifique: string;
+  nomScientifique: string | null;
   nomFr: string;
   // Nombre de noms locaux déjà saisis, toutes langues
   noms: number;

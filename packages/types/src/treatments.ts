@@ -168,7 +168,8 @@ export interface TreatmentDetail extends TreatmentSummary {
 
 export interface StudioReferentials {
   maladies: { code: string; nomFr: string }[];
-  plantes: { code: string; nomFr: string; nomScientifique: string; validee: boolean }[];
+  // Nom scientifique absent tant qu'une plante proposée n'est pas complétée (US-054)
+  plantes: { code: string; nomFr: string; nomScientifique: string | null; validee: boolean }[];
   sections: { code: SectionType; libelleFr: string; obligatoire: boolean }[];
   // US-063 : contre-indications actives, proposées au praticien
   contreIndications: { code: string; libelleFr: string }[];
@@ -225,7 +226,12 @@ export interface TreatmentQueueItem {
   cycleDureeJours: number | null;
   cyclePrisesParJour: number | null;
   cyclePauseJours: number | null;
-  plantes: { nomFr: string; nomScientifique: string; partie: string | null; validee: boolean }[];
+  plantes: {
+    nomFr: string;
+    nomScientifique: string | null;
+    partie: string | null;
+    validee: boolean;
+  }[];
   sections: { type: SectionType; libelleFr: string; texteFr: string; texteEn: string | null }[];
   // US-063 : libellés des contre-indications, affichés en alerte
   contreIndications: string[];

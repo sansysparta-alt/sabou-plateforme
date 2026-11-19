@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../dossier/session.dart';
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
+import 'propose_plant_page.dart';
 import 'studio_api.dart';
 import 'studio_texts.dart';
 
@@ -537,6 +538,12 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
               icon: const Icon(Icons.add),
               label: const Text('Ajouter une plante'),
             ),
+          // US-054 : la plante manque au Dictionnaire
+          TextButton.icon(
+            onPressed: enabled ? _proposePlant : null,
+            icon: const Icon(Icons.local_florist_outlined),
+            label: const Text('Proposer une plante absente de la liste'),
+          ),
           const SizedBox(height: SabouSpace.s5),
           const SectionTitle('Cycle de traitement'),
           _number('cycleDureeJours', _cycleDays, 'Durée (jours)', enabled),
@@ -697,7 +704,11 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
                   if (p.code == row.plant || !chosen.contains(p.code))
                     DropdownMenuItem(
                       value: p.code,
-                      child: Text('${p.name} (${p.scientificName})'),
+                      child: Text(
+                        p.scientificName == null
+                            ? p.name
+                            : '${p.name} (${p.scientificName})',
+                      ),
                     ),
               ],
               onChanged: enabled ? (v) => setState(() => row.plant = v) : null,
@@ -745,6 +756,30 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
         ),
       ),
     );
+  }
+
+  // Plante proposée : ajoutée aux listes et choisie dans la première ligne vide (ou une nouvelle)
+  Future<void> _proposePlant() async {
+    final plant = await Navigator.of(context).push<StudioPlant>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ProposePlantPage(api: widget.api, onSignedOut: _signedOut),
+      ),
+    );
+    if (plant == null || !mounted) return;
+    setState(() {
+      _refs = _refs!.withPlant(plant);
+      final empty = _plants.where((p) => p.plant == null).firstOrNull;
+      if (empty != null) {
+        empty.plant = plant.code;
+      } else if (_plants.length < treatmentPlantsMax) {
+        _plants.add(_PlantRow(_nextKey++, plant: plant.code));
+      }
+      _say(
+        'Plante « ${plant.name} » proposée : elle attend la validation du Comité scientifique.',
+        StatusKind.success,
+      );
+    });
   }
 
   void _move(int index, int step) {
