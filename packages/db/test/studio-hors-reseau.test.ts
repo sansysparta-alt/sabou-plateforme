@@ -82,7 +82,12 @@ describe('Règle R-DON-04 : conflit sur le traitement entier', () => {
              (SELECT contenu->>'titreFr' FROM recette_version_ecartee) AS garde,
              (SELECT raison FROM recette_version_ecartee) AS raison;`);
     expect(rows).toEqual([
-      { conflit: 'remplacee', retenu: 'Hors réseau A', garde: 'Hors réseau B', raison: 'remplacee' },
+      {
+        conflit: 'remplacee',
+        retenu: 'Hors réseau A',
+        garde: 'Hors réseau B',
+        raison: 'remplacee',
+      },
     ]);
   });
 
@@ -97,7 +102,11 @@ describe('Règle R-DON-04 : conflit sur le traitement entier', () => {
              (SELECT titre_fr || ' / ' || statut FROM recette WHERE code = ${CODE}) AS serveur,
              (SELECT contenu->>'titreFr' FROM recette_version_ecartee) AS copie;`);
     expect(rows).toEqual([
-      { conflit: 'version_validee', serveur: 'Hors réseau 1 / soumise', copie: 'Hors réseau tardif' },
+      {
+        conflit: 'version_validee',
+        serveur: 'Hors réseau 1 / soumise',
+        copie: 'Hors réseau tardif',
+      },
     ]);
   });
 
