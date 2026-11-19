@@ -1169,3 +1169,15 @@ Constat : une nuit de travail perdue à relancer le pipeline complet sur le post
 | Fin de sprint et avant toute mise en production | `fin-de-sprint.yml` (à la main, et après chaque fusion dans `main`) et `pnpm ci:fin-sprint` (`infra/ci/fin-sprint.sh`) : Lighthouse (gestion, site, connexion Keycloak), Trivy, Semgrep, analyse des images | Vitesse et sécurité vérifiées sans bloquer le développement ; seuils inchangés |
 | Où tournent les pipelines | Sur GitHub : dépôt rendu public par le maître d'œuvre le 19 novembre 2026 jusqu'au 1er décembre (minutes illimitées), puis privé avec le quota gratuit du mois. Aucune solution payante | Le portable du maître d'œuvre reste libre ; il n'attend plus devant l'écran |
 | Garde-fou | `check-repo.sh` : tout workflow se déclenche sur les demandes de fusion et sur `main`, sauf `fin-de-sprint.yml`, qui doit pouvoir être lancé à la main | La règle d'origine tient pour tous les autres workflows |
+
+### 2.74 Pièces d'un dossier : liste de contrôle et dépôt en un geste (19 novembre 2026)
+
+Remarques du maître d'œuvre du 19 novembre 2026 sur l'écran « Dossiers terrain » : présentation non professionnelle, dépôt des pièces peu pratique (choisir le type, puis le fichier, puis « Ajouter », pièce par pièce), bouton grisé sans explication. Règle : un défaut signalé se corrige partout où il se trouve.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Dossiers dans une liste | Ligne repliable commune (`DossierRow.tsx`, classes `ui-dossier`) pour toutes les files, « Dossiers terrain » et « Agents de vérification » compris ; un dossier tout juste créé s'ouvre | Même gabarit partout (maquette v1.3, US-019) |
+| Pièces | Liste de contrôle (`ui-checklist`) : une ligne par pièce obligatoire, son état (« À déposer », « Déposée le… · format · taille ») et ses actions (« Déposer », « Remplacer », « Retirer ») ; une ligne pour les pièces facultatives | On voit d'un coup d'œil ce qui manque ; une action par pièce |
+| Dépôt | Composant commun `FileButton` (`@sabou/ui`) : vrai champ fichier, focalisable, présenté comme un bouton ; le fichier choisi part aussitôt. « Remplacer » dépose le nouveau fichier puis retire l'ancien. Appliqué aussi à la photo de la fiche de visite (étape 2) | Un seul geste ; accessible au clavier et aux lecteurs d'écran (« Déposer la photo du praticien ») |
+| Boutons et cases grisés | La raison est écrite à côté et reliée par `aria-describedby` (soumission du dossier terrain, photo principale d'une plante ; les référentiels le faisaient déjà) | Un contrôle inactif sans explication bloque l'utilisateur |
+| Formulaires d'un dossier ouvert | Largeur de lecture (48 rem) ; éléments de liste alignés au centre | Lisibilité, alignement des boutons |
