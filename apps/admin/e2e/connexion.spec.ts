@@ -75,7 +75,7 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
 
   await expect(page).toHaveURL(`${APP}/`);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bonjour, Essai dg');
-  // Compte Keycloak de test sans ligne en base : profil en bas du menu (US-019), chiffres
+  // Compte Keycloak de test sans ligne en base : compte en haut à droite (05 §2.77), chiffres
   // refusés en clair
   await expect(
     page.getByRole('region', { name: 'Compte connecté' }).getByText('Direction Générale'),
