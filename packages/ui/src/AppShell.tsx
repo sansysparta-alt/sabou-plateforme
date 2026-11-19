@@ -43,10 +43,11 @@ function initials(name: string): string {
   ).toUpperCase();
 }
 
-// Ossature de l'application de gestion (US-019, à la manière de la navigation de Studium) :
-// colonne Vert forêt pleine hauteur, marque en haut, rubriques au milieu, profil et
-// déconnexion en bas ; réductible aux icônes sur ordinateur. Sur téléphone, un bandeau porte
-// le bouton « Menu », qui ouvre la colonne.
+// Ossature de l'application de gestion (US-019) : colonne Vert forêt pleine hauteur, marque en
+// haut, rubriques ; réductible aux icônes sur ordinateur. Le compte connecté et la déconnexion
+// sont en haut à droite, là où on les cherche (décision du maître d'œuvre du 19/11, 05 §2.77) :
+// barre du compte au-dessus du contenu, à toutes les tailles ; sur téléphone, sous le bandeau
+// qui porte le bouton « Menu » (il ouvre la colonne).
 export function AppShell({
   context,
   user,
@@ -143,23 +144,25 @@ export function AppShell({
               <Icon name="chevron-left" />
               <span className="ui-sidebar__text">Réduire le menu</span>
             </button>
-            {user && (
-              <div className="ui-sidebar__user">
-                <span className="ui-avatar" aria-hidden="true">
-                  {initials(user.name)}
-                </span>
-                <span className="ui-sidebar__text ui-sidebar__identity">
-                  <span className="ui-sidebar__user-name">{user.name}</span>
-                  {user.zone && <span className="ui-sidebar__user-zone">{user.zone}</span>}
-                </span>
-                {userActions}
-              </div>
-            )}
           </div>
         </nav>
-        <main id="contenu" className="ui-main" tabIndex={-1}>
-          <div className="ui-main__inner">{children}</div>
-        </main>
+        <div className="ui-shell__column">
+          {user && (
+            <section className="ui-account" aria-label="Compte connecté">
+              <span className="ui-avatar" aria-hidden="true">
+                {initials(user.name)}
+              </span>
+              <span className="ui-account__identity">
+                <span className="ui-account__name">{user.name}</span>
+                {user.zone && <span className="ui-account__zone">{user.zone}</span>}
+              </span>
+              {userActions}
+            </section>
+          )}
+          <main id="contenu" className="ui-main" tabIndex={-1}>
+            <div className="ui-main__inner">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );

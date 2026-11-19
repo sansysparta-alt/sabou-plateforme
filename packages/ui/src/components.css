@@ -765,13 +765,6 @@
 .ui-sidebar__collapse svg {
   transition: transform var(--sabou-transition);
 }
-.ui-sidebar__user {
-  display: flex;
-  align-items: center;
-  gap: var(--sabou-space-3);
-  padding: var(--sabou-space-2);
-  min-width: 0;
-}
 .ui-avatar {
   flex: none;
   display: inline-grid;
@@ -784,36 +777,39 @@
   font-size: var(--sabou-text-sm);
   font-weight: var(--sabou-weight-bold);
 }
-.ui-sidebar__identity {
-  flex: 1;
+/* Compte connecté et déconnexion, en haut à droite (05 §2.77) : barre au-dessus du contenu,
+   à toutes les tailles. Le nom n'est jamais coupé (US-016) : il passe à la ligne, même sans
+   espace. */
+.ui-account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sabou-space-3);
+  min-height: var(--sabou-topbar-height);
+  padding: var(--sabou-space-2) var(--sabou-space-4);
+  border-bottom: 1px solid var(--sabou-border);
+  background: var(--sabou-surface);
+}
+.ui-account__identity {
   display: grid;
   min-width: 0;
   line-height: var(--sabou-leading-tight);
 }
-/* Le nom n'est jamais coupé (US-016) : il passe à la ligne, même sans espace */
-.ui-sidebar__user-name {
-  font-size: var(--sabou-text-md);
+.ui-account__name {
   font-weight: var(--sabou-weight-semibold);
   overflow-wrap: anywhere;
 }
-.ui-sidebar__user-zone {
-  font-size: var(--sabou-text-xs);
-  color: var(--sabou-on-dark-muted);
-}
-.ui-sidebar__user .ui-button {
-  flex: none;
-  padding: 0 var(--sabou-space-3);
-  background: transparent;
-  border-color: color-mix(in srgb, var(--sabou-on-dark) 30%, transparent);
-  color: var(--sabou-on-dark);
-}
-.ui-sidebar__user .ui-button:hover {
-  background: color-mix(in srgb, var(--sabou-on-dark) 12%, transparent);
+.ui-account__zone {
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
 }
 
 .ui-shell__body {
   display: grid;
   grid-template-columns: 1fr;
+  min-width: 0;
+}
+.ui-shell__column {
   min-width: 0;
 }
 .ui-main {
@@ -833,6 +829,9 @@
   }
   .ui-topbar {
     display: none;
+  }
+  .ui-account {
+    padding-inline: var(--sabou-space-6);
   }
   .ui-shell__body {
     grid-template-columns: var(--sabou-sidebar-width) minmax(0, 1fr);
@@ -881,10 +880,6 @@
   .ui-shell[data-collapsed='true'] .ui-nav__link,
   .ui-shell[data-collapsed='true'] .ui-sidebar__collapse {
     justify-content: center;
-    padding-inline: 0;
-  }
-  .ui-shell[data-collapsed='true'] .ui-sidebar__user {
-    flex-direction: column;
     padding-inline: 0;
   }
   .ui-shell[data-collapsed='true'] .ui-sidebar__collapse svg {

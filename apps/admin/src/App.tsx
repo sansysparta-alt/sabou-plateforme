@@ -280,9 +280,9 @@ function ConnectedApp() {
         nav={navigation(user)}
         currentPath={path()}
         userActions={
-          // Bas de la colonne de navigation : icône seule, nom accessible « Se déconnecter »
-          <Button variant="secondary" icon="logout" onClick={onLogout} title="Se déconnecter">
-            <span className="ui-visually-hidden">Se déconnecter</span>
+          // En haut à droite (05 §2.77) : libellé écrit, pas une icône seule
+          <Button variant="secondary" icon="logout" onClick={onLogout}>
+            Se déconnecter
           </Button>
         }
       >

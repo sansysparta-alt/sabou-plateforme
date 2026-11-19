@@ -168,16 +168,28 @@ describe('AppShell', () => {
     window.localStorage.clear();
   });
 
-  it('profil en bas de la navigation : initiales, nom et zone', () => {
+  it('compte connecté en haut : initiales, nom, zone et déconnexion, hors de la navigation', () => {
     render(
-      <AppShell user={{ name: 'Awa Camara', zone: 'National' }} nav={nav} currentPath="/">
+      <AppShell
+        user={{ name: 'Awa Camara', zone: 'National' }}
+        nav={nav}
+        currentPath="/"
+        userActions={<button>Se déconnecter</button>}
+      >
         <p>Contenu</p>
       </AppShell>,
     );
+    const account = screen.getByRole('region', { name: 'Compte connecté' });
+    expect(account.textContent).toContain('AC');
+    expect(account.textContent).toContain('Awa Camara');
+    expect(account.textContent).toContain('National');
+    expect(screen.getAllByRole('button', { name: 'Se déconnecter' })).toHaveLength(1);
+    // Placé avant le contenu principal (lu en premier), plus dans la colonne de navigation
     const navigation = screen.getByRole('navigation', { name: 'Navigation principale' });
-    expect(navigation.textContent).toContain('AC');
-    expect(navigation.textContent).toContain('Awa Camara');
-    expect(navigation.textContent).toContain('National');
+    expect(navigation.textContent).not.toContain('Awa Camara');
+    expect(
+      account.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('le bouton Menu ouvre et ferme la navigation sur téléphone', () => {
