@@ -1047,6 +1047,14 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Règles de saisie | Reprises en Dart (`signup_rules.dart`) pour dire l'erreur sous le champ avant l'envoi ; l'API refait les mêmes contrôles et reste seule juge | Erreurs immédiates sans réseau ; mêmes cas de test que `@sabou/types` |
 | Langue | Textes de l'inscription en français et en anglais selon la langue du téléphone | Critère 4 de US-066. Le reste de l'application mobile n'est encore qu'en français : écart à traiter avec le récit qui traduira l'application |
 
+### 2.65 Validation des fiches plantes : le Comité seul (US-055, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Qui valide une fiche plante | **Le Comité scientifique seul**, par l'application, l'API et la base | §6.5 du cahier des charges et décision du maître d'œuvre du 18 novembre 2026. **Écart au §6.2**, qui listait « ajout, validation, export JSON » pour la DG |
+| Droits de la DG | Ajout et modification des fiches (créées « en revue »), export quand il sera livré ; pas de validation | Même décision |
+| Réalisation | Rien à changer dans le code : `plante_valider` refuse tout autre rôle depuis US-051, l'API n'écrit plus le statut en direct, le bouton n'est montré qu'au Comité. Preuve ajoutée au niveau de l'application | Les tests de US-051 (base, API, écran) prouvent déjà les trois niveaux |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
