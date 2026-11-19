@@ -1387,6 +1387,17 @@
   gap: var(--sabou-space-5);
   padding: var(--sabou-space-5);
 }
+/* Zone « Décision » d'un dossier : séparée du détail par un filet, en fin de panneau */
+.ui-decision {
+  display: grid;
+  gap: var(--sabou-space-3);
+  padding-top: var(--sabou-space-4);
+  border-top: 1px solid var(--sabou-border);
+}
+.ui-decision__title {
+  margin: 0;
+  font-size: var(--sabou-text-md);
+}
 
 /* ---------- Listes de gestion (US-019) : recherche et filtres, tableau, pagination ----------
    Chaque chose à sa place : la barre d'outils au-dessus du tableau, les actions à droite de

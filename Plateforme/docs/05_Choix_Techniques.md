@@ -1193,3 +1193,15 @@ Remarque du maître d'œuvre du 19 novembre 2026 : « les écritures sont petite
 | Minimum | 14 px (`--sabou-text-xs`, auparavant 13 px) | Intitulés de rubrique du menu, compteurs ; jamais en dessous |
 
 Les trois copies des jetons restent identiques, vérifiées par les tests : `packages/ui/src/tokens.css` (source), la copie du thème Keycloak (et sa feuille compactée, §2.72) et `apps/mobile/lib/ui/tokens.dart`.
+
+### 2.76 Détail d'un dossier dans un panneau latéral (19 novembre 2026)
+
+Remarque du maître d'œuvre du 19 novembre 2026 : ouvrir le détail d'un dossier au milieu de la liste prête à confusion ; isoler le détail dans une fenêtre, partout où c'est nécessaire.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Où | Composant commun `DossierRow.tsx` : toutes les files (vérification terrain, consolidation, expertise, approbation, traitements, dossiers terrain, agents de vérification) | Un seul comportement pour tous les dossiers ; la maquette v1.3 prévoit « Voir » sur chaque ligne |
+| Forme | Panneau latéral à droite (46 rem) sur ordinateur, la liste visible derrière un fond assombri ; plein écran sur téléphone. En-tête fixe (code, praticien, repères, « Fermer »), corps qui défile, zone « Décision » séparée par un filet | La liste garde le contexte ; une fenêtre centrale serait trop étroite pour la visite, les pièces et les décisions |
+| Accessibilité | Fenêtre native `<dialog>` en modale : focus maintenu dans le panneau, fermeture par Échap, « Fermer » ou clic à côté, retour du focus sur la ligne ; le titre de la ligne est le bouton d'ouverture (toute la ligne est cliquable) | WCAG 2.2 AA (2.1.2, 2.4.3) |
+| Messages | Les messages d'une action faite dans le panneau (pièce déposée, visite signée…) y sont dits (`role="status"`) : la page derrière est inactive tant que le panneau est ouvert | WCAG 4.1.3 |
+| Annotations du Comité | Restent une section repliable à l'intérieur du panneau | Ce n'est pas un dossier, c'est une partie de son détail |

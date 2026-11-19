@@ -294,8 +294,13 @@ export function DecisionActions({
     setTimeout(() => rejectButton.current?.focus());
   }
 
+  const decisionId = useId();
   return (
-    <>
+    // Zone « Décision », séparée du détail du dossier (panneau, 05 §2.76)
+    <section className="ui-decision" aria-labelledby={`${decisionId}-titre`}>
+      <h4 id={`${decisionId}-titre`} className="ui-decision__title">
+        Décision
+      </h4>
       {error && <Alert tone="error">{error}</Alert>}
       {!canValidate && !rejecting && blockedReason && <p className="ui-muted">{blockedReason}</p>}
       {!rejecting && (
@@ -351,6 +356,6 @@ export function DecisionActions({
           </div>
         </form>
       )}
-    </>
+    </section>
   );
 }
