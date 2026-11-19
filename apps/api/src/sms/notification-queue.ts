@@ -33,6 +33,8 @@ export interface NotificationQueue {
   // Échéances des certificats (US-049) : expire ceux qui sont échus et met en file les
   // invitations à renouveler (60 jours avant, à partir de 8 h) ; renvoie les deux nombres
   processCertificateDeadlines(): Promise<CertificateDeadlines>;
+  // US-100 : efface le contact des signalements clos depuis plus de 12 mois ; renvoie leur nombre
+  eraseHealthReportContacts(): Promise<number>;
   take(limit: number): Promise<QueuedSms[]>;
   // error null : envoyé ; definitive : pas de nouvel essai
   record(id: string, error: string | null, definitive?: boolean): Promise<SmsOutcome>;
@@ -53,6 +55,12 @@ export class PgNotificationQueue implements NotificationQueue {
       SELECT expires AS expired, relances AS reminders
         FROM sabou.certificats_echeances_traiter()`.execute(this.db);
     return rows[0]!;
+  }
+
+  async eraseHealthReportContacts(): Promise<number> {
+    const { rows } = await sql<{ n: number }>`
+      SELECT sabou.signalements_effacer_contacts() AS n`.execute(this.db);
+    return rows[0]?.n ?? 0;
   }
 
   async take(limit: number): Promise<QueuedSms[]> {

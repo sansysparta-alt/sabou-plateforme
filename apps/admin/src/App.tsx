@@ -29,6 +29,10 @@ const loaders = {
   treatments: () => import('./TreatmentsPage'),
   // US-075 : voix des sections des traitements (résumés et traductions…)
   treatmentVoices: () => import('./TreatmentVoicesPage'),
+  // US-074 : couverture vocale et publication groupée
+  voiceCoverage: () => import('./VoiceCoveragePage'),
+  // US-100 : signalements et traitements suspendus
+  healthReports: () => import('./HealthReportsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -64,8 +68,26 @@ const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.Dise
 const NameVoicesPage = lazy(() =>
   loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
 );
+const VoiceCoveragePage = lazy(() =>
+  loaders.voiceCoverage().then((m) => ({ default: m.VoiceCoveragePage })),
+);
 const TreatmentVoicesPage = lazy(() =>
   loaders.treatmentVoices().then((m) => ({ default: m.TreatmentVoicesPage })),
+);
+// Même écran que les résumés, en mode atelier (US-072)
+function LanguageWorkshopPage() {
+  return <TreatmentVoicesPage mode="atelier" />;
+}
+// Même écran, en mode contrôle du Comité (US-073)
+function EffectsControlPage() {
+  return <TreatmentVoicesPage mode="controle" />;
+}
+// US-100 : signalements et traitements suspendus (Comité scientifique)
+const HealthReportsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.HealthReportsPage })),
+);
+const SuspendedTreatmentsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.SuspendedTreatmentsPage })),
 );
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
@@ -94,6 +116,11 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/voix-des-noms': loaders.nameVoices,
   '/traitements': loaders.treatments,
   '/resumes-traductions': loaders.treatmentVoices,
+  '/atelier-linguistique': loaders.treatmentVoices,
+  '/controle-effets': loaders.treatmentVoices,
+  '/couverture-vocale': loaders.voiceCoverage,
+  '/signalements': loaders.healthReports,
+  '/traitements-suspendus': loaders.healthReports,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -115,6 +142,11 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/voix-des-noms': ['/api/voix-des-noms'],
   '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
   '/resumes-traductions': ['/api/voix-des-traitements'],
+  '/atelier-linguistique': ['/api/voix-des-traitements'],
+  '/controle-effets': ['/api/voix-des-traitements'],
+  '/couverture-vocale': ['/api/voix-des-traitements/couverture'],
+  '/signalements': [() => firstQueuePagePath(QUEUES.healthReports)],
+  '/traitements-suspendus': ['/api/signalements/suspendus'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -371,6 +403,13 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/traitements', label: 'Traitements à transmettre', icon: 'flask' },
       ],
     });
+    groups.push({
+      heading: 'Langue',
+      items: [
+        // US-072 : validation des voix des traitements de la région
+        { href: '/atelier-linguistique', label: 'Atelier linguistique', icon: 'languages' },
+      ],
+    });
   }
   if (isCommittee(user)) {
     groups.push({
@@ -378,6 +417,16 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [
         { href: '/expertise', label: 'Expertise des dossiers', icon: 'clipboard-check' },
         { href: '/traitements', label: 'Traitements à expertiser', icon: 'flask' },
+        // US-073 : voix des effets indésirables, langue par langue
+        { href: '/controle-effets', label: 'Effets indésirables (voix)', icon: 'shield' },
+      ],
+    });
+    // US-100 : sécurité sanitaire (R-SAN-03)
+    groups.push({
+      heading: 'Sécurité sanitaire',
+      items: [
+        { href: '/signalements', label: 'Signalements', icon: 'warning' },
+        { href: '/traitements-suspendus', label: 'Traitements suspendus', icon: 'ban' },
       ],
     });
   }
@@ -416,6 +465,13 @@ function navigation(user: SessionUser): NavGroup[] {
       ],
     });
     groups.push({
+      heading: 'Langue',
+      items: [
+        // US-074 : couverture par langue et publication des voix validées
+        { href: '/couverture-vocale', label: 'Couverture vocale', icon: 'languages' },
+      ],
+    });
+    groups.push({
       heading: 'Administration',
       items: [
         { href: '/comptes', label: 'Comptes', icon: 'users' },
@@ -434,6 +490,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/approbation': ApprovalPage,
   '/traitements': TreatmentsPage,
   '/rejet-definitif': RejectionPage,
+  '/couverture-vocale': VoiceCoveragePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
   '/comptes': AccountsPage,
@@ -452,12 +509,16 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/consolidation': ConsolidationPage,
   '/agents-verification': VerifierDesignationPage,
   '/traitements': TreatmentsPage,
+  '/atelier-linguistique': LanguageWorkshopPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/expertise': ExpertisePage,
   '/traitements': TreatmentsPage,
+  '/controle-effets': EffectsControlPage,
+  '/signalements': HealthReportsPage,
+  '/traitements-suspendus': SuspendedTreatmentsPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };

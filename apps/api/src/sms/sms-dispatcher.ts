@@ -66,11 +66,23 @@ export class SmsDispatcher implements OnApplicationBootstrap, OnApplicationShutd
     }
   }
 
+  // US-100 : contacts des signalements clos depuis plus de 12 mois ; tâche quotidienne de
+  // fait (elle n'agit qu'une fois par signalement), sans retenir les SMS en cas d'erreur
+  private async eraseHealthReportContacts(): Promise<void> {
+    try {
+      const erased = await this.queue.eraseHealthReportContacts();
+      if (erased > 0) this.logger.log(`${erased} contact(s) de signalement effacé(s)`);
+    } catch (error: unknown) {
+      this.logger.error(`Contacts des signalements non effacés : ${(error as Error).message}`);
+    }
+  }
+
   private async dispatchOnce(): Promise<number> {
     // Échéances des certificats (US-049) : tâche quotidienne de fait, puisqu'elle n'agit
     // qu'une fois par certificat ; à chaque passage, elle rattrape un arrêt de l'API. Une
     // erreur ici est journalisée sans retenir les SMS déjà en file.
     await this.processCertificateDeadlines();
+    await this.eraseHealthReportContacts();
     // Rappels de visite (US-041) : mis en file avant la relève, ils partent dans ce passage
     await this.queue.queueVisitReminders();
     const messages = await this.queue.take(BATCH_SIZE);

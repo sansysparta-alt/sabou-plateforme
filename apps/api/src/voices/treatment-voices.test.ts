@@ -16,6 +16,7 @@ import {
   NameVoiceDepositError,
   NameVoiceNotAllowedError,
   NameVoiceNotFoundError,
+  NameVoiceSelfValidationError,
   NameVoiceTransitionError,
 } from './name-voices.repository';
 import { TreatmentVoicesController } from './treatment-voices.controller';
@@ -35,6 +36,7 @@ const VOICES: TreatmentVoices = {
   praticien: 'Mamadou Diallo',
   peutReviser: true,
   prefectoral: true,
+  comite: false,
   sections: [],
 };
 
@@ -47,6 +49,16 @@ const repository = {
   async targets(sub: string) {
     calls.push(['targets', sub]);
     return [];
+  },
+  async coverage(sub: string) {
+    calls.push(['coverage', sub]);
+    fail();
+    return { langues: [], retards: [] };
+  },
+  async publish(sub: string, _ip: unknown, langue: string | null) {
+    calls.push(['publish', sub, langue]);
+    fail();
+    return { publiees: 2, bloquees: 1 };
   },
   async detail(sub: string, code: string) {
     calls.push(['detail', sub, code]);
@@ -256,6 +268,67 @@ describe('Critère : voix locale par section, envoi au régional', () => {
       expect(response.status).toBe(status);
       expect(((await response.json()) as { error: string }).error).toBe(code);
     }
+  });
+});
+
+describe('Critère US-072 : validation ou renvoi motivé', () => {
+  it('valider, renvoyer avec motif ; renvoi sans motif refusé avant la base', async () => {
+    const path = `${BASE}/REC-0001/cycle/pul/statut`;
+    expect((await request('POST', path, { vers: 'valide' })).status).toBe(200);
+    expect((await request('POST', path, { vers: 'brouillon' })).status).toBe(400);
+    expect((await request('POST', path, { vers: 'brouillon', motif: ' Mal dit ' })).status).toBe(
+      200,
+    );
+    expect(calls.map((c) => c[5])).toEqual([
+      { vers: 'valide', motif: null },
+      { vers: 'brouillon', motif: 'Mal dit' },
+    ]);
+  });
+
+  it('valideur qui a enregistré ou envoyé la voix : refus traduit en clair', async () => {
+    failure = new NameVoiceSelfValidationError();
+    const response = await request('POST', `${BASE}/REC-0001/cycle/pul/statut`, { vers: 'valide' });
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { error: string }).error).toBe('self_validation');
+  });
+});
+
+describe('Critère US-073 : contrôle des effets indésirables par le Comité', () => {
+  it('contrôler, ou renvoyer avec motif obligatoire ; seulement sur les effets indésirables', async () => {
+    const path = `${BASE}/REC-0001/effets_indesirables/pul/statut`;
+    expect((await request('POST', path, { vers: 'controle' })).status).toBe(200);
+    expect((await request('POST', path, { vers: 'controle_refuse' })).status).toBe(400);
+    expect(
+      (await request('POST', path, { vers: 'controle_refuse', motif: 'Contre-indication omise' }))
+        .status,
+    ).toBe(200);
+    expect(calls.map((c) => [c[3], c[5]])).toEqual([
+      ['effets_indesirables', { vers: 'controle', motif: null }],
+      ['effets_indesirables', { vers: 'controle_refuse', motif: 'Contre-indication omise' }],
+    ]);
+  });
+});
+
+describe('Critères US-074 : couverture par langue, publication groupée', () => {
+  it('couverture : pas prise pour un code de traitement', async () => {
+    expect((await request('GET', `${BASE}/couverture`)).status).toBe(200);
+    expect(calls).toEqual([['coverage', SUB]]);
+  });
+
+  it('publication groupée : toutes les langues ou une seule ; langue contrôlée', async () => {
+    const all = await request('POST', `${BASE}/publication`, {});
+    expect(await all.json()).toEqual({ publiees: 2, bloquees: 1 });
+    await request('POST', `${BASE}/publication`, { langue: 'pul' });
+    expect((await request('POST', `${BASE}/publication`, { langue: 'PULAAR' })).status).toBe(400);
+    expect(calls).toEqual([
+      ['publish', SUB, null],
+      ['publish', SUB, 'pul'],
+    ]);
+  });
+
+  it('publication par un autre profil : refus de la base traduit', async () => {
+    failure = new NameVoiceNotAllowedError();
+    expect((await request('POST', `${BASE}/publication`, {})).status).toBe(403);
   });
 });
 

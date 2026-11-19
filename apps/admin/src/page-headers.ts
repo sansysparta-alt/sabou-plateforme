@@ -42,6 +42,14 @@ export const PAGE_HEADERS = {
     title: 'Expertise des dossiers',
     lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
   },
+  '/signalements': {
+    title: 'Signalements',
+    lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',
+  },
+  '/traitements-suspendus': {
+    title: 'Traitements suspendus',
+    lead: 'Traitements retirés du site par une suspension du Comité. Levez la suspension, avec un motif, quand le danger est écarté.',
+  },
   '/traitements': {
     title: 'Traitements à décider',
     lead: 'Traitements qui attendent votre décision : transmission au Comité par la région, expertise par le Comité scientifique, certification par la Direction Générale. Un renvoi exige un motif.',
@@ -69,6 +77,18 @@ export const PAGE_HEADERS = {
   '/resumes-traductions': {
     title: 'Résumés et traductions',
     lead: 'Traitements de votre préfecture : révisez le texte français de chaque section tant que le traitement est soumis, enregistrez la voix locale, puis envoyez-la à l’administrateur régional.',
+  },
+  '/atelier-linguistique': {
+    title: 'Atelier linguistique',
+    lead: 'Voix des traitements de votre région, dans les langues que vous validez : écoutez chaque voix à côté du texte français, puis validez-la ou renvoyez-la avec un motif.',
+  },
+  '/controle-effets': {
+    title: 'Contrôle des effets indésirables',
+    lead: 'Voix validées de la section « effets indésirables et contre-indications », langue par langue : vérifiez qu’elles rendent fidèlement le texte français. Sans votre contrôle, elles ne peuvent pas être publiées.',
+  },
+  '/couverture-vocale': {
+    title: 'Couverture vocale',
+    lead: 'Part des sections des traitements certifiés dont la voix est publiée, langue par langue, et retards par région. Publiez d’un geste les voix validées.',
   },
   '/voix-des-noms': {
     title: 'Voix des noms',

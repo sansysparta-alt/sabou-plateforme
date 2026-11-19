@@ -273,7 +273,6 @@ describe('Garde-fous du schéma', () => {
     forum_discussion: 'US-122',
     litige: 'US-101',
     produit: 'US-142',
-    signalement_sanitaire: 'US-100',
     // Référentiel public des sous-préfectures, pas une donnée de zone
     sous_prefecture: 'aucun : référentiel public',
     // Lu par contexte_ouvrir ; gestion réservée à la DG (US-012), garde de l'API
@@ -335,6 +334,10 @@ describe('Garde-fous du schéma', () => {
       'redecoupage_appliquer',
       'redecoupage_controler',
       'saisie_terrain_recevoir',
+      // US-100 : dépôt public, décision et levée par le Comité, effacement des contacts (05 §2.83)
+      'signalement_decider',
+      'signalement_deposer',
+      'signalements_effacer_contacts',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',
@@ -342,8 +345,15 @@ describe('Garde-fous du schéma', () => {
       // US-075 : révision du texte et voix des sections par le préfectoral (05 §2.79)
       'traitement_section_reviser',
       'traitement_soumettre',
+      'traitement_suspension_lever',
+      // US-073 : contrôle des effets indésirables par le Comité (05 §2.81)
+      'traitement_voix_controler',
       'traitement_voix_enregistrer',
       'traitement_voix_envoyer',
+      // US-074 : publication groupée par la DG
+      'traitement_voix_publier',
+      // US-072 : validation par le régional de la langue et de la région (05 §2.80)
+      'traitement_voix_valider',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',
@@ -351,6 +361,8 @@ describe('Garde-fous du schéma', () => {
       'verifier_certificat',
       // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)
       'visite_rappels_mettre_en_file',
+      // US-074 : couverture vocale, réservée à la DG (05 §2.82)
+      'voix_couverture',
       // US-070 : dépôt et file de traitement des voix (05 §2.43)
       'voix_deposer',
       'voix_depot_echouer',
@@ -360,6 +372,8 @@ describe('Garde-fous du schéma', () => {
       // US-071 : statuts de la voix des noms, droits par langue contrôlés en base (05 §2.47)
       'voix_nom_enregistrer',
       'voix_nom_statut',
+      // US-074 : retards par région, réservés à la DG
+      'voix_retards',
     ]);
     const unsafe = rows.filter(
       (r) =>

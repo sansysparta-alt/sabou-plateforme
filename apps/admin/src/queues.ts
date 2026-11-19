@@ -12,6 +12,8 @@ export const QUEUES = {
   approval: '/api/dossiers/approbation',
   // US-061 : traitements qui attendent la décision du compte connecté
   treatments: '/api/traitements/a-decider',
+  // US-100 : signalements ouverts, graves en tête (Comité scientifique)
+  healthReports: '/api/signalements/a-traiter',
 } as const;
 export type QueuePath = (typeof QUEUES)[keyof typeof QUEUES];
 

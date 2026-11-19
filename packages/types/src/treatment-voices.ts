@@ -31,6 +31,10 @@ export interface TreatmentVoiceTarget {
   traduites: number;
   validees: number;
   publiees: number;
+  // Voix envoyées que le compte connecté peut valider (langues où il en a le droit, US-072)
+  aValider: number;
+  // Voix validées des effets indésirables qui attendent le contrôle du Comité (US-073)
+  aControler: number;
 }
 
 export interface TreatmentVoiceEntry {
@@ -44,6 +48,8 @@ export interface TreatmentVoiceEntry {
   motif: string | null;
   consentement: boolean;
   secours: boolean;
+  // Contrôlée par le Comité (effets indésirables, R-LNG-12)
+  controle: boolean;
   // Droits du compte connecté dans la langue (R-GOV-06)
   peutEnregistrer: boolean;
   peutTraduire: boolean;
@@ -75,8 +81,52 @@ export interface TreatmentVoices {
   peutReviser: boolean;
   // Le compte connecté est le préfectoral de la préfecture du praticien
   prefectoral: boolean;
+  // Le compte connecté est membre du Comité scientifique (contrôle, US-073)
+  comite: boolean;
   sections: TreatmentVoiceSection[];
 }
+
+// Couverture vocale par langue et retards par région (US-074, UC-63)
+export interface VoiceCoverageLanguage {
+  langue: string;
+  langueNom: string;
+  // Sections des traitements certifiés
+  sections: number;
+  publiees: number;
+  // Voix validées, dont celles qui ne peuvent pas encore être publiées
+  validees: number;
+  bloquees: number;
+}
+
+export interface VoiceDelayRegion {
+  region: string;
+  brouillons: number;
+  envoyees: number;
+  validees: number;
+  // Date (AAAA-MM-JJ) de la plus ancienne voix en retard
+  plusAncienne: string;
+}
+
+export interface VoiceCoverage {
+  langues: VoiceCoverageLanguage[];
+  // Voix en attente depuis plus de 7 jours, par région du praticien
+  retards: VoiceDelayRegion[];
+}
+
+export interface VoicePublication {
+  publiees: number;
+  bloquees: number;
+}
+
+export const voicePublicationSchema = z
+  .object({
+    langue: z
+      .string()
+      .regex(/^[a-z]{2,3}$/, 'Langue invalide.')
+      .nullable()
+      .default(null),
+  })
+  .strict();
 
 export const treatmentVoiceTargetSchema = z
   .object({
@@ -114,7 +164,11 @@ export type TreatmentSectionRevise = z.infer<typeof treatmentSectionReviseSchema
 
 export const treatmentVoiceMoveSchema = z
   .object({
-    vers: z.enum(['traduit'], 'Statut invalide.'),
+    // controle / controle_refuse : geste du Comité sur les effets indésirables (US-073)
+    vers: z.enum(
+      ['traduit', 'valide', 'brouillon', 'controle', 'controle_refuse'],
+      'Statut invalide.',
+    ),
     motif: z
       .string()
       .trim()
@@ -125,5 +179,9 @@ export const treatmentVoiceMoveSchema = z
       .nullable()
       .default(null),
   })
-  .strict();
+  .strict()
+  .refine((m) => (m.vers !== 'brouillon' && m.vers !== 'controle_refuse') || !!m.motif, {
+    message: 'Motif du renvoi : champ obligatoire.',
+    path: ['motif'],
+  });
 export type TreatmentVoiceMove = z.infer<typeof treatmentVoiceMoveSchema>;

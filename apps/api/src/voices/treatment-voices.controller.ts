@@ -25,8 +25,11 @@ import {
   treatmentSectionTargetSchema,
   treatmentVoiceMoveSchema,
   treatmentVoiceTargetSchema,
+  voicePublicationSchema,
   type TreatmentVoices,
   type TreatmentVoiceTarget,
+  type VoiceCoverage,
+  type VoicePublication,
 } from '@sabou/types';
 import { parse, type SessionRequest } from '../accounts/accounts.controller';
 import { AdministratorGuard } from '../certification/certification.controller';
@@ -112,6 +115,21 @@ export class TreatmentVoicesController {
   @Header('Cache-Control', 'no-store')
   targets(@Req() req: SessionRequest): Promise<TreatmentVoiceTarget[]> {
     return this.repository.targets(req.session!.sub).catch(treatmentVoiceError);
+  }
+
+  // Déclarées avant « :code » : couverture et publication groupée de la DG (US-074)
+  @Get('couverture')
+  @Header('Cache-Control', 'no-store')
+  coverage(@Req() req: SessionRequest): Promise<VoiceCoverage> {
+    return this.repository.coverage(req.session!.sub).catch(treatmentVoiceError);
+  }
+
+  @Post('publication')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  publish(@Body() body: unknown, @Req() req: SessionRequest): Promise<VoicePublication> {
+    const { langue } = parse(voicePublicationSchema, body);
+    return this.repository.publish(req.session!.sub, req.ip, langue).catch(treatmentVoiceError);
   }
 
   @Get(':code')
