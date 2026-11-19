@@ -20,8 +20,14 @@ for manifest in apps/*/package.json packages/*/package.json; do
 done
 
 for workflow in .github/workflows/*.yml; do
-  # 2. Déclencheurs : demandes de fusion et push sur main
-  grep -Eq '^  pull_request:' "$workflow" || fail "$workflow : pas de déclencheur pull_request"
+  # 2. Déclencheurs : demandes de fusion et push sur main. Seule exception : la vitesse et la
+  # sécurité, lancées à la main en fin de sprint et après fusion, sans bloquer les demandes
+  # de fusion (fin-de-sprint.yml, décision du maître d'œuvre du 19/11, 05 §2.73)
+  if [[ "$(basename "$workflow")" == fin-de-sprint.yml ]]; then
+    grep -Eq '^  workflow_dispatch:' "$workflow" || fail "$workflow : pas de lancement à la main"
+  else
+    grep -Eq '^  pull_request:' "$workflow" || fail "$workflow : pas de déclencheur pull_request"
+  fi
   grep -Eq '^    branches: \[main\]' "$workflow" || fail "$workflow : pas de déclencheur push sur main"
 
   # 3. Actions épinglées par SHA complet (40 caractères hexadécimaux)
