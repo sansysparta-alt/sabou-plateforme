@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql, type RawBuilder } from 'kysely';
-import type { FieldVisit, FieldVisitReport } from '@sabou/types';
+import type { FieldAgendaItem, FieldVisit, FieldVisitReport } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
 import { inZone, type ZoneTrx } from '../database/zone';
@@ -13,6 +13,8 @@ export class VisitNotAllowedError extends Error {}
 export class VisitStaleError extends Error {}
 export class VisitDateError extends Error {}
 export class VisitPhotoError extends Error {}
+// US-083 : heure d'attestation du téléphone postérieure à la réception (horloge en avance)
+export class VisitClockError extends Error {}
 
 // Messages des fonctions visite_* (migration 20261113120000) ; chaque branche est couverte
 // par un test sur un vrai PostgreSQL (packages/db/test/visites-terrain.test.ts)
@@ -24,6 +26,7 @@ function translate(error: unknown): never {
   if (message.includes('hors des 90 prochains jours')) throw new VisitDateError();
   if (message.includes('entre la soumission et aujourd')) throw new VisitDateError();
   if (message.includes('photo possible une seule fois')) throw new VisitPhotoError();
+  if (message.includes('postérieure à la réception')) throw new VisitClockError();
   throw error;
 }
 
@@ -40,6 +43,8 @@ export const visitOf = (dossierId: RawBuilder<unknown>) => sql<FieldVisit | null
             'signePar', su.prenom || ' ' || su.nom,
             'signeLe', to_char(vt.signe_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
             'empreinte', vt.empreinte_sha3,
+            'attesteLeDeclare',
+              to_char(vt.atteste_le_declare AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
             'photo', vt.compte_rendu_piece_id IS NOT NULL)
      FROM sabou.visite_terrain vt
      LEFT JOIN sabou.utilisateur su ON su.id = vt.signe_par
@@ -118,8 +123,20 @@ export class VisitsRepository {
       });
       await sql`
         SELECT sabou.visite_realiser(${dossier.id}, ${dossier.acteur}, ${input.visite},
-                 ${input.realiseeLe}::date, ${constats}, ${input.avis}, ${empreinte})`.execute(trx);
+                 ${input.realiseeLe}::date, ${constats}, ${input.avis}, ${empreinte},
+                 ${input.attesteLe ?? null}::timestamptz)`.execute(trx);
       return this.read(trx, dossier.id);
+    });
+  }
+
+  // US-083 : agenda de l'agent préfectoral (visites_agenda, migration 20261120010000)
+  agenda(sub: string): Promise<FieldAgendaItem[]> {
+    return inZone(this.db, sub, async (trx) => {
+      const { rows } = await sql<FieldAgendaItem>`
+        SELECT categorie, dossier, visite, praticien, sous_prefecture AS "sousPrefecture",
+               prefecture, prevue_le AS "prevueLe", entree_le AS "entreeLe"
+          FROM sabou.visites_agenda()`.execute(trx);
+      return rows;
     });
   }
 

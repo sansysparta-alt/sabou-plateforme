@@ -6,15 +6,18 @@ import 'reflect-metadata';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import type { FieldVisit, FieldVisitReport } from '@sabou/types';
+import type { FieldAgendaItem, FieldVisit, FieldVisitReport } from '@sabou/types';
+import { FIELD_AGENT_TOKEN_VERIFIER, InvalidMobileTokenError } from '../auth/mobile-token';
 import { SESSION_COOKIE } from '../auth/auth.controller';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { AdministratorGuard } from '../certification/certification.controller';
 import { ENV, type Env } from '../config/env';
 import { ZoneContextError } from '../database/zone';
 import { PIECE_STORAGE } from '../dossiers/piece-storage';
+import { FieldAgendaController } from './field-agenda.controller';
 import { VisitsController } from './visits.controller';
 import {
+  VisitClockError,
   VisitDateError,
   VisitDossierNotFoundError,
   VisitNotAllowedError,
@@ -38,12 +41,43 @@ const VISIT: FieldVisit = {
   signePar: null,
   signeLe: null,
   empreinte: null,
+  attesteLeDeclare: null,
   photo: false,
+};
+
+// US-083 : agenda de l'agent et jeton du client « sabou-terrain » avec second facteur
+const AGENDA: FieldAgendaItem[] = [
+  {
+    categorie: 'planifiee',
+    dossier: 'DS-1041',
+    visite: 2,
+    praticien: 'Sekou Kourouma',
+    sousPrefecture: 'Garambé',
+    prefecture: 'Labé',
+    prevueLe: '2026-11-23T09:30',
+    entreeLe: '2026-11-14',
+  },
+];
+const fieldTokens = {
+  async verify(token: string) {
+    if (token === 'jeton.agent.ok') {
+      return { sub: SUB, roles: ['administrateur', 'admin_prefectoral'], amr: ['pwd', 'otp'] };
+    }
+    if (token === 'jeton.agent.sans2fa') {
+      return { sub: SUB, roles: ['administrateur', 'admin_prefectoral'], amr: ['pwd'] };
+    }
+    throw new InvalidMobileTokenError();
+  },
 };
 
 const calls: unknown[][] = [];
 let failure: Error | null = null;
 const repository = {
+  async agenda(sub: string) {
+    calls.push(['agenda', sub]);
+    if (failure) throw failure;
+    return AGENDA;
+  },
   async plan(sub: string, _ip: unknown, code: string, prevueLe: string) {
     calls.push(['plan', sub, code, prevueLe]);
     if (failure) throw failure;
@@ -92,12 +126,13 @@ let base: string;
 
 beforeAll(async () => {
   @Module({
-    controllers: [VisitsController],
+    controllers: [VisitsController, FieldAgendaController],
     providers: [
       { provide: VisitsRepository, useValue: repository },
       { provide: PIECE_STORAGE, useValue: storage },
       { provide: SESSION_STORE, useValue: sessions },
       { provide: ENV, useValue: { ADMIN_APP_URL: `${APP_ORIGIN}/` } as Env },
+      { provide: FIELD_AGENT_TOKEN_VERIFIER, useValue: fieldTokens },
       AdministratorGuard,
     ],
   })
@@ -268,5 +303,65 @@ describe('photo facultative de la fiche papier', () => {
       (await post(PHOTO, JPEG, { type: 'image/jpeg', origin: 'https://ailleurs.example' })).status,
     ).toBe(403);
     expect(stored).toEqual([]);
+  });
+});
+
+// US-083 : agenda et compte rendu depuis le téléphone (jeton de l'agent, sans cookie ni
+// origine) ; heure d'attestation déclarée par le téléphone transmise à la base
+describe('US-083 : agenda et compte rendu depuis le téléphone', () => {
+  const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
+
+  it('agenda lu avec le jeton de l’agent, sans cache', async () => {
+    const response = await fetch(`${base}/api/terrain/visites`, {
+      headers: bearer('jeton.agent.ok'),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual(AGENDA);
+    expect(calls).toEqual([['agenda', SUB]]);
+  });
+
+  it('agenda : sans second facteur, jeton refusé ou sans compte, refusé avant la base', async () => {
+    const get = (headers: Record<string, string>) =>
+      fetch(`${base}/api/terrain/visites`, { headers });
+    expect((await get(bearer('jeton.agent.sans2fa'))).status).toBe(403);
+    expect((await get(bearer('jeton.inconnu'))).status).toBe(401);
+    expect((await get({})).status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it('agenda : contexte de zone refusé par la base, 403', async () => {
+    failure = new ZoneContextError();
+    const response = await fetch(`${base}/api/terrain/visites`, {
+      headers: bearer('jeton.agent.ok'),
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it('compte rendu rédigé sans réseau : l’heure déclarée est transmise à la base', async () => {
+    const body = { ...REPORT, attesteLe: '2026-11-20T07:45:00.000Z' };
+    const response = await fetch(`${base}/api/dossiers/DS-1041/visite/compte-rendu`, {
+      method: 'POST',
+      headers: { ...bearer('jeton.agent.ok'), 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    expect(response.status).toBe(200);
+    expect(calls).toEqual([['report', SUB, 'DS-1041', { ...body, constats: 'Lieu conforme.' }]]);
+  });
+
+  it('heure déclarée mal formée : 400 sans appeler la base', async () => {
+    const response = await post('/api/dossiers/DS-1041/visite/compte-rendu', {
+      ...REPORT,
+      attesteLe: 'hier soir',
+    });
+    expect(response.status).toBe(400);
+    expect(calls).toEqual([]);
+  });
+
+  it('horloge du téléphone en avance : 422 « clock », message pour l’agent', async () => {
+    failure = new VisitClockError();
+    const response = await post('/api/dossiers/DS-1041/visite/compte-rendu', REPORT);
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ error: 'clock' });
   });
 });
