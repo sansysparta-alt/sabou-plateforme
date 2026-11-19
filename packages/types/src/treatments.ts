@@ -176,6 +176,17 @@ export interface TreatmentSummary {
   statut: TreatmentStatus;
   attenteRaison: WaitingReason | null;
   modifieLe: string;
+  // US-082 : recette numérisée sur le terrain par l'agent préfectoral pour le praticien
+  saisieTerrain: boolean;
+}
+
+// US-082 : praticien de sa préfecture auquel l'agent rattache une recette numérisée
+export interface FieldPractitioner {
+  code: string;
+  nom: string;
+  // Langue de la voix par champ (langue principale du praticien)
+  langue: string;
+  statut: 'en_attente' | 'certifie' | 'suspendu';
 }
 
 export interface TreatmentDetail extends TreatmentSummary {

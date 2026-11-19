@@ -11,12 +11,19 @@ import { StudioController } from './studio.controller';
 import { StudioRepository } from './studio.repository';
 import { StudioVoicesController } from './studio-voices.controller';
 import { StudioVoicesRepository } from './studio-voices.repository';
+import { StudioActorGuard } from './studio-actor';
+import { FieldPractitionersController } from './field-practitioners.controller';
 
 // Traitements : Studio du praticien (US-060) et ses voix (US-081), circuit côté administrateurs
 // (US-061)
 @Module({
   imports: [AuthModule],
-  controllers: [StudioController, StudioVoicesController, CircuitController],
+  controllers: [
+    StudioController,
+    StudioVoicesController,
+    CircuitController,
+    FieldPractitionersController,
+  ],
   providers: [
     StudioRepository,
     StudioVoicesRepository,
@@ -24,6 +31,7 @@ import { StudioVoicesRepository } from './studio-voices.repository';
     CircuitRepository,
     PractitionerGuard,
     AdministratorGuard,
+    StudioActorGuard,
     { provide: MOBILE_TOKEN_VERIFIER, inject: [ENV], useFactory: keycloakMobileTokenVerifier },
   ],
 })

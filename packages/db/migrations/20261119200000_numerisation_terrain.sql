@@ -66,6 +66,22 @@ BEGIN
 END $$;
 REVOKE EXECUTE ON FUNCTION studio_praticien() FROM PUBLIC;
 
+-- Identifiant du praticien du Studio, pour les lectures de l'API (liste, détail, voix) :
+-- le praticien connecté (NULL sans fiche), ou celui que numérise l'agent (contrôlé par
+-- studio_praticien()). SECURITY DEFINER : studio_praticien() n'est pas ouverte à l'API.
+CREATE FUNCTION studio_praticien_id() RETURNS bigint
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = sabou, public, pg_temp AS $$
+BEGIN
+  IF contexte_role() = 'prefectoral'
+     AND nullif(current_setting('sabou.numerisation_praticien', true), '') IS NOT NULL THEN
+    RETURN (studio_praticien()).id;
+  END IF;
+  RETURN (SELECT id FROM praticien
+           WHERE contexte_role() = 'praticien' AND utilisateur_id = contexte_utilisateur());
+END $$;
+REVOKE EXECUTE ON FUNCTION studio_praticien_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION studio_praticien_id() TO sabou_app;
+
 -- Praticiens que l'agent peut rattacher à une recette : ceux de sa préfecture, non rejetés
 CREATE FUNCTION numerisation_praticiens()
 RETURNS TABLE (code text, nom text, langue_principale text, statut text)

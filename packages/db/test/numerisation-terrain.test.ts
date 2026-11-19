@@ -97,6 +97,17 @@ describe('Critère 1 : recette numérisée par l’agent, rattachée au praticie
     expect(rows).not.toEqual([{ code: 'PR-1042' }]);
   });
 
+  it('lectures de l’API : le praticien visé pour l’agent, le sien pour le praticien', async () => {
+    const rows = await run(`${openContext(AUTHOR)} ${forPractitioner()}
+      SELECT (SELECT code FROM praticien WHERE id = studio_praticien_id()) AS agent;`);
+    expect(rows).toEqual([{ agent: 'PR-1042' }]);
+    const own = await run(`${openContext(PRACTITIONER)} ${forPractitioner('PR-1041')}
+      SELECT (SELECT code FROM praticien WHERE id = studio_praticien_id()) AS praticien;`);
+    expect(own).toEqual([{ praticien: 'PR-1042' }]);
+    const none = await run(`${openContext(AUTHOR)} SELECT studio_praticien_id() AS id;`);
+    expect(none).toEqual([{ id: null }]);
+  });
+
   it('liste des praticiens rattachables : ceux de la préfecture de l’agent', async () => {
     const rows = await run(`${openContext(AUTHOR)}
       SELECT count(*) FILTER (WHERE code = 'PR-1042')::int AS diallo,

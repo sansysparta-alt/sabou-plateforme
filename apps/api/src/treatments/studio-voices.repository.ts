@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import type { PractitionerVoice, PractitionerVoiceTarget } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
-import { inZone, type ZoneTrx } from '../database/zone';
+import { inZone, type ZoneSubject, type ZoneTrx } from '../database/zone';
 import {
   StudioNoProfileError,
   TreatmentInvalidError,
@@ -48,7 +48,7 @@ export class StudioVoicesRepository {
 
   // Dépôt rattaché au traitement ; renvoie le numéro du dépôt (le même si la clé est rejouée)
   deposit(
-    sub: string,
+    sub: ZoneSubject,
     ip: string | undefined,
     code: string,
     target: PractitionerVoiceTarget,
@@ -69,7 +69,7 @@ export class StudioVoicesRepository {
   }
 
   // Le dépôt de cette clé existe-t-il déjà ? (envoi rejoué : le fichier n'est pas rangé deux fois)
-  known(sub: string, clientKey: string): Promise<boolean> {
+  known(sub: ZoneSubject, clientKey: string): Promise<boolean> {
     return inZone(this.db, sub, async (trx) => {
       const { rows } = await sql<{ found: boolean }>`
         SELECT EXISTS (SELECT 1 FROM sabou.recette_voix_praticien
@@ -80,7 +80,7 @@ export class StudioVoicesRepository {
   }
 
   remove(
-    sub: string,
+    sub: ZoneSubject,
     ip: string | undefined,
     code: string,
     target: PractitionerVoiceTarget,
@@ -96,13 +96,13 @@ export class StudioVoicesRepository {
     });
   }
 
-  list(sub: string, code: string): Promise<PractitionerVoice[]> {
+  list(sub: ZoneSubject, code: string): Promise<PractitionerVoice[]> {
     return inZone(this.db, sub, (trx) => this.read(trx, code));
   }
 
   // Fichier traité de la voix en vigueur : AAC pour le téléphone (lu partout), sinon Opus
   file(
-    sub: string,
+    sub: ZoneSubject,
     code: string,
     target: PractitionerVoiceTarget,
     object: string,

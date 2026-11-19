@@ -50,7 +50,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S5c** | 3. Application de gestion et mobile | Le compte DG est unique et récupérable sous contrôle ; praticien et citoyen retrouvent leur mot de passe par SMS ; plantes, dossiers terrain et langues suivent le cahier des charges. *Corrections de l’alignement (17/11/2026).* | US-024, US-069, US-054, US-055, US-040c, US-040d, US-012c | 26 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
 | **S7** | 3. Application de gestion et mobile | Un praticien enregistre une recette complète sans réseau et la retrouve synchronisée. | US-080, US-081 | 16 |
-| **S8** | 3. Application de gestion et mobile | Un agent préfectoral numérise une recette et réalise une visite sans réseau ; litiges et alertes sont traités. | US-082, US-083, US-101, US-102 | 14 |
+| **S8** | 3. Application de gestion et mobile | Un agent préfectoral numérise une recette et réalise une visite sans réseau ; litiges et alertes sont traités. | US-082, US-083, US-101, US-102 | 16 |
 | **S9** | 3. Application de gestion et mobile | Chaque profil dispose de son tableau de bord et de ses rapports. | US-090, US-091 | 8 |
 | **S10** | 4. Site public | Un visiteur cherche « paludisme » dans sa langue et voit les traitements certifiés ; la DG pilote les menus. | US-110, US-111, US-117, US-130 | 21 |
 | **S11** | 4. Site public | Un visiteur écoute un traitement en malinké, même sans réseau, et trouve un praticien certifié. | US-112, US-113, US-114 | 18 |
@@ -895,6 +895,8 @@ Critères d’acceptation :
 - Saisie assistée, voix par champ dans la langue du praticien, rattachement au praticien.
 - Création d’un dossier avec identité, spécialité, localité, pièces et photo.
 
+Décisions du maître d’œuvre (19 novembre 2026) : connexion de l’agent avec second facteur, session de 7 jours utilisable sans réseau ; recette au nom du praticien avec la mention de l’agent ; accord du praticien avant la voix ; l’agent auteur ne vérifie pas sa propre saisie (voir 05 §2.86).
+
 #### US-083 · Gérer mon agenda de visites et déposer le compte rendu signé depuis le téléphone
 *Application mobile de terrain* · **Must** · 3 points · cas : UC-30
 
@@ -911,6 +913,8 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Pièces et échanges, décision motivée notifiée.
 - Le recours de 30 jours après un rejet définitif passe par un litige.
+
+Décision du maître d’œuvre (19 novembre 2026) : le régional instruit le litige de recours (pièces, échanges, avis motivé) et la DG décide ; recours accepté : statut du praticien rétabli, traitements suspendus remis en ligne, nouveau certificat émis par la DG (l’ancien reste révoqué). Le praticien ouvre et suit son litige dans l’application mobile : US-101 passe de 3 à 5 points, S8 de 14 à 16 points.
 
 #### US-102 · Traiter les alertes territoriales
 *Sécurité sanitaire, litiges, alertes* · **Should** · 3 points · cas : UC-44
