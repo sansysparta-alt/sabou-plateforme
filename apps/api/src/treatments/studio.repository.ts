@@ -7,6 +7,9 @@ import type {
   TreatmentDetail,
   TreatmentFields,
   TreatmentSummary,
+  TreatmentSync,
+  TreatmentSyncConflict,
+  TreatmentSyncResult,
 } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
@@ -158,6 +161,51 @@ export class StudioRepository {
     });
   }
 
+  // US-080 : brouillon saisi hors réseau, rejoué au retour du réseau ; la base applique la règle
+  // R-DON-04 et rend l'envoi rejouable (traitement_synchroniser). La soumission demandée hors
+  // réseau est tentée à part (point de sauvegarde) : refusée, l'enregistrement reste acquis.
+  sync(sub: string, ip: string | undefined, input: TreatmentSync): Promise<TreatmentSyncResult> {
+    return inZone(this.db, sub, async (trx) => {
+      await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      const { contreIndications, ...content } = input.fields;
+      const { rows } = await sql<{
+        r: { code: string; conflit: TreatmentSyncConflict | null; rejoue: boolean };
+      }>`
+        SELECT sabou.traitement_synchroniser(${input.cle}::uuid, ${input.code},
+                 ${input.vueLe}::timestamptz, ${JSON.stringify(content)}::jsonb) AS r`
+        .execute(trx)
+        .catch(translate);
+      const result = rows[0]!.r;
+      const applied = result.conflit !== 'version_validee';
+      if (applied && !result.rejoue) {
+        await sql`SELECT sabou.traitement_contre_indications_poser(${result.code},
+                    ${JSON.stringify(contreIndications)}::jsonb)`
+          .execute(trx)
+          .catch(translate);
+      }
+      let gaps: SubmissionGap[] | null = null;
+      if (input.soumettre && applied) {
+        await sql`SAVEPOINT soumission`.execute(trx);
+        try {
+          await sql`SELECT sabou.traitement_soumettre_synchro(${result.code})`
+            .execute(trx)
+            .catch(translate);
+          await sql`RELEASE SAVEPOINT soumission`.execute(trx);
+        } catch (error) {
+          await sql`ROLLBACK TO SAVEPOINT soumission`.execute(trx);
+          if (error instanceof TreatmentIncompleteError) gaps = error.gaps;
+          else throw error;
+        }
+      }
+      return {
+        conflit: result.conflit,
+        rejoue: result.rejoue,
+        soumissionManques: gaps,
+        detail: await this.read(trx, result.code),
+      };
+    });
+  }
+
   submit(sub: string, ip: string | undefined, code: string): Promise<TreatmentDetail> {
     return inZone(this.db, sub, async (trx) => {
       await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
@@ -191,6 +239,13 @@ export class StudioRepository {
                          'enregistreLe', to_char(v.enregistre_le AT TIME ZONE 'UTC',
                                                  'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')))
                          FROM sabou.traitement_voix_praticien(r.code) v), '[]') AS voix,
+             -- US-080 : versions écartées à la synchronisation (R-DON-04, cas 4)
+             COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                         'raison', e.raison, 'titre', e.titre,
+                         'le', to_char(e.ecartee_le AT TIME ZONE 'UTC',
+                                       'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')))
+                         FROM sabou.traitement_versions_ecartees(r.code) e), '[]')
+               AS "versionsEcartees",
              COALESCE((SELECT jsonb_agg(jsonb_build_object('code', ci.code, 'libelleFr', ci.libelle_fr)
                                         ORDER BY ci.id)
                          FROM sabou.recette_contre_indication rci

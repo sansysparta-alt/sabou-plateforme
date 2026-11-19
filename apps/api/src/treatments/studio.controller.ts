@@ -20,10 +20,12 @@ import {
   plantProposalSchema,
   treatmentCodeSchema,
   treatmentFieldsSchema,
+  treatmentSyncSchema,
   treatmentUpdateSchema,
   type StudioReferentials,
   type TreatmentDetail,
   type TreatmentSummary,
+  type TreatmentSyncResult,
 } from '@sabou/types';
 import { parse } from '../accounts/accounts.controller';
 import { ZoneContextError } from '../database/zone';
@@ -162,6 +164,15 @@ export class StudioController {
   ): Promise<StudioReferentials['plantes'][number]> {
     const input = parse(plantProposalSchema, body);
     return this.repository.propose(req.practitioner!.sub, input).catch(studioError);
+  }
+
+  // US-080 : brouillon saisi hors réseau, rejoué au retour du réseau (R-DON-04)
+  @Post('synchro/traitements')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  sync(@Body() body: unknown, @Req() req: PractitionerRequest): Promise<TreatmentSyncResult> {
+    const input = parse(treatmentSyncSchema, body);
+    return this.repository.sync(req.practitioner!.sub, req.ip, input).catch(studioError);
   }
 
   @Post('traitements/:code/soumission')

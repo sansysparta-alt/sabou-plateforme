@@ -51,7 +51,8 @@ class VoiceOutbox {
     var failed = 0;
     try {
       for (final voice in await vault.pending()) {
-        if (voice.error != null) continue;
+        // Traitement créé hors réseau, pas encore reçu par le serveur : la voix attend son code
+        if (voice.error != null || isLocalCode(voice.code)) continue;
         try {
           await api.uploadVoice(
             code: voice.code,

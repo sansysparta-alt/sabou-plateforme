@@ -138,6 +138,37 @@ export const treatmentUpdateSchema = z.object({
 });
 export type TreatmentUpdate = z.infer<typeof treatmentUpdateSchema>;
 
+// US-080 : brouillon saisi hors réseau, rejoué au retour du réseau (R-DON-04). La clé, tirée sur
+// le téléphone, rend l'envoi rejouable sans doublon ; code absent = traitement créé hors réseau.
+export const treatmentSyncSchema = z.strictObject({
+  cle: z.uuid(),
+  code: treatmentCodeSchema.nullable(),
+  vueLe: z.iso.datetime({ offset: true, message: 'Date de lecture invalide.' }).nullable(),
+  fields: treatmentFieldsSchema,
+  // Soumission demandée hors réseau, faite après l'enregistrement
+  soumettre: z.boolean().default(false),
+});
+export type TreatmentSync = z.infer<typeof treatmentSyncSchema>;
+export type TreatmentSyncInput = z.input<typeof treatmentSyncSchema>;
+
+// version_validee : le serveur avait une version soumise ou au-delà, elle prime, la saisie est
+// gardée en copie ; remplacee : deux brouillons, celui du téléphone (arrivé le dernier) l'emporte
+export type TreatmentSyncConflict = 'version_validee' | 'remplacee';
+export interface TreatmentSyncResult {
+  conflit: TreatmentSyncConflict | null;
+  // Envoi déjà reçu (réponse perdue) : rien n'a été refait
+  rejoue: boolean;
+  // Soumission demandée mais refusée : ce qui manque
+  soumissionManques: SubmissionGap[] | null;
+  detail: TreatmentDetail;
+}
+
+export interface TreatmentDiscardedVersion {
+  raison: TreatmentSyncConflict;
+  le: string;
+  titre: string | null;
+}
+
 export interface TreatmentSummary {
   code: string;
   titreFr: string;
@@ -157,6 +188,8 @@ export interface TreatmentDetail extends TreatmentSummary {
   sections: { type: SectionType; texteFr: string | null; texteEn: string | null }[];
   // US-081 : voix en vigueur du praticien, par section et par nom de plante
   voix: PractitionerVoice[];
+  // US-080 : versions non retenues à la synchronisation (R-DON-04), les plus récentes d'abord
+  versionsEcartees: TreatmentDiscardedVersion[];
   // US-063 : affichées en alerte
   contreIndications: { code: string; libelleFr: string }[];
   // Niveau choisi avec le consentement ; null tant que le praticien n'a pas consenti

@@ -338,7 +338,65 @@ class FakeServer {
     return code;
   }
 
+  /// US-080 : envois hors réseau reçus, par clé (rejeu sans doublon).
+  final syncResults = <String, Map<String, Object?>>{};
+
+  // Règle R-DON-04 simplifiée (la vraie est prouvée en base, studio-hors-reseau.test.ts)
+  http.Response _sync(Map<String, Object?> body) {
+    final key = body['cle']! as String;
+    final known = syncResults[key];
+    if (known != null) return _json(200, {...known, 'rejoue': true});
+    final fields = body['fields']! as Map<String, Object?>;
+    var code = body['code'] as String?;
+    String? conflict;
+    if (code == null) {
+      code = seedTreatment(fields);
+    } else {
+      final current = treatments[code];
+      if (current == null) {
+        return _json(404, {
+          'error': 'not_found',
+          'message': 'Traitement introuvable.',
+        });
+      }
+      if (current['statut'] != 'brouillon') {
+        conflict = 'version_validee';
+      } else {
+        if (body['vueLe'] != current['modifieLe']) conflict = 'remplacee';
+        treatments[code] = _detail(
+          code,
+          fields,
+          motif: current['dernierMotif'] as String?,
+        );
+      }
+    }
+    List<Object?>? gaps;
+    if (body['soumettre'] == true && conflict != 'version_validee') {
+      final current = treatments[code]!;
+      final missing = current['manques']! as List;
+      if (missing.isEmpty) {
+        treatments[code] = {
+          ...current,
+          'statut': 'soumise',
+          'dossier': 'DS-2001',
+        };
+      } else {
+        gaps = missing;
+      }
+    }
+    final result = <String, Object?>{
+      'conflit': conflict,
+      'soumissionManques': gaps,
+      'detail': treatments[code],
+    };
+    syncResults[key] = result;
+    return _json(200, {...result, 'rejoue': false});
+  }
+
   http.Response? studioRoute(http.Request request, String path) {
+    if (request.method == 'POST' && path == 'synchro/traitements') {
+      return _sync(jsonDecode(request.body) as Map<String, Object?>);
+    }
     final refusal = nextStudioRefusal;
     if (refusal != null &&
         (path == 'traitements' || path.startsWith('traitements/'))) {

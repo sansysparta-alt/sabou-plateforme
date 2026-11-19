@@ -345,7 +345,11 @@ describe('Garde-fous du schéma', () => {
       // US-075 : révision du texte et voix des sections par le préfectoral (05 §2.79)
       'traitement_section_reviser',
       'traitement_soumettre',
+      // US-080 : Studio hors réseau, rejeu et règle R-DON-04 (05 §2.85)
+      'traitement_soumettre_synchro',
       'traitement_suspension_lever',
+      'traitement_synchroniser',
+      'traitement_versions_ecartees',
       // US-073 : contrôle des effets indésirables par le Comité (05 §2.81)
       'traitement_voix_controler',
       'traitement_voix_enregistrer',

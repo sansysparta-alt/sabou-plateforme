@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../studio/studio_texts.dart' show shortDateTime;
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
 import 'dossier_api.dart';
@@ -197,6 +198,13 @@ class _DossierPageState extends State<DossierPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // US-080 : consultation sans réseau, à partir de la copie du téléphone
+          if (widget.api.offlineSince != null)
+            StatusMessage(
+              'Sans réseau : votre dossier tel qu’au '
+              '${shortDateTime(widget.api.offlineSince!)}. Pour le modifier ou déposer '
+              'une pièce, attendez le retour du réseau.',
+            ),
           if (receipt != null)
             StatusMessage(
               kind: StatusKind.success,

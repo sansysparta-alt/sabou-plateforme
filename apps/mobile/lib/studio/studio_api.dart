@@ -196,6 +196,7 @@ class TreatmentDetail extends TreatmentSummary {
     required this.plants,
     required this.sections,
     this.voices = const [],
+    this.discarded = const [],
     required this.contraindications,
     required this.visibility,
     required this.consentedAt,
@@ -224,6 +225,14 @@ class TreatmentDetail extends TreatmentSummary {
             p['nomFr'] as String,
             p['partie'] as String?,
             p['validee'] as bool,
+          ),
+      ],
+      discarded: [
+        for (final e in (json['versionsEcartees'] as List?) ?? const [])
+          (
+            reason: e['raison'] as String,
+            at: e['le'] as String,
+            title: e['titre'] as String?,
           ),
       ],
       voices: [
@@ -259,6 +268,10 @@ class TreatmentDetail extends TreatmentSummary {
 
   /// US-081 : voix en vigueur du praticien (section ou nom de plante).
   final List<PractitionerVoice> voices;
+
+  /// US-080 : versions non retenues à la synchronisation (R-DON-04), les plus récentes
+  /// d'abord : raison (version_validee, remplacee), date, titre de la version.
+  final List<({String reason, String at, String? title})> discarded;
   final List<CodeLabel> contraindications;
   final String? visibility;
   final String? consentedAt;
@@ -305,6 +318,33 @@ class TreatmentFields {
   final List<String> contraindications;
   final bool consent;
   final String? visibility;
+
+  /// Saisie gardée sur le téléphone (US-080), relue au même format que l'envoi.
+  factory TreatmentFields.fromJson(Map<String, dynamic> j) => TreatmentFields(
+    disease: j['maladie'] as String,
+    titleFr: j['titreFr'] as String,
+    titleEn: (j['titreEn'] as String?) ?? '',
+    cycleDays: j['cycleDureeJours'] as int?,
+    dosesPerDay: j['cyclePrisesParJour'] as int?,
+    pauseDays: j['cyclePauseJours'] as int?,
+    plants: [
+      for (final p in j['plantes'] as List)
+        (plant: p['plante'] as String, part: (p['partie'] as String?) ?? ''),
+    ],
+    sections: [
+      for (final x in j['sections'] as List)
+        (
+          type: x['type'] as String,
+          fr: x['texteFr'] as String,
+          en: (x['texteEn'] as String?) ?? '',
+        ),
+    ],
+    contraindications: [
+      for (final c in j['contreIndications'] as List) c as String,
+    ],
+    consent: j['consentement'] as bool,
+    visibility: j['visibilite'] as String?,
+  );
 
   Map<String, Object?> toJson() => {
     'maladie': disease,
@@ -353,22 +393,48 @@ class StudioApi {
   final PractitionerHttp _http;
 
   Future<StudioReferentials> referentials() async =>
-      StudioReferentials.fromJson(
-        _object(await _check(await _http.send('GET', 'studio/referentiels'))),
-      );
+      StudioReferentials.fromJson(await referentialsJson());
 
-  Future<List<TreatmentSummary>> list() async {
-    final body = PractitionerHttp.decode(
-      await _check(await _http.send('GET', 'traitements')),
-    );
-    return [
-      for (final t in body as List)
-        TreatmentSummary.fromJson(t as Map<String, dynamic>),
-    ];
-  }
+  Future<List<TreatmentSummary>> list() async => [
+    for (final t in await listJson())
+      TreatmentSummary.fromJson(t as Map<String, dynamic>),
+  ];
 
-  Future<TreatmentDetail> detail(String code) async => _detail(
-    await _http.send('GET', 'traitements/${Uri.encodeComponent(code)}'),
+  Future<TreatmentDetail> detail(String code) async =>
+      TreatmentDetail.fromJson(await detailJson(code));
+
+  // Réponses brutes, gardées telles quelles dans le cache du téléphone (US-080)
+  Future<Map<String, dynamic>> referentialsJson() async =>
+      _object(await _check(await _http.send('GET', 'studio/referentiels')));
+
+  Future<List<dynamic>> listJson() async => PractitionerHttp.decode(
+    await _check(await _http.send('GET', 'traitements')),
+  ) as List;
+
+  Future<Map<String, dynamic>> detailJson(String code) async => _object(
+    await _check(
+      await _http.send('GET', 'traitements/${Uri.encodeComponent(code)}'),
+    ),
+  );
+
+  /// US-080 : rejoue un brouillon saisi hors réseau (règle R-DON-04 appliquée par la base).
+  /// Réponse : conflit, rejoue, soumissionManques, detail.
+  Future<Map<String, dynamic>> sync({
+    required String clientKey,
+    required String? code,
+    required String? readAt,
+    required Map<String, Object?> fields,
+    required bool submit,
+  }) async => _object(
+    await _check(
+      await _http.sendJson('POST', 'synchro/traitements', {
+        'cle': clientKey,
+        'code': code,
+        'vueLe': readAt,
+        'fields': fields,
+        'soumettre': submit,
+      }),
+    ),
   );
 
   Future<TreatmentDetail> create(TreatmentFields fields) async =>

@@ -871,6 +871,8 @@ Critères d’acceptation :
 - Connexion, puis usage complet hors réseau des écrans prévus.
 - Synchronisation automatique au retour du réseau, règle de conflit R-DON-04.
 
+Écrans prévus (décision technique du 19 novembre 2026, 05 §2.85) : Studio du praticien en entier ; dossier en consultation, ses modifications avec le réseau ; écrans de l'agent préfectoral avec US-082 et US-083 (S8).
+
 #### US-081 · Enregistrer ma recette au Studio mobile
 *Application mobile de terrain* · **Must** · 8 points · cas : UC-21
 
