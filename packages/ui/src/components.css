@@ -704,7 +704,7 @@
   padding: 0 var(--sabou-space-3);
   border-radius: var(--sabou-radius-sm);
   color: var(--sabou-on-dark);
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   text-decoration: none;
 }
 .ui-nav__link:hover {
@@ -755,7 +755,7 @@
   background: transparent;
   color: var(--sabou-on-dark-muted);
   font: inherit;
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   cursor: pointer;
 }
 .ui-sidebar__collapse:hover {
@@ -792,7 +792,7 @@
 }
 /* Le nom n'est jamais coupé (US-016) : il passe à la ligne, même sans espace */
 .ui-sidebar__user-name {
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   font-weight: var(--sabou-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -1284,7 +1284,7 @@
 .ui-dossier__title {
   margin: 0;
   font-family: var(--sabou-font-text);
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   font-weight: var(--sabou-weight-semibold);
   color: var(--sabou-forest);
 }
@@ -1353,7 +1353,7 @@ details[open] > .ui-dossier__summary {
   background: var(--sabou-surface);
   color: var(--sabou-text);
   font: inherit;
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   cursor: pointer;
 }
 .ui-segmented__item:hover {
@@ -1375,7 +1375,7 @@ details[open] > .ui-dossier__summary {
 .ui-table td.ui-table__actions .ui-button {
   min-height: 2.25rem;
   padding: 0 var(--sabou-space-3);
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
 }
 .ui-table-empty {
   padding: var(--sabou-space-4);
@@ -1421,7 +1421,7 @@ details[open] > .ui-dossier__summary {
   border-top: 0;
   border-radius: 0 0 var(--sabou-radius-md) var(--sabou-radius-md);
   background: var(--sabou-surface);
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   color: var(--sabou-text-muted);
 }
 .ui-pagination__info {
@@ -1464,7 +1464,7 @@ details[open] > .ui-dossier__summary {
   background: var(--sabou-surface);
   color: var(--sabou-text);
   font: inherit;
-  font-size: var(--sabou-text-sm);
+  font-size: var(--sabou-text-md);
   cursor: pointer;
 }
 .ui-pagination__step:hover:not(:disabled),
