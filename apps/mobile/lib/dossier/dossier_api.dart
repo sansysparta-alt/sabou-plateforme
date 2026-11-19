@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../studio/sealed_files.dart';
 import 'practitioner_http.dart';
 import 'session.dart';
 
@@ -199,24 +200,70 @@ class DossierApi {
     required Uri baseUrl,
     required PractitionerSession session,
     http.Client? client,
+    this.copy,
+    DateTime Function()? clock,
   }) : _http = PractitionerHttp(
          baseUrl: baseUrl,
          session: session,
          client: client,
-       );
+       ),
+       _clock = clock ?? DateTime.now;
 
   final PractitionerHttp _http;
+  final DateTime Function() _clock;
 
-  Future<Referentials> referentials() async {
-    final response = await _send('GET', 'referentiels');
-    return Referentials.fromJson(_json(response));
-  }
+  /// US-080 : copie chiffrée du dossier, lue quand le réseau manque (consultation seulement :
+  /// les modifications et les pièces demandent le réseau). Null : pas de copie.
+  final SealedFiles? copy;
+
+  /// Date de la copie affichée faute de réseau ; null si le dossier vient du serveur.
+  String? offlineSince;
+
+  Future<Referentials> referentials() async => Referentials.fromJson(
+    await _cached('referentiels.json', () async {
+      return _json(await _send('GET', 'referentiels'));
+    }),
+  );
 
   /// Fiche et dossier ; null tant que la fiche n'est pas remplie.
   Future<PractitionerView?> view() async {
-    final response = await _send('GET', 'dossier', allowNotFound: true);
-    if (response.statusCode == 404) return null;
-    return PractitionerView.fromJson(_json(response));
+    final json = await _cached('dossier.json', () async {
+      final response = await _send('GET', 'dossier', allowNotFound: true);
+      if (response.statusCode == 404) return {'absent': true};
+      return _json(response);
+    });
+    return json['absent'] == true ? null : PractitionerView.fromJson(json);
+  }
+
+  // En ligne : la réponse du serveur, gardée en copie ; sans réseau : la copie
+  Future<Map<String, dynamic>> _cached(
+    String name,
+    Future<Map<String, dynamic>> Function() fetch,
+  ) async {
+    try {
+      final json = await fetch();
+      await copy?.writeJson(name, {
+        'le': _clock().toUtc().toIso8601String(),
+        'contenu': json,
+      });
+      if (name == 'dossier.json') offlineSince = null;
+      return json;
+    } on Exception catch (error) {
+      if (copy == null ||
+          error is DossierException ||
+          error is SignedOutException) {
+        rethrow;
+      }
+      Object? saved;
+      try {
+        saved = await copy!.readJson(name);
+      } on Exception {
+        saved = null; // copie illisible : comme absente
+      }
+      if (saved is! Map<String, dynamic>) rethrow;
+      if (name == 'dossier.json') offlineSince = saved['le'] as String;
+      return saved['contenu'] as Map<String, dynamic>;
+    }
   }
 
   Future<void> saveProfile(Profile profile) async {

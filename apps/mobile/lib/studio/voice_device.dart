@@ -32,6 +32,16 @@ Future<VoiceTools> deviceVoiceTools() async {
   );
 }
 
+/// US-080 : copie chiffrée du dossier (consultation sans réseau).
+Future<SealedFiles> deviceDossierCopy() async {
+  final support = await getApplicationSupportDirectory();
+  return SealedFiles(
+    directory: Directory('${support.path}/dossier'),
+    secrets: DeviceSecretStore(),
+    keyName: 'sabou.dossier_copy_key',
+  );
+}
+
 /// US-080 : copie chiffrée du Studio, dans l'espace privé de l'application.
 Future<StudioStore> deviceStudioStore() async {
   final support = await getApplicationSupportDirectory();
