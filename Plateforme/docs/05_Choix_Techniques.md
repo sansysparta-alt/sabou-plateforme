@@ -1240,6 +1240,51 @@ Demande du maître d'œuvre du 19 novembre 2026 : quelques ajustements d'ensembl
 | Pages hors navigation (invitation, accès refusé) sans marque sur ordinateur | Bandeau de marque affiché à toutes les tailles |
 | Déconnexion en rouge ? | Non : le rouge reste réservé aux actions destructrices ou irréversibles (suspendre, désactiver, rejet définitif) ; la déconnexion est une action neutre |
 
+### 2.79 Résumé en français et voix locale des sections d'un traitement (US-075, 19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026 : le « résumé » du préfectoral (UC-33, R-GOV-02) est une **révision du texte français** de chaque section, écrit d'abord par le praticien au Studio.
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Quand réviser | Seulement quand le traitement est « soumis », par le préfectoral de la préfecture du praticien | Le Comité expertise le texte définitif |
+| Texte d'origine | Gardé dans `recette_section_revision` (avant, après, auteur, date), affiché sous la section | Traçabilité ; le praticien garde la paternité de son savoir |
+| Voix d'une section | Enregistrée par le préfectoral de la préfecture dans une langue où il a le droit d'enregistrer (R-GOV-06), à toutes les étapes sauf « retiré » | Les voix suivent leur propre circuit par langue (R-LNG-10) |
+| Envoi au régional | Brouillon → traduit, par celui qui a enregistré ou un préfectoral de la préfecture qui a le droit de traduire | Même règle que la voix des noms (§2.47) |
+| Texte modifié | Un déclencheur ramène les voix de la section en brouillon, avec la raison | Une voix ne doit pas dire autre chose que le texte français validé |
+| Studio du praticien | Les sections sont mises à jour sur place au lieu d'être supprimées puis recréées | Sans cela, un nouvel enregistrement du brouillon effaçait les voix (suppression en cascade) |
+| Écritures | `recette_section_voix` et `recette_section_revision` cloisonnées (RLS) et écrites seulement par les fonctions de la base | Même principe que les autres tables métier |
+| Écran | « Résumés et traductions » (menu Langue du préfectoral), un traitement par ligne, détail dans le panneau latéral (§2.76), chargé à l'ouverture seulement | Réseau 3G ; même gabarit que les files |
+
+### 2.80 Atelier linguistique : validation des voix des traitements (US-072, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Qui valide | Le régional de la région du praticien, avec le droit de valider dans la langue (R-GOV-03, R-GOV-06) ; la DG aussi, de zone nationale, dans les langues où elle a ce droit | Le français n'est la langue d'aucune région : sans la DG, personne ne validerait les voix françaises |
+| Séparation des tâches | Le valideur n'est ni celui qui a enregistré, ni celui qui a envoyé la voix (R-GOV-07) | Contrôle en base, en plus de la contrainte `ck_rsv_separation` |
+| Renvoi | En brouillon avec un motif obligatoire, aussi pour une voix déjà validée ; le contrôle éventuel du Comité est effacé | Même règle que la voix des noms (§2.47) |
+| Ce que voit le régional | Traitements de sa région (cloisonnement), voix des seules langues qu'il valide ; les traitements avec des voix à valider en tête | Critère de US-072 |
+| Écran | Même écran que « Résumés et traductions » en mode atelier ; texte français et voix côte à côte sur ordinateur (`.ui-split`), empilés sur téléphone | Un seul gabarit à maintenir |
+
+### 2.81 Contrôle par le Comité de la voix des effets indésirables (US-073, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Quand | Après la validation du régional (voix « validée »), avant la publication par la DG | Le Comité vérifie une voix déjà jugée bonne dans sa langue (R-LNG-12) |
+| Qui | Un seul membre du Comité suffit | Décision du maître d'œuvre du 12 novembre 2026 (US-044) |
+| Gestes | Contrôler (auteur et date notés) ou renvoyer en brouillon avec un motif | Même logique de renvoi que l'atelier |
+| Blocage de la publication | Tenu par le déclencheur `trg_voix_publiable` du schéma initial, quel que soit le chemin d'écriture | Une règle de sécurité sanitaire ne dépend pas de l'interface |
+| Écran | « Effets indésirables (voix) » du Comité : même écran, seule la section concernée, langue par langue | Un seul gabarit |
+
+### 2.82 Couverture vocale et publication groupée (US-074, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Couverture | Par langue de voix : sections des traitements certifiés dont la voix est publiée, sur toutes leurs sections | Ce que voit le public ; « taux de recettes publiées par langue » du CdC, à la maille de la section (R-LNG-10) |
+| Retards | Voix en attente depuis plus de 7 jours (brouillon, envoyée, validée), par région administrative du praticien ; délai dans `voix_delai_retard()` | Repère simple de pilotage ; seuil à ajuster sans toucher au code des écrans |
+| Publication groupée | La DG publie toutes les voix validées publiables, d'une langue ou de toutes ; les autres restent validées et sont comptées « bloquées » | Un geste pour la DG, sans jamais publier une voix interdite |
+| Publiable | Traitement certifié avec le consentement du praticien, voix avec le consentement de la personne qui parle (R-LNG-11), contrôle du Comité pour les effets indésirables (R-LNG-12) ; règles réunies dans `voix_section_blocage()` | Une seule définition, utilisée par la publication et par la couverture |
+| Accès | Fonctions de couverture vides pour tout autre profil que la DG | Pilotage national (UC-63) |
+| Écran | « Couverture vocale » de la DG (menu Langue) : tableau par langue avec bouton de publication, tableau des retards | Gabarit de liste existant |
 ### 2.83 Signalements de danger et d'effets indésirables (US-100, 19 novembre 2026)
 
 Décisions du maître d'œuvre du 19 novembre 2026 : révision = retour au praticien en brouillon ; suspension levée par le Comité avec un motif, retrait définitif ; page publique /signaler dès S6.

@@ -815,6 +815,8 @@ Critères d’acceptation :
 - Écoute de la voix et lecture du texte français côte à côte.
 - Validation ou renvoi motivé ; seules les voix de ma langue et de ma région apparaissent.
 
+Réalisation (19 novembre 2026, 05 §2.80) : écran « Atelier linguistique » ; validation par le régional de la région du praticien dans les langues où il a le droit de valider (la DG aussi, pour le français) ; le valideur n’est ni l’auteur ni l’expéditeur de la voix ; renvoi en brouillon avec motif.
+
 #### US-073 · Contrôler la voix des effets indésirables dans chaque langue
 *Voix et gouvernance linguistique* · **Must** · 3 points · cas : UC-53
 
@@ -822,6 +824,8 @@ Critères d’acceptation :
 
 Critères d’acceptation :
 - Sans ce contrôle, la voix des effets indésirables ne peut pas être publiée.
+
+Réalisation (19 novembre 2026, 05 §2.81) : le Comité contrôle, langue par langue, la voix validée des effets indésirables, ou la renvoie en brouillon avec un motif ; la base refuse toute publication sans ce contrôle. Écran « Effets indésirables (voix) ».
 
 #### US-074 · Suivre la couverture vocale par langue et publier les voix validées
 *Voix et gouvernance linguistique* · **Should** · 3 points · cas : UC-63
@@ -832,6 +836,8 @@ Critères d’acceptation :
 - Pourcentage de sections publiées par langue et retards par région.
 - Publication groupée des voix validées.
 
+Réalisation (19 novembre 2026, 05 §2.82) : écran « Couverture vocale » ; pourcentage des sections des traitements certifiés dont la voix est publiée, par langue ; retards = voix en attente depuis plus de 7 jours, par région du praticien ; publication groupée, par langue ou toutes langues, des seules voix publiables (les autres comptées « bloquées »).
+
 #### US-075 · Résumer une recette en français et enregistrer la voix locale
 *Voix et gouvernance linguistique* · **Must** · 3 points · cas : UC-33
 
@@ -840,6 +846,8 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Texte français par section, voix locale par section.
 - Envoi à l’admin régional de la langue.
+
+Réalisation (19 novembre 2026, 05 §2.79) : décision du maître d’œuvre du 19 novembre, le résumé est une révision du texte français écrit par le praticien, possible tant que le traitement est soumis ; le texte d’origine reste dans l’historique. Voix par section dans les langues où le préfectoral a le droit d’enregistrer ; envoi au régional = statut « traduit ». Un texte modifié ramène les voix de la section en brouillon. Écran « Résumés et traductions ».
 
 #### US-100 · Traiter les signalements de danger et d’effets indésirables
 *Sécurité sanitaire, litiges, alertes* · **Must** · 5 points · cas : UC-08, UC-54

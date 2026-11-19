@@ -74,6 +74,22 @@ export const PAGE_HEADERS = {
     title: 'Noms locaux des plantes',
     lead: 'Le référent d’une langue saisit les noms d’une plante dans cette langue : la voix du nom, et une transcription en alphabet latin qui sert seulement à la recherche.',
   },
+  '/resumes-traductions': {
+    title: 'Résumés et traductions',
+    lead: 'Traitements de votre préfecture : révisez le texte français de chaque section tant que le traitement est soumis, enregistrez la voix locale, puis envoyez-la à l’administrateur régional.',
+  },
+  '/atelier-linguistique': {
+    title: 'Atelier linguistique',
+    lead: 'Voix des traitements de votre région, dans les langues que vous validez : écoutez chaque voix à côté du texte français, puis validez-la ou renvoyez-la avec un motif.',
+  },
+  '/controle-effets': {
+    title: 'Contrôle des effets indésirables',
+    lead: 'Voix validées de la section « effets indésirables et contre-indications », langue par langue : vérifiez qu’elles rendent fidèlement le texte français. Sans votre contrôle, elles ne peuvent pas être publiées.',
+  },
+  '/couverture-vocale': {
+    title: 'Couverture vocale',
+    lead: 'Part des sections des traitements certifiés dont la voix est publiée, langue par langue, et retards par région. Publiez d’un geste les voix validées.',
+  },
   '/voix-des-noms': {
     title: 'Voix des noms',
     lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',

@@ -342,8 +342,18 @@ describe('Garde-fous du schéma', () => {
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',
       'traitement_enregistrer',
+      // US-075 : révision du texte et voix des sections par le préfectoral (05 §2.79)
+      'traitement_section_reviser',
       'traitement_soumettre',
       'traitement_suspension_lever',
+      // US-073 : contrôle des effets indésirables par le Comité (05 §2.81)
+      'traitement_voix_controler',
+      'traitement_voix_enregistrer',
+      'traitement_voix_envoyer',
+      // US-074 : publication groupée par la DG
+      'traitement_voix_publier',
+      // US-072 : validation par le régional de la langue et de la région (05 §2.80)
+      'traitement_voix_valider',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',
@@ -351,6 +361,8 @@ describe('Garde-fous du schéma', () => {
       'verifier_certificat',
       // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)
       'visite_rappels_mettre_en_file',
+      // US-074 : couverture vocale, réservée à la DG (05 §2.82)
+      'voix_couverture',
       // US-070 : dépôt et file de traitement des voix (05 §2.43)
       'voix_deposer',
       'voix_depot_echouer',
@@ -360,6 +372,8 @@ describe('Garde-fous du schéma', () => {
       // US-071 : statuts de la voix des noms, droits par langue contrôlés en base (05 §2.47)
       'voix_nom_enregistrer',
       'voix_nom_statut',
+      // US-074 : retards par région, réservés à la DG
+      'voix_retards',
     ]);
     const unsafe = rows.filter(
       (r) =>
