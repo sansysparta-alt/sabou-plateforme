@@ -134,7 +134,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await card
     .getByLabel(/^Joindre la photo de la fiche papier/)
     .setInputFiles({ name: 'fiche.jpg', mimeType: 'image/jpeg', buffer: JPEG });
-  await expect(card.getByText('Jointe')).toBeVisible();
+  await expect(card.getByText('Jointe', { exact: true })).toBeVisible();
   expect(visitRow('vt.compte_rendu_piece_id IS NOT NULL')).toBe('t');
 
   // La visite enregistrée rend la validation possible (US-042)
