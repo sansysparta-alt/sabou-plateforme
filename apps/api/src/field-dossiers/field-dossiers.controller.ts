@@ -19,7 +19,9 @@ import {
   dossierCodeSchema,
   fieldDossierCreateSchema,
   pieceTypeSchema,
+  verifierDesignationSchema,
   type FieldDossier,
+  type FieldDossierDesignations,
   type FieldDossierReferentials,
   type SubmissionReceipt,
 } from '@sabou/types';
@@ -51,6 +53,30 @@ export class FieldDossiersController {
   @Header('Cache-Control', 'no-store')
   referentials(@Req() req: SessionRequest): Promise<FieldDossierReferentials> {
     return this.service.referentials(req.session!.sub);
+  }
+
+  // US-040d : dossiers terrain de la région et agents désignables (admin régional)
+  @Get('designations')
+  @Header('Cache-Control', 'no-store')
+  designations(@Req() req: SessionRequest): Promise<FieldDossierDesignations> {
+    return this.service.designations(req.session!.sub);
+  }
+
+  @Post(':code/verificateur')
+  @HttpCode(204)
+  @Header('Cache-Control', 'no-store')
+  designate(
+    @Param('code') code: string,
+    @Body() body: unknown,
+    @Req() req: SessionRequest,
+  ): Promise<void> {
+    const { agentId } = parse(verifierDesignationSchema, body);
+    return this.service.designate(
+      req.session!.sub,
+      req.ip,
+      parse(dossierCodeSchema, code),
+      agentId,
+    );
   }
 
   @Get()

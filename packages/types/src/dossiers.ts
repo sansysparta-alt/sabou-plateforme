@@ -135,3 +135,32 @@ export interface FieldDossierReferentials {
   sousPrefectures: { id: number; nom: string }[];
   langues: { code: string; nom: string }[];
 }
+
+// US-040d : dossier terrain de la région, aux étapes 1 ou 2, vu par l'administrateur régional
+export interface FieldDossierDesignation {
+  code: string;
+  praticien: string;
+  prefecture: string;
+  etape: number;
+  // Agent préfectoral qui a créé le dossier (il ne le vérifie pas lui-même)
+  auteur: string;
+  // Agent désigné pour la vérification de l'étape 2, sinon null
+  verificateur: { id: number; nom: string; prefecture: string } | null;
+}
+
+// Agent préfectoral actif de la région, désignable (sauf pour les dossiers qu'il a créés)
+export interface DesignableAgent {
+  id: number;
+  nom: string;
+  prefecture: string;
+}
+
+export interface FieldDossierDesignations {
+  dossiers: FieldDossierDesignation[];
+  agents: DesignableAgent[];
+}
+
+export const verifierDesignationSchema = z.strictObject({
+  agentId: z.number().int().positive(),
+});
+export type VerifierDesignation = z.output<typeof verifierDesignationSchema>;
