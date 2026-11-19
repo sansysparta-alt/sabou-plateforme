@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 
 import '../dossier/session.dart';
+import '../signup/signup_api.dart';
+import '../signup/signup_page.dart';
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
 import 'app_shell.dart';
@@ -22,7 +24,7 @@ class SabouGate extends StatefulWidget {
     required this.session,
     required this.rubrics,
     required this.openUrl,
-    required this.signupUrl,
+    required this.signupApi,
     required this.siteUrl,
     this.devTools,
   });
@@ -32,7 +34,7 @@ class SabouGate extends StatefulWidget {
   /// Registre de toutes les rubriques ; la porte ne garde que celles du profil.
   final List<Rubric> rubrics;
   final OpenUrl openUrl;
-  final Uri signupUrl;
+  final SignupApi signupApi;
 
   /// Site public, pour les comptes sans accès à l'application.
   final Uri siteUrl;
@@ -92,8 +94,7 @@ class _SabouGateState extends State<SabouGate> {
       ),
       _Phase.signedOut => LoginPage(
         session: widget.session,
-        openUrl: widget.openUrl,
-        signupUrl: widget.signupUrl,
+        signupApi: widget.signupApi,
         onSignedIn: _resolveProfile,
         devTools: widget.devTools,
       ),
@@ -134,15 +135,13 @@ class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
     required this.session,
-    required this.openUrl,
-    required this.signupUrl,
+    required this.signupApi,
     required this.onSignedIn,
     this.devTools,
   });
 
   final PractitionerSession session;
-  final OpenUrl openUrl;
-  final Uri signupUrl;
+  final SignupApi signupApi;
   final VoidCallback onSignedIn;
   final Widget? devTools;
 
@@ -169,6 +168,25 @@ class _LoginPageState extends State<LoginPage> {
           'La connexion n’a pas abouti. Vérifiez le réseau, puis réessayez.';
     }
     if (mounted) setState(() => _busy = false);
+  }
+
+  // Inscription dans l'application (US-066) ; connecté à la fin, on ferme la page et la
+  // porte d'entrée ouvre le dossier
+  Future<void> _openSignup() async {
+    final navigator = Navigator.of(context);
+    final signedIn = await navigator.push<bool>(
+      MaterialPageRoute(
+        builder: (context) => SignupPage(
+          api: widget.signupApi,
+          signIn: (phone) async {
+            final ok = await widget.session.signIn(loginHint: phone);
+            if (ok && context.mounted) Navigator.of(context).pop(true);
+            return ok;
+          },
+        ),
+      ),
+    );
+    if (signedIn == true) widget.onSignedIn();
   }
 
   @override
@@ -201,8 +219,8 @@ class _LoginPageState extends State<LoginPage> {
             const Text('Pas encore de compte ?'),
             const SizedBox(height: SabouSpace.s2),
             OutlinedButton(
-              onPressed: () => widget.openUrl(widget.signupUrl),
-              child: const Text('Créer un compte sur le site SABOU'),
+              onPressed: _busy ? null : _openSignup,
+              child: const Text('Créer un compte praticien'),
             ),
           ],
         ),

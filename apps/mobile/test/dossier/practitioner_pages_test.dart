@@ -4,6 +4,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sabou_mobile/app.dart';
 import 'package:sabou_mobile/dossier/dossier_api.dart';
@@ -12,6 +13,7 @@ import 'package:sabou_mobile/dossier/session.dart';
 import 'package:sabou_mobile/shell/gate.dart';
 import 'package:sabou_mobile/ui/theme.dart';
 
+import '../signup/fake_signup_server.dart';
 import 'fakes.dart';
 
 class FakePicker implements PhotoPicker {
@@ -59,6 +61,10 @@ void main() {
     );
     return MaterialApp(
       theme: sabouTheme(),
+      // Comme l'application (main.dart) : français, l'environnement de test étant en anglais
+      locale: const Locale('fr'),
+      supportedLocales: const [Locale('fr'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: SabouGate(
         session: session,
         rubrics: appRubrics(
@@ -71,7 +77,7 @@ void main() {
           prepare: prepareWith ?? prepare,
         ),
         openUrl: (url) async => opened.add(url),
-        signupUrl: Uri.parse('http://site.test/inscription'),
+        signupApi: FakeSignupServer().api(),
         siteUrl: Uri.parse('http://site.test'),
       ),
     );
@@ -128,13 +134,15 @@ void main() {
       },
     );
 
-    testWidgets('« Créer un compte » ouvre l’inscription du site public', (
-      tester,
-    ) async {
-      await pumpHome(tester);
-      await tapText(tester, 'Créer un compte sur le site SABOU');
-      expect(opened, [Uri.parse('http://site.test/inscription')]);
-    });
+    testWidgets(
+      '« Créer un compte » ouvre l’inscription dans l’application (US-066)',
+      (tester) async {
+        await pumpHome(tester);
+        await tapText(tester, 'Créer un compte praticien');
+        expect(find.text('Étape 1 sur 3'), findsOneWidget);
+        expect(opened, isEmpty);
+      },
+    );
 
     testWidgets(
       'session gardée sur le téléphone : le dossier s’ouvre sans reconnexion',
