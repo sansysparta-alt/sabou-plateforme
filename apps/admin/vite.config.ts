@@ -32,6 +32,11 @@ const preact = [
   { find: /^react$/, replacement: from('preact/compat') },
 ];
 
+// Fichiers de test exécutés en même temps au plus : au-delà de 2 sur le poste de 7 Go, les
+// démarrages dépassent leurs délais (beforeAll, Testing Library). TEST_WORKERS permet d'élargir
+// sur une machine plus grosse (05_Choix_Techniques.md, contrôles du pipeline).
+const testWorkers = Number.parseInt(process.env.TEST_WORKERS ?? '', 10) || 2;
+
 export default defineConfig({
   resolve: { alias: preact },
   // Adresse de retour enregistrée dans Keycloak : le port ne doit pas changer en silence
@@ -40,6 +45,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
+    maxWorkers: testWorkers,
     // Tests Playwright (bout en bout, essais dans le navigateur) : hors de Vitest
     exclude: ['e2e/**', 'essai/**', 'lighthouse/**', 'node_modules/**'],
     // Au-delà du délai des recherches de Testing Library (5 s, src/test-setup.ts) : sur un poste
