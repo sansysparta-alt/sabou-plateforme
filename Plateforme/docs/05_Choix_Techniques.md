@@ -1060,6 +1060,16 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Langue | Français, comme le reste de l'application (§2.62) | La traduction de l'application est un récit à part |
 | Hors périmètre | Voix et brouillon hors réseau | US-080 et US-081 (S7) |
 
+### 2.64 Le site ne sert plus que le grand public (US-068, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Inscription du site | Profil « citoyen » seul ; la page invite le praticien à installer l'application mobile. L'ancien lien `?profil=praticien` mène à la même page | Critère 1 de US-068 ; le praticien s'inscrit dans l'application (US-066, §2.62) |
+| Lien vers la boutique d'applications | Aucun pour l'instant : texte seul | L'application n'est pas encore publiée ; le lien viendra avec sa publication |
+| Studio web | Pages, styles et tests retirés du site ; l'API et la base restent (Studio mobile, US-067) | Critère 2 de US-068 |
+| Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
+| Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
