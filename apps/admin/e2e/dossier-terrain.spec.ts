@@ -37,8 +37,8 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
   await form.getByLabel('Années d’expérience').fill('20');
   await form.getByLabel('Langue principale').selectOption({ index: 1 });
   await form.getByRole('button', { name: 'Créer le dossier' }).click();
-  await expect(page.getByRole('status')).toContainText('créé pour Mamadou Barry');
-  const code = /DS-\d+/.exec((await page.getByRole('status').textContent()) ?? '')?.[0];
+  await expect(page.getByRole('status').first()).toContainText('créé pour Mamadou Barry');
+  const code = /DS-\d+/.exec((await page.getByRole('status').first().textContent()) ?? '')?.[0];
   expect(code).toBeTruthy();
 
   // Critère 2 : créé par l'agent, journalisé ; SMS d'invitation au praticien en file
@@ -80,7 +80,7 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
 
   // Critère 1 : soumis par l'agent, le dossier entre dans le circuit (étape 2, sa préfecture)
   await card.getByRole('button', { name: /Soumettre le dossier/ }).click();
-  await expect(page.getByRole('status')).toContainText(`Dossier ${code} soumis`);
+  await expect(page.getByRole('status').first()).toContainText(`Dossier ${code} soumis`);
   expect(
     psql(`SELECT d.etape_courante || ' ' || (SELECT count(*) FROM sabou.notification n
                                                WHERE n.objet_id = d.code AND n.modele = 'dossier.soumis')

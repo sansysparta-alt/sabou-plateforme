@@ -41,7 +41,9 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await card.getByLabel('Date et heure de la visite').fill(when);
   await expectAccessible(page, 'planification d’une visite');
   await card.getByRole('button', { name: 'Enregistrer la date' }).click();
-  await expect(page.getByRole('status')).toContainText('Le praticien sera prévenu la veille.');
+  await expect(page.getByRole('status').first()).toContainText(
+    'Le praticien sera prévenu la veille.',
+  );
   expect(
     visitRow(
       `vt.statut || ' ' || to_char(vt.prevue_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI')`,
@@ -88,7 +90,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   // Signé : la visite est réalisée, le texte figé avec son empreinte, son auteur, l'heure
   await card.getByLabel(/Je certifie avoir réalisé cette visite/).check();
   await card.getByRole('button', { name: 'Signer le compte rendu' }).click();
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.getByRole('status').first()).toHaveText(
     'Compte rendu signé : la visite est enregistrée.',
   );
   await expect(card.getByText('Visite faite')).toBeVisible();

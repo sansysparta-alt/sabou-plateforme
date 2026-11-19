@@ -61,7 +61,7 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
 
   // Critère 1 : visite réalisée, validation → étape 3
   await (await openDossier(page, visited)).getByRole('button', { name: /^Valider/ }).click();
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.getByRole('status').first()).toHaveText(
     `Dossier ${visited} validé : il passe à la consolidation régionale.`,
   );
   await expect(card(visited)).toHaveCount(0);
