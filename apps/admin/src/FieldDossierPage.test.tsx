@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { FieldDossier, FieldDossierReferentials } from '@sabou/types';
 import { FieldDossierPage } from './FieldDossierPage';
+import { openDossier } from './test-dossier';
 
 const REFERENTIALS: FieldDossierReferentials = {
   prefecture: 'Labé',
@@ -143,11 +144,9 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
 
   it('pièces : liste, pièces manquantes, soumission impossible tant qu’il en manque', async () => {
     render(<FieldDossierPage />);
-    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
-      'li',
-    )!;
+    const card = await openDossier(/Mamadou Barry/);
     // Ligne repliable des files de dossiers : repères (badge des pièces) et origine du dossier
-    expect(within(card).getByText('1 pièce manquante')).toBeTruthy();
+    expect(within(card).getAllByText('1 pièce manquante')[0]).toBeTruthy();
     expect(within(card).getByText('Dossier terrain, créé par vous')).toBeTruthy();
     // Bouton grisé tant qu'il manque une pièce, avec sa raison à côté de lui (reliée au bouton)
     const submit = within(card).getByRole('button', { name: /Soumettre le dossier/ });
@@ -164,9 +163,7 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
 
   it('dépose une pièce : le fichier part tel quel vers le dossier', async () => {
     render(<FieldDossierPage />);
-    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
-      'li',
-    )!;
+    const card = await openDossier(/Mamadou Barry/);
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'photo.jpg', {
       type: 'image/jpeg',
     });
@@ -177,15 +174,13 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
     fireEvent.change(within(card).getByLabelText('Déposer la photo du praticien'), {
       target: { files: [file] },
     });
-    await screen.findByText('Photo du praticien ajoutée au dossier DS-000042.');
+    await within(card).findByText('Photo du praticien ajoutée au dossier DS-000042.');
     expect(calls.find((c) => c.path.endsWith('/pieces/photo'))?.body).toBe(file);
   });
 
   it('remplace une pièce : la nouvelle est déposée, puis l’ancienne retirée', async () => {
     render(<FieldDossierPage />);
-    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
-      'li',
-    )!;
+    const card = await openDossier(/Mamadou Barry/);
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'cni.jpg', { type: 'image/jpeg' });
     answers['POST /api/dossiers-terrain/DS-000042/pieces/identite'] = [
       { status: 201, body: { id: 9 } },
@@ -194,7 +189,7 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
     fireEvent.change(within(card).getByLabelText('Remplacer la pièce d’identité'), {
       target: { files: [file] },
     });
-    await screen.findByText('Pièce d’identité remplacée au dossier DS-000042.');
+    await within(card).findByText('Pièce d’identité remplacée au dossier DS-000042.');
     const order = calls.map((c) => `${c.method} ${c.path}`);
     expect(order.indexOf('POST /api/dossiers-terrain/DS-000042/pieces/identite')).toBeLessThan(
       order.indexOf('DELETE /api/dossiers-terrain/DS-000042/pieces/7'),
@@ -203,9 +198,7 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
 
   it('format refusé : le message dit quelle pièce, rien n’est retiré', async () => {
     render(<FieldDossierPage />);
-    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
-      'li',
-    )!;
+    const card = await openDossier(/Mamadou Barry/);
     const file = new File(['x'], 'note.txt', { type: 'text/plain' });
     answers['POST /api/dossiers-terrain/DS-000042/pieces/photo'] = [
       { status: 415, body: { message: 'Format refusé : JPEG, PNG ou PDF.' } },
@@ -223,9 +216,7 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
       { status: 200, body: [] },
     ];
     render(<FieldDossierPage />);
-    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
-      'li',
-    )!;
+    const card = await openDossier(/Mamadou Barry/);
     answers['POST /api/dossiers-terrain/DS-000042/soumission'] = [
       { status: 200, body: { code: 'DS-000042', etape: 2, soumisLe: '2026-11-18T11:00:00.000Z' } },
     ];

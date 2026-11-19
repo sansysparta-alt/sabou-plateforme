@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { FieldVerificationItem, FieldVisit } from '@sabou/types';
 import { FieldVerificationPage } from './FieldVerificationPage';
+import { openDossier } from './test-dossier';
 
 const planned: FieldVisit = {
   id: 7,
@@ -105,19 +106,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const item = async (code: string) =>
-  (await screen.findByRole('heading', { level: 3, name: new RegExp(code) })).closest('li')!;
+const item = async (code: string) => await openDossier(new RegExp(code));
 
 describe('Liste des dossiers à l’étape 2', () => {
   it('montre chaque dossier et l’état de sa visite', async () => {
     render(<FieldVerificationPage />);
     // État de la visite : badge de la ligne ; le détail est dans le bloc « Visite sur place »
     const first = await item('DS-2001');
-    expect(within(first).getByText('Visite faite'));
+    expect(within(first).getAllByText('Visite faite')[0]);
     expect(within(first).getAllByText('Visite sur place')).toHaveLength(1);
     expect(within(first).getByText('Phytothérapie'));
     const second = await item('DS-2002');
-    expect(within(second).getByText('Visite attendue'));
+    expect(within(second).getAllByText('Visite attendue')[0]);
   });
 
   it('sans visite réalisée : pas de bouton Valider, la raison est dite (critère 2)', async () => {
@@ -355,7 +355,8 @@ describe('Rejet (critère 3)', () => {
 
 describe('US-041 : visite sur place', () => {
   const VISIT = '/api/dossiers/DS-2002/visite';
-  const status = () => screen.getByRole('status').textContent;
+  // Message de l'action, dit dans le panneau du dossier (la page derrière est inactive)
+  const status = () => screen.getAllByRole('status').at(-1)!.textContent;
 
   it('sans visite : planifier ouvre le formulaire, focus sur la date', async () => {
     render(<FieldVerificationPage />);
@@ -450,7 +451,7 @@ describe('US-041 : visite sur place', () => {
         },
       ]);
       expect(status()).toBe('Compte rendu signé : la visite est enregistrée.');
-      expect(within(card).getByText('Visite faite'));
+      expect(within(card).getAllByText('Visite faite')[0]);
       expect(within(card).getByRole('button', { name: /^Valider/ }));
     });
 

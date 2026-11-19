@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { FieldDossierDesignations } from '@sabou/types';
 import { VerifierDesignationPage } from './VerifierDesignationPage';
+import { openDossier } from './test-dossier';
 
 const DATA: FieldDossierDesignations = {
   dossiers: [
@@ -61,8 +62,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const card = async () =>
-  within((await screen.findByRole('heading', { level: 3, name: /Saliou Diallo/ })).closest('li')!);
+const card = async () => within(await openDossier(/Saliou Diallo/));
 
 describe('Agents de vérification (admin régional)', () => {
   it('liste le dossier, son auteur et l’absence de désignation', async () => {
@@ -101,7 +101,7 @@ describe('Agents de vérification (admin régional)', () => {
       path: '/api/dossiers-terrain/DS-000042/verificateur',
       body: { agentId: 9 },
     });
-    expect(await (await card()).findByText('Agent désigné')).toBeTruthy();
+    expect((await (await card()).findAllByText('Agent désigné')).length).toBeGreaterThan(0);
   });
 
   it('refus de l’API affiché sous le champ', async () => {

@@ -8,6 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import type { ApprovalItem, CertificateView } from '@sabou/types';
 import { ApprovalPage } from './ApprovalPage';
 import { CertificatePage } from './CertificatePage';
+import { openDossier } from './test-dossier';
 
 const expertised: ApprovalItem = {
   code: 'DS-4001',
@@ -83,8 +84,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const item = async (code: string) =>
-  (await screen.findByRole('heading', { level: 3, name: new RegExp(code) })).closest('li')!;
+const item = async (code: string) => await openDossier(new RegExp(code));
 
 describe('Approbation des dossiers (étape 5)', () => {
   it('liste les dossiers expertisés ; un renouvellement annonce le certificat qui expirera', async () => {

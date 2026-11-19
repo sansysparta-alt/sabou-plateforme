@@ -391,6 +391,12 @@ function DossierCard({
   const id = useId();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // Messages des actions faites dans le panneau : dits dans le panneau et sur la page
+  const [notice, setNotice] = useState('');
+  const say = (text: string) => {
+    setNotice(text);
+    announce(text);
+  };
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -418,7 +424,7 @@ function DossierCard({
       }
       for (const pieceId of replaced) await removeFieldPiece(dossier.code, pieceId);
       const verb = replaced.length > 0 ? 'remplacée' : 'ajoutée';
-      announce(`${PIECE_LABELS[type]} ${verb} au dossier ${dossier.code}.`);
+      say(`${PIECE_LABELS[type]} ${verb} au dossier ${dossier.code}.`);
       await onChanged();
     });
   }
@@ -426,7 +432,7 @@ function DossierCard({
   function remove(pieceId: number, label: string) {
     void run(async () => {
       await removeFieldPiece(dossier.code, pieceId);
-      announce(`${label} retirée du dossier ${dossier.code}.`);
+      say(`${label} retirée du dossier ${dossier.code}.`);
       await onChanged();
     });
   }
@@ -452,6 +458,7 @@ function DossierCard({
       code={dossier.code}
       name={dossier.praticien}
       defaultOpen={defaultOpen}
+      notice={notice}
       meta={
         <>
           {dossier.specialite} · créé le {longDate(dossier.creeLe)}

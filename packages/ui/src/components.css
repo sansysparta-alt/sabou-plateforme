@@ -1266,20 +1266,20 @@
   border-top: 1px solid var(--sabou-border);
 }
 .ui-dossier__summary {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sabou-space-1) var(--sabou-space-4);
   min-height: var(--sabou-target);
   padding: var(--sabou-space-2) var(--sabou-space-4);
-  cursor: pointer;
-  list-style: none;
-}
-.ui-dossier__summary::-webkit-details-marker {
-  display: none;
 }
 .ui-dossier__summary:hover {
   background: var(--sabou-bg);
+}
+.ui-dossier__summary:focus-within {
+  outline: 2px solid var(--sabou-focus);
+  outline-offset: -2px;
 }
 .ui-dossier__title {
   margin: 0;
@@ -1287,6 +1287,24 @@
   font-size: var(--sabou-text-md);
   font-weight: var(--sabou-weight-semibold);
   color: var(--sabou-forest);
+}
+/* Le titre est le bouton d'ouverture ; toute la ligne est cliquable (zone étendue) */
+.ui-dossier__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ui-dossier__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.ui-dossier__open:focus-visible {
+  outline: none;
 }
 .ui-dossier__meta {
   flex: 1 1 16rem;
@@ -1297,31 +1315,77 @@
   font-size: var(--sabou-text-sm);
   color: var(--sabou-text-muted);
 }
-/* Chevron : vers le bas fermé, vers le haut ouvert */
+/* Chevron vers la droite : le détail s'ouvre sur le côté */
 .ui-dossier__toggle {
   width: 0.6rem;
   height: 0.6rem;
   margin-left: auto;
   border-right: 2px solid var(--sabou-institution);
   border-bottom: 2px solid var(--sabou-institution);
-  transform: rotate(45deg);
-  transition: transform var(--sabou-transition);
+  transform: rotate(-45deg);
 }
-details[open] > .ui-dossier__summary .ui-dossier__toggle {
-  transform: rotate(-135deg);
+
+/* ---------- Panneau latéral d'un dossier (05 §2.76) ----------
+   À droite sur ordinateur, la liste reste visible derrière un fond assombri ; plein écran sur
+   téléphone. Seul le corps défile ; l'en-tête (titre, repères, « Fermer ») reste en place. */
+.ui-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(46rem, 100%);
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--sabou-surface);
+  color: var(--sabou-text);
+  box-shadow: 0 0 24px rgb(11 61 46 / 0.18);
 }
-details[open] > .ui-dossier__summary {
+.ui-drawer::backdrop {
+  background: rgb(11 61 46 / 0.35);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ui-drawer[open] {
+    animation: ui-drawer-in 180ms ease-out;
+  }
+}
+@keyframes ui-drawer-in {
+  from {
+    transform: translateX(2rem);
+    opacity: 0;
+  }
+}
+.ui-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.ui-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sabou-space-4);
+  padding: var(--sabou-space-4) var(--sabou-space-5);
   border-bottom: 1px solid var(--sabou-border);
 }
-.ui-dossier__body {
+.ui-drawer__heading {
   display: grid;
-  gap: var(--sabou-space-4);
-  padding: var(--sabou-space-4);
+  gap: var(--sabou-space-1);
+  min-width: 0;
 }
-/* Formulaires d'un dossier ouvert (pièces, décision, désignation) : largeur de lecture, pas
-   toute la largeur de la ligne */
-.ui-dossier__body .ui-form {
-  max-width: 48rem;
+.ui-drawer__title {
+  margin: 0;
+  font-size: var(--sabou-text-xl);
+  color: var(--sabou-forest);
+}
+.ui-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--sabou-space-5);
+  padding: var(--sabou-space-5);
 }
 
 /* ---------- Listes de gestion (US-019) : recherche et filtres, tableau, pagination ----------

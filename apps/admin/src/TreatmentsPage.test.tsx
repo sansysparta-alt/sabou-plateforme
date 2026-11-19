@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { TreatmentQueueItem } from '@sabou/types';
 import { TreatmentsPage } from './TreatmentsPage';
+import { openDossier } from './test-dossier';
 
 const submitted: TreatmentQueueItem = {
   code: 'REC-0007',
@@ -71,8 +72,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const item = async (code: string) =>
-  (await screen.findByRole('heading', { level: 3, name: new RegExp(code) })).closest('li')!;
+const item = async (code: string) => await openDossier(new RegExp(code));
 
 describe('Liste des traitements qui attendent ma décision', () => {
   it('montre le contenu du traitement : praticien, plantes ordonnées, cycle, sections', async () => {

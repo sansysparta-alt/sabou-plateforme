@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { decide, dossierAtStep2, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import { administrator, expectAccessible, firstAdministratorLogin, openDossier } from './helpers';
 import { APP } from './keycloak';
 
 // Heure de Conakry (UTC) au format des champs datetime-local, dans h heures
@@ -29,11 +29,9 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await page.goto(APP);
   await page.getByRole('link', { name: 'Vérification terrain' }).click();
   await showRunDossiers(page);
-  const card = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card.locator('summary').click();
+  // Détail dans le panneau du dossier (05 §2.76)
+  const card = page.getByRole('dialog', { name: new RegExp(`^${code} `) });
+  await openDossier(page, code);
   await expect(card.getByText('Visite attendue')).toBeVisible();
   await expect(card.getByRole('button', { name: /^Valider/ })).toHaveCount(0);
 
@@ -65,7 +63,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await page.reload();
   // Le rechargement vide la recherche : sans elle, le dossier peut tomber en page 2
   await showRunDossiers(page);
-  await card.locator('summary').click();
+  await openDossier(page, code);
   await card.getByRole('button', { name: /^Enregistrer le compte rendu/ }).click();
   await card.getByLabel('Favorable', { exact: true }).check();
   await card.getByLabel('Constats').fill('Lieu d’exercice conforme ; plantes séchées à l’abri.');

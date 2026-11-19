@@ -5,7 +5,13 @@
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { decide, dossierAtStep2, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import {
+  administrator,
+  closeDossier,
+  expectAccessible,
+  firstAdministratorLogin,
+  openDossier,
+} from './helpers';
 import { APP } from './keycloak';
 
 test('US-042 : le préfectoral valide après la visite et rejette avec motif ; hors zone et sans visite, refus', async ({
@@ -30,13 +36,13 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
   await expect(card(visited)).toBeVisible();
   // Le dossier de Kankan n'apparaît pas dans la liste de Labé
   await expect(card(elsewhere)).toHaveCount(0);
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card(visited).locator('summary').click();
-  await card(notVisited).locator('summary').click();
+  // Détail dans le panneau du dossier (05 §2.76), un seul ouvert à la fois
+  const pending = await openDossier(page, notVisited);
   await expectAccessible(page, 'vérification terrain');
 
   // Critère 2 : sans visite réalisée, pas de bouton à l'écran, et l'API refuse aussi
-  await expect(card(notVisited).getByRole('button', { name: /^Valider/ })).toHaveCount(0);
+  await expect(pending.getByRole('button', { name: /^Valider/ })).toHaveCount(0);
+  await closeDossier(pending);
   const refused = await decide(page, notVisited, { etape: 2, decision: 'valide' });
   expect(refused.status()).toBe(409);
   expect(((await refused.json()) as { error: string }).error).toBe('visit_required');
@@ -54,9 +60,7 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
   expect(stepOf(visited)).toBe(2);
 
   // Critère 1 : visite réalisée, validation → étape 3
-  await card(visited)
-    .getByRole('button', { name: /^Valider/ })
-    .click();
+  await (await openDossier(page, visited)).getByRole('button', { name: /^Valider/ }).click();
   await expect(page.getByRole('status')).toHaveText(
     `Dossier ${visited} validé : il passe à la consolidation régionale.`,
   );
@@ -64,17 +68,16 @@ test('US-042 : le préfectoral valide après la visite et rejette avec motif ; h
   expect(stepOf(visited)).toBe(3);
 
   // Critère 3 : rejet sans motif refusé (écran et API), avec motif → étape 1
-  await card(notVisited)
-    .getByRole('button', { name: /^Rejeter/ })
-    .click();
-  await card(notVisited).getByRole('button', { name: 'Confirmer le rejet' }).click();
-  await expect(card(notVisited).getByText('Indiquez le motif du rejet.')).toBeVisible();
+  const rejecting = await openDossier(page, notVisited);
+  await rejecting.getByRole('button', { name: /^Rejeter/ }).click();
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await expect(rejecting.getByText('Indiquez le motif du rejet.')).toBeVisible();
   expect((await decide(page, notVisited, { etape: 2, decision: 'rejete' })).status()).toBe(400);
   await expectAccessible(page, 'rejet d’un dossier');
-  await card(notVisited)
+  await rejecting
     .getByLabel('Motif du rejet')
     .fill('Lieu de pratique introuvable à l’adresse indiquée');
-  await card(notVisited).getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
   await expect(card(notVisited)).toHaveCount(0);
   expect(stepOf(notVisited)).toBe(1);
   expect(

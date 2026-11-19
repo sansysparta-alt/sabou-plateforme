@@ -41,6 +41,12 @@ function DossierItem({
 }) {
   // Une visite enregistrée sur cet écran rend la validation possible sans recharger la liste
   const [visitDone, setVisitDone] = useState(dossier.visiteRealisee);
+  // Messages des actions faites dans le panneau : dits dans le panneau et sur la page
+  const [notice, setNotice] = useState('');
+  const say: Announce = (text) => {
+    setNotice(text);
+    announce(text);
+  };
   // Séparation des tâches (US-040c, US-040d) : l'auteur d'un dossier terrain ne le vérifie pas ;
   // un agent désigné par le régional est seul à le vérifier. On le dit d'emblée, sans
   // proposer de décision que la base refuserait.
@@ -54,6 +60,7 @@ function DossierItem({
     <DossierRow
       code={dossier.code}
       name={dossier.praticienNom}
+      notice={notice}
       meta={
         <>
           {dossier.specialite} · soumis le {longDate(dossier.soumisLe)}{' '}
@@ -101,7 +108,7 @@ function DossierItem({
         <FieldVisitPanel
           code={dossier.code}
           visit={dossier.visite}
-          announce={announce}
+          announce={say}
           onChange={(visit) => setVisitDone((done) => done || visit.statut === 'realisee')}
         />
       )}

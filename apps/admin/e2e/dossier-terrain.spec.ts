@@ -61,7 +61,7 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
   ).toBe('1');
 
   // Pièces obligatoires, déposées par l'agent ; la soumission attend qu'elles y soient
-  // Ligne du dossier, ouverte à sa création ; une ligne par pièce, dépôt en un geste
+  // Panneau du dossier, ouvert à sa création ; une ligne par pièce, dépôt en un geste
   const card = page
     .getByRole('heading', { level: 3, name: /Mamadou Barry/ })
     .locator('xpath=ancestor::li[1]');
@@ -73,7 +73,8 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
     await card
       .getByLabel(`Déposer la ${label.toLowerCase()}`)
       .setInputFiles({ name: `${type}.jpg`, mimeType: 'image/jpeg', buffer: JPEG });
-    await expect(page.getByRole('status')).toContainText(`${label} ajoutée au dossier ${code}`);
+    // Message dit dans le panneau du dossier (la page derrière est inactive, 05 §2.76)
+    await expect(card.getByRole('status')).toContainText(`${label} ajoutée au dossier ${code}`);
   }
   await expectAccessible(page, 'dossier terrain : pièces');
 
