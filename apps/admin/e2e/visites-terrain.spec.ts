@@ -63,6 +63,8 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
 
   // Critère 2 : sans attestation (signature), l'écran et l'API refusent
   await page.reload();
+  // Le rechargement vide la recherche : sans elle, le dossier peut tomber en page 2
+  await showRunDossiers(page);
   await card.locator('summary').click();
   await card.getByRole('button', { name: /^Enregistrer le compte rendu/ }).click();
   await card.getByLabel('Favorable', { exact: true }).check();
