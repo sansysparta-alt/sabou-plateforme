@@ -78,7 +78,7 @@ test('administrateur sans double facteur : activation obligatoire avant d’acc�
   // Compte Keycloak de test sans ligne en base : profil en bas du menu (US-019), chiffres
   // refusés en clair
   await expect(
-    page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Direction Générale'),
+    page.getByRole('region', { name: 'Compte connecté' }).getByText('Direction Générale'),
   ).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('rattaché à aucune zone active');
   expect(await sessionStatus(page)).toBe(200);
