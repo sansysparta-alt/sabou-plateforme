@@ -303,7 +303,7 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
       c.clear();
     }
     for (final s in t?.sections ?? const <TreatmentSection>[]) {
-      _sectionsFr[s.type]?.text = s.textFr;
+      _sectionsFr[s.type]?.text = s.textFr ?? '';
       _sectionsEn[s.type]?.text = s.textEn ?? '';
     }
     _contraindications = {

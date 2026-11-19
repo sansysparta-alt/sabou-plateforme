@@ -44,7 +44,7 @@ import {
 
 type PractitionerRequest = Request & { practitioner?: { sub: string } };
 
-function studioError(error: unknown): never {
+export function studioError(error: unknown): never {
   if (error instanceof ZoneContextError) throw new ForbiddenException();
   if (error instanceof PlantProposalRefusedError) {
     throw new ConflictException({ error: 'duplicate', message: error.message });

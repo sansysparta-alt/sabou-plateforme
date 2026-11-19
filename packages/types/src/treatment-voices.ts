@@ -57,7 +57,8 @@ export interface TreatmentVoiceEntry {
 }
 
 export interface TreatmentSectionRevision {
-  avant: string;
+  // Vide quand le préfectoral écrit le premier texte d'une section dite en voix (US-081)
+  avant: string | null;
   apres: string;
   par: string;
   le: string;
@@ -66,7 +67,8 @@ export interface TreatmentSectionRevision {
 export interface TreatmentVoiceSection {
   type: TreatmentSectionType;
   libelle: string;
-  texteFr: string;
+  // Vide tant que le préfectoral n'a pas résumé la voix du praticien (US-081)
+  texteFr: string | null;
   texteEn: string | null;
   revisions: TreatmentSectionRevision[];
   voix: TreatmentVoiceEntry[];

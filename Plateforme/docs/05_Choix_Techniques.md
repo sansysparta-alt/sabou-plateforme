@@ -1300,3 +1300,17 @@ Décisions du maître d'œuvre du 19 novembre 2026 : révision = retour au prati
 | SMS | Textes ajoutés pour « recette.suspendue » et « recette.retiree » (absents jusqu'ici : ces SMS auraient fini en erreur définitive) et pour la levée | Le praticien est prévenu de chaque décision qui touche son traitement ; le motif est dans son Studio |
 | Levée | Écran « Traitements suspendus » du Comité : motif de la suspension, levée avec motif ; refusée si le traitement ne remplit plus les conditions de certification (`trg_recette_publiable`) | Retour en ligne seulement d'un traitement toujours certifiable |
 
+### 2.84 Voix du praticien au Studio mobile (US-081, partie serveur, 19 novembre 2026)
+
+Décisions du maître d'œuvre du 19 novembre 2026 : la voix du praticien entre dans le circuit comme brouillon de sa langue ; une section obligatoire est complète avec une voix ou un texte ; la voix du nom de chaque plante reste interne ; les voix en attente sur le téléphone sont chiffrées.
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Rattachement | `recette_voix_praticien` : une ligne par enregistrement (section ou plante, langue principale du praticien), rattachée au **dépôt** (US-070) dès l'envoi, sans attendre son traitement ; le dernier enregistrement non retiré compte, les autres restent dans l'historique | Le téléphone envoie en une fois au retour du réseau, sans attendre FFmpeg ; l'historique répond à « l'original du praticien reste toujours » |
+| Envoi rejouable | Clé tirée sur le téléphone (`?cle=` UUID, unique en base) ; une clé déjà reçue renvoie l'état sans ranger le fichier une seconde fois | Une coupure pendant l'envoi ne crée ni doublon ni fichier orphelin |
+| Circuit | À la fin du traitement de la voix (déclencheur sur `voix_depot`), la voix d'une section devient le brouillon de la langue du praticien dans `recette_section_voix`, sauf si un enregistrement plus récent l'a remplacée ; le préfectoral la transmet ou la remplace (US-075) | Une seule voix publique par section et par langue ; l'ordre d'enregistrement prime, pas l'ordre de fin de traitement |
+| Voix ou texte | `recette_section.texte_fr` devient facultatif ; `recette_manques` accepte une voix valable (hors échec) à la place du texte ; un déclencheur refuse « soumis → transmis » tant qu'une section obligatoire n'a pas de texte français ; la première révision du préfectoral garde une origine vide | Décision du 19/11 ; le Comité expertise toujours sur un texte français |
+| Consentement | Exigé avant tout enregistrement (`consentement_le` du traitement) ; le dépôt porte le consentement | R-LNG-11 |
+| Anti-abus | 60 enregistrements par heure et par praticien ; 3 Mo par fichier ; format reconnu par sa signature (M4A, WebM, Ogg, WAV, MP3) | Une recette complète en compte une dizaine ; mêmes bornes que les autres voix |
+| Réécoute | `GET …/voix/:cible/:objet/audio` : version AAC (lue par tous les téléphones), sinon Opus ; `no-store` | Le téléphone efface son fichier après l'envoi |
+| Noms de plantes | Voix interne, jamais versée dans le circuit public ; le public entend les voix du référentiel (US-071) | Décision du 19/11 |

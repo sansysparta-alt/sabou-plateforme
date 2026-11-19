@@ -148,7 +148,9 @@ class TreatmentPlant {
 class TreatmentSection {
   const TreatmentSection(this.type, this.textFr, this.textEn);
   final String type;
-  final String textFr;
+
+  /// Vide (null) tant que seule la voix du praticien dit la section (US-081).
+  final String? textFr;
   final String? textEn;
 }
 
@@ -201,7 +203,7 @@ class TreatmentDetail extends TreatmentSummary {
         for (final s in json['sections'] as List)
           TreatmentSection(
             s['type'] as String,
-            s['texteFr'] as String,
+            s['texteFr'] as String?,
             s['texteEn'] as String?,
           ),
       ],

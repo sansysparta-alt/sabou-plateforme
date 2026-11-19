@@ -277,7 +277,13 @@ function SectionVoices({
       {/* Texte français et voix côte à côte sur ordinateur (critère de US-072) */}
       <div className="ui-split">
         <div>
-          <p className="ui-prose">{section.texteFr}</p>
+          {section.texteFr ? (
+            <p className="ui-prose">{section.texteFr}</p>
+          ) : (
+            <p className="ui-muted">
+              Section dite en voix par le praticien : texte français à écrire avant le Comité.
+            </p>
+          )}
           {section.texteEn && (
             <p className="ui-prose" lang="en">
               {section.texteEn}
@@ -290,7 +296,7 @@ function SectionVoices({
                 {section.revisions.map((r) => (
                   <li key={r.le}>
                     Révisé par {r.par} le {new Date(r.le).toLocaleDateString('fr-FR')}. Texte
-                    précédent : « {r.avant} »
+                    précédent : {r.avant ? `« ${r.avant} »` : 'aucun (section dite en voix)'}
                   </li>
                 ))}
               </ol>
@@ -522,7 +528,7 @@ function ReviseForm({
   onCancel: () => void;
   onSubmit: (texteFr: string, texteEn: string | null) => void;
 }) {
-  const [texteFr, setTexteFr] = useState(section.texteFr);
+  const [texteFr, setTexteFr] = useState(section.texteFr ?? '');
   const [texteEn, setTexteEn] = useState(section.texteEn ?? '');
   const [error, setError] = useState<string>();
   const field = useRef<HTMLTextAreaElement>(null);

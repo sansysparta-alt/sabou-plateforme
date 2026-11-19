@@ -263,7 +263,7 @@ export class TreatmentVoicesRepository {
 
     const revisions = await sql<{
       section: string;
-      avant: string;
+      avant: string | null;
       apres: string;
       par: string;
       le: string;

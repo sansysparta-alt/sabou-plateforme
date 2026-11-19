@@ -153,7 +153,10 @@ export interface TreatmentDetail extends TreatmentSummary {
   cyclePrisesParJour: number | null;
   cyclePauseJours: number | null;
   plantes: { plante: string; nomFr: string; partie: string | null; validee: boolean }[];
-  sections: { type: SectionType; texteFr: string; texteEn: string | null }[];
+  // Texte vide (null) tant que seule la voix du praticien dit la section (US-081)
+  sections: { type: SectionType; texteFr: string | null; texteEn: string | null }[];
+  // US-081 : voix en vigueur du praticien, par section et par nom de plante
+  voix: PractitionerVoice[];
   // US-063 : affichées en alerte
   contreIndications: { code: string; libelleFr: string }[];
   // Niveau choisi avec le consentement ; null tant que le praticien n'a pas consenti
@@ -164,6 +167,27 @@ export interface TreatmentDetail extends TreatmentSummary {
   dossier: string | null;
   // Dernier motif de rejet, s'il y en a un (R-REC-07)
   dernierMotif: string | null;
+}
+
+// US-081 : voix du praticien dans le Studio mobile, par section ou par nom de plante
+export const practitionerVoiceTargets = ['section', 'plante'] as const;
+export type PractitionerVoiceTarget = (typeof practitionerVoiceTargets)[number];
+export const practitionerVoiceTargetSchema = z.strictObject({
+  code: treatmentCodeSchema,
+  cible: z.enum(practitionerVoiceTargets),
+  // Type de section (preparation…) ou code de plante (PL-…) ; la base contrôle la cible
+  objet: z.union([z.enum(SECTION_TYPES), plantCodeSchema]),
+});
+// Clé tirée sur le téléphone : l'envoi rejoué après une coupure ne crée pas de doublon
+export const practitionerVoiceKeySchema = z.uuid();
+export type PractitionerVoiceState = 'en_attente' | 'en_cours' | 'traitee' | 'echec';
+export interface PractitionerVoice {
+  cible: PractitionerVoiceTarget;
+  objet: string;
+  depot: number;
+  etat: PractitionerVoiceState;
+  dureeSec: number | null;
+  enregistreLe: string;
 }
 
 export interface StudioReferentials {
@@ -232,7 +256,13 @@ export interface TreatmentQueueItem {
     partie: string | null;
     validee: boolean;
   }[];
-  sections: { type: SectionType; libelleFr: string; texteFr: string; texteEn: string | null }[];
+  // Texte vide (null) tant que le préfectoral n'a pas résumé la voix du praticien (US-081)
+  sections: {
+    type: SectionType;
+    libelleFr: string;
+    texteFr: string | null;
+    texteEn: string | null;
+  }[];
   // US-063 : libellés des contre-indications, affichés en alerte
   contreIndications: string[];
   visibilite: Visibility;

@@ -880,6 +880,8 @@ Critères d’acceptation :
 - Un enregistrement par champ, réécoute, ré-enregistrement, alerte de bruit.
 - Consentement enregistré ; brouillon conservé hors réseau ; soumission au retour du réseau.
 
+Décisions du maître d'œuvre du 19 novembre 2026 : « champ » = chaque section et le nom de chaque plante ; la voix d'une section entre dans le circuit comme brouillon de la langue du praticien (le préfectoral la transmet ou la remplace, l'original reste dans l'historique) ; une section obligatoire est complète avec une voix **ou** un texte, le texte français étant exigé avant le Comité ; la voix du nom d'une plante reste interne ; les voix en attente sur le téléphone sont chiffrées (05 §2.84).
+
 ### Sprint 8 — Un agent préfectoral numérise une recette et réalise une visite sans réseau ; litiges et alertes sont traités.
 
 #### US-082 · Numériser une recette orale et créer un dossier praticien sur le terrain
