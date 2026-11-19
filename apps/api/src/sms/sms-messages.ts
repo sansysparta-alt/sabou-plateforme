@@ -101,6 +101,10 @@ const TREATMENT_RETURN: Record<string, string> = {
 export function notificationText({ modele, objet, parametres }: QueuedMessage): string | null {
   const etape = parametres.etape;
   switch (modele) {
+    // Dossier terrain (US-040c) : compte créé sans mot de passe, défini par « mot de passe
+    // oublié » (US-069)
+    case 'dossier.terrain_cree':
+      return `SABOU : votre préfecture a créé votre dossier ${objet}. Créez votre mot de passe dans l'appli SABOU : Mot de passe oublié.`;
     case 'dossier.soumis':
       return `SABOU : votre dossier ${objet} est bien enregistré. Il passe à la vérification sur le terrain ; l'administration de votre préfecture vous contactera.`;
     case 'dossier.valide':

@@ -8,6 +8,7 @@ const loaders = {
   referentials: () => import('./ReferentialsPage'),
   invitation: () => import('./InvitationPage'),
   fieldVerification: () => import('./FieldVerificationPage'),
+  fieldDossiers: () => import('./FieldDossierPage'),
   consolidation: () => import('./ConsolidationPage'),
   approval: () => import('./ApprovalPage'),
   certificate: () => import('./CertificatePage'),
@@ -33,6 +34,9 @@ const ReferentialsPage = lazy(() =>
 );
 const InvitationPage = lazy(() =>
   loaders.invitation().then((m) => ({ default: m.InvitationPage })),
+);
+const FieldDossierPage = lazy(() =>
+  loaders.fieldDossiers().then((m) => ({ default: m.FieldDossierPage })),
 );
 const FieldVerificationPage = lazy(() =>
   loaders.fieldVerification().then((m) => ({ default: m.FieldVerificationPage })),
@@ -68,6 +72,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/referentiels': loaders.referentials,
   '/invitation': loaders.invitation,
   '/verification-terrain': loaders.fieldVerification,
+  '/dossiers-terrain': loaders.fieldDossiers,
   '/consolidation': loaders.consolidation,
   '/approbation': loaders.approval,
   '/rejet-definitif': loaders.rejection,
@@ -87,6 +92,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
   '/referentiels': ['/api/referentiels'],
   '/verification-terrain': [() => firstQueuePagePath(QUEUES.fieldVerification)],
+  '/dossiers-terrain': ['/api/dossiers-terrain/referentiels', '/api/dossiers-terrain'],
   '/consolidation': [() => firstQueuePagePath(QUEUES.consolidation)],
   '/approbation': [() => firstQueuePagePath(QUEUES.approval)],
   '/entonnoir': ['/api/entonnoir'],
@@ -327,7 +333,11 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isPrefectoral(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' }],
+      items: [
+        // US-040c : dossier d'un praticien sans smartphone, créé sur le terrain
+        { href: '/dossiers-terrain', label: 'Dossiers terrain', icon: 'folder' },
+        { href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' },
+      ],
     });
   }
   if (isRegional(user)) {
@@ -411,6 +421,7 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/verification-terrain': FieldVerificationPage,
+  '/dossiers-terrain': FieldDossierPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
