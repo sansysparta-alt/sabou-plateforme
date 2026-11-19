@@ -54,3 +54,17 @@ jobs:
           cache: pnpm
       - run: bash infra/ci/install.sh
       - run: bash infra/ci/e2e-admin.sh
+
+  local-env:
+    name: Environnement local (variables)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Node lance infra/local/up.mjs (aucune dépendance à installer)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: bash infra/ci/env-check.sh
+      - run: bash infra/ci/env-check-selftest.sh
