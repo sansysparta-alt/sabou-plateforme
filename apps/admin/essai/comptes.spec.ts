@@ -33,6 +33,29 @@ test('comptes et dossiers d’essai', async () => {
   psql(`UPDATE sabou.dossier_certification SET etape_entree_le = now() - interval '20 days'
          WHERE code = '${blocked}'`);
   const certified = certifiedPractitioner();
+  // Sprint 6 (voix des traitements) : un traitement soumis du praticien certifié de Kankan,
+  // quatre sections ; le préfectoral révise le texte et enregistre les voix, le régional les
+  // valide (atelier), le Comité contrôle celle des effets indésirables, la DG publie
+  const treatment = psql(`SET search_path = sabou, public;
+    WITH r AS (
+      INSERT INTO recette (code, praticien_id, maladie_id, titre_fr, cycle_duree_jours,
+                           cycle_prises_par_jour, visibilite, statut)
+      SELECT 'REC-' || lpad(nextval('recette_code_seq')::text, 4, '0'), p.id, 1,
+             'Décoction d''essai (voix)', 7, 2, 'publique', 'soumise'
+        FROM praticien p WHERE p.code = '${certified.praticien}' RETURNING id, code),
+    s AS (
+      INSERT INTO recette_section (recette_id, type_code, texte_fr)
+      SELECT r.id, t.type_code, t.texte FROM r, (VALUES
+        ('preparation', 'Faire bouillir les feuilles dix minutes dans un litre d''eau.'),
+        ('consommation', 'Boire un verre matin et soir, après le repas.'),
+        ('cycle', 'Sept jours, puis arrêter.'),
+        ('effets_indesirables', 'Légère somnolence possible.')) AS t(type_code, texte)
+      RETURNING recette_id)
+    SELECT DISTINCT r.code FROM r JOIN s ON s.recette_id = r.id;`)
+    .trim()
+    .split(/\r?\n/)
+    .at(-1)!
+    .trim();
   // Langues de travail (sprint 4 : noms locaux, voix des noms) : comme dans le jeu d'exemple,
   // le préfectoral de Kankan enregistre et traduit en malinké, le régional de Kankan valide
   const languages: [
@@ -75,6 +98,11 @@ test('comptes et dossiers d’essai', async () => {
     `  Étape 4 depuis 20 jours (bloqué, entonnoir)               ${blocked}`,
     `  Étape 5 (approbation par la DG, certificat)               ${step5}`,
     `  Praticien certifié sans dossier (rejet définitif)         ${certified.praticien} (certificat ${certified.certificat})`,
+    '',
+    'Sprint 6 :',
+    `  Traitement soumis (voix : résumés, atelier, contrôle)     ${treatment}`,
+    '  Signalements du jeu d’exemple : SIG-00001 (grave) et SIG-00002 (faible)',
+    '  Page publique de signalement : http://localhost:3000/signaler?code=REC-2042',
     '',
   ].join('\n');
   const dir = fileURLToPath(new URL('../.essai/', import.meta.url));
