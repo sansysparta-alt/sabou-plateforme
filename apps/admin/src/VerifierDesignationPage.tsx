@@ -131,8 +131,7 @@ function DesignationCard({
         <dd>
           {dossier.verificateur ? (
             <>
-              {dossier.verificateur.nom} ({dossier.verificateur.prefecture}){' '}
-              <Badge tone="success">Désigné</Badge>
+              {dossier.verificateur.nom} ({dossier.verificateur.prefecture})
             </>
           ) : (
             'Un agent de la préfecture, autre que l’auteur'

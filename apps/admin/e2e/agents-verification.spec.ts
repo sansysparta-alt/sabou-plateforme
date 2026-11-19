@@ -63,7 +63,7 @@ test('US-040d : désignation par le régional, journalisée ; l’agent désign�
   await select.selectOption(verifierId);
   await card.getByRole('button', { name: 'Désigner' }).click();
   await expect(page.getByRole('status')).toContainText('est désigné pour la vérification');
-  await expect(card.getByText('Désigné')).toBeVisible();
+  await expect(card.getByText('Agent désigné', { exact: true })).toBeVisible();
   expect(
     psql(`SELECT d.verificateur_designe || ' ' || count(a.id)
             FROM sabou.dossier_certification d

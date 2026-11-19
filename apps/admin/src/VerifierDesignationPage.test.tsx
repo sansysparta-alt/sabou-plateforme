@@ -101,7 +101,7 @@ describe('Agents de vérification (admin régional)', () => {
       path: '/api/dossiers-terrain/DS-000042/verificateur',
       body: { agentId: 9 },
     });
-    expect(await (await card()).findByText('Désigné')).toBeTruthy();
+    expect(await (await card()).findByText('Agent désigné')).toBeTruthy();
   });
 
   it('refus de l’API affiché sous le champ', async () => {
