@@ -30,9 +30,16 @@ const ACCOUNTS: AccountSummary[] = [
   account(4, 'Sékou', 'Kourouma', { status: 'suspendu' }),
 ];
 const REFERENCES: AccountReferences = {
-  regions: [{ id: 3, name: 'Kindia' }],
-  prefectures: [{ id: 4, name: 'Labé', regionId: 3 }],
-  languages: [{ code: 'fr', name: 'Français', text: true, voice: true }],
+  regions: [
+    { id: 3, name: 'Kindia', language: 'sus' },
+    { id: 5, name: 'Labé', language: 'pul' },
+  ],
+  prefectures: [{ id: 4, name: 'Labé', regionId: 5 }],
+  languages: [
+    { code: 'fr', name: 'Français', text: true, voice: true },
+    { code: 'sus', name: 'Soussou', text: false, voice: true },
+    { code: 'pul', name: 'Pular', text: false, voice: true },
+  ],
 };
 
 beforeEach(() => {
@@ -158,6 +165,42 @@ describe('Page Comptes', () => {
     // Corriger un champ efface son erreur
     fireEvent.change(phone, { target: { value: '621 23 45 67' } });
     expect(errorOf(phone)).toBeNull();
+  });
+
+  // US-012c : droits de langue préremplis selon le rôle, dans la langue de la région
+  it('droits de langue préremplis selon le rôle et la zone, puis modifiables', async () => {
+    render(<AccountsPage />);
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Inviter un compte' }));
+    const form = screen.getByRole('region', { name: 'Inviter un compte' });
+    const box = (label: string) => within(form).getByRole('checkbox', { name: label });
+    const labels = ['Français', 'Soussou', 'Pular'].flatMap((language) =>
+      ['Enregistrer', 'Traduire', 'Valider'].map((right) => `${right} en ${language}`),
+    );
+    const checked = () => labels.filter((label) => (box(label) as HTMLInputElement).checked);
+    const role = within(form).getByRole('combobox', { name: 'Rôle' });
+
+    fireEvent.change(role, { target: { value: 'regional' } });
+    fireEvent.change(within(form).getByRole('combobox', { name: 'Région' }), {
+      target: { value: '3' },
+    });
+    expect(checked()).toEqual(['Valider en Soussou']);
+
+    fireEvent.change(role, { target: { value: 'prefectoral' } });
+    fireEvent.change(within(form).getByRole('combobox', { name: 'Préfecture' }), {
+      target: { value: '4' },
+    });
+    expect(checked()).toEqual(['Enregistrer en Pular', 'Traduire en Pular']);
+    // Réglage langue par langue toujours possible
+    fireEvent.click(box('Traduire en Pular'));
+    fireEvent.click(box('Valider en Soussou'));
+    expect(checked()).toEqual(['Valider en Soussou', 'Enregistrer en Pular']);
+
+    // DG : publie par son rôle, aucune case par langue ; Comité : aucun droit de langue
+    for (const value of ['dg', 'scientifique']) {
+      fireEvent.change(role, { target: { value } });
+      expect(checked()).toEqual([]);
+    }
   });
 
   it('formulaire vide : un message court sous chaque champ obligatoire, focus sur le premier', async () => {

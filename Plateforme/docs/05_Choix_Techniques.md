@@ -1091,6 +1091,15 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | `plante_modifier` | Comparaisons et journal en `IS DISTINCT FROM` | Les anciennes valeurs NULL d'une fiche proposée sont tracées quand le Comité la complète |
 | Textes | Aucune aide n'invite à écrire un nom en langue nationale | Langues nationales en voix uniquement |
 
+### 2.67 Droits de langue préremplis selon le rôle (US-012c, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Langue préremplie | Langue vocale par défaut de la région naturelle de la zone (région du régional, région de la préfecture du préfectoral), lue dans les référentiels des comptes | R-LNG-07 : la région fixe la langue vocale par défaut |
+| Droits par défaut | Préfectoral : enregistrer et traduire ; régional : valider ; DG et Comité : aucune case | Critère 1. La DG publie par son rôle (droit de la matrice, pas de case par langue) ; « résumer » n'existe pas encore (US-072, S6) |
+| Moment | À chaque choix du rôle ou de la zone, les cases sont recalculées ; le réglage manuel reste possible ensuite | Critère 2 ; un changement de rôle ne garde pas des droits qui ne lui conviennent pas |
+| Emplacement | `defaultWorkLanguages` dans `@sabou/types/permissions`, module sans zod | L'application de gestion ne télécharge pas zod (réseau 3G) |
+
 ### 2.68 Mot de passe oublié par SMS, praticien et citoyen (US-069, 18 novembre 2026)
 
 Décision du maître d'ouvrage du 18 novembre 2026 : page du site (citoyen), écran de l'application mobile (praticien), lien « Mot de passe oublié ? » sur la page de connexion de Keycloak du domaine public.
