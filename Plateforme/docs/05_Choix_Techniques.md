@@ -1070,6 +1070,14 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
 | Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |
 
+### 2.65 Validation des fiches plantes : le Comité seul (US-055, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Qui valide une fiche plante | **Le Comité scientifique seul**, par l'application, l'API et la base | §6.5 du cahier des charges et décision du maître d'œuvre du 18 novembre 2026. **Écart au §6.2**, qui listait « ajout, validation, export JSON » pour la DG |
+| Droits de la DG | Ajout et modification des fiches (créées « en revue »), export quand il sera livré ; pas de validation | Même décision |
+| Réalisation | Rien à changer dans le code : `plante_valider` refuse tout autre rôle depuis US-051, l'API n'écrit plus le statut en direct, le bouton n'est montré qu'au Comité. Preuve ajoutée au niveau de l'application | Les tests de US-051 (base, API, écran) prouvent déjà les trois niveaux |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
