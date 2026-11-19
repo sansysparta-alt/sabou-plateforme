@@ -47,3 +47,11 @@ String gapsSentence(List<String> gaps) =>
 
 const networkError =
     'La demande n’a pas abouti. Vérifiez le réseau, puis réessayez.';
+
+/// Date et heure courtes, à l'heure du téléphone (« 19/11 à 10 h 05 »).
+String shortDateTime(String iso) {
+  final d = DateTime.tryParse(iso)?.toLocal();
+  if (d == null) return iso;
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.day)}/${two(d.month)} à ${d.hour} h ${two(d.minute)}';
+}

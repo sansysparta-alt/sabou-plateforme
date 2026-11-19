@@ -14,11 +14,6 @@ import 'studio_texts.dart';
 import 'voice_outbox.dart';
 import 'voice_vault.dart';
 
-/// Préfixe des traitements créés hors réseau, avant de recevoir leur code du serveur.
-const localPrefix = 'LOCAL-';
-
-bool isLocalCode(String code) => code.startsWith(localPrefix);
-
 /// Erreur de réseau (pas un refus de l'API, pas une session expirée).
 bool isNetworkError(Object error) =>
     error is Exception &&

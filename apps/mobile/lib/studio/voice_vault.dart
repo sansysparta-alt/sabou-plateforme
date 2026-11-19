@@ -13,6 +13,11 @@ import 'sealed_files.dart';
 
 const _vaultKeyName = 'sabou.voice_vault_key';
 
+/// US-080 : préfixe des traitements créés hors réseau, avant de recevoir leur code du serveur.
+const localPrefix = 'LOCAL-';
+
+bool isLocalCode(String code) => code.startsWith(localPrefix);
+
 /// Un enregistrement en attente d'envoi au serveur.
 class PendingVoice {
   const PendingVoice({

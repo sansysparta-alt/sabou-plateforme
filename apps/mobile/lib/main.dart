@@ -15,6 +15,7 @@ import 'dossier/session.dart';
 import 'shell/gate.dart';
 import 'signup/signup_api.dart';
 import 'studio/studio_api.dart';
+import 'studio/studio_offline.dart';
 import 'studio/voice_device.dart';
 import 'studio/voice_field.dart';
 import 'sync/database_key.dart' show DeviceSecretStore;
@@ -24,13 +25,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // US-081 : micro, haut-parleur et coffre chiffré des voix en attente
   final voiceTools = await deviceVoiceTools();
-  runApp(SabouApp(voiceTools: voiceTools));
+  // US-080 : copie chiffrée du Studio pour l'usage hors réseau
+  final studioStore = await deviceStudioStore();
+  runApp(SabouApp(voiceTools: voiceTools, studioStore: studioStore));
 }
 
 class SabouApp extends StatefulWidget {
-  const SabouApp({super.key, this.voiceTools});
+  const SabouApp({super.key, this.voiceTools, this.studioStore});
 
   final VoiceTools? voiceTools;
+  final StudioStore? studioStore;
 
   @override
   State<SabouApp> createState() => _SabouAppState();
@@ -53,6 +57,7 @@ class _SabouAppState extends State<SabouApp> {
     ),
     picker: DevicePhotoPicker(),
     voiceTools: widget.voiceTools,
+    studioStore: widget.studioStore,
   );
 
   @override

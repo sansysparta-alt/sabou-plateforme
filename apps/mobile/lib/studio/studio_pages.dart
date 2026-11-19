@@ -15,7 +15,7 @@ import 'propose_plant_page.dart';
 import 'studio_api.dart';
 import 'studio_texts.dart';
 import 'voice_field.dart';
-import 'voice_outbox.dart';
+import 'studio_offline.dart';
 import 'voice_vault.dart';
 
 // ---------------------------------------------------------------------------------------
@@ -28,6 +28,7 @@ class TreatmentsPage extends StatefulWidget {
     required this.api,
     required this.onSignedOut,
     this.voiceTools,
+    this.store,
   });
 
   final StudioApi api;
@@ -38,14 +39,28 @@ class TreatmentsPage extends StatefulWidget {
   /// US-081 : outils de la voix ; null, l'écran reste en texte seulement.
   final VoiceTools? voiceTools;
 
+  /// US-080 : copie chiffrée du Studio ; null, pas d'usage hors réseau.
+  final StudioStore? store;
+
   @override
   State<TreatmentsPage> createState() => _TreatmentsPageState();
 }
 
-class _TreatmentsPageState extends State<TreatmentsPage> {
+class _TreatmentsPageState extends State<TreatmentsPage>
+    with WidgetsBindingObserver {
   List<TreatmentSummary>? _items;
   String? _error;
   bool _signedOut = false;
+
+  // US-080 : Studio hors réseau, envois en attente, avis de synchronisation
+  late final OfflineStudio _studio = OfflineStudio(
+    api: widget.api,
+    store: widget.store,
+    vault: widget.voiceTools?.vault,
+  );
+  Set<String> _waiting = {};
+  List<String> _notices = [];
+  Timer? _retry;
 
   // Une seule fois, que la session expire dans la liste ou dans l'écran d'édition
   void _signOut() {
@@ -57,14 +72,63 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    if (widget.store != null) {
+      unawaited(_syncNow());
+      // Retour du réseau : nouvel essai toutes les 30 s tant que des envois attendent
+      _retry = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (_waiting.isNotEmpty) unawaited(_syncNow());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _retry?.cancel();
+    super.dispose();
+  }
+
+  // Application rouverte : le réseau est peut-être revenu
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.store != null) {
+      unawaited(_syncNow());
+    }
+  }
+
+  Future<void> _syncNow() async {
+    try {
+      final report = await _studio.sync();
+      final notices = await _studio.takeNotices();
+      if (!mounted) return;
+      if (notices.isNotEmpty) {
+        setState(() => _notices = [..._notices, ...notices]);
+      }
+      if (report.sent > 0) await _load();
+    } on SignedOutException {
+      _signOut();
+    } on Exception {
+      // Réseau coupé pendant la tournée : la suivante reprendra
+    }
   }
 
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final items = await widget.api.list();
-      if (mounted) setState(() => _items = items);
+      final items = await _studio.list();
+      final waiting = {
+        for (final p
+            in await widget.store?.pending() ?? const <PendingTreatment>[])
+          p.code,
+      };
+      if (mounted) {
+        setState(() {
+          _items = items;
+          _waiting = waiting;
+        });
+      }
     } on SignedOutException {
       _signOut();
     } on StudioException catch (error) {
@@ -87,6 +151,7 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
           code: code,
           onSignedOut: _signOut,
           voiceTools: widget.voiceTools,
+          studio: _studio,
         ),
       ),
     );
@@ -110,6 +175,15 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
             OutlinedButton(onPressed: _load, child: const Text('Réessayer')),
             const SizedBox(height: SabouSpace.s4),
           ],
+          if (_studio.offlineSince != null)
+            StatusMessage(
+              'Sans réseau : vos traitements tels qu’au '
+              '${shortDateTime(_studio.offlineSince!)}. Vous pouvez continuer : vos '
+              'enregistrements partiront au retour du réseau.',
+              kind: StatusKind.info,
+            ),
+          for (final notice in _notices)
+            StatusMessage(notice, kind: StatusKind.warning),
           FilledButton.icon(
             onPressed: () => _open(null),
             icon: const Icon(Icons.add),
@@ -123,7 +197,11 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
               'tant que vous ne le soumettez pas.',
             ),
           for (final item in items ?? const <TreatmentSummary>[])
-            _TreatmentTile(item: item, onTap: () => _open(item.code)),
+            _TreatmentTile(
+              item: item,
+              waiting: _waiting.contains(item.code),
+              onTap: () => _open(item.code),
+            ),
         ],
       ),
     );
@@ -131,10 +209,17 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
 }
 
 class _TreatmentTile extends StatelessWidget {
-  const _TreatmentTile({required this.item, required this.onTap});
+  const _TreatmentTile({
+    required this.item,
+    required this.onTap,
+    this.waiting = false,
+  });
 
   final TreatmentSummary item;
   final VoidCallback onTap;
+
+  /// US-080 : enregistrement gardé sur le téléphone, pas encore envoyé.
+  final bool waiting;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +235,11 @@ class _TreatmentTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${item.disease.label} · ${item.code}'),
+            Text(
+              isLocalCode(item.code)
+                  ? '${item.disease.label} · créé sans réseau'
+                  : '${item.disease.label} · ${item.code}',
+            ),
             const SizedBox(height: SabouSpace.s1),
             Text(
               statusLabel(item.status),
@@ -159,6 +248,10 @@ class _TreatmentTile extends StatelessWidget {
             if (waiting != null) ...[
               const SizedBox(height: SabouSpace.s1),
               Text(waiting),
+            ],
+            if (this.waiting) ...[
+              const SizedBox(height: SabouSpace.s1),
+              const Text('Gardé sur le téléphone : envoi au retour du réseau.'),
             ],
           ],
         ),
@@ -188,12 +281,16 @@ class TreatmentEditorPage extends StatefulWidget {
     required this.code,
     required this.onSignedOut,
     this.voiceTools,
+    this.studio,
   });
 
   final StudioApi api;
 
   /// US-081 : outils de la voix ; null, l'écran reste en texte seulement.
   final VoiceTools? voiceTools;
+
+  /// US-080 : Studio hors réseau partagé avec la liste ; null, en ligne seulement.
+  final OfflineStudio? studio;
 
   /// Traitement à ouvrir ; null pour en créer un.
   final String? code;
@@ -223,9 +320,13 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
   bool _consent = false;
   String? _visibility;
 
-  // US-081 : voix en attente d'envoi (coffre du téléphone) et file d'envoi
+  // US-081 : voix en attente d'envoi (coffre du téléphone)
   var _pendingVoices = <PendingVoice>[];
-  VoiceOutbox? _outbox;
+
+  // US-080 : en ligne, l'API ; hors réseau, la copie du téléphone et les envois en attente
+  late final OfflineStudio _studio =
+      widget.studio ??
+      OfflineStudio(api: widget.api, vault: widget.voiceTools?.vault);
   int _nextKey = 1;
 
   // Erreurs sous le champ (WCAG 3.3.1) ; le message en tête reste aux refus du serveur
@@ -238,10 +339,6 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
   @override
   void initState() {
     super.initState();
-    final tools = widget.voiceTools;
-    if (tools != null) {
-      _outbox = VoiceOutbox(vault: tools.vault, api: widget.api);
-    }
     _load();
   }
 
@@ -267,12 +364,10 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
     setState(() => _loadError = null);
     try {
       final code = widget.code;
-      final results = await Future.wait<Object?>([
-        widget.api.referentials(),
-        if (code != null) widget.api.detail(code),
-      ]);
+      final refs = await _studio.referentials();
+      final detail = code == null ? null : await _studio.detail(code, refs);
+      final results = <Object?>[refs, ?detail];
       if (!mounted) return;
-      final refs = results[0] as StudioReferentials;
       setState(() {
         _refs = refs;
         for (final s in refs.sections) {
@@ -381,6 +476,18 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
 
   /// Enregistre le brouillon ; renvoie le traitement à jour, ou null en cas d'échec.
   Future<TreatmentDetail?> _save() async {
+    if (!_validate()) return null;
+    final (saved, queued) = await _studio.save(_treatment, _fields(), _refs!);
+    _fill(saved);
+    _queued = queued;
+    return saved;
+  }
+
+  /// Le dernier enregistrement est resté sur le téléphone (pas de réseau).
+  bool _queued = false;
+
+  /// Contrôles sous les champs avant tout envoi ; faux s'il y a une erreur.
+  bool _validate() {
     final found = <String, String>{};
     if (_disease == null) found['maladie'] = 'Choisissez la maladie soignée.';
     if (_titleFr.text.trim().isEmpty) {
@@ -400,14 +507,9 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
         'Corrigez les champs signalés en rouge, puis réessayez.',
         StatusKind.error,
       );
-      return null;
+      return false;
     }
-    final t = _treatment;
-    final saved = t == null
-        ? await widget.api.create(_fields())
-        : await widget.api.update(t.code, t.modifiedAt, _fields());
-    _fill(saved);
-    return saved;
+    return true;
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -431,21 +533,37 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
 
   Future<void> _onSave() => _run(() async {
     final saved = await _save();
-    if (saved != null) {
-      _say('Brouillon ${saved.code} enregistré.', StatusKind.success);
-    }
+    if (saved == null) return;
+    _say(
+      _queued
+          ? 'Brouillon gardé sur le téléphone : il partira au retour du réseau.'
+          : 'Brouillon ${saved.code} enregistré.',
+      _queued ? StatusKind.info : StatusKind.success,
+    );
+    unawaited(_sendVoices());
   });
 
   Future<void> _onSubmit() => _run(() async {
-    final saved = await _save();
-    if (saved == null) return;
-    if (saved.gaps.isNotEmpty) {
+    if (!_validate()) return;
+    final (saved, queued) = await _studio.save(
+      _treatment,
+      _fields(),
+      _refs!,
+      submit: true,
+    );
+    _fill(saved);
+    _queued = queued;
+    if (queued) {
+      _say(
+        'Soumission gardée sur le téléphone : elle partira au retour du réseau. Ce qui '
+        'manque éventuellement vous sera dit à ce moment-là.',
+        StatusKind.info,
+      );
+    } else if (saved.isDraft) {
       _say(gapsSentence(saved.gaps), StatusKind.error);
-      return;
+    } else {
+      _say('Traitement ${saved.code} soumis.', StatusKind.success);
     }
-    final submitted = await widget.api.submit(saved.code);
-    _fill(submitted);
-    _say('Traitement ${submitted.code} soumis.', StatusKind.success);
   });
 
   void _edit(String field, VoidCallback change) => setState(() {
@@ -456,21 +574,26 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
 
   // --- US-081 : voix du praticien -------------------------------------------------
 
-  /// Une tournée d'envoi des voix en attente ; sans réseau, elles restent sur le téléphone.
+  /// Une tournée d'envoi (brouillons en attente, puis voix) ; sans réseau, tout reste sur le
+  /// téléphone (US-080, US-081).
   Future<void> _sendVoices() async {
-    final outbox = _outbox;
-    if (outbox == null) return;
+    if (widget.voiceTools == null && widget.studio == null) return;
     try {
-      final result = await outbox.flush();
-      if (result.sent > 0 && _treatment != null) {
-        final fresh = await widget.api.detail(_treatment!.code);
-        if (mounted && !_busy) setState(() => _fill(fresh));
+      final report = await _studio.sync();
+      final t = _treatment;
+      if (report.sent > 0 && t != null && mounted && !_busy) {
+        // Un traitement créé sans réseau a reçu son code : on rouvre sa version du serveur
+        final code = isLocalCode(t.code) ? null : t.code;
+        if (code != null) {
+          final fresh = await _studio.detail(code, _refs);
+          if (mounted && !_busy) setState(() => _fill(fresh));
+        }
       }
     } on SignedOutException {
       _signedOut();
       return;
     } on Exception {
-      // Réseau absent : nouvelle tournée au prochain enregistrement ou à la prochaine ouverture
+      // Réseau absent : nouvelle tournée plus tard
     }
     await _refreshPending();
   }
@@ -535,7 +658,7 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
         }
         if (server != null) {
           await widget.api.removeVoice(code!, target, object);
-          final fresh = await widget.api.detail(code);
+          final fresh = await _studio.detail(code, _refs);
           if (mounted) setState(() => _fill(fresh));
         }
       },
