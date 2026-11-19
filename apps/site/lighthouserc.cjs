@@ -16,7 +16,12 @@ const keycloakLogin =
 module.exports = {
   ci: {
     collect: {
-      url: [`${site}/inscription`, `${site}/connexion`, keycloakLogin],
+      url: [
+        `${site}/inscription`,
+        `${site}/connexion`,
+        `${site}/mot-de-passe-oublie`,
+        keycloakLogin,
+      ],
       startServerCommand: `pnpm exec next start --port ${process.env.SITE_PORT ?? 3000}`,
       startServerReadyPattern: 'Ready',
       numberOfRuns: 3,

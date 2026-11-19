@@ -24,6 +24,11 @@ export interface CitizenIdentity {
   // du domaine refusent le mot de passe.
   createAccount(citizen: NewCitizen): Promise<string>;
   deleteAccount(id: string): Promise<void>;
+  // Nouveau mot de passe (US-069) ; le double facteur éventuel reste en place.
+  // PasswordRejectedError si les règles du domaine le refusent.
+  resetPassword(id: string, password: string): Promise<void>;
+  // Ferme toutes les sessions du compte, hors ligne comprises (téléphone perdu ou volé)
+  signOutEverywhere(id: string): Promise<void>;
 }
 
 const roleSchema = z.array(z.object({ id: z.string().min(1), name: z.string() }));
@@ -81,5 +86,20 @@ export class KeycloakCitizenIdentity implements CitizenIdentity {
 
   async deleteAccount(id: string): Promise<void> {
     await this.client.request(`/users/${id}`, { method: 'DELETE' });
+  }
+
+  async resetPassword(id: string, password: string): Promise<void> {
+    try {
+      await this.client.request(`/users/${id}/reset-password`, {
+        method: 'PUT',
+        body: { type: 'password', value: password, temporary: false },
+      });
+    } catch (error) {
+      throw translateKeycloakError(error);
+    }
+  }
+
+  async signOutEverywhere(id: string): Promise<void> {
+    await this.client.request(`/users/${id}/logout`, { method: 'POST' });
   }
 }

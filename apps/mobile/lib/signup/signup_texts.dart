@@ -1,4 +1,5 @@
-// Textes de l'inscription en français et en anglais (US-066). Les langues nationales sont en
+// Textes de l'inscription (US-066) et du mot de passe oublié (US-069), en français et en
+// anglais. Les langues nationales sont en
 // voix seulement : aucun texte en soussou, malinké, pular ou guerzé.
 import 'package:flutter/widgets.dart';
 
@@ -155,4 +156,29 @@ class SignupTexts {
     'Sign-up did not go through. Try again.',
   );
   String get busy => _t('Envoi en cours…', 'Sending…');
+
+  // Mot de passe oublié (US-069)
+  String get forgotPassword => _t('Mot de passe oublié ?', 'Forgot password?');
+  String get resetTitle => _t('Mot de passe oublié', 'Forgot password');
+  String get resetPhoneIntro => _t(
+    'Saisissez le numéro de votre compte. S’il a un compte SABOU, vous recevrez un code par SMS.',
+    'Enter your account number. If it has a SABOU account, you will receive a code by text message.',
+  );
+  String resetCodeSentTo(String phone) => _t(
+    'Si le $phone a un compte SABOU, un code vient de lui être envoyé par SMS.',
+    'If $phone has a SABOU account, a code has just been sent to it by text message.',
+  );
+  String get newPasswordLabel => _t('Nouveau mot de passe', 'New password');
+  String get changePassword => _t('Changer le mot de passe', 'Change password');
+  String get resetDone => _t(
+    'Votre mot de passe est changé et vous êtes déconnecté de tous vos appareils. '
+        'Connectez-vous avec le nouveau ; si vous avez activé la double vérification, elle '
+        'vous sera demandée.',
+    'Your password has been changed and you have been signed out of all your devices. '
+        'Sign in with the new one; if you turned on two-step verification, it will be asked.',
+  );
+  String get resetExpired => _t(
+    'Cette demande a expiré. Recommencez avec votre numéro.',
+    'This request has expired. Start again with your number.',
+  );
 }

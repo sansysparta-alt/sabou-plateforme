@@ -88,3 +88,18 @@ export interface SignupError {
   message: string;
   remainingAttempts?: number;
 }
+
+// Mot de passe oublié d'un citoyen ou d'un praticien (US-069) : mêmes trois étapes que
+// l'inscription. Étape 1 : même réponse que le numéro ait un compte ou non (le SMS ne part que
+// s'il en a un) ; étape 2 : le bon code donne un ticket ; étape 3 : le ticket et le nouveau
+// mot de passe (règles de US-014).
+export const passwordResetCodeRequestSchema = signupCodeRequestSchema;
+export const passwordResetVerifyRequestSchema = signupVerifyRequestSchema;
+export interface PasswordResetVerifyResult {
+  ticket: string;
+}
+export const passwordResetCompleteRequestSchema = z.strictObject({
+  ticket: signupTicketSchema,
+  password: z.string().max(CITIZEN_PASSWORD_MAX),
+});
+export type PasswordResetCompleteRequest = z.input<typeof passwordResetCompleteRequestSchema>;

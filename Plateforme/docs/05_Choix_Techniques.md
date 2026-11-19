@@ -1091,6 +1091,22 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | `plante_modifier` | Comparaisons et journal en `IS DISTINCT FROM` | Les anciennes valeurs NULL d'une fiche proposée sont tracées quand le Comité la complète |
 | Textes | Aucune aide n'invite à écrire un nom en langue nationale | Langues nationales en voix uniquement |
 
+### 2.68 Mot de passe oublié par SMS, praticien et citoyen (US-069, 18 novembre 2026)
+
+Décision du maître d'ouvrage du 18 novembre 2026 : page du site (citoyen), écran de l'application mobile (praticien), lien « Mot de passe oublié ? » sur la page de connexion de Keycloak du domaine public.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Parcours | Trois étapes, comme l'inscription : numéro → code reçu par SMS → nouveau mot de passe ; API `POST /api/mot-de-passe-oublie/{code,verification,nouveau}` | Mêmes écrans et mêmes règles que l'inscription (US-014) : rien de nouveau à apprendre |
+| Pas d'énumération | Étape 1 : même réponse et même délai, que le numéro ait un compte actif ou non ; le SMS n'est envoyé qu'à un compte actif, sans attendre la réponse du fournisseur ; les écrans disent « si ce numéro a un compte » | Ne pas révéler qui a un compte ; ne pas payer de SMS pour un numéro inconnu |
+| Codes et tickets | Magasin de l'inscription réutilisé (empreintes SHA-256, code de 10 minutes, 5 essais, ticket de 15 minutes à usage unique), dans un espace de clés Valkey séparé (`sabou:mot-de-passe:…`) ; mêmes limites par numéro et par adresse IP, comptées à part | Un code d'inscription ne vaut rien pour changer un mot de passe ; un abus d'un parcours ne bloque pas l'autre |
+| Changement dans Keycloak | API d'administration du domaine public, compte de service `sabou-inscription` existant (`manage-users`) : `reset-password`, puis fermeture de toutes les sessions du compte (`logout`, sessions hors ligne comprises) | Un téléphone perdu ou volé perd l'accès. Aucun nouveau compte de service, aucun secret de plus |
+| Double facteur | Non touché : seul le mot de passe est remplacé, Keycloak demande toujours le second facteur à la connexion suivante | Critère 3 de US-069 |
+| Compte suspendu | Relu à l'étape 3 : un compte suspendu entre-temps n'est pas modifié (« demande expirée ») | Pas de contournement d'une suspension |
+| Journal | `compte.mot_de_passe_reinitialise` (compte, adresse IP, moyen `sms`) dans le journal d'audit SABOU | Critère 2 de US-069 |
+| Lien depuis Keycloak | `sabouSiteUrl=${env.SABOU_SITE_URL}` dans `theme.properties` du thème `sabou-public` : le lien mène à la page du site pour tous les clients du domaine, application mobile comprise | Keycloak lit l'environnement de son conteneur ; pas de « reset credentials » de Keycloak, qui passerait par e-mail |
+| Connexion après le changement | Site : lien « Se connecter » avec le numéro ; application : page de Keycloak avec le numéro déjà rempli (`login_hint`, §2.62) | Aucun jeton délivré hors de Keycloak |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.

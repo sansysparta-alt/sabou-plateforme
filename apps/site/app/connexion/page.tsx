@@ -36,6 +36,9 @@ export default async function LoginPage({
         </a>
       </div>
       <p>
+        <Link href="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
+      </p>
+      <p>
         Pas encore de compte ? <Link href="/inscription">Créer un compte gratuit</Link>
       </p>
     </main>

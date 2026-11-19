@@ -80,9 +80,9 @@
                             <div class="${properties.kcFormOptionsWrapperClass!}">
                                 <#if realm.resetPasswordAllowed>
                                     <span><a href="${url.loginResetCredentialsUrl}">${msg("doForgotPassword")}</a></span>
-                                <#else>
-                                    <#-- SABOU (US-010) : pas de réinitialisation par e-mail pour l’instant -->
-                                    <p id="sabou-forgot-password">${msg("sabouForgotPassword")}</p>
+                                <#elseif properties.sabouSiteUrl?has_content>
+                                    <#-- SABOU (US-069) : domaine public, mot de passe oublié par SMS sur le site -->
+                                    <span><a id="sabou-forgot-password" href="${properties.sabouSiteUrl}/mot-de-passe-oublie">${msg("doForgotPassword")}</a></span>
                                 </#if>
                             </div>
 
