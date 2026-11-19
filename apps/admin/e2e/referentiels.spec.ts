@@ -78,7 +78,9 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
   await languagesPageOf(page, code);
   await expect(added).toContainText('Inactive');
   await added.getByRole('button', { name: `Activer la langue ${name}` }).click();
-  await expect(added).toContainText('Active');
+  // « Active » est déjà dans le bouton « Activer… » : on attend le bouton inverse, preuve
+  // que l'activation est enregistrée avant de quitter la page
+  await expect(added.getByRole('button', { name: `Désactiver la langue ${name}` })).toBeVisible();
 
   // … est aussitôt proposée dans la gestion des comptes, comme langue de travail
   await page.goto(`${APP}/comptes`);
@@ -171,5 +173,7 @@ test('la DG paramètre langues, territoires et spécialités sans modifier le co
   await nutrition.getByRole('button', { name: 'Désactiver la spécialité Nutrition' }).click();
   await expect(nutrition).toContainText('Inactive');
   await nutrition.getByRole('button', { name: 'Activer la spécialité Nutrition' }).click();
-  await expect(nutrition).toContainText('Active');
+  await expect(
+    nutrition.getByRole('button', { name: 'Désactiver la spécialité Nutrition' }),
+  ).toBeVisible();
 });
