@@ -20,6 +20,16 @@ else
   )
 fi
 
+# Images construites par le dépôt (image: …:local et build: dans compose.yaml) : construites
+# ici si absentes, car un poste ou un pipeline neuf ne les a pas (Trivy ne peut pas les
+# télécharger). Seule l'API est dans ce cas.
+for image in "${images[@]}"; do
+  if [[ "$image" == sabou-api:local ]] && ! docker image inspect "$image" >/dev/null 2>&1; then
+    echo "=== construction de $image (apps/api/Dockerfile)"
+    docker build --quiet --file apps/api/Dockerfile --tag "$image" . >/dev/null
+  fi
+done
+
 report="$(mktemp)"
 trap 'rm -f "$report"' EXIT
 
