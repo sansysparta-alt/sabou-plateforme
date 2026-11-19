@@ -8,6 +8,17 @@ export async function expectAccessible(page: Page, screen: string): Promise<void
   // Page complète (feuilles de style comprises) : sinon un bouton pas encore mis en forme
   // peut sembler trop petit (target-size), selon la vitesse du réseau
   await page.waitForLoadState('load');
+  // Animations terminées (ouverture du panneau : opacité de 0 à 1) : sinon axe mesure le
+  // contraste d'un bouton encore à demi transparent et l'échec dépend de la vitesse du poste
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        // Une animation sans fin (indicateur de chargement) ne doit pas bloquer le test
+        .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+        .map((animation) => animation.finished),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
