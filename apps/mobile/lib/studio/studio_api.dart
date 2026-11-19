@@ -154,6 +154,32 @@ class TreatmentSection {
   final String? textEn;
 }
 
+/// US-081 : voix en vigueur du praticien pour une section ou le nom d'une plante.
+class PractitionerVoice {
+  const PractitionerVoice({
+    required this.target,
+    required this.object,
+    required this.state,
+    required this.durationSec,
+  });
+
+  factory PractitionerVoice.fromJson(Map<String, dynamic> v) =>
+      PractitionerVoice(
+        target: v['cible'] as String,
+        object: v['objet'] as String,
+        state: v['etat'] as String,
+        durationSec: (v['dureeSec'] as num?)?.toDouble(),
+      );
+
+  /// « section » ou « plante ».
+  final String target;
+  final String object;
+
+  /// en_attente, en_cours, traitee ou echec (traitement du son par le serveur).
+  final String state;
+  final double? durationSec;
+}
+
 /// Un traitement complet (GET /api/praticien/traitements/:code).
 class TreatmentDetail extends TreatmentSummary {
   const TreatmentDetail({
@@ -169,6 +195,7 @@ class TreatmentDetail extends TreatmentSummary {
     required this.pauseDays,
     required this.plants,
     required this.sections,
+    this.voices = const [],
     required this.contraindications,
     required this.visibility,
     required this.consentedAt,
@@ -199,6 +226,10 @@ class TreatmentDetail extends TreatmentSummary {
             p['validee'] as bool,
           ),
       ],
+      voices: [
+        for (final v in (json['voix'] as List?) ?? const [])
+          PractitionerVoice.fromJson(v as Map<String, dynamic>),
+      ],
       sections: [
         for (final s in json['sections'] as List)
           TreatmentSection(
@@ -225,6 +256,9 @@ class TreatmentDetail extends TreatmentSummary {
   final int? pauseDays;
   final List<TreatmentPlant> plants;
   final List<TreatmentSection> sections;
+
+  /// US-081 : voix en vigueur du praticien (section ou nom de plante).
+  final List<PractitionerVoice> voices;
   final List<CodeLabel> contraindications;
   final String? visibility;
   final String? consentedAt;
@@ -377,6 +411,53 @@ class StudioApi {
       'traitements/${Uri.encodeComponent(code)}/soumission',
     ),
   );
+
+  String _voicePath(String code, String target, String object) =>
+      'traitements/${Uri.encodeComponent(code)}/voix/'
+      '${Uri.encodeComponent(target)}/${Uri.encodeComponent(object)}';
+
+  /// US-081 : envoie une voix ; [clientKey] rend l'envoi rejouable sans doublon. Délai large :
+  /// jusqu'à 3 Mo sur un réseau faible.
+  Future<List<PractitionerVoice>> uploadVoice({
+    required String code,
+    required String target,
+    required String object,
+    required String clientKey,
+    required List<int> audio,
+    required String contentType,
+  }) async => _voices(
+    await _check(
+      await _http.send(
+        'PUT',
+        '${_voicePath(code, target, object)}?cle=${Uri.encodeQueryComponent(clientKey)}',
+        body: audio,
+        contentType: contentType,
+        timeout: const Duration(minutes: 3),
+      ),
+    ),
+  );
+
+  Future<List<PractitionerVoice>> removeVoice(
+    String code,
+    String target,
+    String object,
+  ) async => _voices(
+    await _check(await _http.send('DELETE', _voicePath(code, target, object))),
+  );
+
+  /// Voix traitée par le serveur (réécoute après l'envoi).
+  Future<List<int>> voiceAudio(
+    String code,
+    String target,
+    String object,
+  ) async => (await _check(
+    await _http.send('GET', '${_voicePath(code, target, object)}/audio'),
+  )).bodyBytes;
+
+  static List<PractitionerVoice> _voices(http.Response response) => [
+    for (final v in PractitionerHttp.decode(response) as List)
+      PractitionerVoice.fromJson(v as Map<String, dynamic>),
+  ];
 
   Future<TreatmentDetail> _detail(http.Response response) async =>
       TreatmentDetail.fromJson(_object(await _check(response)));
