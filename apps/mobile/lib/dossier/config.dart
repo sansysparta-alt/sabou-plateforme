@@ -12,7 +12,8 @@ const String publicIssuer = String.fromEnvironment(
   defaultValue: 'http://localhost:8080/realms/sabou-public',
 );
 
-/// Site public : création du compte (décision du maître d'œuvre du 8 novembre 2026).
+/// Site public, vers lequel est renvoyé un compte citoyen (l'inscription du praticien se fait
+/// dans l'application depuis US-066).
 const String publicSiteUrl = String.fromEnvironment(
   'SABOU_SITE_URL',
   defaultValue: 'http://localhost:3000',
