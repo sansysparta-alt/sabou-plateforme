@@ -228,6 +228,37 @@ class OfflineStudio {
   /// Date de la copie montrée quand le réseau manque ; null si les données viennent du serveur.
   String? offlineSince;
 
+  /// Mise en copie des traitements en cours (attendue par les tests).
+  Future<void> prefetching = Future.value();
+
+  /// Copie des listes du formulaire et du détail des traitements nouveaux ou modifiés (50 au
+  /// plus, un à la fois pour ménager la 3G), pour qu'ils s'ouvrent ensuite sans réseau.
+  Future<void> _prefetch(List<dynamic> items) async {
+    final store = this.store;
+    if (store == null) return;
+    // Listes du formulaire (maladies, plantes, sections) : sans elles, rien ne s'ouvre
+    if (await store.referentials() == null) {
+      try {
+        await store.saveReferentials(await api.referentialsJson());
+      } on Exception {
+        return;
+      }
+    }
+    var fetched = 0;
+    for (final t in items.cast<Map<String, dynamic>>()) {
+      if (fetched >= 50) break;
+      final code = t['code'] as String;
+      final copy = await store.detail(code);
+      if (copy != null && copy['modifieLe'] == t['modifieLe']) continue;
+      try {
+        await store.saveDetail(code, await api.detailJson(code));
+        fetched++;
+      } on Exception {
+        return; // réseau coupé ou refus : la prochaine liste reprendra
+      }
+    }
+  }
+
   Future<StudioReferentials> referentials() async {
     try {
       final json = await api.referentialsJson();
@@ -247,6 +278,7 @@ class OfflineStudio {
       items = await api.listJson();
       await store?.saveList(items, _clock());
       offlineSince = null;
+      prefetching = _prefetch(items);
     } on Exception catch (error) {
       final copy = await store?.list();
       if (!isNetworkError(error) || copy == null) rethrow;
