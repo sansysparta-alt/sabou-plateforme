@@ -83,7 +83,7 @@ describe('Inscription du citoyen', () => {
     answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
     fill(/^code$/i, '042917');
     submit(/valider le code/i);
-    await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
+    await screen.findByRole('heading', { name: /prénom et votre mot de passe/i });
 
     answers.compte = [{ status: 200, body: { status: 'created' } }];
     fill(/^prénom$/i, 'Aïssatou');
@@ -104,51 +104,25 @@ describe('Inscription du citoyen', () => {
     );
   });
 
-  it('inscrit un praticien avec son nom (US-040a), puis le renvoie vers l’application', async () => {
-    await reachCodeStep();
-    answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
-    fill(/^code$/i, '042917');
-    submit(/valider le code/i);
-    await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
-
-    expect(screen.queryByLabelText(/^nom$/i)).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: /praticien/i }));
-    fill(/^prénom$/i, 'Fanta');
-    fill(/^mot de passe$/i, '40718293');
-    submit(/créer mon compte/i);
-    // Message sous le champ Nom, qui reçoit le focus ; pas de message commun
-    const lastName = screen.getByLabelText(/^nom$/i);
-    expect(errorOf(lastName)).toBe('Indiquez votre nom.');
-    expect(document.activeElement).toBe(lastName);
-    expect(screen.queryByRole('alert')).toBeNull();
-
-    answers.compte = [{ status: 200, body: { status: 'created' } }];
-    fill(/^nom$/i, 'Camara');
-    submit(/créer mon compte/i);
-    await screen.findByRole('heading', { name: /compte est créé/i });
-    expect(calls.at(-1)).toEqual({
-      path: 'compte',
-      body: {
-        ticket: 't'.repeat(43),
-        profile: 'praticien',
-        firstName: 'Fanta',
-        lastName: 'Camara',
-        password: '40718293',
-      },
-    });
-    expect(screen.getByText(/revenez dans l’application mobile sabou/i)).toBeTruthy();
-  });
-
-  it('coche « Praticien » d’office quand l’application ouvre ?profil=praticien', async () => {
+  // US-068 : le site ne sert que le grand public ; le praticien s'inscrit dans l'application
+  it('ne propose pas le profil « praticien », même ouvert par l’ancien lien de l’application', async () => {
     window.history.replaceState(null, '', '/inscription?profil=praticien');
     try {
       await reachCodeStep();
       answers.verification = [{ status: 200, body: { status: 'new', ticket: 't'.repeat(43) } }];
       fill(/^code$/i, '042917');
       submit(/valider le code/i);
-      await screen.findByRole('heading', { name: /profil et votre mot de passe/i });
-      expect(screen.getByRole('radio', { name: /praticien/i })).toHaveProperty('checked', true);
-      expect(screen.getByLabelText(/^nom$/i)).toBeTruthy();
+      await screen.findByRole('heading', { name: /prénom et votre mot de passe/i });
+      expect(screen.queryByRole('radio')).toBeNull();
+      expect(screen.queryByText(/praticien/i)).toBeNull();
+      expect(screen.queryByLabelText(/^nom$/i)).toBeNull();
+
+      answers.compte = [{ status: 200, body: { status: 'created' } }];
+      fill(/^prénom$/i, 'Fanta');
+      fill(/^mot de passe$/i, '40718293');
+      submit(/créer mon compte/i);
+      await screen.findByRole('heading', { name: /compte est créé/i });
+      expect(calls.at(-1)?.body).toMatchObject({ profile: 'citoyen' });
     } finally {
       window.history.replaceState(null, '', '/');
     }

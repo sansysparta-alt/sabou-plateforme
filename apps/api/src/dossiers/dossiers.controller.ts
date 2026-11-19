@@ -29,7 +29,6 @@ import {
   type PractitionerReferentials,
   type SubmissionReceipt,
 } from '@sabou/types';
-import { CITIZEN_SESSION_COOKIE, readCookie } from '../auth/auth.controller';
 import {
   BEARER,
   InvalidMobileTokenError,
@@ -37,8 +36,6 @@ import {
   type MobileIdentity,
   type MobileTokenVerifier,
 } from '../auth/mobile-token';
-import { SESSION_STORE, type SessionStore } from '../auth/session.store';
-import { ENV, type Env } from '../config/env';
 import { ZoneContextError } from '../database/zone';
 import { PieceTooLargeError, readLimited } from './piece-content';
 import { DossierHttpError, DossiersService } from './dossiers.service';
@@ -54,49 +51,28 @@ const UPLOAD_CONTENT_TYPES = [
   'application/octet-stream',
 ];
 
-// Praticien connecté au domaine public, par l'une des deux voies :
-// - le site (lot D) : cookie de session ; les écritures n'acceptent que l'origine du site,
-//   une autre page ne peut pas agir en son nom ;
-// - l'application mobile (US-040b, §2.29) : jeton d'accès « Bearer » du client
-//   « sabou-mobile ». Aucun identifiant n'est envoyé d'office par le navigateur : pas de
-//   contrôle d'origine (rien à forger d'une autre page).
-// Dans les deux cas, le compte est relu en base à chaque requête : un compte suspendu est
-// refusé aussitôt, même avec un jeton encore valable.
+// Praticien connecté par l'application mobile seulement (US-040b, §2.29) : jeton d'accès
+// « Bearer » du client « sabou-mobile ». Le cookie de session du site n'ouvre plus ces routes
+// (US-068, décision du maître d'œuvre du 18 novembre 2026) : un praticien connecté au site n'y
+// a que les fonctions du citoyen. Aucun identifiant n'est envoyé d'office par le navigateur :
+// pas de contrôle d'origine (rien à forger d'une autre page). Le compte est relu en base à
+// chaque requête : un compte suspendu est refusé aussitôt, même avec un jeton encore valable.
 @Injectable()
 export class PractitionerGuard implements CanActivate {
-  private readonly siteOrigin: string;
-
-  constructor(
-    @Inject(SESSION_STORE) private readonly sessions: SessionStore,
-    @Inject(MOBILE_TOKEN_VERIFIER) private readonly mobileTokens: MobileTokenVerifier,
-    @Inject(ENV) env: Env,
-  ) {
-    this.siteOrigin = new URL(env.SITE_URL).origin;
-  }
+  constructor(@Inject(MOBILE_TOKEN_VERIFIER) private readonly mobileTokens: MobileTokenVerifier) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<PractitionerRequest>();
     const authorization = req.headers.authorization;
-    const identity =
-      authorization === undefined
-        ? await this.fromCookie(req)
-        : await this.fromBearer(authorization);
+    // Sans jeton (cookie du site compris) : 401
+    if (authorization === undefined) throw new UnauthorizedException();
+    const identity = await this.fromBearer(authorization);
     if (!identity.roles.includes(PRACTITIONER_ROLE)) throw new ForbiddenException();
     req.practitioner = { sub: identity.sub };
     return true;
   }
 
-  private async fromCookie(req: PractitionerRequest): Promise<MobileIdentity> {
-    const id = readCookie(req, CITIZEN_SESSION_COOKIE);
-    const session = id ? await this.sessions.touch(id) : null;
-    if (!session) throw new UnauthorizedException();
-    if (req.method !== 'GET' && req.headers.origin !== this.siteOrigin) {
-      throw new ForbiddenException();
-    }
-    return session;
-  }
-
-  // En-tête présent mais mal formé ou jeton refusé : 401, sans retomber sur le cookie
+  // En-tête mal formé ou jeton refusé : 401
   private async fromBearer(authorization: string): Promise<MobileIdentity> {
     const token = BEARER.exec(authorization)?.[1];
     if (!token) throw new UnauthorizedException();

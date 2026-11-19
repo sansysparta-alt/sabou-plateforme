@@ -2,79 +2,28 @@
 // mobile (code + PKCE par la page de Keycloak, client public « sabou-mobile »), puis le dossier
 // rempli et soumis avec le jeton d'accès, sans cookie ni origine. Keycloak, API, Valkey,
 // PostgreSQL et SeaweedFS réels. Les écrans Flutter sont prouvés par apps/mobile/test.
-import { createHash, randomBytes } from 'node:crypto';
-import { expect, test, type Page } from '@playwright/test';
-import { API, newPhone, signUpThroughApi } from './helpers';
+import { expect, test } from '@playwright/test';
+import {
+  API,
+  bearer,
+  claims,
+  CLIENT_ID,
+  newPhone,
+  OIDC,
+  signInLikeTheApp,
+  signUpThroughApi,
+} from './helpers';
 
 const PASSWORD = '40718293';
-const KEYCLOAK = `http://localhost:${process.env.KEYCLOAK_PORT ?? 8080}/realms/sabou-public`;
-const OIDC = `${KEYCLOAK}/protocol/openid-connect`;
-const CLIENT_ID = 'sabou-mobile';
-const REDIRECT_URI = 'gn.sabou.mobile:/oauth2redirect';
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
-
-interface Tokens {
-  access_token: string;
-  refresh_token: string;
-  refresh_expires_in: number;
-  scope: string;
-}
-
-const claims = (jwt: string) =>
-  JSON.parse(Buffer.from(jwt.split('.')[1]!, 'base64url').toString()) as Record<string, unknown>;
-
-// Ce que fait l'application (flutter_appauth) : page de Keycloak dans le navigateur, retour
-// vers le schéma de l'application avec le code, échange du code avec le vérificateur PKCE
-async function signInLikeTheApp(page: Page, phone: string): Promise<Tokens> {
-  const verifier = randomBytes(32).toString('base64url');
-  const state = randomBytes(16).toString('base64url');
-  const authorize = new URL(`${OIDC}/auth`);
-  authorize.search = new URLSearchParams({
-    client_id: CLIENT_ID,
-    response_type: 'code',
-    redirect_uri: REDIRECT_URI,
-    scope: 'openid offline_access',
-    state,
-    code_challenge: createHash('sha256').update(verifier).digest('base64url'),
-    code_challenge_method: 'S256',
-    prompt: 'login',
-  }).toString();
-  await page.goto(authorize.href);
-  await page.getByLabel('Numéro de téléphone').fill(phone);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD);
-  // Le navigateur ne sait pas ouvrir « gn.sabou.mobile: » : on lit la redirection elle-même
-  const [redirect] = await Promise.all([
-    page.waitForResponse((r) => r.headers()['location']?.startsWith(REDIRECT_URI) ?? false),
-    page.getByRole('button', { name: 'Connexion' }).click(),
-  ]);
-  const back = new URL(redirect.headers()['location']!);
-  expect(back.searchParams.get('state')).toBe(state);
-
-  const exchange = await fetch(`${OIDC}/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: CLIENT_ID,
-      code: back.searchParams.get('code')!,
-      redirect_uri: REDIRECT_URI,
-      code_verifier: verifier,
-    }),
-  });
-  expect(exchange.status).toBe(200);
-  return (await exchange.json()) as Tokens;
-}
-
-const bearer = (token: string, init: RequestInit = {}) =>
-  ({ ...init, headers: { ...init.headers, authorization: `Bearer ${token}` } }) as RequestInit;
 
 test('critère 1 : connexion par la page de Keycloak, jeton accepté par l’API, session de 30 jours', async ({
   page,
 }) => {
   const phone = newPhone();
   await signUpThroughApi(phone, 'Fanta', PASSWORD, { profile: 'praticien', lastName: 'Camara' });
-  const tokens = await signInLikeTheApp(page, phone);
+  const tokens = await signInLikeTheApp(page, phone, PASSWORD);
 
   // Jeton d'accès émis pour l'API, au client mobile ; jeton de rafraîchissement hors ligne
   expect(claims(tokens.access_token)).toMatchObject({
@@ -127,7 +76,7 @@ test('critère 3 : depuis l’application, pièces manquantes affichées puis ac
 }) => {
   const phone = newPhone();
   await signUpThroughApi(phone, 'Fanta', PASSWORD, { profile: 'praticien', lastName: 'Camara' });
-  const { access_token: token } = await signInLikeTheApp(page, phone);
+  const { access_token: token } = await signInLikeTheApp(page, phone, PASSWORD);
   const call = (method: string, path: string, body?: BodyInit, type?: string) =>
     fetch(
       `${API}/api/praticien/${path}`,

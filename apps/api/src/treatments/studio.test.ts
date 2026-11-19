@@ -104,10 +104,15 @@ const sessions = {
     return this.data.get(id) ?? null;
   },
 };
+const TOKENS: Record<string, string[]> = {
+  'jeton.praticien.ok': ['praticien'],
+  'jeton.citoyen.ok': ['citoyen'],
+};
 const mobileTokens = {
   async verify(token: string) {
-    if (token !== 'jeton.praticien.ok') throw new InvalidMobileTokenError();
-    return { sub: SUB, roles: ['praticien'] };
+    const roles = TOKENS[token];
+    if (!roles) throw new InvalidMobileTokenError();
+    return { sub: SUB, roles };
   },
 };
 
@@ -145,10 +150,17 @@ beforeEach(() => {
 function call(
   method: string,
   path: string,
-  options: { cookie?: string | null; origin?: string | null; body?: unknown } = {},
+  options: {
+    cookie?: string | null;
+    origin?: string | null;
+    token?: string | null;
+    body?: unknown;
+  } = {},
 ) {
-  const { cookie = 'praticien', origin = SITE, body } = options;
+  // Par défaut : l'application mobile, avec le jeton du praticien (seule voie, US-068)
+  const { cookie = null, origin = null, token = 'jeton.praticien.ok', body } = options;
   const headers: Record<string, string> = {};
+  if (token) headers['authorization'] = `Bearer ${token}`;
   if (cookie) headers['cookie'] = `${CITIZEN_SESSION_COOKIE}=${cookie}`;
   if (origin) headers['origin'] = origin;
   if (body !== undefined) headers['content-type'] = 'application/json';
@@ -160,19 +172,22 @@ function call(
 }
 
 describe('Accès : le praticien connecté seulement, toujours ses propres traitements', () => {
-  it('sans session : 401 ; citoyen : 403 ; écriture d’une autre origine : 403', async () => {
-    expect((await call('GET', 'traitements', { cookie: null })).status).toBe(401);
-    expect((await call('GET', 'traitements', { cookie: 'citoyen' })).status).toBe(403);
-    expect(
-      (await call('POST', 'traitements', { origin: 'https://evil.example', body: FIELDS })).status,
-    ).toBe(403);
+  it('sans jeton : 401 ; jeton d’un citoyen : 403', async () => {
+    expect((await call('GET', 'traitements', { token: null })).status).toBe(401);
+    expect((await call('GET', 'traitements', { token: 'jeton.citoyen.ok' })).status).toBe(403);
+    expect(calls).toEqual([]);
+  });
+
+  // US-068, critère 3 : le Studio n'est plus sur le site ; son cookie n'ouvre plus l'API
+  it('refuse le cookie de session du site, même d’un praticien et depuis le site', async () => {
+    const site = { token: null, cookie: 'praticien', origin: SITE };
+    expect((await call('GET', 'traitements', site)).status).toBe(401);
+    expect((await call('POST', 'traitements', { ...site, body: FIELDS })).status).toBe(401);
     expect(calls).toEqual([]);
   });
 
   it('application mobile : jeton du praticien accepté', async () => {
-    const response = await fetch(`${base}/api/praticien/traitements`, {
-      headers: { authorization: 'Bearer jeton.praticien.ok' },
-    });
+    const response = await call('GET', 'traitements');
     expect(response.status).toBe(200);
     expect(calls).toEqual([['list', SUB]]);
   });

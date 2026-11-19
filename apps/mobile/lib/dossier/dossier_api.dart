@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import 'practitioner_http.dart';
 import 'session.dart';
 
 /// Types de pièces (packages/types/src/dossiers.ts) et leurs libellés.
@@ -195,14 +196,16 @@ class DossierException implements Exception {
 
 class DossierApi {
   DossierApi({
-    required this.baseUrl,
-    required this.session,
+    required Uri baseUrl,
+    required PractitionerSession session,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  }) : _http = PractitionerHttp(
+         baseUrl: baseUrl,
+         session: session,
+         client: client,
+       );
 
-  final Uri baseUrl;
-  final PractitionerSession session;
-  final http.Client _client;
+  final PractitionerHttp _http;
 
   Future<Referentials> referentials() async {
     final response = await _send('GET', 'referentiels');
@@ -258,29 +261,14 @@ class DossierApi {
     bool allowNotFound = false,
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    Future<http.Response> attempt({required bool force}) async {
-      final request =
-          http.Request(method, baseUrl.resolve('/api/praticien/$path'))
-            ..headers['authorization'] =
-                'Bearer ${await session.accessToken(force: force)}'
-            ..headers['accept'] = 'application/json';
-      if (body != null) {
-        request.bodyBytes = body;
-        request.headers['content-type'] = contentType!;
-      }
-      return http.Response.fromStream(
-        await _client.send(request).timeout(timeout),
-      );
-    }
-
-    var response = await attempt(force: false);
-    // Jeton refusé (horloge du téléphone décalée, clés changées) : un seul nouvel essai
-    // avec un jeton tout neuf ; si Keycloak refuse aussi, SignedOutException
-    if (response.statusCode == 401) response = await attempt(force: true);
-    if (response.statusCode == 401) throw const SignedOutException();
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return response;
-    }
+    final response = await _http.send(
+      method,
+      path,
+      body: body,
+      contentType: contentType,
+      timeout: timeout,
+    );
+    if (PractitionerHttp.ok(response)) return response;
     if (response.statusCode == 404 && allowNotFound) return response;
     throw _error(response);
   }
