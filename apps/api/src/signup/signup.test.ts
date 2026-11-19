@@ -416,7 +416,13 @@ describe('Protections', () => {
     const { ticket } = (await verified.json()) as { ticket: string };
     const created = await post(
       'compte',
-      { ticket, profile: 'praticien', firstName: 'Mariama', lastName: 'Soumah', password: '40718293' },
+      {
+        ticket,
+        profile: 'praticien',
+        firstName: 'Mariama',
+        lastName: 'Soumah',
+        password: '40718293',
+      },
       null,
     );
     expect(await created.json()).toEqual({ status: 'created' });
