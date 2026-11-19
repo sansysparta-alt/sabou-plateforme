@@ -8,9 +8,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:cryptography/cryptography.dart';
-
 import '../sync/database_key.dart';
+import 'sealed_files.dart';
 
 const _vaultKeyName = 'sabou.voice_vault_key';
 
@@ -86,34 +85,24 @@ String newClientKey([Random? random]) {
 
 /// Coffre des voix en attente, dans [directory] (espace privé de l'application).
 class VoiceVault {
-  VoiceVault({required this.directory, required this.secrets, Random? random})
-    : _random = random ?? Random.secure();
+  VoiceVault({
+    required this.directory,
+    required SecretStore secrets,
+    Random? random,
+  }) : _random = random ?? Random.secure(),
+       _files = SealedFiles(
+         directory: directory,
+         secrets: secrets,
+         keyName: _vaultKeyName,
+         random: random,
+       );
 
   final Directory directory;
-  final SecretStore secrets;
   final Random _random;
-  final _cipher = AesGcm.with256bits();
-  SecretKey? _key;
+  final SealedFiles _files;
 
   File get _index => File('${directory.path}/attente.json');
-  File _file(String clientKey) => File('${directory.path}/$clientKey.voix');
-
-  Future<SecretKey> _secretKey() async {
-    if (_key != null) return _key!;
-    var hex = await secrets.read(_vaultKeyName);
-    if (hex == null || hex.length != 64) {
-      hex = List.generate(
-        32,
-        (_) => _random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-      ).join();
-      await secrets.write(_vaultKeyName, hex);
-    }
-    final bytes = [
-      for (var i = 0; i < 64; i += 2)
-        int.parse(hex.substring(i, i + 2), radix: 16),
-    ];
-    return _key = SecretKey(bytes);
-  }
+  String _name(String clientKey) => '$clientKey.voix';
 
   /// Envois en attente, du plus ancien au plus récent.
   Future<List<PendingVoice>> pending() async {
@@ -154,12 +143,10 @@ class VoiceVault {
       contentType: contentType,
       recordedAt: now ?? DateTime.now(),
     );
-    final box = await _cipher.encrypt(audio, secretKey: await _secretKey());
-    await directory.create(recursive: true);
-    await _file(voice.clientKey).writeAsBytes(box.concatenation(), flush: true);
+    await _files.write(_name(voice.clientKey), audio);
     final list = await pending();
     for (final old in list.where((p) => p.sameTarget(voice))) {
-      await _delete(old.clientKey);
+      await _files.delete(_name(old.clientKey));
     }
     await _save([...list.where((p) => !p.sameTarget(voice)), voice]);
     return voice;
@@ -167,18 +154,16 @@ class VoiceVault {
 
   /// Voix déchiffrée (réécoute avant l'envoi, envoi).
   Future<List<int>> read(PendingVoice voice) async {
-    final bytes = await _file(voice.clientKey).readAsBytes();
-    final box = SecretBox.fromConcatenation(
-      bytes,
-      nonceLength: _cipher.nonceLength,
-      macLength: _cipher.macAlgorithm.macLength,
-    );
-    return _cipher.decrypt(box, secretKey: await _secretKey());
+    final bytes = await _files.read(_name(voice.clientKey));
+    if (bytes == null) {
+      throw const FileSystemException('Voix absente du coffre');
+    }
+    return bytes;
   }
 
   /// Retire l'envoi et efface son fichier (reçu par le serveur, ou abandonné).
   Future<void> remove(PendingVoice voice) async {
-    await _delete(voice.clientKey);
+    await _files.delete(_name(voice.clientKey));
     final list = await pending();
     await _save(list.where((p) => p.clientKey != voice.clientKey).toList());
   }
@@ -191,13 +176,27 @@ class VoiceVault {
     ]);
   }
 
-  Future<void> _delete(String clientKey) async {
-    final file = _file(clientKey);
-    if (await file.exists()) await file.delete();
+  /// US-080 : un traitement créé hors réseau a reçu son code du serveur ; ses voix en attente
+  /// (rangées sous son identifiant local) partent désormais sous ce code.
+  Future<void> recode(String localId, String code) async {
+    final list = await pending();
+    await _save([
+      for (final p in list) p.code == localId ? p.withCode(code) : p,
+    ]);
   }
 }
 
 extension on PendingVoice {
+  PendingVoice withCode(String newCode) => PendingVoice(
+    clientKey: clientKey,
+    code: newCode,
+    target: target,
+    object: object,
+    contentType: contentType,
+    recordedAt: recordedAt,
+    error: error,
+  );
+
   bool sameTarget(PendingVoice other) =>
       code == other.code && target == other.target && object == other.object;
 }
