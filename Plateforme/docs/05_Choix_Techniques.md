@@ -1069,3 +1069,24 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Studio web | Pages, styles et tests retirés du site ; l'API et la base restent (Studio mobile, US-067) | Critère 2 de US-068 |
 | Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
 | Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |
+
+### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
+
+Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Feuille servie | `sabou.min.css`, réunion minifiée de `tokens.css` et `sabou.css` (≈ 14 Ko) par `infra/local/keycloak/theme-css.mjs` (lightningcss 1.33.0, déjà présent dans les dépendances) | Mesure sur 5 passages : LCP 2,18 à 2,46 s (au lieu de 2,44 à 2,77 s) ; différer `telephone.js` n'apportait rien (mesuré) |
+| Sources | On modifie `tokens.css` et `sabou.css`, lisibles et commentés ; le fichier généré est versionné (Keycloak sert le dossier du thème tel quel) | Pas d'étape de compilation pour Keycloak |
+| Contrôle | `infra/ci/lint.sh` échoue si `sabou.min.css` n'est pas à jour (`--check`) ; exclu de Prettier | Le fichier généré ne peut pas dériver de ses sources |
+
+### 2.73 Pipeline avant fusion et pipeline de fin de sprint (décision du maître d'œuvre du 19 novembre 2026)
+
+Constat : une nuit de travail perdue à relancer le pipeline complet sur le poste du maître d'œuvre (1 h 20 par passage, mémoire insuffisante, arrêts de Docker, mesure Lighthouse à la limite). Le maître d'œuvre juge le backlog trop exigeant pour avancer vite et allège les contrôles.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Avant chaque fusion | `ci.yml` (GitHub) et `pnpm ci:local` (`infra/ci/all.sh`) : contrôles du dépôt, lint, tests unitaires et de la base, compilation, bout en bout du site, de la gestion (avec axe) et du compte citoyen, lecture audio, application mobile, variables d'environnement. Lighthouse désactivé (`RECIT_LIGHTHOUSE=0`) | Prouver que tout fonctionne, en 40 min environ au lieu de 1 h 20 |
+| Fin de sprint et avant toute mise en production | `fin-de-sprint.yml` (à la main, et après chaque fusion dans `main`) et `pnpm ci:fin-sprint` (`infra/ci/fin-sprint.sh`) : Lighthouse (gestion, site, connexion Keycloak), Trivy, Semgrep, analyse des images | Vitesse et sécurité vérifiées sans bloquer le développement ; seuils inchangés |
+| Où tournent les pipelines | Sur GitHub : dépôt rendu public par le maître d'œuvre le 19 novembre 2026 jusqu'au 1er décembre (minutes illimitées), puis privé avec le quota gratuit du mois. Aucune solution payante | Le portable du maître d'œuvre reste libre ; il n'attend plus devant l'écran |
+| Garde-fou | `check-repo.sh` : tout workflow se déclenche sur les demandes de fusion et sur `main`, sauf `fin-de-sprint.yml`, qui doit pouvoir être lancé à la main | La règle d'origine tient pour tous les autres workflows |

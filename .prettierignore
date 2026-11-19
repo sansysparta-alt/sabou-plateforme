@@ -8,3 +8,6 @@ dist/
 coverage/
 # Application Flutter : formatée par dart format (job Flutter) ; pubspec.yaml est réécrit par Flutter
 apps/mobile/
+
+# Généré par infra/local/keycloak/theme-css.mjs (contrôlé par infra/ci/lint.sh)
+infra/local/keycloak/themes/sabou/login/resources/css/sabou.min.css
