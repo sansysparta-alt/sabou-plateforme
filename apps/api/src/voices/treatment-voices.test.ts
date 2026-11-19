@@ -16,6 +16,7 @@ import {
   NameVoiceDepositError,
   NameVoiceNotAllowedError,
   NameVoiceNotFoundError,
+  NameVoiceSelfValidationError,
   NameVoiceTransitionError,
 } from './name-voices.repository';
 import { TreatmentVoicesController } from './treatment-voices.controller';
@@ -256,6 +257,28 @@ describe('Critère : voix locale par section, envoi au régional', () => {
       expect(response.status).toBe(status);
       expect(((await response.json()) as { error: string }).error).toBe(code);
     }
+  });
+});
+
+describe('Critère US-072 : validation ou renvoi motivé', () => {
+  it('valider, renvoyer avec motif ; renvoi sans motif refusé avant la base', async () => {
+    const path = `${BASE}/REC-0001/cycle/pul/statut`;
+    expect((await request('POST', path, { vers: 'valide' })).status).toBe(200);
+    expect((await request('POST', path, { vers: 'brouillon' })).status).toBe(400);
+    expect((await request('POST', path, { vers: 'brouillon', motif: ' Mal dit ' })).status).toBe(
+      200,
+    );
+    expect(calls.map((c) => c[5])).toEqual([
+      { vers: 'valide', motif: null },
+      { vers: 'brouillon', motif: 'Mal dit' },
+    ]);
+  });
+
+  it('valideur qui a enregistré ou envoyé la voix : refus traduit en clair', async () => {
+    failure = new NameVoiceSelfValidationError();
+    const response = await request('POST', `${BASE}/REC-0001/cycle/pul/statut`, { vers: 'valide' });
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { error: string }).error).toBe('self_validation');
   });
 });
 

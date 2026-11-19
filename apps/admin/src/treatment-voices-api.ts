@@ -27,7 +27,7 @@ export const moveTreatmentVoice = (
   code: string,
   type: TreatmentSectionType,
   langue: string,
-  vers: 'traduit',
+  vers: 'traduit' | 'valide' | 'brouillon',
   motif: string | null = null,
 ) => call<TreatmentVoices>(`${voicePath(code, type, langue)}/statut`, { vers, motif });
 

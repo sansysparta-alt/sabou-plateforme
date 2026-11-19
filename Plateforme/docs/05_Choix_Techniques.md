@@ -1254,3 +1254,14 @@ Décision du maître d'œuvre du 19 novembre 2026 : le « résumé » du préfec
 | Studio du praticien | Les sections sont mises à jour sur place au lieu d'être supprimées puis recréées | Sans cela, un nouvel enregistrement du brouillon effaçait les voix (suppression en cascade) |
 | Écritures | `recette_section_voix` et `recette_section_revision` cloisonnées (RLS) et écrites seulement par les fonctions de la base | Même principe que les autres tables métier |
 | Écran | « Résumés et traductions » (menu Langue du préfectoral), un traitement par ligne, détail dans le panneau latéral (§2.76), chargé à l'ouverture seulement | Réseau 3G ; même gabarit que les files |
+
+### 2.80 Atelier linguistique : validation des voix des traitements (US-072, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Qui valide | Le régional de la région du praticien, avec le droit de valider dans la langue (R-GOV-03, R-GOV-06) ; la DG aussi, de zone nationale, dans les langues où elle a ce droit | Le français n'est la langue d'aucune région : sans la DG, personne ne validerait les voix françaises |
+| Séparation des tâches | Le valideur n'est ni celui qui a enregistré, ni celui qui a envoyé la voix (R-GOV-07) | Contrôle en base, en plus de la contrainte `ck_rsv_separation` |
+| Renvoi | En brouillon avec un motif obligatoire, aussi pour une voix déjà validée ; le contrôle éventuel du Comité est effacé | Même règle que la voix des noms (§2.47) |
+| Ce que voit le régional | Traitements de sa région (cloisonnement), voix des seules langues qu'il valide ; les traitements avec des voix à valider en tête | Critère de US-072 |
+| Écran | Même écran que « Résumés et traductions » en mode atelier ; texte français et voix côte à côte sur ordinateur (`.ui-split`), empilés sur téléphone | Un seul gabarit à maintenir |
+

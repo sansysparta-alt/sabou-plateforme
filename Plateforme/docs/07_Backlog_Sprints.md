@@ -815,6 +815,8 @@ Critères d’acceptation :
 - Écoute de la voix et lecture du texte français côte à côte.
 - Validation ou renvoi motivé ; seules les voix de ma langue et de ma région apparaissent.
 
+Réalisation (19 novembre 2026, 05 §2.80) : écran « Atelier linguistique » ; validation par le régional de la région du praticien dans les langues où il a le droit de valider (la DG aussi, pour le français) ; le valideur n’est ni l’auteur ni l’expéditeur de la voix ; renvoi en brouillon avec motif.
+
 #### US-073 · Contrôler la voix des effets indésirables dans chaque langue
 *Voix et gouvernance linguistique* · **Must** · 3 points · cas : UC-53
 

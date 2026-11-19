@@ -1,4 +1,5 @@
-// US-075 : écran « Résumés et traductions » du préfectoral. API simulée ; les règles (zone,
+// US-075 et US-072 : écrans « Résumés et traductions » du préfectoral et « Atelier
+// linguistique » du régional. API simulée ; les règles (zone,
 // statut du traitement, droits par langue, historique) sont prouvées par la base
 // (packages/db/test/resume-voix-locale.test.ts) et l'API
 // (apps/api/src/voices/treatment-voices.test.ts).
@@ -25,6 +26,7 @@ const TARGETS: TreatmentVoiceTarget[] = [
     traduites: 0,
     validees: 0,
     publiees: 0,
+    aValider: 0,
   },
 ];
 const entry = (over: Partial<TreatmentVoiceEntry>): TreatmentVoiceEntry => ({
@@ -192,5 +194,85 @@ describe('Critère : voix locale par section, envoi au régional', () => {
     voices = { ...voices, prefectoral: false, peutReviser: false };
     const row = await openTreatment();
     expect(within(row).queryByRole('button', { name: /Enregistrer|Envoyer|Réviser/ })).toBeNull();
+  });
+});
+
+describe('Atelier linguistique (US-072)', () => {
+  const workshop = () => {
+    voices = {
+      ...voices,
+      prefectoral: false,
+      peutReviser: false,
+      sections: [
+        section({
+          voix: [
+            entry({ statut: 'traduit', enregistrePar: 'Ibrahima Sow', peutValider: true }),
+            entry({
+              langue: 'fr',
+              langueNom: 'Français',
+              statut: 'traduit',
+              enregistrePar: 'Ibrahima Sow',
+            }),
+            entry({ langue: 'mal', langueNom: 'Malinké', peutValider: true }),
+          ],
+        }),
+      ],
+    };
+  };
+  const openWorkshop = async () => {
+    render(<TreatmentVoicesPage mode="atelier" />);
+    const row = await openDossier(/REC-0007/);
+    await within(row).findByRole('heading', { name: 'Mode de préparation' });
+    return row;
+  };
+
+  it('critère : écoute de la voix et texte français côte à côte', async () => {
+    workshop();
+    const row = await openWorkshop();
+    const split = row.querySelector('.ui-split')!;
+    expect(within(split as HTMLElement).getByText('Faire bouillir les gousses.')).toBeTruthy();
+    expect(within(split as HTMLElement).getByLabelText(/voix en Pular/)).toBeTruthy();
+  });
+
+  it('critère : seules les voix de mes langues apparaissent (pas le français non validable)', async () => {
+    workshop();
+    const row = await openWorkshop();
+    const list = within(row).getByRole('list', { name: 'Voix : Mode de préparation' });
+    expect(within(list).getByText('Pular')).toBeTruthy();
+    expect(within(list).queryByText('Français')).toBeNull();
+    expect(within(list).queryByText('Malinké')).toBeNull();
+    expect(within(row).queryByRole('button', { name: /Enregistrer|Envoyer|Réviser/ })).toBeNull();
+  });
+
+  it('critère : validation, ou renvoi avec motif obligatoire', async () => {
+    workshop();
+    const row = await openWorkshop();
+    fireEvent.click(within(row).getByRole('button', { name: 'Valider la voix en Pular' }));
+    expect(await within(row).findByText('Voix en Pular validée.')).toBeTruthy();
+    fireEvent.click(within(row).getByRole('button', { name: 'Renvoyer la voix en Pular' }));
+    fireEvent.click(within(row).getByRole('button', { name: 'Confirmer le renvoi' }));
+    expect(await within(row).findByText('Saisissez le motif du renvoi.')).toBeTruthy();
+    fireEvent.change(within(row).getByLabelText(/Motif du renvoi/), {
+      target: { value: 'Mot mal prononcé' },
+    });
+    fireEvent.click(within(row).getByRole('button', { name: 'Confirmer le renvoi' }));
+    expect(await within(row).findByText(/renvoyée en brouillon/)).toBeTruthy();
+    expect(bodies('POST')).toEqual([
+      [
+        '/api/voix-des-traitements/REC-0007/preparation/pul/statut',
+        { vers: 'valide', motif: null },
+      ],
+      [
+        '/api/voix-des-traitements/REC-0007/preparation/pul/statut',
+        { vers: 'brouillon', motif: 'Mot mal prononcé' },
+      ],
+    ]);
+  });
+
+  it('une voix que j’ai enregistrée : pas de bouton Valider (séparation des tâches)', async () => {
+    workshop();
+    voices.sections[0]!.voix[0] = { ...voices.sections[0]!.voix[0]!, parMoi: true };
+    const row = await openWorkshop();
+    expect(within(row).queryByRole('button', { name: /Valider/ })).toBeNull();
   });
 });

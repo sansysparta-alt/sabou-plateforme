@@ -67,6 +67,10 @@ const NameVoicesPage = lazy(() =>
 const TreatmentVoicesPage = lazy(() =>
   loaders.treatmentVoices().then((m) => ({ default: m.TreatmentVoicesPage })),
 );
+// Même écran que les résumés, en mode atelier (US-072)
+function LanguageWorkshopPage() {
+  return <TreatmentVoicesPage mode="atelier" />;
+}
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
 );
@@ -94,6 +98,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/voix-des-noms': loaders.nameVoices,
   '/traitements': loaders.treatments,
   '/resumes-traductions': loaders.treatmentVoices,
+  '/atelier-linguistique': loaders.treatmentVoices,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -115,6 +120,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/voix-des-noms': ['/api/voix-des-noms'],
   '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
   '/resumes-traductions': ['/api/voix-des-traitements'],
+  '/atelier-linguistique': ['/api/voix-des-traitements'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -371,6 +377,13 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/traitements', label: 'Traitements à transmettre', icon: 'flask' },
       ],
     });
+    groups.push({
+      heading: 'Langue',
+      items: [
+        // US-072 : validation des voix des traitements de la région
+        { href: '/atelier-linguistique', label: 'Atelier linguistique', icon: 'languages' },
+      ],
+    });
   }
   if (isCommittee(user)) {
     groups.push({
@@ -452,6 +465,7 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/consolidation': ConsolidationPage,
   '/agents-verification': VerifierDesignationPage,
   '/traitements': TreatmentsPage,
+  '/atelier-linguistique': LanguageWorkshopPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,

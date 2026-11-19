@@ -27,12 +27,18 @@ import {
   reviseTreatmentSection,
   treatmentVoiceAudioUrl,
 } from './treatment-voices-api';
-import { RecordForm, STATUS } from './VoiceForms';
+import { RecordForm, SendBackForm, STATUS } from './VoiceForms';
 
-// Voix des sections des traitements. Résumés et traductions (US-075, UC-33) : le préfectoral
-// de la préfecture du praticien révise le texte français de chaque section tant que le
-// traitement est soumis, enregistre la voix locale de chaque section, puis l'envoie au
-// régional de la langue. La base contrôle chaque geste (zone, droits par langue, statut).
+// Voix des sections des traitements, un écran par profil :
+// - Résumés et traductions (US-075, UC-33) : le préfectoral de la préfecture du praticien
+//   révise le texte français de chaque section tant que le traitement est soumis, enregistre la
+//   voix locale de chaque section, puis l'envoie au régional de la langue ;
+// - Atelier linguistique (US-072, UC-41) : le régional écoute les voix de ses langues, pour les
+//   traitements de sa région, à côté du texte français, et les valide ou les renvoie avec un
+//   motif.
+// La base contrôle chaque geste (zone, droits par langue, séparation des tâches, statut).
+export type TreatmentVoicesMode = 'resumes' | 'atelier';
+const MODE_PATH = { resumes: '/resumes-traductions', atelier: '/atelier-linguistique' } as const;
 
 // Défini ici plutôt qu'importé de @sabou/types : l'application n'en importe que des types
 const TEXT_MAX_LENGTH = 4000;
@@ -48,8 +54,8 @@ const TREATMENT_STATUS: Record<string, string> = {
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
-export function TreatmentVoicesPage() {
-  const header = PAGE_HEADERS['/resumes-traductions'];
+export function TreatmentVoicesPage({ mode = 'resumes' }: { mode?: TreatmentVoicesMode }) {
+  const header = PAGE_HEADERS[MODE_PATH[mode]];
   const [targets, setTargets] = useState<TreatmentVoiceTarget[] | null>(null);
   const [loadError, setLoadError] = useState<string>();
   const [query, setQuery] = useState('');
@@ -67,10 +73,13 @@ export function TreatmentVoicesPage() {
   }, []);
 
   const term = foldText(query.trim());
-  const rows = (targets ?? []).filter(
-    (t) =>
-      term === '' || foldText(`${t.code} ${t.titre} ${t.maladie} ${t.praticien}`).includes(term),
-  );
+  const rows = (targets ?? [])
+    .filter(
+      (t) =>
+        term === '' || foldText(`${t.code} ${t.titre} ${t.maladie} ${t.praticien}`).includes(term),
+    )
+    // Atelier : les traitements qui ont des voix à valider d'abord
+    .sort((a, b) => (mode === 'atelier' ? b.aValider - a.aValider : 0));
 
   return (
     <>
@@ -104,12 +113,20 @@ export function TreatmentVoicesPage() {
                   <Badge tone={t.statut === 'soumise' ? 'warning' : 'neutral'}>
                     {TREATMENT_STATUS[t.statut] ?? t.statut}
                   </Badge>{' '}
-                  · voix : {t.brouillons} en brouillon, {t.traduites} envoyées, {t.publiees}{' '}
-                  publiées
+                  {mode === 'atelier' ? (
+                    <>
+                      · <strong>{t.aValider} à valider</strong>, {t.validees} validées
+                    </>
+                  ) : (
+                    <>
+                      · voix : {t.brouillons} en brouillon, {t.traduites} envoyées, {t.publiees}{' '}
+                      publiées
+                    </>
+                  )}
                 </>
               }
             >
-              {opened.has(t.code) ? <TreatmentDetail code={t.code} /> : null}
+              {opened.has(t.code) ? <TreatmentDetail code={t.code} mode={mode} /> : null}
             </DossierRow>
           ))}
         </ul>
@@ -118,7 +135,7 @@ export function TreatmentVoicesPage() {
   );
 }
 
-function TreatmentDetail({ code }: { code: string }) {
+function TreatmentDetail({ code, mode }: { code: string; mode: TreatmentVoicesMode }) {
   const [voices, setVoices] = useState<TreatmentVoices | null>(null);
   const [error, setError] = useState<string>();
 
@@ -147,25 +164,37 @@ function TreatmentDetail({ code }: { code: string }) {
         </p>
       )}
       {voices.sections.map((section) => (
-        <SectionVoices key={section.type} voices={voices} section={section} onChange={setVoices} />
+        <SectionVoices
+          key={section.type}
+          mode={mode}
+          voices={voices}
+          section={section}
+          onChange={setVoices}
+        />
       ))}
     </>
   );
 }
 
 // Gestes possibles pour le compte connecté ; la base les contrôle aussi
-function actionsFor(entry: TreatmentVoiceEntry, prefectoral: boolean) {
+function actionsFor(entry: TreatmentVoiceEntry, prefectoral: boolean, mode: TreatmentVoicesMode) {
+  const resumes = mode === 'resumes' && prefectoral;
+  const atelier = mode === 'atelier' && entry.peutValider;
   return {
-    record: prefectoral && entry.peutEnregistrer,
-    send: prefectoral && entry.statut === 'brouillon' && (entry.parMoi || entry.peutTraduire),
+    record: resumes && entry.peutEnregistrer,
+    send: resumes && entry.statut === 'brouillon' && (entry.parMoi || entry.peutTraduire),
+    validate: atelier && entry.statut === 'traduit' && !entry.parMoi,
+    sendBack: atelier && (entry.statut === 'traduit' || entry.statut === 'valide'),
   };
 }
 
 function SectionVoices({
+  mode,
   voices,
   section,
   onChange,
 }: {
+  mode: TreatmentVoicesMode;
   voices: TreatmentVoices;
   section: TreatmentVoiceSection;
   onChange: (v: TreatmentVoices) => void;
@@ -173,9 +202,9 @@ function SectionVoices({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const [form, setForm] = useState<{ kind: 'revise' } | { kind: 'record'; langue: string } | null>(
-    null,
-  );
+  const [form, setForm] = useState<
+    { kind: 'revise' } | { kind: 'record' | 'sendBack'; langue: string } | null
+  >(null);
 
   async function act(run: () => Promise<TreatmentVoices>, done: string) {
     setBusy(true);
@@ -192,12 +221,17 @@ function SectionVoices({
     }
   }
 
-  // Langues montrées : celles où une voix existe, ou où le compte peut enregistrer
-  const languages = section.voix.filter(
-    (e) => e.statut !== null || (voices.prefectoral && e.peutEnregistrer),
+  // Langues montrées. Résumés : celles où une voix existe, ou où le compte peut enregistrer.
+  // Atelier : seules les voix des langues que le compte valide (critère de US-072).
+  const languages = section.voix.filter((e) =>
+    mode === 'atelier'
+      ? e.statut !== null && e.peutValider
+      : e.statut !== null || (voices.prefectoral && e.peutEnregistrer),
   );
   const headingId = `section-${voices.code}-${section.type}`;
   const recordLanguage = form?.kind === 'record' ? form.langue : null;
+  const sendBackLanguage = form?.kind === 'sendBack' ? form.langue : null;
+  const languageName = (code: string) => section.voix.find((e) => e.langue === code)!.langueNom;
 
   return (
     <section className="ui-section" aria-labelledby={headingId}>
@@ -208,123 +242,177 @@ function SectionVoices({
           {notice}
         </p>
       )}
-      <p className="ui-prose">{section.texteFr}</p>
-      {section.texteEn && (
-        <p className="ui-prose" lang="en">
-          {section.texteEn}
-        </p>
-      )}
-      {section.revisions.length > 0 && (
-        <details>
-          <summary>Texte d’origine et révisions ({section.revisions.length})</summary>
-          <ol>
-            {section.revisions.map((r) => (
-              <li key={r.le}>
-                Révisé par {r.par} le {new Date(r.le).toLocaleDateString('fr-FR')}. Texte précédent
-                : « {r.avant} »
-              </li>
-            ))}
-          </ol>
-        </details>
-      )}
-      {voices.peutReviser && form?.kind !== 'revise' && (
-        <div className="ui-actions">
-          <Button variant="secondary" disabled={busy} onClick={() => setForm({ kind: 'revise' })}>
-            Réviser le texte français{' '}
-            <span className="ui-visually-hidden">: {section.libelle}</span>
-          </Button>
+      {/* Texte français et voix côte à côte sur ordinateur (critère de US-072) */}
+      <div className="ui-split">
+        <div>
+          <p className="ui-prose">{section.texteFr}</p>
+          {section.texteEn && (
+            <p className="ui-prose" lang="en">
+              {section.texteEn}
+            </p>
+          )}
+          {section.revisions.length > 0 && (
+            <details>
+              <summary>Texte d’origine et révisions ({section.revisions.length})</summary>
+              <ol>
+                {section.revisions.map((r) => (
+                  <li key={r.le}>
+                    Révisé par {r.par} le {new Date(r.le).toLocaleDateString('fr-FR')}. Texte
+                    précédent : « {r.avant} »
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+          {voices.peutReviser && form?.kind !== 'revise' && (
+            <div className="ui-actions">
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setForm({ kind: 'revise' })}
+              >
+                Réviser le texte français{' '}
+                <span className="ui-visually-hidden">: {section.libelle}</span>
+              </Button>
+            </div>
+          )}
+          {form?.kind === 'revise' && (
+            <ReviseForm
+              section={section}
+              busy={busy}
+              onCancel={() => setForm(null)}
+              onSubmit={(texteFr, texteEn) =>
+                act(
+                  () => reviseTreatmentSection(voices.code, section.type, texteFr, texteEn),
+                  'Texte révisé ; le texte précédent reste dans l’historique.',
+                )
+              }
+            />
+          )}
         </div>
-      )}
-      {form?.kind === 'revise' && (
-        <ReviseForm
-          section={section}
+        <div>
+          {languages.length === 0 ? (
+            <p>
+              {mode === 'atelier'
+                ? 'Aucune voix dans vos langues pour cette section.'
+                : 'Aucune voix, et aucune langue où vous pouvez enregistrer.'}
+            </p>
+          ) : (
+            <ul className="ui-list" aria-label={`Voix : ${section.libelle}`}>
+              {languages.map((e) => {
+                const can = actionsFor(e, voices.prefectoral, mode);
+                return (
+                  <li key={e.langue}>
+                    <strong>{e.langueNom}</strong>{' '}
+                    {e.statut ? (
+                      <Badge tone={STATUS[e.statut][1]}>{STATUS[e.statut][0]}</Badge>
+                    ) : (
+                      <Badge tone="neutral">Aucune voix</Badge>
+                    )}
+                    {e.statut && (
+                      <span>
+                        {' '}
+                        · enregistrée par {e.enregistrePar}
+                        {!e.consentement && ' · sans consentement de publication'}
+                        {e.motif && ` · renvoyée : ${e.motif}`}
+                      </span>
+                    )}
+                    {e.statut && (
+                      <audio
+                        controls
+                        preload="none"
+                        aria-label={`${section.libelle}, voix en ${e.langueNom}`}
+                      >
+                        <source
+                          src={treatmentVoiceAudioUrl(voices.code, section.type, e.langue)}
+                          type="audio/webm"
+                        />
+                        {e.secours && (
+                          <source
+                            src={treatmentVoiceAudioUrl(voices.code, section.type, e.langue, true)}
+                            type="audio/mp4"
+                          />
+                        )}
+                      </audio>
+                    )}
+                    <div className="ui-actions">
+                      {can.record && (
+                        <Button
+                          variant="secondary"
+                          disabled={busy}
+                          onClick={() => setForm({ kind: 'record', langue: e.langue })}
+                        >
+                          {e.statut ? 'Réenregistrer' : 'Enregistrer'}{' '}
+                          <span className="ui-visually-hidden">en {e.langueNom}</span>
+                        </Button>
+                      )}
+                      {can.send && (
+                        <Button
+                          variant="primary"
+                          disabled={busy}
+                          onClick={() =>
+                            act(
+                              () =>
+                                moveTreatmentVoice(voices.code, section.type, e.langue, 'traduit'),
+                              `Voix en ${e.langueNom} envoyée à l’administrateur régional.`,
+                            )
+                          }
+                        >
+                          Envoyer au régional{' '}
+                          <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
+                        </Button>
+                      )}
+                      {can.validate && (
+                        <Button
+                          variant="primary"
+                          disabled={busy}
+                          onClick={() =>
+                            act(
+                              () =>
+                                moveTreatmentVoice(voices.code, section.type, e.langue, 'valide'),
+                              `Voix en ${e.langueNom} validée.`,
+                            )
+                          }
+                        >
+                          Valider{' '}
+                          <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
+                        </Button>
+                      )}
+                      {can.sendBack && (
+                        <Button
+                          variant="tertiary"
+                          disabled={busy}
+                          onClick={() => setForm({ kind: 'sendBack', langue: e.langue })}
+                        >
+                          Renvoyer{' '}
+                          <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+      {sendBackLanguage && (
+        <SendBackForm
+          title={`${section.libelle} : renvoyer la voix en ${languageName(sendBackLanguage)}`}
           busy={busy}
           onCancel={() => setForm(null)}
-          onSubmit={(texteFr, texteEn) =>
+          onSubmit={(motif) =>
             act(
-              () => reviseTreatmentSection(voices.code, section.type, texteFr, texteEn),
-              'Texte révisé ; le texte précédent reste dans l’historique.',
+              () =>
+                moveTreatmentVoice(voices.code, section.type, sendBackLanguage, 'brouillon', motif),
+              'Voix renvoyée en brouillon avec le motif.',
             )
           }
         />
       )}
-      {languages.length === 0 ? (
-        <p>Aucune voix, et aucune langue où vous pouvez enregistrer.</p>
-      ) : (
-        <ul className="ui-list" aria-label={`Voix : ${section.libelle}`}>
-          {languages.map((e) => {
-            const can = actionsFor(e, voices.prefectoral);
-            return (
-              <li key={e.langue}>
-                <strong>{e.langueNom}</strong>{' '}
-                {e.statut ? (
-                  <Badge tone={STATUS[e.statut][1]}>{STATUS[e.statut][0]}</Badge>
-                ) : (
-                  <Badge tone="neutral">Aucune voix</Badge>
-                )}
-                {e.statut && (
-                  <span>
-                    {' '}
-                    · enregistrée par {e.enregistrePar}
-                    {!e.consentement && ' · sans consentement de publication'}
-                    {e.motif && ` · renvoyée : ${e.motif}`}
-                  </span>
-                )}
-                {e.statut && (
-                  <audio
-                    controls
-                    preload="none"
-                    aria-label={`${section.libelle}, voix en ${e.langueNom}`}
-                  >
-                    <source
-                      src={treatmentVoiceAudioUrl(voices.code, section.type, e.langue)}
-                      type="audio/webm"
-                    />
-                    {e.secours && (
-                      <source
-                        src={treatmentVoiceAudioUrl(voices.code, section.type, e.langue, true)}
-                        type="audio/mp4"
-                      />
-                    )}
-                  </audio>
-                )}
-                <div className="ui-actions">
-                  {can.record && (
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => setForm({ kind: 'record', langue: e.langue })}
-                    >
-                      {e.statut ? 'Réenregistrer' : 'Enregistrer'}{' '}
-                      <span className="ui-visually-hidden">en {e.langueNom}</span>
-                    </Button>
-                  )}
-                  {can.send && (
-                    <Button
-                      variant="primary"
-                      disabled={busy}
-                      onClick={() =>
-                        act(
-                          () => moveTreatmentVoice(voices.code, section.type, e.langue, 'traduit'),
-                          `Voix en ${e.langueNom} envoyée à l’administrateur régional.`,
-                        )
-                      }
-                    >
-                      Envoyer au régional{' '}
-                      <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
-                    </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
       {recordLanguage && (
         <RecordForm
-          title={`${section.libelle} : voix en ${
-            section.voix.find((e) => e.langue === recordLanguage)!.langueNom
-          }`}
+          title={`${section.libelle} : voix en ${languageName(recordLanguage)}`}
           hint="La section dite à voix haute, 3 Mo au plus. Un nouvel enregistrement remplace la voix et la remet en brouillon."
           busy={busy}
           onCancel={() => setForm(null)}

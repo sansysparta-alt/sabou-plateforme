@@ -31,6 +31,8 @@ export interface TreatmentVoiceTarget {
   traduites: number;
   validees: number;
   publiees: number;
+  // Voix envoyées que le compte connecté peut valider (langues où il en a le droit, US-072)
+  aValider: number;
 }
 
 export interface TreatmentVoiceEntry {
@@ -114,7 +116,7 @@ export type TreatmentSectionRevise = z.infer<typeof treatmentSectionReviseSchema
 
 export const treatmentVoiceMoveSchema = z
   .object({
-    vers: z.enum(['traduit'], 'Statut invalide.'),
+    vers: z.enum(['traduit', 'valide', 'brouillon'], 'Statut invalide.'),
     motif: z
       .string()
       .trim()
@@ -125,5 +127,9 @@ export const treatmentVoiceMoveSchema = z
       .nullable()
       .default(null),
   })
-  .strict();
+  .strict()
+  .refine((m) => m.vers !== 'brouillon' || !!m.motif, {
+    message: 'Motif du renvoi : champ obligatoire.',
+    path: ['motif'],
+  });
 export type TreatmentVoiceMove = z.infer<typeof treatmentVoiceMoveSchema>;

@@ -81,7 +81,11 @@ export class TreatmentVoicesRepository {
                count(*) FILTER (WHERE v.statut = 'brouillon')::int AS brouillons,
                count(*) FILTER (WHERE v.statut = 'traduit')::int AS traduites,
                count(*) FILTER (WHERE v.statut = 'valide')::int AS validees,
-               count(*) FILTER (WHERE v.statut = 'publie')::int AS publiees
+               count(*) FILTER (WHERE v.statut = 'publie')::int AS publiees,
+               count(*) FILTER (WHERE v.statut = 'traduit' AND EXISTS (
+                 SELECT 1 FROM sabou.utilisateur_langue ul
+                  WHERE ul.utilisateur_id = sabou.contexte_utilisateur()
+                    AND ul.langue_code = v.langue_code AND ul.peut_valider))::int AS "aValider"
           FROM sabou.recette r
           JOIN sabou.maladie m ON m.id = r.maladie_id
           JOIN sabou.praticien p ON p.id = r.praticien_id
@@ -140,14 +144,13 @@ export class TreatmentVoicesRepository {
     langue: string,
     move: TreatmentVoiceMove,
   ): Promise<TreatmentVoices> {
-    // Un seul geste pour l'instant : l'envoi au régional (US-075)
-    void move;
-    return this.act(
-      sub,
-      ip,
-      code,
-      sql`SELECT sabou.traitement_voix_envoyer(${code}, ${type}, ${langue})`,
-    );
+    // Envoi au régional (US-075) ; validation ou renvoi motivé par le régional (US-072)
+    const statement =
+      move.vers === 'traduit'
+        ? sql`SELECT sabou.traitement_voix_envoyer(${code}, ${type}, ${langue})`
+        : sql`SELECT sabou.traitement_voix_valider(${code}, ${type}, ${langue},
+                                                   ${move.vers === 'valide'}, ${move.motif})`;
+    return this.act(sub, ip, code, statement);
   }
 
   // Fichier de la voix à écouter : Opus (WebM) ou secours AAC (MP4)

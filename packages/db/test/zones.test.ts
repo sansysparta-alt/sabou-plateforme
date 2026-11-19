@@ -344,6 +344,8 @@ describe('Garde-fous du schéma', () => {
       'traitement_soumettre',
       'traitement_voix_enregistrer',
       'traitement_voix_envoyer',
+      // US-072 : validation par le régional de la langue et de la région (05 §2.80)
+      'traitement_voix_valider',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',

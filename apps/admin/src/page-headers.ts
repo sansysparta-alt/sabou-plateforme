@@ -70,6 +70,10 @@ export const PAGE_HEADERS = {
     title: 'Résumés et traductions',
     lead: 'Traitements de votre préfecture : révisez le texte français de chaque section tant que le traitement est soumis, enregistrez la voix locale, puis envoyez-la à l’administrateur régional.',
   },
+  '/atelier-linguistique': {
+    title: 'Atelier linguistique',
+    lead: 'Voix des traitements de votre région, dans les langues que vous validez : écoutez chaque voix à côté du texte français, puis validez-la ou renvoyez-la avec un motif.',
+  },
   '/voix-des-noms': {
     title: 'Voix des noms',
     lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',
