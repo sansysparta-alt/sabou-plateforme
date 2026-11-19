@@ -1128,3 +1128,15 @@ Décisions du maître d'ouvrage des 17 et 18 novembre 2026 : un seul compte DG ;
 | Alertes | E-mail de Keycloak (le lien d'actions) et SMS `compte.dg_reinitialise` en file, dans la même transaction que le journal, validée seulement si Keycloak a tout accepté | Critère 4 ; les changements faits par un administrateur ne déclenchent pas l'écouteur `email` (§2.60) |
 
 Décisions du maître d'œuvre du 19 novembre 2026 : la suspension des DG en trop (la plus récente reste active) est acceptée ; la première exécution réelle de `dg:reinitialiser` se fait avec le maître d'œuvre, sur son poste (secrets de Keycloak).
+
+### 2.71 Agent de vérification désigné par l'administrateur régional (US-040d, 19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026 : quand la préfecture n'a qu'un agent, l'auteur d'un dossier terrain ne pouvant pas le vérifier (§2.69), l'administrateur régional désigne l'agent de vérification. Migration `20261119120000_verificateur_designe.sql`.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Donnée | Colonnes `dossier_certification.verificateur_designe` et `verificateur_designe_le` | Une désignation par dossier ; la date est posée par la base |
+| Contrôle | Déclencheur `trg_dossier_verificateur` sur toute écriture de ces colonnes : régional actif de la région du dossier, dossier terrain en cours aux étapes 1 ou 2, agent préfectoral actif de la région autre que l'auteur | La règle tient quel que soit le chemin d'écriture ; une nouvelle désignation remplace la précédente (agent absent ou suspendu) |
+| Écriture | Fonction `dossier_verificateur_designer(code, agent)`, dans le contexte du régional (cloisonnement appliqué), journal d'audit `dossier.verificateur_designe` (agent, précédent) | Critère 1 |
+| Lecture | Règle de `praticien` : la fiche est visible, en lecture seulement, par l'agent désigné, via `praticien_verificateur_designe` (SECURITY DEFINER, sans récursion entre les règles `praticien` et `dossier_certification`). Règle du dossier : l'agent désigné voit ce seul dossier, pas les autres dossiers du praticien ; pièces, visites et historique suivent leur dossier | Critère 2 : rien d'autre de la préfecture |
+| Étape 2 | `dossier_transition` : l'auteur reste refusé ; si un agent est désigné, lui seul vérifie ; sinon un agent de la préfecture du praticien | Critère 3 |
