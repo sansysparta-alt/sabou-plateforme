@@ -93,7 +93,10 @@ export class CertificationRepository {
                EXISTS (SELECT 1 FROM sabou.visite_terrain vt
                         WHERE vt.dossier_id = d.id AND vt.statut = 'realisee') AS "visiteRealisee",
                ${visitOf(sql.ref('d.id'))} AS visite,
-               v.prenom || ' ' || v.nom AS verificateur
+               v.prenom || ' ' || v.nom AS verificateur,
+               coalesce(d.cree_par = sabou.contexte_utilisateur(), false) AS auteur,
+               coalesce(d.verificateur_designe = sabou.contexte_utilisateur(), false)
+                 AS "verificateurEstMoi"
           FROM sabou.dossier_certification d
           JOIN sabou.praticien p   ON p.id = d.praticien_id
           JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
