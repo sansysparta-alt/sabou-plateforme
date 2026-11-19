@@ -33,6 +33,17 @@ jobs:
           cache: pnpm
       - run: bash infra/ci/install.sh
       - run: bash infra/ci/e2e-admin.sh
+      # Rapports Lighthouse gardés 14 jours, réussite ou échec : diagnostic d'une page lente
+      # sans relancer la mesure
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: rapports-lighthouse
+          path: |
+            apps/admin/.lighthouse/
+            apps/site/.lighthouseci/
+          retention-days: 14
+          if-no-files-found: ignore
 
   audit:
     name: Analyse des dépendances (Trivy)
