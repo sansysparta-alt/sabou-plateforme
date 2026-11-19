@@ -8,6 +8,9 @@ import { PHONE_ERROR, PHONE_REQUIRED, toInternational, toNationalMobile } from '
 // leurs propres parcours d'inscription.
 export const ACCOUNT_ROLES = ['dg', 'regional', 'prefectoral', 'scientifique'] as const;
 export const accountRoleSchema = z.enum(ACCOUNT_ROLES);
+// Rôles que la DG invite : jamais un second compte DG (US-024 ; la base le refuse aussi)
+export const INVITABLE_ROLES = ['regional', 'prefectoral', 'scientifique'] as const;
+export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 export type AccountRole = z.infer<typeof accountRoleSchema>;
 
 export const ACCOUNT_ROLE_LABELS: Record<AccountRole, string> = {
@@ -81,7 +84,10 @@ export const inviteRequestSchema = z
     firstName: name,
     lastName: name,
     phone: accountPhoneSchema,
-    role: accountRoleSchema,
+    role: z.enum(INVITABLE_ROLES, {
+      error:
+        'Rôle à choisir parmi régional, préfectoral ou Comité scientifique : il n’y a qu’un seul compte DG.',
+    }),
     regionId: id.nullable(),
     prefectureId: id.nullable(),
     // Préférence personnelle, choisie par la personne elle-même ; français à l'invitation

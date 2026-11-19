@@ -120,7 +120,13 @@ describe('Page Comptes', () => {
     const zone = () => within(form).getByText('Zone').nextElementSibling!.textContent;
     expect(zone()).toBe('Elle dépend du rôle choisi.');
     expect(within(form).queryByRole('combobox', { name: 'Zone' })).toBeNull();
-    fireEvent.change(role, { target: { value: 'dg' } });
+    // US-024 : un seul compte DG, jamais invité ; le Comité est national
+    expect(
+      within(role)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).not.toContain('Direction Générale');
+    fireEvent.change(role, { target: { value: 'scientifique' } });
     expect(zone()).toBe('Tout le pays');
     fireEvent.change(role, { target: { value: 'regional' } });
     expect(role.getAttribute('aria-describedby')).toBeTruthy();

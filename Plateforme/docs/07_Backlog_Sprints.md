@@ -723,6 +723,8 @@ Critères d’acceptation :
 - La DG est alertée par e-mail et par SMS (téléphone obligatoire, US-012b).
 - La procédure tient en une page dans la documentation d’exploitation.
 
+Décisions du maître d’œuvre du 19 novembre 2026 : sur une base qui porte plusieurs comptes DG actifs, la migration garde le plus récent et suspend les autres (rien n’est supprimé) ; la première exécution réelle de `dg:reinitialiser` se fait avec le maître d’œuvre, sur son poste.
+
 #### US-069 · Mot de passe oublié par SMS (praticien et citoyen)
 *Identité et accès* · **Must** · 5 points · §5.2
 

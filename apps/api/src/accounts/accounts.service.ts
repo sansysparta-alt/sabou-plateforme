@@ -36,6 +36,12 @@ function databaseError(error: unknown): unknown {
   if (code === '23505' && constraint === 'ux_utilisateur_email') {
     return new ConflictException('Un compte existe déjà avec cette adresse e-mail.');
   }
+  // Un seul compte DG actif (US-024)
+  if (code === '23505' && constraint === 'ux_utilisateur_dg_unique') {
+    return new ConflictException(
+      'Un compte DG est déjà actif : il n’y a qu’un seul compte DG. Sa récupération passe par l’administrateur technique.',
+    );
+  }
   if (code === '23514' && constraint === 'ck_zone_role') {
     return new BadRequestException('La zone ne correspond pas au rôle.');
   }
@@ -176,7 +182,7 @@ export class AccountsService {
       if (error instanceof AccountExistsError) {
         throw new ConflictException('Un compte existe déjà pour cette adresse e-mail.');
       }
-      throw error;
+      throw databaseError(error);
     }
     this.logger.log(`Invitation acceptée : compte ${String(created)}`);
   }
@@ -219,7 +225,11 @@ export class AccountsService {
 
   async reactivate(accountId: number, actor: Actor): Promise<void> {
     await this.repository.transaction(async (trx) => {
-      const change = await this.repository.changeStatus(trx, accountId, 'suspendu', 'actif');
+      const change = await this.repository
+        .changeStatus(trx, accountId, 'suspendu', 'actif')
+        .catch((error: unknown) => {
+          throw databaseError(error);
+        });
       if (!change) throw await this.statusError(accountId, 'suspendu');
       await this.audit.record(
         {

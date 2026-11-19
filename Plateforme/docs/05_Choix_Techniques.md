@@ -1122,6 +1122,21 @@ Décision du maître d'ouvrage du 18 novembre 2026 : le compte du praticien est 
 
 **Séparation des tâches à l'étape 2** (décision du maître d'œuvre du 19 novembre 2026) : l'agent qui a créé le dossier terrain ne le vérifie pas lui-même. La règle de l'étape 2 de `dossier_transition` refuse l'agent auteur (`cree_par`), y compris pour un renvoi ; un autre agent préfectoral de la même préfecture le vérifie. C'est le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, R-GOV-07), étendu à la certification. Solution de repli quand la préfecture n'a qu'un agent : l'administrateur régional désigne l'agent de vérification (US-040d).
 
+### 2.70 Un seul compte DG, récupérable par l'administrateur technique (US-024, 18 novembre 2026)
+
+Décisions du maître d'ouvrage des 17 et 18 novembre 2026 : un seul compte DG ; récupération par un script d'exploitation (`pnpm dg:reinitialiser --motif "…"`), sans écran. Procédure : `08_Exploitation_Recuperation_DG.md`.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Unicité | Index unique partiel `ux_utilisateur_dg_unique` (une seule ligne `role_code = 'dg'` active) ; l'API ne propose plus le rôle DG à l'invitation (`INVITABLE_ROLES`) et traduit le refus de la base (réactivation, ancienne invitation) en 409 expliqué | La règle tient même si l'API change ; une invitation de DG encore en attente est refusée à son activation |
+| Bases existantes | La migration laisse active la DG la plus récente et suspend les autres (bases de test seulement : une base réelle n'en a qu'une) ; rien n'est supprimé. Les tests de bout en bout suspendent la DG précédente avant d'en créer une | Sinon l'index ne se crée pas sur une base de test qui porte plusieurs DG d'essai |
+| Récupération | Script `packages/db/src/dg-reset.ts` : sessions fermées, double facteur retiré (par défaut) et/ou mise à jour du mot de passe demandée, par `execute-actions-email` de Keycloak (lien de 12 h envoyé **à la DG**) | L'opérateur ne connaît ni ne choisit aucun code : pas de porte dérobée. Pas d'emprunt d'identité, pas de jeton pour la DG |
+| Accès du script | Compte d'administration de Keycloak (domaine `master`) et migrateur de la base, lus dans le `.env` du poste d'exploitation | Aucun secret nouveau ; en production, un compte d'administration technique nominatif dans `master` (à créer avec le maître d'œuvre) |
+| Journal | `journal_audit` source `exploitation`, action `compte.dg_reinitialise` : opérateur, compte d'administration, motif, moyens, horodatage ; la base refuse une ligne de l'exploitation sans opérateur ou avec un motif de moins de 10 caractères (`ck_audit_exploitation`) | Critère 3 : qui, quand, pourquoi, motif obligatoire |
+| Alertes | E-mail de Keycloak (le lien d'actions) et SMS `compte.dg_reinitialise` en file, dans la même transaction que le journal, validée seulement si Keycloak a tout accepté | Critère 4 ; les changements faits par un administrateur ne déclenchent pas l'écouteur `email` (§2.60) |
+
+Décisions du maître d'œuvre du 19 novembre 2026 : la suspension des DG en trop (la plus récente reste active) est acceptée ; la première exécution réelle de `dg:reinitialiser` se fait avec le maître d'œuvre, sur son poste (secrets de Keycloak).
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
