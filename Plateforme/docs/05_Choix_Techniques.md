@@ -1181,3 +1181,15 @@ Remarques du maître d'œuvre du 19 novembre 2026 sur l'écran « Dossiers terra
 | Dépôt | Composant commun `FileButton` (`@sabou/ui`) : vrai champ fichier, focalisable, présenté comme un bouton ; le fichier choisi part aussitôt. « Remplacer » dépose le nouveau fichier puis retire l'ancien. Appliqué aussi à la photo de la fiche de visite (étape 2) | Un seul geste ; accessible au clavier et aux lecteurs d'écran (« Déposer la photo du praticien ») |
 | Boutons et cases grisés | La raison est écrite à côté et reliée par `aria-describedby` (soumission du dossier terrain, photo principale d'une plante ; les référentiels le faisaient déjà) | Un contrôle inactif sans explication bloque l'utilisateur |
 | Formulaires d'un dossier ouvert | Largeur de lecture (48 rem) ; éléments de liste alignés au centre | Lisibilité, alignement des boutons |
+
+### 2.75 Règle typographique (19 novembre 2026)
+
+Remarque du maître d'œuvre du 19 novembre 2026 : « les écritures sont petites en général ». L'échelle était standard (texte courant 16 px) ; c'est l'usage des petites tailles qui était trop large.
+
+| Niveau | Taille | Usage |
+|---|---|---|
+| Texte courant | 16 px (`--sabou-text-md`) | Tout ce qu'on lit en premier ou sur quoi on agit : titres des lignes de dossier, liens du menu, boutons, pagination, onglets segmentés, nom de la personne connectée |
+| Secondaire | 15 px (`--sabou-text-sm`, auparavant 14 px) | Repères d'une ligne, aides et erreurs des champs, en-têtes de tableau, badges |
+| Minimum | 14 px (`--sabou-text-xs`, auparavant 13 px) | Intitulés de rubrique du menu, compteurs ; jamais en dessous |
+
+Les trois copies des jetons restent identiques, vérifiées par les tests : `packages/ui/src/tokens.css` (source), la copie du thème Keycloak (et sa feuille compactée, §2.72) et `apps/mobile/lib/ui/tokens.dart`.
