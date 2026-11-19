@@ -56,6 +56,7 @@ const DETAIL: TreatmentDetail = {
   plantes: [],
   sections: [],
   voix: [],
+  versionsEcartees: [],
   contreIndications: [],
   visibilite: 'publique',
   consentementLe: '2026-11-16T10:00:00.000000Z',
@@ -90,6 +91,11 @@ const repository = {
     calls.push(['propose', sub, input]);
     if (failure) throw failure;
     return { code: 'PL-007', nomFr: 'Kinkéliba rouge', nomScientifique: null, validee: false };
+  },
+  async sync(sub: string, _ip: unknown, input: unknown) {
+    calls.push(['sync', sub, input]);
+    if (failure) throw failure;
+    return { conflit: 'remplacee', rejoue: false, soumissionManques: null, detail: DETAIL };
   },
   async submit(sub: string, _ip: unknown, code: string) {
     calls.push(['submit', sub, code]);
@@ -386,5 +392,44 @@ describe('US-054 : proposition d’une plante par le praticien', () => {
       (await call('POST', 'plantes', { token: 'jeton.citoyen.ok', body: { nomFr: 'P' } })).status,
     ).toBe(403);
     expect(calls).toEqual([]);
+  });
+});
+
+// US-080 : brouillon saisi hors réseau, rejoué au retour du réseau (R-DON-04 prouvée en base :
+// packages/db/test/studio-hors-reseau.test.ts)
+describe('US-080 : synchronisation hors réseau', () => {
+  const CLE = '80808080-8080-4080-8080-808080808080';
+
+  it('création hors réseau : clé et saisie transmises, conflit rendu au téléphone', async () => {
+    const response = await call('POST', 'synchro/traitements', {
+      body: { cle: CLE, code: null, vueLe: null, fields: FIELDS, soumettre: true },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ conflit: 'remplacee', rejoue: false });
+    expect(calls[0]).toEqual([
+      'sync',
+      SUB,
+      expect.objectContaining({ cle: CLE, code: null, vueLe: null, soumettre: true }),
+    ]);
+  });
+
+  it('clé absente ou invalide, code mal formé, champ inconnu : 400 avant la base', async () => {
+    for (const body of [
+      { code: null, vueLe: null, fields: FIELDS },
+      { cle: 'pas-une-cle', code: null, vueLe: null, fields: FIELDS },
+      { cle: CLE, code: 'XX', vueLe: null, fields: FIELDS },
+      { cle: CLE, code: null, vueLe: null, fields: FIELDS, autre: 1 },
+    ]) {
+      expect((await call('POST', 'synchro/traitements', { body })).status).toBe(400);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('sans jeton de l’application : 401', async () => {
+    const response = await call('POST', 'synchro/traitements', {
+      token: null,
+      body: { cle: CLE, code: null, vueLe: null, fields: FIELDS },
+    });
+    expect(response.status).toBe(401);
   });
 });
