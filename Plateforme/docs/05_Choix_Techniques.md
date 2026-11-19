@@ -1217,3 +1217,16 @@ Décision du maître d'œuvre du 19 novembre 2026, qui remplace le profil en bas
 | Colonne de navigation | Marque, rubriques et « Réduire le menu » seulement | Une zone, un rôle |
 | Accessibilité | Zone nommée « Compte connecté » (`section`, pas un second en-tête de page), un seul bouton de déconnexion, placé avant le contenu principal | Pas de repère de page en double ; lu en premier |
 | Nom | Jamais tronqué (US-016) : il passe à la ligne | Règle inchangée |
+
+### 2.78 Revue d'ergonomie d'ensemble (19 novembre 2026)
+
+Demande du maître d'œuvre du 19 novembre 2026 : quelques ajustements d'ensemble, sans casser ce qui est en place. Revue de onze écrans (DG, Comité, préfectoral) par captures.
+
+| Constat | Ajustement (niveau commun) |
+|---|---|
+| Menu de la DG plus haut qu'un écran de 768 px : « Référentiels » caché | Liens du menu à 40 px (cible de la DoD), groupes un peu plus serrés |
+| Action de l'en-tête tantôt à droite, tantôt sous l'introduction | Sur ordinateur, toujours à droite du titre |
+| Compteur des listes (« Dossiers à vérifier 16 ») peu lisible | Pastille bordée, 15 px, comme dans les onglets |
+| « Traitements à décider » répété (titre de page et de liste) | Liste renommée « Traitements en attente » |
+| Pages hors navigation (invitation, accès refusé) sans marque sur ordinateur | Bandeau de marque affiché à toutes les tailles |
+| Déconnexion en rouge ? | Non : le rouge reste réservé aux actions destructrices ou irréversibles (suspendre, désactiver, rejet définitif) ; la déconnexion est une action neutre |
