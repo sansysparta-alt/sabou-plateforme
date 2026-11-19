@@ -3,6 +3,7 @@ import { Alert, Badge, Button, PageHeader, SelectField } from '@sabou/ui';
 import type { DesignableAgent, FieldDossierDesignation } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { designateVerifier, listDesignations } from './field-dossiers-api';
+import { DossierRow } from './DossierRow';
 import { PAGE_HEADERS } from './page-headers';
 
 // Agent de vérification d'un dossier terrain (US-040d, décision du maître d'œuvre du 19/11) :
@@ -47,20 +48,19 @@ export function VerifierDesignationPage() {
             Aucun dossier terrain en attente de vérification dans votre région.
           </p>
         ) : (
-          <ul className="ui-list" aria-label="Dossiers terrain à vérifier">
+          <ul className="ui-dossiers" aria-label="Dossiers terrain à vérifier">
             {data.dossiers.map((dossier) => (
-              <li key={dossier.code}>
-                <DesignationCard
-                  dossier={dossier}
-                  agents={data.agents}
-                  onDesignated={async (agent) => {
-                    setNotice(
-                      `Dossier ${dossier.code} : ${agent} est désigné pour la vérification. Lui seul vérifie désormais ce dossier.`,
-                    );
-                    await reload();
-                  }}
-                />
-              </li>
+              <DesignationCard
+                key={dossier.code}
+                dossier={dossier}
+                agents={data.agents}
+                onDesignated={async (agent) => {
+                  setNotice(
+                    `Dossier ${dossier.code} : ${agent} est désigné pour la vérification. Lui seul vérifie désormais ce dossier.`,
+                  );
+                  await reload();
+                }}
+              />
             ))}
           </ul>
         )}
@@ -106,10 +106,20 @@ function DesignationCard({
   };
 
   return (
-    <article className="ui-card" aria-labelledby={`${id}-nom`}>
-      <h3 id={`${id}-nom`}>
-        {dossier.praticien} <span className="ui-muted">· {dossier.code}</span>
-      </h3>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticien}
+      meta={
+        <>
+          {dossier.prefecture} · étape {dossier.etape}
+          {dossier.verificateur ? (
+            <Badge tone="success">Agent désigné</Badge>
+          ) : (
+            <Badge tone="neutral">Sans désignation</Badge>
+          )}
+        </>
+      }
+    >
       <dl className="ui-facts">
         <dt>Préfecture</dt>
         <dd>{dossier.prefecture}</dd>
@@ -130,6 +140,7 @@ function DesignationCard({
         </dd>
       </dl>
       <form
+        className="ui-form"
         noValidate
         onSubmit={submit}
         aria-label={`Désigner l’agent de vérification du dossier ${dossier.code}`}
@@ -148,10 +159,12 @@ function DesignationCard({
             </option>
           ))}
         </SelectField>
-        <Button type="submit" variant="primary" disabled={busy}>
-          {busy ? 'Désignation…' : 'Désigner'}
-        </Button>
+        <div className="ui-form__actions">
+          <Button type="submit" variant="primary" disabled={busy}>
+            {busy ? 'Désignation…' : 'Désigner'}
+          </Button>
+        </div>
       </form>
-    </article>
+    </DossierRow>
   );
 }

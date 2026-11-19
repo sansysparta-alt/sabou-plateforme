@@ -143,8 +143,12 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
 
   it('pièces : liste, pièces manquantes, soumission impossible tant qu’il en manque', async () => {
     render(<FieldDossierPage />);
-    const card = await screen.findByRole('article', { name: /Mamadou Barry/ });
-    expect(within(card).getByText('Dossier terrain')).toBeTruthy();
+    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
+      'li',
+    )!;
+    // Ligne repliable des files de dossiers : repères (badge des pièces) et origine du dossier
+    expect(within(card).getByText('1 pièce manquante')).toBeTruthy();
+    expect(within(card).getByText('Dossier terrain, créé par vous')).toBeTruthy();
     expect(
       within(card).getByText(/Pièces obligatoires manquantes : photo du praticien/),
     ).toBeTruthy();
@@ -154,7 +158,9 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
 
   it('dépose une pièce : le fichier part tel quel vers le dossier', async () => {
     render(<FieldDossierPage />);
-    const card = await screen.findByRole('article', { name: /Mamadou Barry/ });
+    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
+      'li',
+    )!;
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'photo.jpg', {
       type: 'image/jpeg',
     });
@@ -174,7 +180,9 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
       { status: 200, body: [] },
     ];
     render(<FieldDossierPage />);
-    const card = await screen.findByRole('article', { name: /Mamadou Barry/ });
+    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
+      'li',
+    )!;
     answers['POST /api/dossiers-terrain/DS-000042/soumission'] = [
       { status: 200, body: { code: 'DS-000042', etape: 2, soumisLe: '2026-11-18T11:00:00.000Z' } },
     ];

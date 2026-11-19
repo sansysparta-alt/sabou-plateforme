@@ -61,7 +61,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const card = async () => within(await screen.findByRole('article', { name: /Saliou Diallo/ }));
+const card = async () =>
+  within((await screen.findByRole('heading', { level: 3, name: /Saliou Diallo/ })).closest('li')!);
 
 describe('Agents de vérification (admin régional)', () => {
   it('liste le dossier, son auteur et l’absence de désignation', async () => {

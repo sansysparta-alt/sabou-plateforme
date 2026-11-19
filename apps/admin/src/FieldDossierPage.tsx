@@ -18,6 +18,7 @@ import {
   removeFieldPiece,
   submitFieldDossier,
 } from './field-dossiers-api';
+import { DossierRow } from './DossierRow';
 import { PAGE_HEADERS } from './page-headers';
 
 // Dossier terrain (US-040c, §6.4) : l'admin préfectoral crée le dossier d'un praticien
@@ -39,6 +40,8 @@ export function FieldDossierPage() {
   const [loadError, setLoadError] = useState<string>();
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState('');
+  // Dossier tout juste créé : ouvert dans la liste, prêt pour le dépôt des pièces
+  const [justCreated, setJustCreated] = useState<string>();
 
   const reload = useCallback(
     () =>
@@ -79,6 +82,7 @@ export function FieldDossierPage() {
           onCancel={() => setCreating(false)}
           onCreated={async (code, name) => {
             setCreating(false);
+            setJustCreated(code);
             setNotice(
               `Dossier ${code} créé pour ${name}. Un SMS l’invite à créer son mot de passe. Déposez maintenant les pièces.`,
             );
@@ -95,21 +99,21 @@ export function FieldDossierPage() {
             Aucun dossier terrain en cours. Les dossiers soumis passent à la vérification terrain.
           </p>
         ) : (
-          <ul className="ui-list" aria-label="Dossiers terrain en cours">
+          <ul className="ui-dossiers" aria-label="Dossiers terrain en cours">
             {dossiers.map((dossier) => (
-              <li key={dossier.code}>
-                <DossierCard
-                  dossier={dossier}
-                  onChanged={reload}
-                  onSubmitted={async (code) => {
-                    setNotice(
-                      `Dossier ${code} soumis : il passe à la vérification terrain. Le praticien est prévenu par SMS.`,
-                    );
-                    await reload();
-                  }}
-                  announce={setNotice}
-                />
-              </li>
+              <DossierCard
+                key={dossier.code}
+                dossier={dossier}
+                defaultOpen={dossier.code === justCreated}
+                onChanged={reload}
+                onSubmitted={async (code) => {
+                  setNotice(
+                    `Dossier ${code} soumis : il passe à la vérification terrain. Le praticien est prévenu par SMS.`,
+                  );
+                  await reload();
+                }}
+                announce={setNotice}
+              />
             ))}
           </ul>
         )}
@@ -356,11 +360,13 @@ function CreateForm({
 
 function DossierCard({
   dossier,
+  defaultOpen,
   onChanged,
   onSubmitted,
   announce,
 }: {
   dossier: FieldDossier;
+  defaultOpen: boolean;
   onChanged: () => Promise<void>;
   onSubmitted: (code: string) => Promise<void>;
   announce: (text: string) => void;
@@ -413,50 +419,76 @@ function DossierCard({
   }
 
   const complete = dossier.piecesManquantes.length === 0;
+  const missing = dossier.piecesManquantes.length;
   return (
-    <article className="ui-card" aria-labelledby={`${id}-nom`}>
-      <h3 id={`${id}-nom`}>
-        {dossier.praticien} <Badge tone="neutral">Dossier terrain</Badge>
-      </h3>
-      <p className="ui-muted">
-        {dossier.code} · {dossier.specialite} · {formatNationalMobile(dossier.telephone)} · créé le{' '}
-        {longDate(dossier.creeLe)}
-      </p>
+    <DossierRow
+      code={dossier.code}
+      name={dossier.praticien}
+      defaultOpen={defaultOpen}
+      meta={
+        <>
+          {dossier.specialite} · créé le {longDate(dossier.creeLe)}
+          {complete ? (
+            <Badge tone="success">Prêt à soumettre</Badge>
+          ) : (
+            <Badge tone="warning">
+              {missing} pièce{missing > 1 ? 's' : ''} manquante{missing > 1 ? 's' : ''}
+            </Badge>
+          )}
+        </>
+      }
+    >
       {error && <Alert tone="error">{error}</Alert>}
-      <h4>Pièces</h4>
-      {dossier.pieces.length === 0 ? (
-        <p className="ui-muted">Aucune pièce déposée.</p>
-      ) : (
-        <ul className="ui-list">
-          {dossier.pieces.map((piece) => (
-            <li key={piece.id}>
-              {piece.type === 'compte_rendu_visite'
-                ? 'Compte rendu de visite'
-                : PIECE_LABELS[piece.type]}{' '}
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    await removeFieldPiece(dossier.code, piece.id);
-                    announce(`Pièce retirée du dossier ${dossier.code}.`);
-                    await onChanged();
-                  })
-                }
-              >
-                Retirer{' '}
-                <span className="ui-visually-hidden">cette pièce du dossier {dossier.code}</span>
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {!complete && (
-        <p>
-          Pièces obligatoires manquantes :{' '}
-          {dossier.piecesManquantes.map((t) => PIECE_LABELS[t].toLowerCase()).join(', ')}.
-        </p>
-      )}
+      <dl className="ui-facts">
+        <dt>Praticien</dt>
+        <dd>{dossier.praticien}</dd>
+        <dt>Téléphone</dt>
+        <dd>{formatNationalMobile(dossier.telephone)}</dd>
+        <dt>Spécialité</dt>
+        <dd>{dossier.specialite}</dd>
+        <dt>Créé le</dt>
+        <dd>{longDate(dossier.creeLe)}</dd>
+        <dt>Origine</dt>
+        <dd>Dossier terrain, créé par vous</dd>
+      </dl>
+      <section aria-labelledby={`${id}-pieces`} className="ui-stack">
+        <h4 id={`${id}-pieces`}>Pièces du dossier</h4>
+        {dossier.pieces.length === 0 ? (
+          <p className="ui-muted">Aucune pièce déposée.</p>
+        ) : (
+          <ul className="ui-list">
+            {dossier.pieces.map((piece) => (
+              <li key={piece.id}>
+                <span>
+                  {piece.type === 'compte_rendu_visite'
+                    ? 'Compte rendu de visite'
+                    : PIECE_LABELS[piece.type]}
+                </span>
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await removeFieldPiece(dossier.code, piece.id);
+                      announce(`Pièce retirée du dossier ${dossier.code}.`);
+                      await onChanged();
+                    })
+                  }
+                >
+                  Retirer{' '}
+                  <span className="ui-visually-hidden">cette pièce du dossier {dossier.code}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!complete && (
+          <p className="ui-muted">
+            Pièces obligatoires manquantes :{' '}
+            {dossier.piecesManquantes.map((t) => PIECE_LABELS[t].toLowerCase()).join(', ')}.
+          </p>
+        )}
+      </section>
       <form className="ui-form" onSubmit={onAdd} noValidate>
         <div className="ui-form-row">
           <SelectField
@@ -502,6 +534,6 @@ function DossierCard({
           </Button>
         </div>
       </form>
-    </article>
+    </DossierRow>
   );
 }
