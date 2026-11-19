@@ -1239,3 +1239,18 @@ Demande du maître d'œuvre du 19 novembre 2026 : quelques ajustements d'ensembl
 | « Traitements à décider » répété (titre de page et de liste) | Liste renommée « Traitements en attente » |
 | Pages hors navigation (invitation, accès refusé) sans marque sur ordinateur | Bandeau de marque affiché à toutes les tailles |
 | Déconnexion en rouge ? | Non : le rouge reste réservé aux actions destructrices ou irréversibles (suspendre, désactiver, rejet définitif) ; la déconnexion est une action neutre |
+
+### 2.79 Résumé en français et voix locale des sections d'un traitement (US-075, 19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026 : le « résumé » du préfectoral (UC-33, R-GOV-02) est une **révision du texte français** de chaque section, écrit d'abord par le praticien au Studio.
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Quand réviser | Seulement quand le traitement est « soumis », par le préfectoral de la préfecture du praticien | Le Comité expertise le texte définitif |
+| Texte d'origine | Gardé dans `recette_section_revision` (avant, après, auteur, date), affiché sous la section | Traçabilité ; le praticien garde la paternité de son savoir |
+| Voix d'une section | Enregistrée par le préfectoral de la préfecture dans une langue où il a le droit d'enregistrer (R-GOV-06), à toutes les étapes sauf « retiré » | Les voix suivent leur propre circuit par langue (R-LNG-10) |
+| Envoi au régional | Brouillon → traduit, par celui qui a enregistré ou un préfectoral de la préfecture qui a le droit de traduire | Même règle que la voix des noms (§2.47) |
+| Texte modifié | Un déclencheur ramène les voix de la section en brouillon, avec la raison | Une voix ne doit pas dire autre chose que le texte français validé |
+| Studio du praticien | Les sections sont mises à jour sur place au lieu d'être supprimées puis recréées | Sans cela, un nouvel enregistrement du brouillon effaçait les voix (suppression en cascade) |
+| Écritures | `recette_section_voix` et `recette_section_revision` cloisonnées (RLS) et écrites seulement par les fonctions de la base | Même principe que les autres tables métier |
+| Écran | « Résumés et traductions » (menu Langue du préfectoral), un traitement par ligne, détail dans le panneau latéral (§2.76), chargé à l'ouverture seulement | Réseau 3G ; même gabarit que les files |

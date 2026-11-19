@@ -1,0 +1,129 @@
+import { z } from 'zod';
+import { NAME_VOICE_MOTIF_MAX_LENGTH, type NameVoiceStatus } from './name-voices.js';
+import { treatmentCodeSchema } from './treatments.js';
+
+// Voix des sections d'un traitement, par langue (US-072 à US-075, UC-33, UC-41, R-LNG-10) :
+// le préfectoral révise le texte français et enregistre la voix locale, puis l'envoie au
+// régional de la langue (brouillon → traduit). Aucun texte en langue nationale (R-LNG-02).
+
+export const TREATMENT_SECTION_TYPES = [
+  'preparation',
+  'consommation',
+  'cycle',
+  'effets_indesirables',
+  'conservation',
+] as const;
+export type TreatmentSectionType = (typeof TREATMENT_SECTION_TYPES)[number];
+
+export const TREATMENT_SECTION_TEXT_MAX_LENGTH = 4000;
+
+// Traitement de la zone du compte, avec l'état de ses voix
+export interface TreatmentVoiceTarget {
+  code: string;
+  titre: string;
+  maladie: string;
+  praticien: string;
+  prefecture: string;
+  // Statut du traitement dans le circuit (soumise, transmise…)
+  statut: string;
+  // Voix par statut, toutes sections et langues confondues
+  brouillons: number;
+  traduites: number;
+  validees: number;
+  publiees: number;
+}
+
+export interface TreatmentVoiceEntry {
+  langue: string;
+  langueNom: string;
+  // null : aucune voix dans cette langue
+  statut: NameVoiceStatus | null;
+  enregistrePar: string | null;
+  // La voix a été enregistrée par le compte connecté
+  parMoi: boolean;
+  motif: string | null;
+  consentement: boolean;
+  secours: boolean;
+  // Droits du compte connecté dans la langue (R-GOV-06)
+  peutEnregistrer: boolean;
+  peutTraduire: boolean;
+  peutValider: boolean;
+}
+
+export interface TreatmentSectionRevision {
+  avant: string;
+  apres: string;
+  par: string;
+  le: string;
+}
+
+export interface TreatmentVoiceSection {
+  type: TreatmentSectionType;
+  libelle: string;
+  texteFr: string;
+  texteEn: string | null;
+  revisions: TreatmentSectionRevision[];
+  voix: TreatmentVoiceEntry[];
+}
+
+export interface TreatmentVoices {
+  code: string;
+  titre: string;
+  statut: string;
+  praticien: string;
+  // Le compte connecté est le préfectoral de la préfecture et le traitement est soumis
+  peutReviser: boolean;
+  // Le compte connecté est le préfectoral de la préfecture du praticien
+  prefectoral: boolean;
+  sections: TreatmentVoiceSection[];
+}
+
+export const treatmentVoiceTargetSchema = z
+  .object({
+    code: treatmentCodeSchema,
+    type: z.enum(TREATMENT_SECTION_TYPES, 'Section invalide.'),
+    langue: z.string().regex(/^[a-z]{2,3}$/, 'Langue invalide.'),
+  })
+  .strict();
+
+export const treatmentSectionTargetSchema = treatmentVoiceTargetSchema.omit({ langue: true });
+
+export const treatmentSectionReviseSchema = z
+  .object({
+    texteFr: z
+      .string('Texte français : champ obligatoire.')
+      .trim()
+      .min(1, 'Texte français : champ obligatoire.')
+      .max(
+        TREATMENT_SECTION_TEXT_MAX_LENGTH,
+        `Texte français : ${TREATMENT_SECTION_TEXT_MAX_LENGTH} caractères au plus.`,
+      ),
+    texteEn: z
+      .string()
+      .trim()
+      .max(
+        TREATMENT_SECTION_TEXT_MAX_LENGTH,
+        `Texte anglais : ${TREATMENT_SECTION_TEXT_MAX_LENGTH} caractères au plus.`,
+      )
+      .nullable()
+      .default(null)
+      .transform((v) => v || null),
+  })
+  .strict();
+export type TreatmentSectionRevise = z.infer<typeof treatmentSectionReviseSchema>;
+
+export const treatmentVoiceMoveSchema = z
+  .object({
+    vers: z.enum(['traduit'], 'Statut invalide.'),
+    motif: z
+      .string()
+      .trim()
+      .max(
+        NAME_VOICE_MOTIF_MAX_LENGTH,
+        `Motif : ${NAME_VOICE_MOTIF_MAX_LENGTH} caractères au plus.`,
+      )
+      .nullable()
+      .default(null),
+  })
+  .strict();
+export type TreatmentVoiceMove = z.infer<typeof treatmentVoiceMoveSchema>;

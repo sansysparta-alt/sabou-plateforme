@@ -27,6 +27,8 @@ const loaders = {
   nameVoices: () => import('./NameVoicesPage'),
   // US-061 : traitements à transmettre, expertiser ou certifier
   treatments: () => import('./TreatmentsPage'),
+  // US-075 : voix des sections des traitements (résumés et traductions…)
+  treatmentVoices: () => import('./TreatmentVoicesPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -62,6 +64,9 @@ const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.Dise
 const NameVoicesPage = lazy(() =>
   loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
 );
+const TreatmentVoicesPage = lazy(() =>
+  loaders.treatmentVoices().then((m) => ({ default: m.TreatmentVoicesPage })),
+);
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
 );
@@ -88,6 +93,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/noms-locaux': loaders.localNames,
   '/voix-des-noms': loaders.nameVoices,
   '/traitements': loaders.treatments,
+  '/resumes-traductions': loaders.treatmentVoices,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -108,6 +114,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
   '/voix-des-noms': ['/api/voix-des-noms'],
   '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
+  '/resumes-traductions': ['/api/voix-des-traitements'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -345,6 +352,13 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' },
       ],
     });
+    groups.push({
+      heading: 'Langue',
+      items: [
+        // US-075 : texte français et voix locale de chaque section des traitements
+        { href: '/resumes-traductions', label: 'Résumés et traductions', icon: 'languages' },
+      ],
+    });
   }
   if (isRegional(user)) {
     groups.push({
@@ -430,6 +444,7 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/voix-des-noms': NameVoicesPage,
   '/verification-terrain': FieldVerificationPage,
   '/dossiers-terrain': FieldDossierPage,
+  '/resumes-traductions': TreatmentVoicesPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
