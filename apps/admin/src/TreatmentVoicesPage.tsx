@@ -25,6 +25,7 @@ import {
   moveTreatmentVoice,
   recordTreatmentVoice,
   reviseTreatmentSection,
+  treatmentPlantVoiceAudioUrl,
   treatmentVoiceAudioUrl,
 } from './treatment-voices-api';
 import { RecordForm, SendBackForm, STATUS } from './VoiceForms';
@@ -192,6 +193,39 @@ function TreatmentDetail({ code, mode }: { code: string; mode: TreatmentVoicesMo
             onChange={setVoices}
           />
         ))}
+      {voices.nomsPlantes.length > 0 && (
+        <section className="ui-section" aria-labelledby="noms-plantes">
+          <h3 id="noms-plantes">Noms des plantes dits par le praticien</h3>
+          <p className="ui-muted">
+            Écoute interne, pour identifier chaque plante : ces voix ne sont jamais publiées.
+          </p>
+          <ul className="ui-list">
+            {voices.nomsPlantes.map((n) => (
+              <li key={n.plante}>
+                <span>
+                  {n.nomFr} ({n.plante}) · {n.langueNom}
+                </span>
+                <audio
+                  controls
+                  preload="none"
+                  aria-label={`Nom de la plante ${n.nomFr} dit par le praticien, en ${n.langueNom}`}
+                >
+                  <source
+                    src={treatmentPlantVoiceAudioUrl(voices.code, n.plante)}
+                    type="audio/webm"
+                  />
+                  {n.secours && (
+                    <source
+                      src={treatmentPlantVoiceAudioUrl(voices.code, n.plante, true)}
+                      type="audio/mp4"
+                    />
+                  )}
+                </audio>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
@@ -277,7 +311,13 @@ function SectionVoices({
       {/* Texte français et voix côte à côte sur ordinateur (critère de US-072) */}
       <div className="ui-split">
         <div>
-          <p className="ui-prose">{section.texteFr}</p>
+          {section.texteFr ? (
+            <p className="ui-prose">{section.texteFr}</p>
+          ) : (
+            <p className="ui-muted">
+              Section dite en voix par le praticien : texte français à écrire avant le Comité.
+            </p>
+          )}
           {section.texteEn && (
             <p className="ui-prose" lang="en">
               {section.texteEn}
@@ -290,7 +330,7 @@ function SectionVoices({
                 {section.revisions.map((r) => (
                   <li key={r.le}>
                     Révisé par {r.par} le {new Date(r.le).toLocaleDateString('fr-FR')}. Texte
-                    précédent : « {r.avant} »
+                    précédent : {r.avant ? `« ${r.avant} »` : 'aucun (section dite en voix)'}
                   </li>
                 ))}
               </ol>
@@ -522,7 +562,7 @@ function ReviseForm({
   onCancel: () => void;
   onSubmit: (texteFr: string, texteEn: string | null) => void;
 }) {
-  const [texteFr, setTexteFr] = useState(section.texteFr);
+  const [texteFr, setTexteFr] = useState(section.texteFr ?? '');
   const [texteEn, setTexteEn] = useState(section.texteEn ?? '');
   const [error, setError] = useState<string>();
   const field = useRef<HTMLTextAreaElement>(null);

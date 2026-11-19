@@ -350,6 +350,11 @@ describe('Garde-fous du schéma', () => {
       'traitement_voix_controler',
       'traitement_voix_enregistrer',
       'traitement_voix_envoyer',
+      // US-081 : voix du praticien au Studio mobile, ses seuls brouillons (05 §2.84)
+      'traitement_voix_praticien',
+      'traitement_voix_praticien_deposer',
+      'traitement_voix_praticien_fichier',
+      'traitement_voix_praticien_retirer',
       // US-074 : publication groupée par la DG
       'traitement_voix_publier',
       // US-072 : validation par le régional de la langue et de la région (05 §2.80)
@@ -358,6 +363,8 @@ describe('Garde-fous du schéma', () => {
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',
       'trg_temoignage_notes',
+      // US-081 : voix traitée versée au circuit, quel que soit l'acteur du traitement (05 §2.84)
+      'trg_voix_praticien_traitee',
       'verifier_certificat',
       // US-041 : rappels de visite, toutes zones, réservée à l'API (05 §2.33)
       'visite_rappels_mettre_en_file',

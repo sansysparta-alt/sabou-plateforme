@@ -67,6 +67,7 @@ beforeEach(() => {
     peutReviser: true,
     prefectoral: true,
     comite: false,
+    nomsPlantes: [],
     sections: [
       section({
         voix: [
@@ -121,6 +122,37 @@ describe('Liste des traitements de la zone', () => {
       '/api/voix-des-traitements/REC-0007',
       expect.anything(),
     );
+  });
+});
+
+// US-081 : voix du praticien (section sans texte, noms des plantes)
+describe('US-081 : voix du praticien', () => {
+  it('section dite seulement en voix : texte à écrire avant le Comité', async () => {
+    voices.sections[0] = { ...voices.sections[0]!, texteFr: null, revisions: [] };
+    const row = await openTreatment();
+    expect(within(row).getByText(/texte français à écrire avant le Comité/)).toBeTruthy();
+  });
+
+  it('noms des plantes dits par le praticien : écoute interne, Opus et AAC', async () => {
+    voices.nomsPlantes = [
+      { plante: 'PL-003', nomFr: 'Néré', langueNom: 'Pular', dureeSec: 2.1, secours: true },
+    ];
+    const row = await openTreatment();
+    expect(
+      within(row).getByRole('heading', { name: 'Noms des plantes dits par le praticien' }),
+    ).toBeTruthy();
+    const player = within(row).getByLabelText(
+      'Nom de la plante Néré dit par le praticien, en Pular',
+    );
+    expect([...player.querySelectorAll('source')].map((s) => s.getAttribute('src'))).toEqual([
+      '/api/voix-des-traitements/REC-0007/plante/PL-003/audio',
+      '/api/voix-des-traitements/REC-0007/plante/PL-003/audio?format=aac',
+    ]);
+  });
+
+  it('sans voix de nom (autres comptes) : pas de rubrique', async () => {
+    const row = await openTreatment();
+    expect(within(row).queryByText('Noms des plantes dits par le praticien')).toBeNull();
   });
 });
 

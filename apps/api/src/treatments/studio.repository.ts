@@ -184,6 +184,13 @@ export class StudioRepository {
                          ORDER BY t.ordre)
                          FROM sabou.recette_section s JOIN sabou.section_type t ON t.code = s.type_code
                         WHERE s.recette_id = r.id), '[]') AS sections,
+             -- US-081 : voix en vigueur du praticien (section ou nom de plante)
+             COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                         'cible', v.cible, 'objet', v.objet, 'depot', v.depot, 'etat', v.etat,
+                         'dureeSec', v.duree_sec,
+                         'enregistreLe', to_char(v.enregistre_le AT TIME ZONE 'UTC',
+                                                 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')))
+                         FROM sabou.traitement_voix_praticien(r.code) v), '[]') AS voix,
              COALESCE((SELECT jsonb_agg(jsonb_build_object('code', ci.code, 'libelleFr', ci.libelle_fr)
                                         ORDER BY ci.id)
                          FROM sabou.recette_contre_indication rci

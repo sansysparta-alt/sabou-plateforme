@@ -13,7 +13,7 @@ import 'package:sabou_mobile/ui/theme.dart';
 import 'package:sabou_mobile/recording_format.dart';
 import 'package:sabou_mobile/studio_page.dart';
 
-class FakeRecorder implements VoiceRecorder {
+class FakeRecorder extends VoiceRecorder {
   bool permission = true;
   String? path;
   RecordingFormat? format;
@@ -35,7 +35,7 @@ class FakeRecorder implements VoiceRecorder {
   Future<void> dispose() async {}
 }
 
-class FakePlayer implements VoicePlayer {
+class FakePlayer extends VoicePlayer {
   final List<Uri> played = [];
 
   @override

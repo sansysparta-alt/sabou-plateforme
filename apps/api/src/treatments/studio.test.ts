@@ -55,6 +55,7 @@ const DETAIL: TreatmentDetail = {
   cyclePauseJours: null,
   plantes: [],
   sections: [],
+  voix: [],
   contreIndications: [],
   visibilite: 'publique',
   consentementLe: '2026-11-16T10:00:00.000000Z',

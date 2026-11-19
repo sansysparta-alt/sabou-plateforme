@@ -1,4 +1,4 @@
-h1:SHny340ybb0PcRZ1m4mU2lDLp5rIeLEXGrydzdvkeIc=
+h1:QZb+6zAyTGTmRNQc2eIObdWURYR0aLDbh0RP4Byqa+o=
 20261102120000_schema_initial.sql h1:SkbRJGKbwnVSJU524ThzdDufeYqyUnNES01STvOOvos=
 20261102120100_droits_application.sql h1:Hz/550ksXcCqsvMhWRY2HmJCz76RJWcnLKUOa4h+hTM=
 20261103120000_saisie_terrain.sql h1:JFxrXzFoSjTqPMIMLsu1TDVLqsgpvX5wPR24gkeDShI=
@@ -42,3 +42,4 @@ h1:SHny340ybb0PcRZ1m4mU2lDLp5rIeLEXGrydzdvkeIc=
 20261119150000_controle_effets.sql h1:Q4NsvXv/88aLfX4Kq1kNakTB6ir/5I5MTHbeZ3vO5S0=
 20261119160000_couverture_vocale.sql h1:MLY04Ar2cigcboBiPdcovPsCNJkt5OhuMx5+1Nh8PT4=
 20261119170000_signalements.sql h1:YCvOt2BoYRBTb0zKewa5w9USGK/Vjh9EpuPclUirxfM=
+20261119180000_studio_voix_praticien.sql h1:ZUwd3vPxaWVuqM3vZ1Q0SFYcVQL/suho4aC94gBMITs=

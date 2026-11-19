@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { NAME_VOICE_MOTIF_MAX_LENGTH, type NameVoiceStatus } from './name-voices.js';
+import { plantCodeSchema } from './plants.js';
 import { treatmentCodeSchema } from './treatments.js';
 
 // Voix des sections d'un traitement, par langue (US-072 à US-075, UC-33, UC-41, R-LNG-10) :
@@ -57,7 +58,8 @@ export interface TreatmentVoiceEntry {
 }
 
 export interface TreatmentSectionRevision {
-  avant: string;
+  // Vide quand le préfectoral écrit le premier texte d'une section dite en voix (US-081)
+  avant: string | null;
   apres: string;
   par: string;
   le: string;
@@ -66,7 +68,8 @@ export interface TreatmentSectionRevision {
 export interface TreatmentVoiceSection {
   type: TreatmentSectionType;
   libelle: string;
-  texteFr: string;
+  // Vide tant que le préfectoral n'a pas résumé la voix du praticien (US-081)
+  texteFr: string | null;
   texteEn: string | null;
   revisions: TreatmentSectionRevision[];
   voix: TreatmentVoiceEntry[];
@@ -84,7 +87,22 @@ export interface TreatmentVoices {
   // Le compte connecté est membre du Comité scientifique (contrôle, US-073)
   comite: boolean;
   sections: TreatmentVoiceSection[];
+  // US-081 : nom de chaque plante dit par le praticien, interne (préfectoral de la préfecture,
+  // Comité) ; vide pour les autres comptes
+  nomsPlantes: TreatmentPlantNameVoice[];
 }
+
+export interface TreatmentPlantNameVoice {
+  plante: string;
+  nomFr: string;
+  langueNom: string;
+  dureeSec: number | null;
+  secours: boolean;
+}
+
+export const treatmentPlantVoiceTargetSchema = z
+  .object({ code: treatmentCodeSchema, plante: plantCodeSchema })
+  .strict();
 
 // Couverture vocale par langue et retards par région (US-074, UC-63)
 export interface VoiceCoverageLanguage {

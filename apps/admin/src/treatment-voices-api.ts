@@ -48,3 +48,9 @@ export const treatmentVoiceAudioUrl = (
   langue: string,
   fallback = false,
 ) => `${voicePath(code, type, langue)}/audio${fallback ? '?format=aac' : ''}`;
+
+// US-081 : écoute du nom d'une plante dit par le praticien (préfectoral, Comité)
+export const treatmentPlantVoiceAudioUrl = (code: string, plante: string, fallback = false) =>
+  `${BASE}/${encodeURIComponent(code)}/plante/${encodeURIComponent(plante)}/audio${
+    fallback ? '?format=aac' : ''
+  }`;
