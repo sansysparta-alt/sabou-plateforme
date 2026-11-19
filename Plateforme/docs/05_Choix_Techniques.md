@@ -1205,3 +1205,15 @@ Remarque du maître d'œuvre du 19 novembre 2026 : ouvrir le détail d'un dossie
 | Accessibilité | Fenêtre native `<dialog>` en modale : focus maintenu dans le panneau, fermeture par Échap, « Fermer » ou clic à côté, retour du focus sur la ligne ; le titre de la ligne est le bouton d'ouverture (toute la ligne est cliquable) | WCAG 2.2 AA (2.1.2, 2.4.3) |
 | Messages | Les messages d'une action faite dans le panneau (pièce déposée, visite signée…) y sont dits (`role="status"`) : la page derrière est inactive tant que le panneau est ouvert | WCAG 4.1.3 |
 | Annotations du Comité | Restent une section repliable à l'intérieur du panneau | Ce n'est pas un dossier, c'est une partie de son détail |
+
+### 2.77 Compte connecté et déconnexion en haut à droite (19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026, qui remplace le profil en bas de la colonne de navigation (15 novembre, à la manière de Studium) : le bouton de déconnexion doit être en haut, selon l'usage.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Place | Barre du compte au-dessus du contenu, alignée à droite : initiales, nom, fonction et zone, bouton « Se déconnecter » ; sur téléphone, sous le bandeau « Menu » | Emplacement attendu par la plupart des utilisateurs d'applications de gestion |
+| Bouton | Libellé écrit « Se déconnecter » avec l'icône (plus d'icône seule) | Action importante, compréhensible sans survol |
+| Colonne de navigation | Marque, rubriques et « Réduire le menu » seulement | Une zone, un rôle |
+| Accessibilité | Zone nommée « Compte connecté » (`section`, pas un second en-tête de page), un seul bouton de déconnexion, placé avant le contenu principal | Pas de repère de page en double ; lu en premier |
+| Nom | Jamais tronqué (US-016) : il passe à la ligne | Règle inchangée |
