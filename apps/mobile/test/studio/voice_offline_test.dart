@@ -125,8 +125,9 @@ void main() {
         baseUrl: Uri.parse('http://api.test'),
         session: session,
         client: MockClient((request) {
-          if (!request.url.path.contains('/voix/'))
+          if (!request.url.path.contains('/voix/')) {
             return server.handle(request);
+          }
           voiceRequests.add(request);
           return voiceHandler(request);
         }),
