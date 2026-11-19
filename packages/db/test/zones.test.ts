@@ -339,7 +339,11 @@ describe('Garde-fous du schéma', () => {
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',
       'traitement_enregistrer',
+      // US-075 : révision du texte et voix des sections par le préfectoral (05 §2.79)
+      'traitement_section_reviser',
       'traitement_soumettre',
+      'traitement_voix_enregistrer',
+      'traitement_voix_envoyer',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',

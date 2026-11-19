@@ -841,6 +841,8 @@ Critères d’acceptation :
 - Texte français par section, voix locale par section.
 - Envoi à l’admin régional de la langue.
 
+Réalisation (19 novembre 2026, 05 §2.79) : décision du maître d’œuvre du 19 novembre, le résumé est une révision du texte français écrit par le praticien, possible tant que le traitement est soumis ; le texte d’origine reste dans l’historique. Voix par section dans les langues où le préfectoral a le droit d’enregistrer ; envoi au régional = statut « traduit ». Un texte modifié ramène les voix de la section en brouillon. Écran « Résumés et traductions ».
+
 #### US-100 · Traiter les signalements de danger et d’effets indésirables
 *Sécurité sanitaire, litiges, alertes* · **Must** · 5 points · cas : UC-08, UC-54
 

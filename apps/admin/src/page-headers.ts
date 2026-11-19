@@ -66,6 +66,10 @@ export const PAGE_HEADERS = {
     title: 'Noms locaux des plantes',
     lead: 'Le référent d’une langue saisit les noms d’une plante dans cette langue : la voix du nom, et une transcription en alphabet latin qui sert seulement à la recherche.',
   },
+  '/resumes-traductions': {
+    title: 'Résumés et traductions',
+    lead: 'Traitements de votre préfecture : révisez le texte français de chaque section tant que le traitement est soumis, enregistrez la voix locale, puis envoyez-la à l’administrateur régional.',
+  },
   '/voix-des-noms': {
     title: 'Voix des noms',
     lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',

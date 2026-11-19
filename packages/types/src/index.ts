@@ -21,5 +21,6 @@ export * from './plants.js';
 export * from './diseases.js';
 export * from './local-names.js';
 export * from './name-voices.js';
+export * from './treatment-voices.js';
 export * from './treatments.js';
 export * from './annotations.js';

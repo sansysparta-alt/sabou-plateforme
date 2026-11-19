@@ -11,6 +11,7 @@ export function DossierRow({
   meta,
   defaultOpen = false,
   notice,
+  onOpen,
   children,
 }: {
   code: string;
@@ -21,6 +22,8 @@ export function DossierRow({
   // Dernier message d'une action faite dans le panneau (pièce déposée, visite signée…) : la
   // page derrière est inactive tant que le panneau est ouvert, le message est donc dit ici
   notice?: string;
+  // Appelé à chaque ouverture : le détail se charge alors seulement (réseau 3G)
+  onOpen?: () => void;
   children: ReactNode;
 }) {
   const id = useId();
@@ -28,6 +31,7 @@ export function DossierRow({
   const opener = useRef<HTMLButtonElement>(null);
 
   const show = () => {
+    onOpen?.();
     if (panel.current && !panel.current.open) panel.current.showModal();
   };
   const hide = () => panel.current?.close();
