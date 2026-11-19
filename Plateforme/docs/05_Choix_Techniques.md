@@ -1300,7 +1300,7 @@ Décisions du maître d'œuvre du 19 novembre 2026 : révision = retour au prati
 | SMS | Textes ajoutés pour « recette.suspendue » et « recette.retiree » (absents jusqu'ici : ces SMS auraient fini en erreur définitive) et pour la levée | Le praticien est prévenu de chaque décision qui touche son traitement ; le motif est dans son Studio |
 | Levée | Écran « Traitements suspendus » du Comité : motif de la suspension, levée avec motif ; refusée si le traitement ne remplit plus les conditions de certification (`trg_recette_publiable`) | Retour en ligne seulement d'un traitement toujours certifiable |
 
-### 2.84 Voix du praticien au Studio mobile (US-081, partie serveur, 19 novembre 2026)
+### 2.84 Voix du praticien au Studio mobile (US-081, 19 novembre 2026)
 
 Décisions du maître d'œuvre du 19 novembre 2026 : la voix du praticien entre dans le circuit comme brouillon de sa langue ; une section obligatoire est complète avec une voix ou un texte ; la voix du nom de chaque plante reste interne ; les voix en attente sur le téléphone sont chiffrées.
 
@@ -1314,3 +1314,9 @@ Décisions du maître d'œuvre du 19 novembre 2026 : la voix du praticien entre 
 | Anti-abus | 60 enregistrements par heure et par praticien ; 3 Mo par fichier ; format reconnu par sa signature (M4A, WebM, Ogg, WAV, MP3) | Une recette complète en compte une dizaine ; mêmes bornes que les autres voix |
 | Réécoute | `GET …/voix/:cible/:objet/audio` : version AAC (lue par tous les téléphones), sinon Opus ; `no-store` | Le téléphone efface son fichier après l'envoi |
 | Noms de plantes | Voix interne, jamais versée dans le circuit public ; le public entend les voix du référentiel (US-071) | Décision du 19/11 |
+| Écoute des noms (gestion) | Rubrique « Noms des plantes dits par le praticien » dans l'écran des voix d'un traitement, pour le préfectoral de la préfecture et le Comité seuls ; écoute par l'API (`…/:code/plante/:plante/audio`), Opus et secours AAC, `preload="none"` | Identifier la plante ; rien n'est téléchargé avant l'appui sur lecture (3G) |
+| Coffre du téléphone | Chaque voix en attente est chiffrée en AES-256-GCM (paquet Dart `cryptography` 2.7.0, épinglé) avec une clé de 256 bits tirée au premier usage et gardée dans le magasin sécurisé (Keystore), comme la clé de la base (§2.19) ; liste d'attente sans voix ni donnée de santé ; fichier effacé dès réception | Décision du 19/11 ; un téléphone perdu ou saisi ne livre pas les voix |
+| File d'envoi | Tournée à l'ouverture du traitement et après chaque enregistrement ; arrêt à la première coupure sans rien perdre ; refus définitifs (traitement soumis entre-temps, consentement…) gardés avec leur raison et dits au praticien ; serveur saturé (429, 5xx) : nouvelle tournée plus tard | UC-74 ; la clé d'envoi rend le rejeu sans danger |
+| Réécoute | En mémoire (`StreamAudioSource` de just_audio, marquée expérimentale) : une voix déchiffrée n'est jamais écrite en clair sur le disque ; le fichier de travail de l'enregistreur est effacé dès que la voix est dans le coffre | Même raison que le chiffrement ; à vérifier sur le téléphone d'essai |
+| Alerte de bruit | Niveau du micro relevé 10 fois par seconde (paquet `record`) ; alerte si le plancher (10e centile) dépasse −35 dBFS, saturation si la médiane dépasse −1 dBFS, refus sous 2 s ; « Recommencer » ou « Garder quand même » | UC-21 2a ; le fond se juge entre les mots. **Seuil de départ, à confirmer par mesure sur le téléphone d'essai** |
+| Enregistrer avant le brouillon | Bouton inactif, avec la raison, tant que le traitement n'est pas enregistré au serveur et que le consentement n'y est pas | La voix se rattache à un code de traitement ; le brouillon de texte hors réseau vient avec US-080 |

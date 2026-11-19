@@ -24,6 +24,7 @@ import {
   treatmentSectionReviseSchema,
   treatmentSectionTargetSchema,
   treatmentVoiceMoveSchema,
+  treatmentPlantVoiceTargetSchema,
   treatmentVoiceTargetSchema,
   voicePublicationSchema,
   type TreatmentVoices,
@@ -187,6 +188,21 @@ export class TreatmentVoicesController {
       .catch(treatmentVoiceError);
   }
 
+  // US-081 : écoute du nom d'une plante dit par le praticien (préfectoral, Comité)
+  @Get(':code/plante/:plante/audio')
+  async plantAudio(
+    @Param() params: Record<string, string>,
+    @Query('format') format: string | undefined,
+    @Req() req: SessionRequest,
+    @Res() res: Response,
+  ): Promise<void> {
+    const target = parse(treatmentPlantVoiceTargetSchema, params);
+    const file = await this.repository
+      .plantFile(req.session!.sub, target.code, target.plante, format === 'aac')
+      .catch(treatmentVoiceError);
+    await this.send(res, file);
+  }
+
   // Écoute : Opus (WebM) par défaut, secours AAC avec ?format=aac
   @Get(':code/:type/:langue/audio')
   async audio(
@@ -199,6 +215,10 @@ export class TreatmentVoicesController {
     const file = await this.repository
       .file(req.session!.sub, target.code, target.type, target.langue, format === 'aac')
       .catch(treatmentVoiceError);
+    await this.send(res, file);
+  }
+
+  private async send(res: Response, file: { key: string; mime: string }): Promise<void> {
     const body = await this.storage.get(file.key);
     if (!body) throw new NotFoundException({ error: 'not_found', message: 'Voix introuvable.' });
     res

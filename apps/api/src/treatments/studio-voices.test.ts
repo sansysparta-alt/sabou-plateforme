@@ -125,7 +125,11 @@ function call(
   const headers: Record<string, string> = { 'content-type': 'audio/mp4' };
   if (token) headers['authorization'] = `Bearer ${token}`;
   const query = method === 'PUT' && key ? `?cle=${key}` : '';
-  return fetch(`${base}/api/praticien/${path}${query}`, { method, headers, body });
+  return fetch(`${base}/api/praticien/${path}${query}`, {
+    method,
+    headers,
+    body: body ? new Uint8Array(body) : undefined,
+  });
 }
 
 describe('Accès : le praticien connecté, par le jeton de l’application', () => {

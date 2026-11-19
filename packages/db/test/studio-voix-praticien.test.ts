@@ -123,6 +123,18 @@ describe('Critère : un enregistrement par champ, ré-enregistrement', () => {
     expect(circuitRows).toEqual([]);
   });
 
+  it('le préfectoral de la préfecture lit la voix du nom (écoute interne, US-081)', async () => {
+    const rows = await run(`${draft()} ${deposit('plante', 'PL-003')} ${processLast}
+      ${openContext(PREFECTORAL)}
+      SELECT pl.code AS plante, d.statut AS etat
+        FROM recette r JOIN recette_plante rp ON rp.recette_id = r.id
+        JOIN plante pl ON pl.id = rp.plante_id
+        CROSS JOIN LATERAL voix_praticien_courante(r.id, NULL, pl.id) v
+        JOIN voix_depot d ON d.id = v.depot_id
+       WHERE r.code = ${CODE};`);
+    expect(rows).toEqual([{ plante: 'PL-003', etat: 'traitee' }]);
+  });
+
   it('une plante absente du traitement ou une section inconnue sont refusées', async () => {
     await expect(run(`${draft()} ${deposit('plante', 'PL-001')}`)).rejects.toThrow(
       /absente du traitement/,

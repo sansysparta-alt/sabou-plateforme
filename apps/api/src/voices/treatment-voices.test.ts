@@ -38,6 +38,7 @@ const VOICES: TreatmentVoices = {
   prefectoral: true,
   comite: false,
   sections: [],
+  nomsPlantes: [],
 };
 
 const calls: unknown[][] = [];
@@ -86,6 +87,11 @@ const repository = {
     calls.push(['move', sub, code, type, langue, move]);
     fail();
     return VOICES;
+  },
+  async plantFile(sub: string, code: string, plante: string, fallback: boolean) {
+    calls.push(['plantFile', sub, code, plante, fallback]);
+    fail();
+    return { key: 'voix/a.webm', mime: 'audio/webm' };
   },
   async file(sub: string, code: string, type: string, langue: string, fallback: boolean) {
     calls.push(['file', sub, code, type, langue, fallback]);
@@ -341,5 +347,17 @@ describe('Écoute', () => {
     expect(await opus.text()).toBe('opus');
     const aac = await request('GET', `${BASE}/REC-0001/cycle/pul/audio?format=aac`);
     expect(aac.headers.get('content-type')).toBe('audio/mp4');
+  });
+
+  // US-081 : nom d'une plante dit par le praticien (préfectoral et Comité, contrôle en base)
+  it('nom d’une plante dit par le praticien ; code de plante contrôlé ; absent : 404', async () => {
+    const ok = await request('GET', `${BASE}/REC-0001/plante/PL-003/audio`);
+    expect(ok.status).toBe(200);
+    expect(calls.at(-1)).toEqual(['plantFile', SUB, 'REC-0001', 'PL-003', false]);
+    calls.length = 0;
+    expect((await request('GET', `${BASE}/REC-0001/plante/..%2Fx/audio`)).status).toBe(400);
+    expect(calls).toEqual([]);
+    failure = new NameVoiceNotFoundError();
+    expect((await request('GET', `${BASE}/REC-0001/plante/PL-003/audio`)).status).toBe(404);
   });
 });

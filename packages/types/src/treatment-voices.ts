@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { NAME_VOICE_MOTIF_MAX_LENGTH, type NameVoiceStatus } from './name-voices.js';
+import { plantCodeSchema } from './plants.js';
 import { treatmentCodeSchema } from './treatments.js';
 
 // Voix des sections d'un traitement, par langue (US-072 à US-075, UC-33, UC-41, R-LNG-10) :
@@ -86,7 +87,22 @@ export interface TreatmentVoices {
   // Le compte connecté est membre du Comité scientifique (contrôle, US-073)
   comite: boolean;
   sections: TreatmentVoiceSection[];
+  // US-081 : nom de chaque plante dit par le praticien, interne (préfectoral de la préfecture,
+  // Comité) ; vide pour les autres comptes
+  nomsPlantes: TreatmentPlantNameVoice[];
 }
+
+export interface TreatmentPlantNameVoice {
+  plante: string;
+  nomFr: string;
+  langueNom: string;
+  dureeSec: number | null;
+  secours: boolean;
+}
+
+export const treatmentPlantVoiceTargetSchema = z
+  .object({ code: treatmentCodeSchema, plante: plantCodeSchema })
+  .strict();
 
 // Couverture vocale par langue et retards par région (US-074, UC-63)
 export interface VoiceCoverageLanguage {

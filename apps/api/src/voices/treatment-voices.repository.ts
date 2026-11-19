@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'kysely';
 import type {
+  TreatmentPlantNameVoice,
   TreatmentSectionRevise,
   TreatmentSectionType,
   TreatmentVoiceEntry,
@@ -217,6 +218,31 @@ export class TreatmentVoicesRepository {
     });
   }
 
+  // US-081 : voix du nom d'une plante dite par le praticien ; préfectoral et Comité seuls
+  plantFile(sub: string, code: string, plante: string, fallback: boolean): Promise<NameVoiceFile> {
+    return inZone(this.db, sub, async (trx) => {
+      const { voix } = await this.read(trx, code).then((t) => ({
+        voix: t.nomsPlantes.find((n) => n.plante === plante),
+      }));
+      if (!voix) throw new NameVoiceNotFoundError();
+      const { rows } = await sql<{ chemin: string; secours: string | null }>`
+        SELECT a.chemin, a.chemin_secours AS secours
+          FROM sabou.recette r
+          JOIN sabou.plante pl ON pl.code = ${plante}
+          CROSS JOIN LATERAL sabou.voix_praticien_courante(r.id, NULL, pl.id) v
+          JOIN sabou.voix_depot d ON d.id = v.depot_id
+          JOIN sabou.audio_fichier a ON a.id = d.audio_id
+         WHERE r.code = ${code}`.execute(trx);
+      const row = rows[0];
+      if (!row) throw new NameVoiceNotFoundError();
+      if (fallback) {
+        if (!row.secours) throw new NameVoiceNotFoundError();
+        return { key: row.secours, mime: 'audio/mp4' };
+      }
+      return { key: row.chemin, mime: 'audio/webm' };
+    });
+  }
+
   private act(
     sub: string,
     ip: string | undefined,
@@ -296,8 +322,28 @@ export class TreatmentVoicesRepository {
        WHERE s.id = ANY(${ids}::bigint[]) AND l.voix AND l.active
        ORDER BY l.ordre, l.nom_fr`.execute(trx);
 
+    // US-081 : noms des plantes dits par le praticien, pour le préfectoral et le Comité seuls
+    const plantNames =
+      head.prefectoral || head.comite
+        ? (
+            await sql<TreatmentPlantNameVoice>`
+              SELECT pl.code AS plante, pl.nom_fr AS "nomFr", l.nom_fr AS "langueNom",
+                     a.duree_sec::float AS "dureeSec", a.chemin_secours IS NOT NULL AS secours
+                FROM sabou.recette r
+                JOIN sabou.recette_plante rp ON rp.recette_id = r.id
+                JOIN sabou.plante pl ON pl.id = rp.plante_id
+                CROSS JOIN LATERAL sabou.voix_praticien_courante(r.id, NULL, pl.id) v
+                JOIN sabou.langue l ON l.code = v.langue_code
+                JOIN sabou.voix_depot d ON d.id = v.depot_id AND d.statut = 'traitee'
+                JOIN sabou.audio_fichier a ON a.id = d.audio_id
+               WHERE r.code = ${code}
+               ORDER BY rp.ordre`.execute(trx)
+          ).rows
+        : [];
+
     return {
       code,
+      nomsPlantes: plantNames,
       titre: head.titre,
       statut: head.statut,
       praticien: head.praticien,
