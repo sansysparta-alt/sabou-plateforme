@@ -328,6 +328,8 @@ describe('Garde-fous du schéma', () => {
       'plante_proposer',
       // US-051 : validation par le seul Comité (05 §2.41)
       'plante_valider',
+      // US-040d : lecture de la désignation pour la règle de praticien, sans récursion (05 §2.71)
+      'praticien_verificateur_designe',
       // US-022 : un redécoupage déplace des lignes de toutes les zones, DG seule (05 §2.59)
       'redecoupage_apercu',
       'redecoupage_appliquer',

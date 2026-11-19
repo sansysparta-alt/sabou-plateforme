@@ -3,7 +3,7 @@
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { decide, dossierAtStep, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import { administrator, expectAccessible, firstAdministratorLogin, openDossier } from './helpers';
 import { APP } from './keycloak';
 
 test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ; hors région, refus', async ({
@@ -28,12 +28,10 @@ test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ;
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
   await expect(card(toValidate)).toBeVisible();
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card(toValidate).locator('summary').click();
-  await card(toReject).locator('summary').click();
-  // Préfecture dans le détail ouvert (elle figure aussi sur la ligne repliée)
-  await expect(card(toValidate).locator('dd').filter({ hasText: 'Koubia' })).toBeVisible();
   await expect(card(toReject)).toBeVisible();
+  // Détail dans le panneau du dossier (05 §2.76), un seul ouvert à la fois : la préfecture y figure
+  const validating = await openDossier(page, toValidate);
+  await expect(validating.locator('dd').filter({ hasText: 'Koubia' })).toBeVisible();
   // Le dossier de la région de Kankan n'apparaît pas dans la liste de Labé
   await expect(card(elsewhere)).toHaveCount(0);
   await expectAccessible(page, 'consolidation régionale');
@@ -49,9 +47,7 @@ test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ;
   expect(stepOf(toValidate)).toBe(3);
 
   // Critère : validation → étape 4
-  await card(toValidate)
-    .getByRole('button', { name: /^Valider/ })
-    .click();
+  await validating.getByRole('button', { name: /^Valider/ }).click();
   await expect(page.getByRole('status')).toHaveText(
     `Dossier ${toValidate} validé : il passe à l’expertise du Comité scientifique.`,
   );
@@ -59,16 +55,15 @@ test('US-043 : le régional valide (étape 4) et rejette avec motif (étape 2) ;
   expect(stepOf(toValidate)).toBe(4);
 
   // Critère : rejet sans motif refusé (écran et API) ; avec motif → étape 2
-  await card(toReject)
-    .getByRole('button', { name: /^Rejeter/ })
-    .click();
-  await card(toReject).getByRole('button', { name: 'Confirmer le rejet' }).click();
-  await expect(card(toReject).getByText('Indiquez le motif du rejet.')).toBeVisible();
+  const rejecting = await openDossier(page, toReject);
+  await rejecting.getByRole('button', { name: /^Rejeter/ }).click();
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await expect(rejecting.getByText('Indiquez le motif du rejet.')).toBeVisible();
   expect((await decide(page, toReject, { etape: 3, decision: 'rejete' })).status()).toBe(400);
   expect(stepOf(toReject)).toBe(3);
   await expectAccessible(page, 'rejet d’un dossier en consolidation');
-  await card(toReject).getByLabel('Motif du rejet').fill('Compte rendu de visite incomplet');
-  await card(toReject).getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await rejecting.getByLabel('Motif du rejet').fill('Compte rendu de visite incomplet');
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
   await expect(page.getByRole('status')).toHaveText(
     `Dossier ${toReject} rejeté : il revient à la vérification terrain.`,
   );

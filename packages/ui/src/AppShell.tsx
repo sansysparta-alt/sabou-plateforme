@@ -43,10 +43,11 @@ function initials(name: string): string {
   ).toUpperCase();
 }
 
-// Ossature de l'application de gestion (US-019, à la manière de la navigation de Studium) :
-// colonne Vert forêt pleine hauteur, marque en haut, rubriques au milieu, profil et
-// déconnexion en bas ; réductible aux icônes sur ordinateur. Sur téléphone, un bandeau porte
-// le bouton « Menu », qui ouvre la colonne.
+// Ossature de l'application de gestion (US-019) : colonne Vert forêt pleine hauteur, marque en
+// haut, rubriques ; réductible aux icônes sur ordinateur. Le compte connecté et la déconnexion
+// sont en haut à droite, là où on les cherche (décision du maître d'œuvre du 19/11, 05 §2.77) :
+// barre du compte au-dessus du contenu, à toutes les tailles ; sur téléphone, sous le bandeau
+// qui porte le bouton « Menu » (il ouvre la colonne).
 export function AppShell({
   context,
   user,
@@ -143,23 +144,25 @@ export function AppShell({
               <Icon name="chevron-left" />
               <span className="ui-sidebar__text">Réduire le menu</span>
             </button>
-            {user && (
-              <div className="ui-sidebar__user">
-                <span className="ui-avatar" aria-hidden="true">
-                  {initials(user.name)}
-                </span>
-                <span className="ui-sidebar__text ui-sidebar__identity">
-                  <span className="ui-sidebar__user-name">{user.name}</span>
-                  {user.zone && <span className="ui-sidebar__user-zone">{user.zone}</span>}
-                </span>
-                {userActions}
-              </div>
-            )}
           </div>
         </nav>
-        <main id="contenu" className="ui-main" tabIndex={-1}>
-          <div className="ui-main__inner">{children}</div>
-        </main>
+        <div className="ui-shell__column">
+          {user && (
+            <section className="ui-account" aria-label="Compte connecté">
+              <span className="ui-avatar" aria-hidden="true">
+                {initials(user.name)}
+              </span>
+              <span className="ui-account__identity">
+                <span className="ui-account__name">{user.name}</span>
+                {user.zone && <span className="ui-account__zone">{user.zone}</span>}
+              </span>
+              {userActions}
+            </section>
+          )}
+          <main id="contenu" className="ui-main" tabIndex={-1}>
+            <div className="ui-main__inner">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -170,6 +173,10 @@ export interface PageHeaderProps {
   lead?: string;
   actions?: ReactNode;
 }
+
+// Marge ajoutée à la hauteur de l'introduction (titre réduit, espacements) pour décider du
+// resserrement de l'en-tête
+const SHRINK_MARGIN_PX = 24;
 
 // En-tête de page : le seul h1 de la page (Cambria), une phrase d'introduction, les actions.
 // Sur ordinateur, il reste en haut de l'écran pendant le défilement : titre et action principale
@@ -182,12 +189,19 @@ export function PageHeader({ title, lead, actions }: PageHeaderProps) {
     const element = ref.current;
     // Navigateur sans IntersectionObserver (ou tests) : en-tête simplement fixe, sans resserrement
     if (!element || typeof IntersectionObserver === 'undefined') return;
-    // L'en-tête est accroché à -1 px : dès qu'il est collé, il n'est plus entièrement visible
+    // L'en-tête est accroché à -1 px : dès qu'il est collé, il n'est plus entièrement visible.
+    // Se resserrer raccourcit la page de la hauteur de l'introduction : si la page ne défile
+    // que de peu, elle ne défilerait plus, l'en-tête se décollerait, puis se recollerait…
+    // (clignotement sans fin). On ne le resserre donc que s'il reste de quoi défiler ensuite.
     const observer = new IntersectionObserver(
-      ([entry]) =>
-        setStuck(
-          entry !== undefined && entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1,
-        ),
+      ([entry]) => {
+        const sticks =
+          entry !== undefined && entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1;
+        const lead = element.querySelector<HTMLElement>('.ui-page-header__lead');
+        const shrink = (lead?.offsetHeight ?? 0) + SHRINK_MARGIN_PX;
+        const room = document.documentElement.scrollHeight - window.innerHeight;
+        setStuck((wasStuck) => sticks && (wasStuck || room > 2 * shrink));
+      },
       { threshold: [1] },
     );
     observer.observe(element);

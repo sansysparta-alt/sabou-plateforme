@@ -37,8 +37,8 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
   await form.getByLabel('Années d’expérience').fill('20');
   await form.getByLabel('Langue principale').selectOption({ index: 1 });
   await form.getByRole('button', { name: 'Créer le dossier' }).click();
-  await expect(page.getByRole('status')).toContainText('créé pour Mamadou Barry');
-  const code = /DS-\d+/.exec((await page.getByRole('status').textContent()) ?? '')?.[0];
+  await expect(page.getByRole('status').first()).toContainText('créé pour Mamadou Barry');
+  const code = /DS-\d+/.exec((await page.getByRole('status').first().textContent()) ?? '')?.[0];
   expect(code).toBeTruthy();
 
   // Critère 2 : créé par l'agent, journalisé ; SMS d'invitation au praticien en file
@@ -61,24 +61,26 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
   ).toBe('1');
 
   // Pièces obligatoires, déposées par l'agent ; la soumission attend qu'elles y soient
-  const card = page.getByRole('article', { name: /Mamadou Barry/ });
+  // Panneau du dossier, ouvert à sa création ; une ligne par pièce, dépôt en un geste
+  const card = page
+    .getByRole('heading', { level: 3, name: /Mamadou Barry/ })
+    .locator('xpath=ancestor::li[1]');
   await expect(card.getByRole('button', { name: /Soumettre le dossier/ })).toBeDisabled();
   for (const [type, label] of [
     ['identite', 'Pièce d’identité'],
     ['photo', 'Photo du praticien'],
   ] as const) {
-    await card.getByLabel('Type de pièce').selectOption(type);
     await card
-      .getByLabel('Fichier')
+      .getByLabel(`Déposer la ${label.toLowerCase()}`)
       .setInputFiles({ name: `${type}.jpg`, mimeType: 'image/jpeg', buffer: JPEG });
-    await card.getByRole('button', { name: /Ajouter la pièce/ }).click();
-    await expect(page.getByRole('status')).toContainText(`${label} ajoutée au dossier ${code}`);
+    // Message dit dans le panneau du dossier (la page derrière est inactive, 05 §2.76)
+    await expect(card.getByRole('status')).toContainText(`${label} ajoutée au dossier ${code}`);
   }
   await expectAccessible(page, 'dossier terrain : pièces');
 
   // Critère 1 : soumis par l'agent, le dossier entre dans le circuit (étape 2, sa préfecture)
   await card.getByRole('button', { name: /Soumettre le dossier/ }).click();
-  await expect(page.getByRole('status')).toContainText(`Dossier ${code} soumis`);
+  await expect(page.getByRole('status').first()).toContainText(`Dossier ${code} soumis`);
   expect(
     psql(`SELECT d.etape_courante || ' ' || (SELECT count(*) FROM sabou.notification n
                                                WHERE n.objet_id = d.code AND n.modele = 'dossier.soumis')

@@ -20,6 +20,8 @@ import {
 } from '../signup/citizen-identity';
 import { FieldDossiersController } from './field-dossiers.controller';
 import {
+  AgentNotDesignableError,
+  DesignationForbiddenError,
   FieldDossierForbiddenError,
   FieldDossierNotFoundError,
   FieldDossiersRepository,
@@ -64,6 +66,15 @@ const repository = {
     calls.push(['submit', sub, code]);
     if (failure) throw failure;
     return submitResult;
+  },
+  async designations(sub: string) {
+    calls.push(['designations', sub]);
+    if (failure) throw failure;
+    return { dossiers: [], agents: [{ id: 9, nom: 'Oumar Baldé', prefecture: 'Mali' }] };
+  },
+  async designate(sub: string, _ip: unknown, code: string, agentId: number) {
+    calls.push(['designate', sub, code, agentId]);
+    if (failure) throw failure;
   },
 };
 const identity = {
@@ -285,5 +296,57 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
   it('dossier introuvable, d’un autre agent ou déjà soumis : 404', async () => {
     failure = new FieldDossierNotFoundError();
     expect((await send('POST', `/${CODE}/soumission`)).status).toBe(404);
+  });
+});
+
+// US-040d : désignation de l'agent de vérification par l'admin régional. Les règles (rôle,
+// région, auteur exclu, étapes 1 et 2, visibilité, étape 2) sont prouvées sur un vrai
+// PostgreSQL (packages/db/test/verificateur-designe.test.ts).
+describe('US-040d : désignation de l’agent de vérification', () => {
+  it('liste des dossiers et des agents de la région, dans le contexte du compte', async () => {
+    const res = await send('GET', '/designations');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect((await res.json()).agents).toHaveLength(1);
+    expect(calls).toEqual([['designations', SUB]]);
+  });
+
+  it('désignation transmise à la base avec le compte connecté (204)', async () => {
+    const res = await send('POST', `/${CODE}/verificateur`, { agentId: 9 });
+    expect(res.status).toBe(204);
+    expect(calls).toEqual([['designate', SUB, CODE, 9]]);
+  });
+
+  it('corps invalide refusé avant la base', async () => {
+    for (const body of [{}, { agentId: 'neuf' }, { agentId: 9, autre: 1 }, { agentId: -1 }]) {
+      expect((await send('POST', `/${CODE}/verificateur`, body)).status).toBe(400);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('refus de la base traduits : 403, 404, 409', async () => {
+    const cases: [Error, number, string][] = [
+      [new DesignationForbiddenError(), 403, 'not_allowed'],
+      [new FieldDossierNotFoundError(), 404, 'not_found'],
+      [new AgentNotDesignableError(), 409, 'not_designable'],
+    ];
+    for (const [error, status, code] of cases) {
+      failure = error;
+      const res = await send('POST', `/${CODE}/verificateur`, { agentId: 9 });
+      expect(res.status).toBe(status);
+      expect((await res.json()).error).toBe(code);
+    }
+    failure = new DesignationForbiddenError();
+    expect((await send('GET', '/designations')).status).toBe(403);
+  });
+
+  it('sans second facteur, ou hors de l’application de gestion : refusé', async () => {
+    expect((await send('GET', '/designations', undefined, { cookie: 'sans-facteur' })).status).toBe(
+      403,
+    );
+    expect((await send('GET', '/designations', undefined, { cookie: 'praticien' })).status).toBe(
+      403,
+    );
+    expect(calls).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { decide, dossierAtStep2, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import { administrator, expectAccessible, firstAdministratorLogin, openDossier } from './helpers';
 import { APP } from './keycloak';
 
 // Heure de Conakry (UTC) au format des champs datetime-local, dans h heures
@@ -29,12 +29,10 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await page.goto(APP);
   await page.getByRole('link', { name: 'Vérification terrain' }).click();
   await showRunDossiers(page);
-  const card = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card.locator('summary').click();
-  await expect(card.getByText('À réaliser')).toBeVisible();
+  // Détail dans le panneau du dossier (05 §2.76)
+  const card = page.getByRole('dialog', { name: new RegExp(`^${code} `) });
+  await openDossier(page, code);
+  await expect(card.getByText('Visite attendue')).toBeVisible();
   await expect(card.getByRole('button', { name: /^Valider/ })).toHaveCount(0);
 
   // Planifier : dans moins d'un jour, le rappel est dû aussitôt (la veille est passée)
@@ -43,7 +41,9 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await card.getByLabel('Date et heure de la visite').fill(when);
   await expectAccessible(page, 'planification d’une visite');
   await card.getByRole('button', { name: 'Enregistrer la date' }).click();
-  await expect(page.getByRole('status')).toContainText('Le praticien sera prévenu la veille.');
+  await expect(page.getByRole('status').first()).toContainText(
+    'Le praticien sera prévenu la veille.',
+  );
   expect(
     visitRow(
       `vt.statut || ' ' || to_char(vt.prevue_le AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI')`,
@@ -65,7 +65,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await page.reload();
   // Le rechargement vide la recherche : sans elle, le dossier peut tomber en page 2
   await showRunDossiers(page);
-  await card.locator('summary').click();
+  await openDossier(page, code);
   await card.getByRole('button', { name: /^Enregistrer le compte rendu/ }).click();
   await card.getByLabel('Favorable', { exact: true }).check();
   await card.getByLabel('Constats').fill('Lieu d’exercice conforme ; plantes séchées à l’abri.');
@@ -90,10 +90,10 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   // Signé : la visite est réalisée, le texte figé avec son empreinte, son auteur, l'heure
   await card.getByLabel(/Je certifie avoir réalisé cette visite/).check();
   await card.getByRole('button', { name: 'Signer le compte rendu' }).click();
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.getByRole('status').first()).toHaveText(
     'Compte rendu signé : la visite est enregistrée.',
   );
-  await expect(card.getByText('Réalisée, compte rendu signé')).toBeVisible();
+  await expect(card.getByText('Visite faite')).toBeVisible();
   const [statut, author, stored, fingerprint] = visitRow(
     `vt.statut || '|' || vt.signe_par || '|' || vt.constats || '|' || vt.empreinte_sha3`,
   ).split('|');
@@ -130,11 +130,11 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   expect(again.status()).toBe(409);
 
   // Photo facultative de la fiche papier
+  // Dépôt en un geste : la photo choisie part aussitôt
   await card
-    .getByLabel('Photo de la fiche papier (facultative)')
+    .getByLabel(/^Joindre la photo de la fiche papier/)
     .setInputFiles({ name: 'fiche.jpg', mimeType: 'image/jpeg', buffer: JPEG });
-  await card.getByRole('button', { name: /^Joindre la photo/ }).click();
-  await expect(card.getByText('Jointe')).toBeVisible();
+  await expect(card.getByText('Jointe', { exact: true })).toBeVisible();
   expect(visitRow('vt.compte_rendu_piece_id IS NOT NULL')).toBe('t');
 
   // La visite enregistrée rend la validation possible (US-042)

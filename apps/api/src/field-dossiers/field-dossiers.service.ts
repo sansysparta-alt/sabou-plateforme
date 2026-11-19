@@ -12,6 +12,7 @@ import {
 import {
   PIECE_LABELS,
   type FieldDossier,
+  type FieldDossierDesignations,
   type FieldDossierCreate,
   type FieldDossierReferentials,
   type PractitionerPieceType,
@@ -23,6 +24,8 @@ import { inspectPiece } from '../dossiers/piece-content';
 import { PIECE_STORAGE, type PieceStorage } from '../dossiers/piece-storage';
 import { CITIZEN_IDENTITY, type CitizenIdentity } from '../signup/citizen-identity';
 import {
+  AgentNotDesignableError,
+  DesignationForbiddenError,
   FieldDossierForbiddenError,
   FieldDossierNotFoundError,
   FieldDossiersRepository,
@@ -35,6 +38,30 @@ const PHONE_TAKEN = {
   message:
     'Ce numéro a déjà un compte SABOU : le praticien dépose son dossier depuis l’application mobile.',
 };
+
+// Refus de la désignation (US-040d), rédigés pour l'écran du régional
+function designationToHttp(error: unknown): never {
+  if (error instanceof ZoneContextError || error instanceof DesignationForbiddenError) {
+    throw new ForbiddenException({
+      error: 'not_allowed',
+      message: 'La désignation de l’agent de vérification est réservée à l’admin régional.',
+    });
+  }
+  if (error instanceof FieldDossierNotFoundError) {
+    throw new NotFoundException({
+      error: 'not_found',
+      message: 'Dossier terrain introuvable dans votre région.',
+    });
+  }
+  if (error instanceof AgentNotDesignableError) {
+    throw new ConflictException({
+      error: 'not_designable',
+      message:
+        'Désignation impossible : choisissez un agent préfectoral actif de la région, autre que l’auteur, pour un dossier aux étapes 1 ou 2.',
+    });
+  }
+  throw error;
+}
 
 // Refus rédigés pour l'écran, avec un code pour le client
 function toHttp(error: unknown): never {
@@ -176,5 +203,13 @@ export class FieldDossiersService {
       );
     }
     return { code: result.code, etape: 2, soumisLe: result.submittedAt };
+  }
+
+  designations(sub: string): Promise<FieldDossierDesignations> {
+    return this.repository.designations(sub).catch(designationToHttp);
+  }
+
+  designate(sub: string, ip: string | undefined, code: string, agentId: number): Promise<void> {
+    return this.repository.designate(sub, ip, code, agentId).catch(designationToHttp);
   }
 }

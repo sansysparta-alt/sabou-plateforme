@@ -1,5 +1,5 @@
 // Outils communs des tests de bout en bout de l'application de gestion
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { psql } from './audit';
 import { APP, createUser, KEYCLOAK, msUntilNextPeriod, totp, type TestUser } from './keycloak';
@@ -111,4 +111,24 @@ export async function administrator(
         VALUES ('${user.username}@exemple.invalid', 'Essai', 'Zone', '${role}', ${region}, ${prefecture},
           'actif', '${user.id}')`);
   return user;
+}
+
+// Ouvre le panneau d'un dossier (clic sur sa ligne, 05 §2.76) et le rend ; un seul panneau
+// à la fois, comme pour l'utilisateur. Sans effet s'il est déjà ouvert.
+export async function openDossier(page: Page, code: string): Promise<Locator> {
+  const panel = page.getByRole('dialog', { name: new RegExp(`^${code} `) });
+  if (!(await panel.isVisible())) {
+    await page
+      .getByRole('heading', { level: 3, name: new RegExp(`^${code} `) })
+      .getByRole('button')
+      .click();
+  }
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
+// Referme le panneau ouvert (bouton « Fermer »)
+export async function closeDossier(panel: Locator): Promise<void> {
+  await panel.getByRole('button', { name: /^Fermer/ }).click();
+  await expect(panel).toBeHidden();
 }

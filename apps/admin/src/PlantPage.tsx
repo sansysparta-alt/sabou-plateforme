@@ -433,10 +433,16 @@ function ImageFieldsForm({
           type="checkbox"
           checked={fields.principale}
           disabled={initial.principale}
+          aria-describedby={initial.principale ? `${titleId}-principale` : undefined}
           onChange={(event) => setFields({ ...fields, principale: event.target.checked })}
         />
         Photo principale
       </label>
+      {initial.principale && (
+        <span className="ui-field__hint" id={`${titleId}-principale`}>
+          C’est déjà la photo principale : pour en changer, désignez-en une autre.
+        </span>
+      )}
       <div className="ui-form__actions">
         <Button type="submit" variant="primary" disabled={busy}>
           {busy ? 'Enregistrement…' : submitLabel}

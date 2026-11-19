@@ -16,6 +16,12 @@ test('comptes et dossiers d’essai', async () => {
   const regional = await administrator('admin_regional', { region: 'Kankan' });
   const committee = await administrator('comite', { national: true });
   const dg = await administrator('dg', { national: true });
+  // US-040d : second agent préfectoral de la région, dans une autre préfecture, que le
+  // régional désigne pour vérifier un dossier terrain créé par l'agent de Kankan
+  const neighbourPrefecture = psql(`SELECT nom FROM sabou.prefecture
+      WHERE region_admin_id = (SELECT id FROM sabou.region_admin WHERE nom = 'Kankan')
+        AND nom <> 'Kankan' ORDER BY id LIMIT 1`).trim();
+  const neighbour = await administrator('admin_prefectoral', { prefecture: neighbourPrefecture });
 
   const step2Done = dossierAtStep2('Kankan', prefectoral.id, 'realisee');
   const step2Planned = dossierAtStep2('Kankan', prefectoral.id, 'planifiee');
@@ -55,6 +61,8 @@ test('comptes et dossiers d’essai', async () => {
     `  Admin préfectoral Kankan ${prefectoral.username} / ${prefectoral.password}`,
     `  Admin régional Kankan   ${regional.username} / ${regional.password}`,
     `  Comité scientifique     ${committee.username} / ${committee.password}`,
+    `  Admin préfectoral ${neighbourPrefecture} ${neighbour.username} / ${neighbour.password}`,
+    '    (US-040d : agent que le régional désigne pour un dossier terrain de Kankan)',
     '',
     'Langues (sprint 4) : le préfectoral enregistre et traduit en malinké, le régional valide',
     'le malinké ; la DG publie.',

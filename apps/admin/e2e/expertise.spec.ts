@@ -4,7 +4,13 @@
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { decide, dossierAtStep, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import {
+  administrator,
+  closeDossier,
+  expectAccessible,
+  firstAdministratorLogin,
+  openDossier,
+} from './helpers';
 import { APP } from './keycloak';
 
 test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), toutes régions', async ({
@@ -30,11 +36,12 @@ test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), to
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
   await expect(card(toValidate)).toBeVisible();
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card(toValidate).locator('summary').click();
-  await card(toReject).locator('summary').click();
-  await expect(card(toValidate).getByText('Labé, région de Labé')).toBeVisible();
-  await expect(card(toReject).getByText('Kankan, région de Kankan')).toBeVisible();
+  // Détail dans le panneau du dossier (05 §2.76), un seul ouvert à la fois
+  const other = await openDossier(page, toReject);
+  await expect(other.getByText('Kankan, région de Kankan')).toBeVisible();
+  await closeDossier(other);
+  const validating = await openDossier(page, toValidate);
+  await expect(validating.getByText('Labé, région de Labé')).toBeVisible();
   await expect(card(notYet)).toHaveCount(0);
   await expectAccessible(page, 'expertise des dossiers');
 
@@ -44,9 +51,7 @@ test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), to
   expect(stepOf(notYet)).toBe(3);
 
   // Critère : validation → étape 5
-  await card(toValidate)
-    .getByRole('button', { name: /^Valider/ })
-    .click();
+  await validating.getByRole('button', { name: /^Valider/ }).click();
   await expect(page.getByRole('status')).toHaveText(
     `Dossier ${toValidate} validé : il passe à l’approbation de la Direction Générale.`,
   );
@@ -54,16 +59,15 @@ test('US-044 : le Comité valide (étape 5) et rejette avec motif (étape 3), to
   expect(stepOf(toValidate)).toBe(5);
 
   // Critère : rejet sans motif refusé (écran et API) ; avec motif → étape 3
-  await card(toReject)
-    .getByRole('button', { name: /^Rejeter/ })
-    .click();
-  await card(toReject).getByRole('button', { name: 'Confirmer le rejet' }).click();
-  await expect(card(toReject).getByText('Indiquez le motif du rejet.')).toBeVisible();
+  const rejecting = await openDossier(page, toReject);
+  await rejecting.getByRole('button', { name: /^Rejeter/ }).click();
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await expect(rejecting.getByText('Indiquez le motif du rejet.')).toBeVisible();
   expect((await decide(page, toReject, { etape: 4, decision: 'rejete' })).status()).toBe(400);
   expect(stepOf(toReject)).toBe(4);
   await expectAccessible(page, 'rejet d’un dossier en expertise');
-  await card(toReject).getByLabel('Motif du rejet').fill('Dosage des décoctions à préciser');
-  await card(toReject).getByRole('button', { name: 'Confirmer le rejet' }).click();
+  await rejecting.getByLabel('Motif du rejet').fill('Dosage des décoctions à préciser');
+  await rejecting.getByRole('button', { name: 'Confirmer le rejet' }).click();
   await expect(page.getByRole('status')).toHaveText(
     `Dossier ${toReject} rejeté : il revient à la consolidation régionale.`,
   );

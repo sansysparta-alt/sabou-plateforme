@@ -5,6 +5,7 @@ import {
   type DossierPiece,
   type FieldDossier,
   type FieldDossierCreate,
+  type FieldDossierDesignations,
   type FieldDossierReferentials,
   type PractitionerPieceType,
 } from '@sabou/types';
@@ -18,6 +19,8 @@ export class FieldDossierForbiddenError extends Error {}
 export class FieldDossierNotFoundError extends Error {}
 export class PhoneTakenError extends Error {}
 export class InvalidFieldReferenceError extends Error {}
+export class DesignationForbiddenError extends Error {}
+export class AgentNotDesignableError extends Error {}
 
 function translate(error: unknown): never {
   const { code, constraint } = error as { code?: string; constraint?: string };
@@ -219,5 +222,85 @@ export class FieldDossiersRepository {
       pieces: pieces.rows.map((p) => ({ ...p, deposeLe: p.deposeLe.toISOString() })),
       piecesManquantes: missing.rows[0]?.missing ?? [],
     };
+  }
+
+  // US-040d : dossiers terrain de la région du régional aux étapes 1 et 2 (cloisonnement de la
+  // base) et agents préfectoraux actifs de sa région
+  designations(sub: string): Promise<FieldDossierDesignations> {
+    return inZone(this.db, sub, async (trx) => {
+      const regional = await sql<{ region: number }>`
+        SELECT region_admin_id AS region FROM sabou.utilisateur
+         WHERE id = sabou.contexte_utilisateur() AND role_code = 'regional'`.execute(trx);
+      if (!regional.rows[0]) throw new DesignationForbiddenError();
+      const dossiers = await sql<{
+        code: string;
+        praticien: string;
+        prefecture: string;
+        etape: number;
+        auteur: string;
+        auteurId: number;
+        verificateurId: number | null;
+        verificateurNom: string | null;
+        verificateurPrefecture: string | null;
+      }>`
+        SELECT d.code, u.prenom || ' ' || u.nom AS praticien, pf.nom AS prefecture,
+               d.etape_courante AS etape, a.prenom || ' ' || a.nom AS auteur, a.id::int AS "auteurId",
+               v.id::int AS "verificateurId", v.prenom || ' ' || v.nom AS "verificateurNom",
+               vp.nom AS "verificateurPrefecture"
+          FROM sabou.dossier_certification d
+          JOIN sabou.praticien p   ON p.id = d.praticien_id
+          JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
+          JOIN sabou.prefecture pf ON pf.id = p.prefecture_id
+          JOIN sabou.utilisateur a ON a.id = d.cree_par
+          LEFT JOIN sabou.utilisateur v ON v.id = d.verificateur_designe
+          LEFT JOIN sabou.prefecture vp ON vp.id = v.prefecture_id
+         WHERE d.statut = 'en_cours' AND d.etape_courante <= 2
+           AND pf.region_admin_id = ${regional.rows[0].region}
+         ORDER BY d.etape_entree_le, d.id`.execute(trx);
+      const agents = await sql<FieldDossierDesignations['agents'][number]>`
+        SELECT u.id::int, u.prenom || ' ' || u.nom AS nom, pf.nom AS prefecture
+          FROM sabou.utilisateur u JOIN sabou.prefecture pf ON pf.id = u.prefecture_id
+         WHERE u.role_code = 'prefectoral' AND u.statut = 'actif'
+           AND pf.region_admin_id = ${regional.rows[0].region}
+         ORDER BY pf.nom, u.nom, u.prenom`.execute(trx);
+      return {
+        dossiers: dossiers.rows.map(
+          ({ verificateurId, verificateurNom, verificateurPrefecture, ...row }) => ({
+            ...row,
+            verificateur:
+              verificateurId === null
+                ? null
+                : {
+                    id: verificateurId,
+                    nom: verificateurNom!,
+                    prefecture: verificateurPrefecture!,
+                  },
+          }),
+        ),
+        agents: agents.rows,
+      };
+    });
+  }
+
+  // Désignation par le régional ; la base contrôle rôle, région, auteur, étape et journalise
+  designate(sub: string, ip: string | undefined, code: string, agentId: number): Promise<void> {
+    return inZone(this.db, sub, async (trx) => {
+      await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      try {
+        await sql`SELECT sabou.dossier_verificateur_designer(${code}, ${agentId}::bigint)`.execute(
+          trx,
+        );
+      } catch (error) {
+        const { code: sqlState, message } = error as { code?: string; message?: string };
+        if (sqlState === '42501') throw new DesignationForbiddenError();
+        if (message?.includes('introuvable') || message?.includes('dossiers terrain')) {
+          throw new FieldDossierNotFoundError();
+        }
+        if (message?.includes('étapes 1 et 2') || message?.includes('non désignable')) {
+          throw new AgentNotDesignableError();
+        }
+        throw error;
+      }
+    });
   }
 }

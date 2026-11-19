@@ -55,6 +55,12 @@ export interface FieldVerificationItem {
   visiteRealisee: boolean;
   // Visite planifiée, sinon la dernière réalisée (US-041) ; null si aucune
   visite: FieldVisit | null;
+  // Dossier terrain : agent désigné par l'admin régional pour le vérifier (US-040d), sinon null
+  verificateur: string | null;
+  // Le compte connecté a créé ce dossier terrain : il ne le vérifie pas (US-040c)
+  auteur: boolean;
+  // Le compte connecté est l'agent désigné pour ce dossier (US-040d)
+  verificateurEstMoi: boolean;
 }
 
 // Dossier en attente de consolidation régionale (étape 3), dans la région du compte
