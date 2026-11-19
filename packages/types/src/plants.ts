@@ -83,11 +83,26 @@ export const plantImageFieldsSchema = z
   .strict();
 export type PlantImageFields = z.infer<typeof plantImageFieldsSchema>;
 
+// Proposition d'une plante par un praticien (US-054) : nom français obligatoire ; nom
+// scientifique et famille facultatifs, complétés par le Comité avant de valider (la base refuse
+// une fiche validée sans eux)
+export const PLANT_DESCRIPTION_MAX_LENGTH = 1000;
+export const plantProposalSchema = z
+  .object({
+    nomFr: required('Nom français', PLANT_NAME_MAX_LENGTH),
+    nomScientifique: optional('Nom scientifique', PLANT_SCIENTIFIC_NAME_MAX_LENGTH),
+    famille: optional('Famille', PLANT_FAMILY_MAX_LENGTH),
+    description: optional('Description', PLANT_DESCRIPTION_MAX_LENGTH),
+  })
+  .strict();
+export type PlantProposal = z.infer<typeof plantProposalSchema>;
+
 export interface PlantSummary {
   code: string;
-  nomScientifique: string;
+  // Absents tant qu'une fiche proposée par un praticien n'est pas complétée (US-054)
+  nomScientifique: string | null;
   nomFr: string;
-  famille: string;
+  famille: string | null;
   statut: PlantStatus;
   // Photo principale (identifiant), null s'il n'y en a pas
   image: number | null;
@@ -103,10 +118,12 @@ export interface PlantImage {
 
 export interface PlantDetail {
   code: string;
-  nomScientifique: string;
-  famille: string;
+  nomScientifique: string | null;
+  famille: string | null;
   nomFr: string;
   nomEn: string | null;
+  // Proposition d'un praticien (US-054) : son nom et sa description ; null sinon
+  proposition: { par: string; description: string | null } | null;
   statut: PlantStatus;
   // Horodatage ISO 8601 de la dernière modification, à renvoyer avec une modification
   modifieLe: string;

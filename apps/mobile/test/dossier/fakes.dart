@@ -70,6 +70,17 @@ class FakeServer {
   final uploads = <String, Uint8List>{};
   bool submitted = false;
 
+  // État du Studio (US-067) : traitements du praticien, par code
+  final treatments = <String, Map<String, Object?>>{};
+
+  /// Plantes proposées par le praticien (US-054), corps reçus.
+  final proposals = <Map<String, Object?>>[];
+  int _treatmentSeq = 1000;
+  int _clock = 0;
+
+  /// Prochaine réponse du Studio refusée avec ce statut et ce corps (règles de la base).
+  (int, Map<String, Object?>)? nextStudioRefusal;
+
   late final client = MockClient(handle);
 
   List<String> get missing => [
@@ -153,6 +164,8 @@ class FakeServer {
           'soumisLe': '2026-11-08T10:30:00.000Z',
         });
     }
+    final studio = studioRoute(request, path);
+    if (studio != null) return studio;
     if (request.method == 'POST' && path.startsWith('dossier/pieces/')) {
       final type = path.split('/').last;
       uploads[type] = request.bodyBytes;
@@ -178,4 +191,245 @@ class FakeServer {
     status,
     headers: {'content-type': 'application/json; charset=utf-8'},
   );
+
+  static const studioReferentials = {
+    'maladies': [
+      {'code': 'MAL-0001', 'nomFr': 'Paludisme'},
+      {'code': 'MAL-0002', 'nomFr': 'Diarrhée'},
+    ],
+    'plantes': [
+      {
+        'code': 'PLA-0001',
+        'nomFr': 'Kinkéliba',
+        'nomScientifique': 'Combretum micranthum',
+        'validee': true,
+      },
+      {
+        'code': 'PLA-0002',
+        'nomFr': 'Neem',
+        'nomScientifique': 'Azadirachta indica',
+        'validee': true,
+      },
+      {
+        'code': 'PLA-0003',
+        'nomFr': 'Quinquéliba rouge',
+        'nomScientifique': 'Combretum glutinosum',
+        'validee': false,
+      },
+    ],
+    'sections': [
+      {'code': 'preparation', 'libelleFr': 'Préparation', 'obligatoire': true},
+      {
+        'code': 'consommation',
+        'libelleFr': 'Consommation',
+        'obligatoire': true,
+      },
+      {'code': 'cycle', 'libelleFr': 'Cycle', 'obligatoire': true},
+      {
+        'code': 'effets_indesirables',
+        'libelleFr': 'Effets indésirables',
+        'obligatoire': true,
+      },
+      {
+        'code': 'conservation',
+        'libelleFr': 'Conservation',
+        'obligatoire': false,
+      },
+    ],
+    'contreIndications': [
+      {'code': 'grossesse', 'libelleFr': 'Femmes enceintes'},
+      {'code': 'enfant_moins_5', 'libelleFr': 'Enfants de moins de 5 ans'},
+    ],
+  };
+
+  static const _requiredSections = [
+    'preparation',
+    'consommation',
+    'cycle',
+    'effets_indesirables',
+  ];
+
+  static String? _blank(Object? value) =>
+      value is String && value.isNotEmpty ? value : null;
+
+  static List<Map<String, Object?>> _ref(String key) =>
+      (studioReferentials[key]! as List).cast<Map<String, Object?>>();
+
+  /// Traitement tel que l'API le renvoie, à partir de la saisie reçue.
+  Map<String, Object?> _detail(
+    String code,
+    Map<String, Object?> fields, {
+    String statut = 'brouillon',
+    String? motif,
+    String? attente,
+  }) {
+    final plants = (fields['plantes']! as List).cast<Map<String, Object?>>();
+    final sections = (fields['sections']! as List).cast<Map<String, Object?>>();
+    Map<String, Object?> plant(Object? code) =>
+        _ref('plantes').firstWhere((r) => r['code'] == code);
+    final consent = fields['consentement'] == true;
+    return {
+      'code': code,
+      'titreFr': fields['titreFr'],
+      'titreEn': _blank(fields['titreEn']),
+      'maladie': _ref('maladies')
+          .firstWhere((m) => m['code'] == fields['maladie']),
+      'statut': statut,
+      'attenteRaison': attente,
+      'modifieLe':
+          '2026-11-18T10:00:00.${(_clock++).toString().padLeft(3, '0')}Z',
+      'cycleDureeJours': fields['cycleDureeJours'],
+      'cyclePrisesParJour': fields['cyclePrisesParJour'],
+      'cyclePauseJours': fields['cyclePauseJours'],
+      'plantes': [
+        for (final p in plants)
+          {
+            'plante': p['plante'],
+            'nomFr': plant(p['plante'])['nomFr'],
+            'partie': _blank(p['partie']),
+            'validee': plant(p['plante'])['validee'],
+          },
+      ],
+      'sections': [
+        for (final s in sections)
+          {
+            'type': s['type'],
+            'texteFr': s['texteFr'],
+            'texteEn': _blank(s['texteEn']),
+          },
+      ],
+      'contreIndications': [
+        for (final c in (fields['contreIndications'] as List? ?? const []))
+          _ref('contreIndications').firstWhere((r) => r['code'] == c),
+      ],
+      'visibilite': consent ? fields['visibilite'] : null,
+      'consentementLe': consent ? '2026-11-18T10:00:00.000Z' : null,
+      'manques': [
+        if (!consent) 'consentement',
+        if (plants.isEmpty) 'plante',
+        if (fields['cycleDureeJours'] == null ||
+            fields['cyclePrisesParJour'] == null)
+          'cycle',
+        if (!_requiredSections.every(
+          (r) => sections.any((s) => s['type'] == r),
+        ))
+          'sections',
+      ],
+      'dossier': null,
+      'dernierMotif': motif,
+    };
+  }
+
+  /// Ajoute un traitement existant (avec sa saisie) ; renvoie son code.
+  String seedTreatment(
+    Map<String, Object?> fields, {
+    String statut = 'brouillon',
+    String? motif,
+    String? attente,
+  }) {
+    final code = 'REC-${_treatmentSeq++}';
+    treatments[code] = _detail(
+      code,
+      fields,
+      statut: statut,
+      motif: motif,
+      attente: attente,
+    );
+    return code;
+  }
+
+  http.Response? studioRoute(http.Request request, String path) {
+    final refusal = nextStudioRefusal;
+    if (refusal != null &&
+        (path == 'traitements' || path.startsWith('traitements/'))) {
+      nextStudioRefusal = null;
+      return _json(refusal.$1, refusal.$2);
+    }
+    if (request.method == 'GET' && path == 'studio/referentiels') {
+      return _json(200, studioReferentials);
+    }
+    // US-054 : plante proposée, créée « en revue »
+    if (request.method == 'POST' && path == 'plantes') {
+      final body = jsonDecode(request.body) as Map<String, Object?>;
+      proposals.add(body);
+      final sci = body['nomScientifique'] as String?;
+      return _json(201, {
+        'code': 'PLA-0${100 + proposals.length}',
+        'nomFr': body['nomFr'],
+        'nomScientifique': sci == null || sci.isEmpty ? null : sci,
+        'validee': false,
+      });
+    }
+    if (request.method == 'GET' && path == 'traitements') {
+      const summary = [
+        'code',
+        'titreFr',
+        'maladie',
+        'statut',
+        'attenteRaison',
+        'modifieLe',
+      ];
+      return _json(200, [
+        for (final t in treatments.values) {for (final k in summary) k: t[k]},
+      ]);
+    }
+    if (request.method == 'POST' && path == 'traitements') {
+      final code = seedTreatment(
+        jsonDecode(request.body) as Map<String, Object?>,
+      );
+      return _json(200, treatments[code]!);
+    }
+    final match = RegExp(r'^traitements/(REC-\d+)(/soumission)?$')
+        .firstMatch(path);
+    if (match == null) return null;
+    final code = match.group(1)!;
+    final current = treatments[code];
+    if (current == null) {
+      return _json(404, {
+        'error': 'not_found',
+        'message': 'Traitement introuvable.',
+      });
+    }
+    if (request.method == 'GET' && match.group(2) == null) {
+      return _json(200, current);
+    }
+    if (current['statut'] != 'brouillon') {
+      return _json(409, {
+        'error': 'locked',
+        'message': 'Ce traitement a été soumis : il ne se modifie plus.',
+      });
+    }
+    if (request.method == 'PUT') {
+      final body = jsonDecode(request.body) as Map<String, Object?>;
+      if (body['vueLe'] != current['modifieLe']) {
+        return _json(409, {
+          'error': 'stale',
+          'message': 'Ce traitement a été modifié entre-temps. Rechargez-le avant de l’enregistrer.',
+        });
+      }
+      treatments[code] = _detail(
+        code,
+        body['fields']! as Map<String, Object?>,
+        motif: current['dernierMotif'] as String?,
+      );
+      return _json(200, treatments[code]!);
+    }
+    if (request.method == 'POST' && match.group(2) != null) {
+      final gaps = current['manques']! as List;
+      if (gaps.isNotEmpty) {
+        return _json(422, {
+          'error': 'incomplete',
+          'message': 'Traitement incomplet.',
+          'gaps': gaps,
+        });
+      }
+      treatments[code] = {
+        ...current,
+        'statut': 'soumise',
+        'dossier': 'DS-2001',
+      };
+      return _json(200, treatments[code]!);
+    }
+    return null;
+  }
 }

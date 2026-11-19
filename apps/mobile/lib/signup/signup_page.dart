@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
+import 'form_field.dart';
 import 'signup_api.dart';
 import 'signup_rules.dart';
 import 'signup_texts.dart';
@@ -254,30 +255,22 @@ class _SignupPageState extends State<SignupPage> {
     Widget? suffix,
     TextInputAction action = TextInputAction.next,
     VoidCallback? onSubmitted,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: SabouSpace.s4),
-    child: TextField(
-      key: Key('signup-$id'),
-      controller: controller,
-      enabled: !_busy,
-      keyboardType: keyboard,
-      autofillHints: autofill,
-      inputFormatters: formatters,
-      obscureText: obscure,
-      autocorrect: false,
-      enableSuggestions: !obscure,
-      textInputAction: action,
-      onSubmitted: onSubmitted == null ? null : (_) => onSubmitted(),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: helper,
-        helperMaxLines: 3,
-        errorText: _fieldErrors[id],
-        errorMaxLines: 3,
-        suffixIcon: suffix,
-      ),
-    ),
+  }) => publicFormField(
+    keyPrefix: 'signup',
+    id: id,
+    controller: controller,
+    label: label,
+    enabled: !_busy,
+    error: _fieldErrors[id],
+    hint: hint,
+    helper: helper,
+    keyboard: keyboard,
+    autofill: autofill,
+    formatters: formatters,
+    obscure: obscure,
+    suffix: suffix,
+    action: action,
+    onSubmitted: onSubmitted,
   );
 
   Widget _submit(String label, VoidCallback onPressed) => FilledButton(

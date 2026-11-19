@@ -46,8 +46,8 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S3** | 2. Socle et sécurité | La DG approuve, le certificat signé est émis et le praticien apparaît comme certifié. | US-041, US-045, US-046, US-047, US-048, US-049, US-017, US-018 | 33 |
 | **S4** | 3. Application de gestion et mobile | Une fiche plante validée, avec la voix de son nom dans les 5 langues, est consultable dans l’application. | US-050, US-051, US-052, US-053, US-070, US-071 | 24 |
 | **S5** | 3. Application de gestion et mobile | Un traitement saisi au Studio web suit tout le circuit jusqu’à la certification. | US-060, US-061, US-062, US-063, US-064 | 22 |
-| **S5b** | 3. Application de gestion et mobile | Un praticien s’inscrit et saisit un traitement depuis l’application mobile ; le site ne sert plus que le grand public. *Sprint intermédiaire de l’alignement (17/11/2026).* | US-066, US-067, US-068 | 15 |
-| **S5c** | 3. Application de gestion et mobile | Le compte DG est unique et récupérable sous contrôle ; praticien et citoyen retrouvent leur mot de passe par SMS ; plantes, dossiers terrain et langues suivent le cahier des charges. *Corrections de l’alignement (17/11/2026).* | US-024, US-069, US-054, US-055, US-040c, US-012c | 22 |
+| **S5b** | 3. Application de gestion et mobile | Un praticien s’inscrit et saisit un traitement depuis l’application mobile ; le site ne sert plus que le grand public. *Sprint intermédiaire de l’alignement (17/11/2026).* | US-066, US-067, US-068 | 18 |
+| **S5c** | 3. Application de gestion et mobile | Le compte DG est unique et récupérable sous contrôle ; praticien et citoyen retrouvent leur mot de passe par SMS ; plantes, dossiers terrain et langues suivent le cahier des charges. *Corrections de l’alignement (17/11/2026).* | US-024, US-069, US-054, US-055, US-040c, US-012c | 23 |
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
 | **S7** | 3. Application de gestion et mobile | Un praticien enregistre une recette complète sans réseau et la retrouve synchronisée. | US-080, US-081 | 16 |
 | **S8** | 3. Application de gestion et mobile | Un agent préfectoral numérise une recette et réalise une visite sans réseau ; litiges et alertes sont traités. | US-082, US-083, US-101, US-102 | 14 |
@@ -692,18 +692,18 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Mêmes règles et même API que le Studio web (US-060 à US-064) : maladie, plantes ordonnées avec partie utilisée, cycle, 4 sections obligatoires, conservation facultative, consentement et visibilité avant soumission.
 - Liste « Mes traitements » avec l’état de chacun et, pour un traitement en attente, sa raison (US-046).
-- Annotations du Comité visibles sur le traitement (US-064).
+- Motif du dernier renvoi visible sur le traitement ; les annotations du Comité restent internes (décision du maître d'œuvre du 18 novembre 2026, 05 §2.54 et §2.63).
 - Texte seulement ; la voix et le brouillon hors réseau viennent avec US-080 et US-081.
 
 #### US-068 · Retirer le praticien du site public
-*Site public* · **Must** · 2 points · §1.3, §6.6
+*Site public* · **Must** · 5 points (2 + 3 : fermeture de l'API au cookie du site, décision du maître d'œuvre du 18 novembre 2026) · §1.3, §6.6
 
 > En tant que maître d’ouvrage, je veux que le site ne serve que le grand public, afin que chaque public ait une seule application.
 
 Critères d’acceptation :
 - L’inscription du site ne propose plus le profil « praticien » ; un praticien qui arrive sur le site est invité à installer l’application.
 - Le Studio web et son lien sont retirés du site ; l’API et la base, qui servent le Studio mobile, sont conservées.
-- Un compte praticien qui se connecte au site n’a accès qu’aux fonctions du citoyen.
+- Un compte praticien qui se connecte au site n’a accès qu’aux fonctions du citoyen. L’API n’accepte plus, sur les routes du praticien, que le jeton de l’application mobile : le cookie de session du site y est refusé.
 
 Répartition du reste du §6.6 (profil Tradipraticien, désormais dans l’application mobile) : tableau de bord du praticien → US-090 ; profil public (édition par le praticien ; affichage public sur le site, US-114) → US-114 ; mes recettes → US-067, US-081 ; demandes de plantes → US-121 ; certification → US-040b, US-153 ; boutique → US-142 ; abonnement → US-140, US-141 ; formation et forum → US-122 ; témoignages reçus → US-120. Chacun de ces récits livre la partie praticien dans l’application mobile.
 
@@ -734,13 +734,14 @@ Critères d’acceptation :
 - Un compte qui a activé le double facteur doit toujours le présenter à la connexion suivante.
 
 #### US-054 · Proposer une plante depuis l’application mobile
-*Dictionnaire Impérial* · **Must** · 3 points · §6.5, §6.6
+*Dictionnaire Impérial* · **Must** · 4 points (3 + 1 : nom scientifique facultatif, décision du maître d'œuvre du 18 novembre 2026) · §6.5, §6.6
 
 > En tant que praticien, je veux proposer une plante qui manque au Dictionnaire, afin de pouvoir l’utiliser dans mes traitements.
 
 Critères d’acceptation :
 - La plante proposée est créée « en revue », avec le praticien comme auteur.
 - Elle ne peut pas entrer dans un traitement certifié tant que le Comité ne l’a pas validée (US-051).
+- Le praticien saisit le nom français ; le nom scientifique, la famille et une description sont facultatifs. Le Comité complète le nom scientifique et la famille avant de valider.
 
 #### US-055 · Validation des plantes réservée au Comité
 *Dictionnaire Impérial* · **Must** · 2 points · §6.5

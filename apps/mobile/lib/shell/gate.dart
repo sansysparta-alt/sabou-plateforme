@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../dossier/session.dart';
 import '../signup/signup_api.dart';
+import '../signup/password_reset_page.dart';
 import '../signup/signup_page.dart';
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
@@ -170,24 +171,31 @@ class _LoginPageState extends State<LoginPage> {
     if (mounted) setState(() => _busy = false);
   }
 
-  // Inscription dans l'application (US-066) ; connecté à la fin, on ferme la page et la
-  // porte d'entrée ouvre le dossier
-  Future<void> _openSignup() async {
+  // Inscription (US-066) ou mot de passe oublié (US-069) dans l'application ; connecté à la
+  // fin, on ferme la page et la porte d'entrée ouvre le dossier
+  Future<void> _openPublicFlow(
+    Widget Function(SignInAfterSignup signIn) page,
+  ) async {
     final navigator = Navigator.of(context);
     final signedIn = await navigator.push<bool>(
       MaterialPageRoute(
-        builder: (context) => SignupPage(
-          api: widget.signupApi,
-          signIn: (phone) async {
-            final ok = await widget.session.signIn(loginHint: phone);
-            if (ok && context.mounted) Navigator.of(context).pop(true);
-            return ok;
-          },
-        ),
+        builder: (context) => page((phone) async {
+          final ok = await widget.session.signIn(loginHint: phone);
+          if (ok && context.mounted) Navigator.of(context).pop(true);
+          return ok;
+        }),
       ),
     );
     if (signedIn == true) widget.onSignedIn();
   }
+
+  void _openSignup() => _openPublicFlow(
+    (signIn) => SignupPage(api: widget.signupApi, signIn: signIn),
+  );
+
+  void _openPasswordReset() => _openPublicFlow(
+    (signIn) => PasswordResetPage(api: widget.signupApi, signIn: signIn),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +222,10 @@ class _LoginPageState extends State<LoginPage> {
             FilledButton(
               onPressed: _busy ? null : _signIn,
               child: Text(_busy ? 'Connexion en cours…' : 'Se connecter'),
+            ),
+            TextButton(
+              onPressed: _busy ? null : _openPasswordReset,
+              child: const Text('Mot de passe oublié ?'),
             ),
             const SizedBox(height: SabouSpace.s5),
             const Text('Pas encore de compte ?'),

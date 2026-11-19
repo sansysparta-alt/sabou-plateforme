@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import {
+  plantProposalSchema,
   treatmentCodeSchema,
   treatmentFieldsSchema,
   treatmentUpdateSchema,
@@ -28,6 +29,8 @@ import { parse } from '../accounts/accounts.controller';
 import { ZoneContextError } from '../database/zone';
 import { PractitionerGuard } from '../dossiers/dossiers.controller';
 import {
+  PlantProposalLimitError,
+  PlantProposalRefusedError,
   StudioNoProfileError,
   StudioRepository,
   TreatmentIncompleteError,
@@ -43,6 +46,12 @@ type PractitionerRequest = Request & { practitioner?: { sub: string } };
 
 function studioError(error: unknown): never {
   if (error instanceof ZoneContextError) throw new ForbiddenException();
+  if (error instanceof PlantProposalRefusedError) {
+    throw new ConflictException({ error: 'duplicate', message: error.message });
+  }
+  if (error instanceof PlantProposalLimitError) {
+    throw new ConflictException({ error: 'too_many', message: error.message });
+  }
   if (error instanceof StudioNoProfileError) {
     throw new ConflictException({
       error: 'no_profile',
@@ -142,6 +151,17 @@ export class StudioController {
     return this.repository
       .save(req.practitioner!.sub, req.ip, treatmentCode(code), vueLe, fields)
       .catch(studioError);
+  }
+
+  // US-054 : proposer une plante qui manque au Dictionnaire (créée « en revue »)
+  @Post('plantes')
+  @Header('Cache-Control', 'no-store')
+  propose(
+    @Body() body: unknown,
+    @Req() req: PractitionerRequest,
+  ): Promise<StudioReferentials['plantes'][number]> {
+    const input = parse(plantProposalSchema, body);
+    return this.repository.propose(req.practitioner!.sub, input).catch(studioError);
   }
 
   @Post('traitements/:code/soumission')

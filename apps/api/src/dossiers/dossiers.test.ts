@@ -181,10 +181,17 @@ function call(
     origin?: string | null;
     body?: BodyInit;
     type?: string;
-    authorization?: string;
+    authorization?: string | null;
   } = {},
 ) {
-  const { cookie = 'praticien', origin = SITE, body, type, authorization } = options;
+  // Par défaut : l'application mobile, avec le jeton du praticien (seule voie, US-068)
+  const {
+    cookie = null,
+    origin = null,
+    body,
+    type,
+    authorization = 'Bearer jeton.praticien.ok',
+  } = options;
   const headers: Record<string, string> = {};
   if (authorization) headers['authorization'] = authorization;
   if (cookie) headers['cookie'] = `${CITIZEN_SESSION_COOKIE}=${cookie}`;
@@ -326,23 +333,27 @@ describe('Fiche', () => {
 });
 
 describe('Accès', () => {
-  it('refuse une requête sans session', async () => {
-    expect((await call('GET', 'dossier', { cookie: null })).status).toBe(401);
+  it('refuse une requête sans jeton', async () => {
+    expect((await call('GET', 'dossier', { authorization: null })).status).toBe(401);
     expect(db.calls).toEqual([]);
   });
 
   it('refuse un compte qui n’est pas praticien (citoyen)', async () => {
-    expect((await call('GET', 'dossier', { cookie: 'citoyen' })).status).toBe(403);
-    expect((await call('POST', 'dossier/soumission', { cookie: 'citoyen' })).status).toBe(403);
+    const citizen = { authorization: 'Bearer jeton.citoyen.ok' };
+    expect((await call('GET', 'dossier', citizen)).status).toBe(403);
+    expect((await call('POST', 'dossier/soumission', citizen)).status).toBe(403);
     expect(db.calls).toEqual([]);
   });
 
-  it('refuse une écriture venue d’une autre origine, ou sans origine', async () => {
-    for (const origin of ['https://exemple.com', null]) {
-      expect((await call('POST', 'dossier/soumission', { origin })).status).toBe(403);
-    }
-    expect((await call('PUT', 'fiche', { origin: 'https://exemple.com' })).status).toBe(403);
-    expect(db.calls.filter((c) => c.startsWith('submit'))).toEqual([]);
+  // US-068, critère 3 : le praticien connecté au site n'y a que les fonctions du citoyen
+  it('refuse le cookie de session du site, même d’un praticien et depuis le site', async () => {
+    const site = { authorization: null, cookie: 'praticien', origin: SITE };
+    expect((await call('GET', 'dossier', site)).status).toBe(401);
+    expect((await call('PUT', 'fiche', { ...site, body: JSON.stringify(PROFILE) })).status).toBe(
+      401,
+    );
+    expect((await call('POST', 'dossier/soumission', site)).status).toBe(401);
+    expect(db.calls).toEqual([]);
   });
 
   it('refuse un compte suspendu entre-temps, sans dire pourquoi', async () => {
@@ -407,7 +418,11 @@ describe('Application mobile (jeton « Bearer », US-040b)', () => {
 
   it('refuse un jeton invalide (401), même accompagné d’un cookie de session valable', async () => {
     expect((await mobile('GET', 'dossier', 'jeton.inconnu.x')).status).toBe(401);
-    const both = await call('GET', 'dossier', { authorization: 'Bearer jeton.inconnu.x' });
+    const both = await call('GET', 'dossier', {
+      authorization: 'Bearer jeton.inconnu.x',
+      cookie: 'praticien',
+      origin: SITE,
+    });
     expect(both.status).toBe(401);
     expect(db.calls).toEqual([]);
   });

@@ -1047,6 +1047,29 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Règles de saisie | Reprises en Dart (`signup_rules.dart`) pour dire l'erreur sous le champ avant l'envoi ; l'API refait les mêmes contrôles et reste seule juge | Erreurs immédiates sans réseau ; mêmes cas de test que `@sabou/types` |
 | Langue | Textes de l'inscription en français et en anglais selon la langue du téléphone | Critère 4 de US-066. Le reste de l'application mobile n'est encore qu'en français : écart à traiter avec le récit qui traduira l'application |
 
+### 2.63 Studio SABOU mobile, en texte (US-067, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| API | Mêmes routes que le Studio web (`/api/praticien/traitements…`), avec le jeton de l'application (`PractitionerGuard`) ; aucune route nouvelle | Une seule source de règles : la base et l'API, déjà prouvées par `studio.test.ts` |
+| Envoi authentifié | Extrait du dossier dans `practitioner_http.dart`, partagé par le dossier et le Studio | Un seul endroit pour le jeton, le nouvel essai après un refus 401 et la déconnexion |
+| Annotations du Comité | **Non montrées au praticien** ; il voit le motif du dernier renvoi et la raison d'attente (US-046) | Décision du maître d'œuvre du 18 novembre 2026 : les annotations restent des avis internes (§2.54). Critère 3 de US-067 corrigé au backlog |
+| Contrôles dans l'application | Maladie, titre, visibilité avec le consentement : erreur sous le champ avant l'envoi ; bornes (cycle, longueurs) limitées à la saisie, puis contrôlées par l'API | Mêmes contrôles que le Studio web ; l'API reste seule juge |
+| Modifications concurrentes | La date de lecture (`vueLe`) est renvoyée à chaque enregistrement ; le refus « modifié entre-temps » est affiché tel quel | Le même traitement peut être ouvert sur le site et sur le téléphone |
+| Session expirée dans l'écran d'édition | L'écran d'édition est fermé avant le retour à la connexion | Sinon la page de connexion resterait cachée sous l'écran poussé |
+| Langue | Français, comme le reste de l'application (§2.62) | La traduction de l'application est un récit à part |
+| Hors périmètre | Voix et brouillon hors réseau | US-080 et US-081 (S7) |
+
+### 2.64 Le site ne sert plus que le grand public (US-068, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Inscription du site | Profil « citoyen » seul ; la page invite le praticien à installer l'application mobile. L'ancien lien `?profil=praticien` mène à la même page | Critère 1 de US-068 ; le praticien s'inscrit dans l'application (US-066, §2.62) |
+| Lien vers la boutique d'applications | Aucun pour l'instant : texte seul | L'application n'est pas encore publiée ; le lien viendra avec sa publication |
+| Studio web | Pages, styles et tests retirés du site ; l'API et la base restent (Studio mobile, US-067) | Critère 2 de US-068 |
+| Routes du praticien (`/api/praticien/…`) | **Jeton de l'application mobile seulement** ; le cookie de session du site reçoit 401, même depuis le site | Décision du maître d'œuvre du 18 novembre 2026 (+3 points) : sans cela, un praticien connecté au site garderait ses fonctions par l'API. La garde n'a plus besoin du magasin de sessions ni du contrôle d'origine |
+| Tests de bout en bout du dossier | Rejoués avec le jeton obtenu comme l'application (code + PKCE), aide commune `signInLikeTheApp` | Même chemin que l'application réelle |
+
 ### 2.65 Validation des fiches plantes : le Comité seul (US-055, 18 novembre 2026)
 
 | Sujet | Décision | Raison |
@@ -1054,6 +1077,19 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Qui valide une fiche plante | **Le Comité scientifique seul**, par l'application, l'API et la base | §6.5 du cahier des charges et décision du maître d'œuvre du 18 novembre 2026. **Écart au §6.2**, qui listait « ajout, validation, export JSON » pour la DG |
 | Droits de la DG | Ajout et modification des fiches (créées « en revue »), export quand il sera livré ; pas de validation | Même décision |
 | Réalisation | Rien à changer dans le code : `plante_valider` refuse tout autre rôle depuis US-051, l'API n'écrit plus le statut en direct, le bouton n'est montré qu'au Comité. Preuve ajoutée au niveau de l'application | Les tests de US-051 (base, API, écran) prouvent déjà les trois niveaux |
+
+### 2.66 Proposition d'une plante par le praticien (US-054, 18 novembre 2026)
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Ce que saisit le praticien | Nom français obligatoire ; nom scientifique, famille et description (1 000 caractères) facultatifs | Décision du maître d'œuvre du 18 novembre 2026 : beaucoup de tradipraticiens ne connaissent pas le nom scientifique (+1 point) |
+| Fiche « en revue » incomplète | `nom_scientifique` et `famille` acceptent NULL ; contrainte `ck_plante_validee_identifiee` : jamais validée sans eux ; `plante_valider` le dit en clair | Le Comité complète l'identité botanique avant de valider (US-051, US-055) |
+| Auteur | Colonne `proposee_par`, journal `plante.proposee` ; affichée sur la fiche dans la gestion avec la description | Critère 1 de US-054 |
+| Abus | 10 propositions « en revue » au plus par praticien, tenu par la base | Une suite de propositions automatiques est arrêtée sans service externe |
+| Écriture | `plante_proposer` (`SECURITY DEFINER`), réservée au rôle `praticien` ; route `POST /api/praticien/plantes` (jeton de l'application, §2.64) | Même modèle que les autres écritures : la base est seule juge |
+| Dans le Studio mobile | « Proposer une plante absente de la liste » depuis l'écran d'édition ; la plante créée est choisie dans la première ligne vide | Le praticien continue son traitement sans attendre ; il ne sera certifié qu'après la validation (trg_recette_publiable) |
+| `plante_modifier` | Comparaisons et journal en `IS DISTINCT FROM` | Les anciennes valeurs NULL d'une fiche proposée sont tracées quand le Comité la complète |
+| Textes | Aucune aide n'invite à écrire un nom en langue nationale | Langues nationales en voix uniquement |
 
 ### 2.67 Droits de langue préremplis selon le rôle (US-012c, 18 novembre 2026)
 
@@ -1063,6 +1099,22 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits par défaut | Préfectoral : enregistrer et traduire ; régional : valider ; DG et Comité : aucune case | Critère 1. La DG publie par son rôle (droit de la matrice, pas de case par langue) ; « résumer » n'existe pas encore (US-072, S6) |
 | Moment | À chaque choix du rôle ou de la zone, les cases sont recalculées ; le réglage manuel reste possible ensuite | Critère 2 ; un changement de rôle ne garde pas des droits qui ne lui conviennent pas |
 | Emplacement | `defaultWorkLanguages` dans `@sabou/types/permissions`, module sans zod | L'application de gestion ne télécharge pas zod (réseau 3G) |
+
+### 2.68 Mot de passe oublié par SMS, praticien et citoyen (US-069, 18 novembre 2026)
+
+Décision du maître d'ouvrage du 18 novembre 2026 : page du site (citoyen), écran de l'application mobile (praticien), lien « Mot de passe oublié ? » sur la page de connexion de Keycloak du domaine public.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Parcours | Trois étapes, comme l'inscription : numéro → code reçu par SMS → nouveau mot de passe ; API `POST /api/mot-de-passe-oublie/{code,verification,nouveau}` | Mêmes écrans et mêmes règles que l'inscription (US-014) : rien de nouveau à apprendre |
+| Pas d'énumération | Étape 1 : même réponse et même délai, que le numéro ait un compte actif ou non ; le SMS n'est envoyé qu'à un compte actif, sans attendre la réponse du fournisseur ; les écrans disent « si ce numéro a un compte » | Ne pas révéler qui a un compte ; ne pas payer de SMS pour un numéro inconnu |
+| Codes et tickets | Magasin de l'inscription réutilisé (empreintes SHA-256, code de 10 minutes, 5 essais, ticket de 15 minutes à usage unique), dans un espace de clés Valkey séparé (`sabou:mot-de-passe:…`) ; mêmes limites par numéro et par adresse IP, comptées à part | Un code d'inscription ne vaut rien pour changer un mot de passe ; un abus d'un parcours ne bloque pas l'autre |
+| Changement dans Keycloak | API d'administration du domaine public, compte de service `sabou-inscription` existant (`manage-users`) : `reset-password`, puis fermeture de toutes les sessions du compte (`logout`, sessions hors ligne comprises) | Un téléphone perdu ou volé perd l'accès. Aucun nouveau compte de service, aucun secret de plus |
+| Double facteur | Non touché : seul le mot de passe est remplacé, Keycloak demande toujours le second facteur à la connexion suivante | Critère 3 de US-069 |
+| Compte suspendu | Relu à l'étape 3 : un compte suspendu entre-temps n'est pas modifié (« demande expirée ») | Pas de contournement d'une suspension |
+| Journal | `compte.mot_de_passe_reinitialise` (compte, adresse IP, moyen `sms`) dans le journal d'audit SABOU | Critère 2 de US-069 |
+| Lien depuis Keycloak | `sabouSiteUrl=${env.SABOU_SITE_URL}` dans `theme.properties` du thème `sabou-public` : le lien mène à la page du site pour tous les clients du domaine, application mobile comprise | Keycloak lit l'environnement de son conteneur ; pas de « reset credentials » de Keycloak, qui passerait par e-mail |
+| Connexion après le changement | Site : lien « Se connecter » avec le numéro ; application : page de Keycloak avec le numéro déjà rempli (`login_hint`, §2.62) | Aucun jeton délivré hors de Keycloak |
 
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 

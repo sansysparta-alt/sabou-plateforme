@@ -324,6 +324,8 @@ describe('Garde-fous du schéma', () => {
       'plante_nom_local_ajouter',
       'plante_nom_local_principal',
       'plante_nom_local_retirer',
+      // US-054 : proposition d'une plante par un praticien, auteur enregistré (05 §2.66)
+      'plante_proposer',
       // US-051 : validation par le seul Comité (05 §2.41)
       'plante_valider',
       // US-022 : un redécoupage déplace des lignes de toutes les zones, DG seule (05 §2.59)

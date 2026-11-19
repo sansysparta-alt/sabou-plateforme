@@ -151,9 +151,14 @@ export function PlantsPage() {
               {
                 key: 'scientifique',
                 header: 'Nom scientifique',
-                render: (plant) => <i>{plant.nomScientifique}</i>,
+                render: (plant) =>
+                  plant.nomScientifique ? (
+                    <i>{plant.nomScientifique}</i>
+                  ) : (
+                    <span className="ui-muted">À compléter</span>
+                  ),
               },
-              { key: 'famille', header: 'Famille', render: (plant) => plant.famille },
+              { key: 'famille', header: 'Famille', render: (plant) => plant.famille ?? '—' },
               {
                 key: 'statut',
                 header: 'Statut',

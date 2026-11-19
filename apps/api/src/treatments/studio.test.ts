@@ -15,6 +15,8 @@ import { ZoneContextError } from '../database/zone';
 import { PractitionerGuard } from '../dossiers/dossiers.controller';
 import { StudioController } from './studio.controller';
 import {
+  PlantProposalLimitError,
+  PlantProposalRefusedError,
   StudioNoProfileError,
   StudioRepository,
   TreatmentIncompleteError,
@@ -83,6 +85,11 @@ const repository = {
     if (failure) throw failure;
     return DETAIL;
   },
+  async propose(sub: string, input: unknown) {
+    calls.push(['propose', sub, input]);
+    if (failure) throw failure;
+    return { code: 'PL-007', nomFr: 'Kinkéliba rouge', nomScientifique: null, validee: false };
+  },
   async submit(sub: string, _ip: unknown, code: string) {
     calls.push(['submit', sub, code]);
     if (failure) throw failure;
@@ -104,10 +111,15 @@ const sessions = {
     return this.data.get(id) ?? null;
   },
 };
+const TOKENS: Record<string, string[]> = {
+  'jeton.praticien.ok': ['praticien'],
+  'jeton.citoyen.ok': ['citoyen'],
+};
 const mobileTokens = {
   async verify(token: string) {
-    if (token !== 'jeton.praticien.ok') throw new InvalidMobileTokenError();
-    return { sub: SUB, roles: ['praticien'] };
+    const roles = TOKENS[token];
+    if (!roles) throw new InvalidMobileTokenError();
+    return { sub: SUB, roles };
   },
 };
 
@@ -145,10 +157,17 @@ beforeEach(() => {
 function call(
   method: string,
   path: string,
-  options: { cookie?: string | null; origin?: string | null; body?: unknown } = {},
+  options: {
+    cookie?: string | null;
+    origin?: string | null;
+    token?: string | null;
+    body?: unknown;
+  } = {},
 ) {
-  const { cookie = 'praticien', origin = SITE, body } = options;
+  // Par défaut : l'application mobile, avec le jeton du praticien (seule voie, US-068)
+  const { cookie = null, origin = null, token = 'jeton.praticien.ok', body } = options;
   const headers: Record<string, string> = {};
+  if (token) headers['authorization'] = `Bearer ${token}`;
   if (cookie) headers['cookie'] = `${CITIZEN_SESSION_COOKIE}=${cookie}`;
   if (origin) headers['origin'] = origin;
   if (body !== undefined) headers['content-type'] = 'application/json';
@@ -160,19 +179,22 @@ function call(
 }
 
 describe('Accès : le praticien connecté seulement, toujours ses propres traitements', () => {
-  it('sans session : 401 ; citoyen : 403 ; écriture d’une autre origine : 403', async () => {
-    expect((await call('GET', 'traitements', { cookie: null })).status).toBe(401);
-    expect((await call('GET', 'traitements', { cookie: 'citoyen' })).status).toBe(403);
-    expect(
-      (await call('POST', 'traitements', { origin: 'https://evil.example', body: FIELDS })).status,
-    ).toBe(403);
+  it('sans jeton : 401 ; jeton d’un citoyen : 403', async () => {
+    expect((await call('GET', 'traitements', { token: null })).status).toBe(401);
+    expect((await call('GET', 'traitements', { token: 'jeton.citoyen.ok' })).status).toBe(403);
+    expect(calls).toEqual([]);
+  });
+
+  // US-068, critère 3 : le Studio n'est plus sur le site ; son cookie n'ouvre plus l'API
+  it('refuse le cookie de session du site, même d’un praticien et depuis le site', async () => {
+    const site = { token: null, cookie: 'praticien', origin: SITE };
+    expect((await call('GET', 'traitements', site)).status).toBe(401);
+    expect((await call('POST', 'traitements', { ...site, body: FIELDS })).status).toBe(401);
     expect(calls).toEqual([]);
   });
 
   it('application mobile : jeton du praticien accepté', async () => {
-    const response = await fetch(`${base}/api/praticien/traitements`, {
-      headers: { authorization: 'Bearer jeton.praticien.ok' },
-    });
+    const response = await call('GET', 'traitements');
     expect(response.status).toBe(200);
     expect(calls).toEqual([['list', SUB]]);
   });
@@ -307,5 +329,61 @@ describe('Critère : raison de l’attente lue sur le traitement (US-046)', () =
     const response = await call('GET', 'traitements/REC-0001');
     expect(response.status).toBe(200);
     expect(await response.json()).toHaveProperty('attenteRaison');
+  });
+});
+
+// US-054 : proposer une plante qui manque au Dictionnaire
+describe('US-054 : proposition d’une plante par le praticien', () => {
+  it('nom français seul : transmis à la base avec le compte du jeton, fiche en revue', async () => {
+    const response = await call('POST', 'plantes', {
+      body: { nomFr: '  Kinkéliba rouge ', description: 'Arbuste des savanes' },
+    });
+    expect(response.status).toBe(201);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({
+      code: 'PL-007',
+      nomFr: 'Kinkéliba rouge',
+      nomScientifique: null,
+      validee: false,
+    });
+    expect(calls).toEqual([
+      [
+        'propose',
+        SUB,
+        {
+          nomFr: 'Kinkéliba rouge',
+          nomScientifique: null,
+          famille: null,
+          description: 'Arbuste des savanes',
+        },
+      ],
+    ]);
+  });
+
+  it('nom français absent, champ inconnu ou auteur imposé : refusé avant la base', async () => {
+    expect((await call('POST', 'plantes', { body: { nomFr: ' ' } })).status).toBe(400);
+    expect(
+      (await call('POST', 'plantes', { body: { nomFr: 'Plante', proposeePar: 'PR-1042' } })).status,
+    ).toBe(400);
+    expect(calls).toEqual([]);
+  });
+
+  it('nom scientifique déjà pris, ou trop de propositions en attente : 409 expliqué', async () => {
+    failure = new PlantProposalRefusedError('Ce nom scientifique est déjà utilisé.');
+    const duplicate = await call('POST', 'plantes', { body: { nomFr: 'Plante' } });
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: 'duplicate' });
+    failure = new PlantProposalLimitError('10 en attente.');
+    const tooMany = await call('POST', 'plantes', { body: { nomFr: 'Plante' } });
+    expect(tooMany.status).toBe(409);
+    expect(await tooMany.json()).toMatchObject({ error: 'too_many' });
+  });
+
+  it('réservée au praticien : sans jeton 401, citoyen 403', async () => {
+    expect((await call('POST', 'plantes', { token: null, body: { nomFr: 'P' } })).status).toBe(401);
+    expect(
+      (await call('POST', 'plantes', { token: 'jeton.citoyen.ok', body: { nomFr: 'P' } })).status,
+    ).toBe(403);
+    expect(calls).toEqual([]);
   });
 });

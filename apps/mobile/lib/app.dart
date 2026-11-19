@@ -2,7 +2,7 @@
 // Ajouter une rubrique = ajouter une entrée ici, avec les profils qui la voient. La barre
 // de navigation du bas paraît d'elle-même dès qu'un profil a deux rubriques.
 // Rubriques prévues au backlog :
-// - praticien : Studio, enregistrement de la recette (US-081, S7) ;
+// - praticien : voix et brouillon hors réseau du Studio (US-080, US-081, S7) ;
 // - agent préfectoral : numérisation d'une recette et dossier sur le terrain (US-082, S8),
 //   agenda des visites et compte rendu signé (US-083, S8).
 import 'dart:typed_data';
@@ -13,10 +13,13 @@ import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/practitioner_pages.dart';
 import 'shell/rubric.dart';
+import 'studio/studio_api.dart';
+import 'studio/studio_pages.dart';
 
 /// Toutes les rubriques, dans l'ordre des onglets.
 List<Rubric> appRubrics({
   required DossierApi dossierApi,
+  required StudioApi studioApi,
   required PhotoPicker picker,
   Future<Uint8List> Function(Uint8List) prepare = preparePhotoInBackground,
 }) => [
@@ -32,5 +35,15 @@ List<Rubric> appRubrics({
       prepare: prepare,
       onSignedOut: rubric.onSignedOut,
     ),
+  ),
+  // Studio SABOU mobile, en texte (US-067)
+  Rubric(
+    id: 'studio',
+    label: 'Studio',
+    icon: Icons.edit_note_outlined,
+    selectedIcon: Icons.edit_note,
+    profiles: const {SabouProfile.practitioner},
+    builder: (context, rubric) =>
+        TreatmentsPage(api: studioApi, onSignedOut: rubric.onSignedOut),
   ),
 ];

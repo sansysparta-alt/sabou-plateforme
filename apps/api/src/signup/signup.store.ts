@@ -36,9 +36,6 @@ function digest(value: string): string {
   return createHash('sha256').update(value).digest('base64url');
 }
 
-const codeKey = (phone: string) => `sabou:inscription:code:${phone}`;
-const ticketKey = (ticket: string) => `sabou:inscription:ticket:${digest(ticket)}`;
-
 // Vérification atomique du code : comparaison des empreintes, décompte des essais, code
 // effacé au premier succès ou au dernier essai. Renvoie {1} si valide, {0, restants} sinon,
 // {-1} si aucun code n'est en cours.
@@ -62,11 +59,26 @@ return {0, remaining}
 
 // Codes, tickets et compteurs dans Valkey : seules des empreintes SHA-256 y sont écrites
 // (le numéro est lié au code dans l'empreinte, un code ne vaut que pour son numéro).
+// Un espace de clés par usage : inscription (US-014) ou mot de passe oublié (US-069). Un code
+// ou un ticket de l'un ne vaut rien pour l'autre ; leurs limites se comptent à part.
+export type StoreNamespace = 'inscription' | 'mot-de-passe';
+
 export class ValkeySignupStore implements SignupStore {
-  constructor(private readonly valkey: Redis) {}
+  constructor(
+    private readonly valkey: Redis,
+    private readonly namespace: StoreNamespace = 'inscription',
+  ) {}
+
+  private codeKey(phone: string): string {
+    return `sabou:${this.namespace}:code:${phone}`;
+  }
+
+  private ticketKey(ticket: string): string {
+    return `sabou:${this.namespace}:ticket:${digest(ticket)}`;
+  }
 
   async hit(key: string, limit: number, windowSeconds: number): Promise<number | null> {
-    const fullKey = `sabou:inscription:limite:${key}`;
+    const fullKey = `sabou:${this.namespace}:limite:${key}`;
     const [[, count], , [, ttl]] = (await this.valkey
       .multi()
       .incr(fullKey)
@@ -78,7 +90,7 @@ export class ValkeySignupStore implements SignupStore {
 
   async saveCode(phone: string, code: string): Promise<void> {
     await this.valkey.set(
-      codeKey(phone),
+      this.codeKey(phone),
       JSON.stringify({ hash: digest(`${phone}:${code}`), attempts: 0 }),
       'EX',
       SIGNUP_CODE_SECONDS,
@@ -89,7 +101,7 @@ export class ValkeySignupStore implements SignupStore {
     const [status, remaining] = (await this.valkey.eval(
       CHECK_CODE,
       1,
-      codeKey(phone),
+      this.codeKey(phone),
       digest(`${phone}:${code}`),
       SIGNUP_CODE_ATTEMPTS,
     )) as [number, number?];
@@ -100,19 +112,19 @@ export class ValkeySignupStore implements SignupStore {
 
   async issueTicket(phone: string): Promise<string> {
     const ticket = randomBytes(32).toString('base64url');
-    await this.valkey.set(ticketKey(ticket), phone, 'EX', SIGNUP_TICKET_SECONDS);
+    await this.valkey.set(this.ticketKey(ticket), phone, 'EX', SIGNUP_TICKET_SECONDS);
     return ticket;
   }
 
   peekTicket(ticket: string): Promise<string | null> {
-    return this.valkey.get(ticketKey(ticket));
+    return this.valkey.get(this.ticketKey(ticket));
   }
 
   takeTicket(ticket: string): Promise<string | null> {
-    return this.valkey.getdel(ticketKey(ticket));
+    return this.valkey.getdel(this.ticketKey(ticket));
   }
 
   async restoreTicket(ticket: string, phone: string): Promise<void> {
-    await this.valkey.set(ticketKey(ticket), phone, 'EX', SIGNUP_TICKET_SECONDS);
+    await this.valkey.set(this.ticketKey(ticket), phone, 'EX', SIGNUP_TICKET_SECONDS);
   }
 }
