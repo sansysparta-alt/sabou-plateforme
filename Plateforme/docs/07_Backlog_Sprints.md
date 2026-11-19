@@ -1196,10 +1196,10 @@ Critères d’acceptation :
 | Règles métier | Les règles R-xxx concernées sont couvertes par des tests automatiques ; les cas interdits sont testés |
 | Code | Relu et approuvé par un autre développeur ; tant que l’équipe ne compte qu’un seul développeur, la relecture est faite par le maître d’œuvre. Lint et formatage sans erreur ; pipeline vert avant toute fusion |
 | Tests | Tests unitaires et d’intégration passés dans l’intégration continue (base PostgreSQL réelle pour les règles en base) ; test de bout en bout pour les parcours utilisateur |
-| Sécurité | Contrôle d’accès par rôle et par zone vérifié ; aucune donnée nominative exposée ; analyse des dépendances et des images sans faille critique |
+| Sécurité | Contrôle d’accès par rôle et par zone vérifié ; aucune donnée nominative exposée. Analyse des dépendances, du code et des images sans faille critique : en fin de sprint et avant toute mise en production, pas à chaque fusion (décision du maître d’œuvre du 19 novembre 2026) |
 | Langues | Textes en français (et anglais si prévu), aucun texte en langue nationale ; repli sur la voix française vérifié |
 | Accessibilité | Contraste AA, focus visible, cibles de 40 px, textes alternatifs (écrans concernés) |
-| Performance | Écrans publics concernés affichés en moins de 3 s en 3G simulée |
+| Performance | Écrans publics concernés affichés en moins de 3 s en 3G simulée ; mesuré par Lighthouse en fin de sprint et avant toute mise en production, pas à chaque fusion (décision du maître d’œuvre du 19 novembre 2026) |
 | Traçabilité | Décisions journalisées ; notifications vérifiées quand le récit en prévoit |
 | Documentation | API (OpenAPI) et documents concernés mis à jour ; migrations de base versionnées |
 | Déploiement | Déployé sur l’environnement de recette et vérifié |
