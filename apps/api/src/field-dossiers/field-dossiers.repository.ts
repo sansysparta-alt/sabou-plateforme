@@ -238,12 +238,13 @@ export class FieldDossiersRepository {
         prefecture: string;
         etape: number;
         auteur: string;
+        auteurId: number;
         verificateurId: number | null;
         verificateurNom: string | null;
         verificateurPrefecture: string | null;
       }>`
         SELECT d.code, u.prenom || ' ' || u.nom AS praticien, pf.nom AS prefecture,
-               d.etape_courante AS etape, a.prenom || ' ' || a.nom AS auteur,
+               d.etape_courante AS etape, a.prenom || ' ' || a.nom AS auteur, a.id::int AS "auteurId",
                v.id::int AS "verificateurId", v.prenom || ' ' || v.nom AS "verificateurNom",
                vp.nom AS "verificateurPrefecture"
           FROM sabou.dossier_certification d

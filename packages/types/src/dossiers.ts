@@ -144,6 +144,7 @@ export interface FieldDossierDesignation {
   etape: number;
   // Agent préfectoral qui a créé le dossier (il ne le vérifie pas lui-même)
   auteur: string;
+  auteurId: number;
   // Agent désigné pour la vérification de l'étape 2, sinon null
   verificateur: { id: number; nom: string; prefecture: string } | null;
 }

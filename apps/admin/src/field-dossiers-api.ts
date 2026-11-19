@@ -1,6 +1,7 @@
 import type {
   FieldDossier,
   FieldDossierCreateInput,
+  FieldDossierDesignations,
   FieldDossierReferentials,
   PractitionerPieceType,
   SubmissionReceipt,
@@ -22,3 +23,8 @@ export const removeFieldPiece = (code: string, id: number) =>
   call<void>(`${dossierPath(code)}/pieces/${id}`, undefined, 'DELETE');
 export const submitFieldDossier = (code: string) =>
   call<SubmissionReceipt>(`${dossierPath(code)}/soumission`, {});
+
+// US-040d : agent de vérification désigné par l'admin régional
+export const listDesignations = () => call<FieldDossierDesignations>(`${BASE}/designations`);
+export const designateVerifier = (code: string, agentId: number) =>
+  call<void>(`${dossierPath(code)}/verificateur`, { agentId });

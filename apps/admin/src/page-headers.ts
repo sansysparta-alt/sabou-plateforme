@@ -26,6 +26,10 @@ export const PAGE_HEADERS = {
     title: 'Vérification terrain',
     lead: 'Dossiers soumis dans votre préfecture, en attente de votre décision. Délai cible : 3 jours par dossier.',
   },
+  '/agents-verification': {
+    title: 'Agents de vérification',
+    lead: 'Dossiers terrain de votre région : l’auteur d’un dossier ne le vérifie pas lui-même. Si la préfecture n’a qu’un agent, désignez un autre agent préfectoral de la région.',
+  },
   '/consolidation': {
     title: 'Consolidation régionale',
     lead: 'Dossiers de votre région vérifiés sur le terrain, en attente de votre décision. Délai cible : 3 jours par dossier.',
