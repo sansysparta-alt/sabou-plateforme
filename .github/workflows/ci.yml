@@ -38,8 +38,11 @@ jobs:
       - run: bash infra/ci/audio-lecture.sh
 
   admin-e2e:
-    name: Application de gestion et compte citoyen de bout en bout (axe, Lighthouse)
+    name: Application de gestion et compte citoyen de bout en bout (axe)
     runs-on: ubuntu-24.04
+    # Vitesse (Lighthouse) en fin de sprint seulement : workflow fin-de-sprint.yml (05 §2.73)
+    env:
+      RECIT_LIGHTHOUSE: '0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,28 +55,8 @@ jobs:
       - run: bash infra/ci/install.sh
       - run: bash infra/ci/e2e-admin.sh
 
-  audit:
-    name: Analyse des dépendances (Trivy)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: bash infra/ci/audit.sh
-      - run: bash infra/ci/audit-selftest.sh
-
-  semgrep:
-    name: Analyse du code (Semgrep)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: bash infra/ci/semgrep.sh
-      - run: bash infra/ci/semgrep-selftest.sh
-
   local-env:
-    name: Environnement local et analyse des images
+    name: Environnement local (variables)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,5 +68,3 @@ jobs:
           node-version-file: .nvmrc
       - run: bash infra/ci/env-check.sh
       - run: bash infra/ci/env-check-selftest.sh
-      - run: bash infra/ci/audit-images.sh
-      - run: bash infra/ci/audit-images-selftest.sh

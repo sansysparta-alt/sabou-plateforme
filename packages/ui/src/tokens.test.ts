@@ -121,9 +121,14 @@ describe('thème de connexion Keycloak', () => {
     expect(readFileSync(new URL('resources/css/tokens.css', themeDir), 'utf8')).toBe(tokensCss);
   });
 
-  it('theme.properties charge tokens.css avant sabou.css', () => {
+  // Feuille unique servie par Keycloak, générée par infra/local/keycloak/theme-css.mjs
+  // (05 §2.72) ; sa fraîcheur est contrôlée par infra/ci/lint.sh
+  it('theme.properties charge la feuille unique, tokens.css puis sabou.css', () => {
     expect(readFileSync(new URL('theme.properties', themeDir), 'utf8')).toMatch(
-      /^styles=css\/tokens\.css css\/sabou\.css$/m,
+      /^styles=css\/sabou\.min\.css$/m,
+    );
+    expect(readFileSync(new URL('resources/css/sabou.min.css', themeDir), 'utf8')).toMatch(
+      /^\/\* Généré par infra\/local\/keycloak\/theme-css\.mjs depuis tokens\.css et sabou\.css/,
     );
   });
 
