@@ -29,6 +29,8 @@ const loaders = {
   treatments: () => import('./TreatmentsPage'),
   // US-075 : voix des sections des traitements (résumés et traductions…)
   treatmentVoices: () => import('./TreatmentVoicesPage'),
+  // US-074 : couverture vocale et publication groupée
+  voiceCoverage: () => import('./VoiceCoveragePage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -63,6 +65,9 @@ const DiseasesPage = lazy(() => loaders.diseases().then((m) => ({ default: m.Dis
 const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.DiseasePage })));
 const NameVoicesPage = lazy(() =>
   loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
+);
+const VoiceCoveragePage = lazy(() =>
+  loaders.voiceCoverage().then((m) => ({ default: m.VoiceCoveragePage })),
 );
 const TreatmentVoicesPage = lazy(() =>
   loaders.treatmentVoices().then((m) => ({ default: m.TreatmentVoicesPage })),
@@ -104,6 +109,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/resumes-traductions': loaders.treatmentVoices,
   '/atelier-linguistique': loaders.treatmentVoices,
   '/controle-effets': loaders.treatmentVoices,
+  '/couverture-vocale': loaders.voiceCoverage,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -127,6 +133,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/resumes-traductions': ['/api/voix-des-traitements'],
   '/atelier-linguistique': ['/api/voix-des-traitements'],
   '/controle-effets': ['/api/voix-des-traitements'],
+  '/couverture-vocale': ['/api/voix-des-traitements/couverture'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -437,6 +444,13 @@ function navigation(user: SessionUser): NavGroup[] {
       ],
     });
     groups.push({
+      heading: 'Langue',
+      items: [
+        // US-074 : couverture par langue et publication des voix validées
+        { href: '/couverture-vocale', label: 'Couverture vocale', icon: 'languages' },
+      ],
+    });
+    groups.push({
       heading: 'Administration',
       items: [
         { href: '/comptes', label: 'Comptes', icon: 'users' },
@@ -455,6 +469,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/approbation': ApprovalPage,
   '/traitements': TreatmentsPage,
   '/rejet-definitif': RejectionPage,
+  '/couverture-vocale': VoiceCoveragePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
   '/comptes': AccountsPage,

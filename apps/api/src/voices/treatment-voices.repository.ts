@@ -8,6 +8,8 @@ import type {
   TreatmentVoices,
   TreatmentVoiceSection,
   TreatmentVoiceTarget,
+  VoiceCoverage,
+  VoicePublication,
 } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
@@ -100,6 +102,32 @@ export class TreatmentVoicesRepository {
          ORDER BY (r.statut = 'soumise') DESC, r.updated_at DESC, r.code
          LIMIT 200`.execute(trx);
       return rows;
+    });
+  }
+
+  // Couverture par langue et retards par région : la DG seule (les fonctions ne renvoient
+  // rien à un autre profil)
+  coverage(sub: string): Promise<VoiceCoverage> {
+    return inZone(this.db, sub, async (trx) => {
+      const langues = await sql<VoiceCoverage['langues'][number]>`
+        SELECT langue, langue_nom AS "langueNom", sections, publiees, validees, bloquees
+          FROM sabou.voix_couverture()`.execute(trx);
+      const retards = await sql<VoiceCoverage['retards'][number]>`
+        SELECT region, brouillons, envoyees, validees, to_char(plus_ancienne, 'YYYY-MM-DD') AS "plusAncienne"
+          FROM sabou.voix_retards()`.execute(trx);
+      return { langues: langues.rows, retards: retards.rows };
+    });
+  }
+
+  // Publication groupée des voix validées (DG), d'une langue ou de toutes
+  publish(sub: string, ip: string | undefined, langue: string | null): Promise<VoicePublication> {
+    return inZone(this.db, sub, async (trx) => {
+      await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
+      const { rows } = await sql<VoicePublication>`
+        SELECT publiees, bloquees FROM sabou.traitement_voix_publier(${langue})`
+        .execute(trx)
+        .catch(translate);
+      return rows[0]!;
     });
   }
 

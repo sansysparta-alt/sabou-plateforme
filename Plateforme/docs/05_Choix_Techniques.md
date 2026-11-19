@@ -1275,3 +1275,14 @@ Décision du maître d'œuvre du 19 novembre 2026 : le « résumé » du préfec
 | Blocage de la publication | Tenu par le déclencheur `trg_voix_publiable` du schéma initial, quel que soit le chemin d'écriture | Une règle de sécurité sanitaire ne dépend pas de l'interface |
 | Écran | « Effets indésirables (voix) » du Comité : même écran, seule la section concernée, langue par langue | Un seul gabarit |
 
+### 2.82 Couverture vocale et publication groupée (US-074, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Couverture | Par langue de voix : sections des traitements certifiés dont la voix est publiée, sur toutes leurs sections | Ce que voit le public ; « taux de recettes publiées par langue » du CdC, à la maille de la section (R-LNG-10) |
+| Retards | Voix en attente depuis plus de 7 jours (brouillon, envoyée, validée), par région administrative du praticien ; délai dans `voix_delai_retard()` | Repère simple de pilotage ; seuil à ajuster sans toucher au code des écrans |
+| Publication groupée | La DG publie toutes les voix validées publiables, d'une langue ou de toutes ; les autres restent validées et sont comptées « bloquées » | Un geste pour la DG, sans jamais publier une voix interdite |
+| Publiable | Traitement certifié avec le consentement du praticien, voix avec le consentement de la personne qui parle (R-LNG-11), contrôle du Comité pour les effets indésirables (R-LNG-12) ; règles réunies dans `voix_section_blocage()` | Une seule définition, utilisée par la publication et par la couverture |
+| Accès | Fonctions de couverture vides pour tout autre profil que la DG | Pilotage national (UC-63) |
+| Écran | « Couverture vocale » de la DG (menu Langue) : tableau par langue avec bouton de publication, tableau des retards | Gabarit de liste existant |
+

@@ -1,4 +1,10 @@
-import type { TreatmentSectionType, TreatmentVoices, TreatmentVoiceTarget } from '@sabou/types';
+import type {
+  TreatmentSectionType,
+  TreatmentVoices,
+  TreatmentVoiceTarget,
+  VoiceCoverage,
+  VoicePublication,
+} from '@sabou/types';
 import { call } from './accounts-api';
 
 // Voix des sections des traitements (US-075, puis US-072 à US-074)
@@ -8,6 +14,10 @@ const sectionPath = (code: string, type: TreatmentSectionType) =>
 const voicePath = (code: string, type: TreatmentSectionType, langue: string) =>
   `${sectionPath(code, type)}/${encodeURIComponent(langue)}`;
 
+// Couverture vocale et publication groupée de la DG (US-074)
+export const fetchVoiceCoverage = () => call<VoiceCoverage>(`${BASE}/couverture`);
+export const publishVoices = (langue: string | null) =>
+  call<VoicePublication>(`${BASE}/publication`, { langue });
 export const listTreatmentVoiceTargets = () => call<TreatmentVoiceTarget[]>(BASE);
 export const fetchTreatmentVoices = (code: string) =>
   call<TreatmentVoices>(`${BASE}/${encodeURIComponent(code)}`);

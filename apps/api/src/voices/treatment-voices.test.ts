@@ -50,6 +50,16 @@ const repository = {
     calls.push(['targets', sub]);
     return [];
   },
+  async coverage(sub: string) {
+    calls.push(['coverage', sub]);
+    fail();
+    return { langues: [], retards: [] };
+  },
+  async publish(sub: string, _ip: unknown, langue: string | null) {
+    calls.push(['publish', sub, langue]);
+    fail();
+    return { publiees: 2, bloquees: 1 };
+  },
   async detail(sub: string, code: string) {
     calls.push(['detail', sub, code]);
     fail();
@@ -296,6 +306,29 @@ describe('Critère US-073 : contrôle des effets indésirables par le Comité', 
       ['effets_indesirables', { vers: 'controle', motif: null }],
       ['effets_indesirables', { vers: 'controle_refuse', motif: 'Contre-indication omise' }],
     ]);
+  });
+});
+
+describe('Critères US-074 : couverture par langue, publication groupée', () => {
+  it('couverture : pas prise pour un code de traitement', async () => {
+    expect((await request('GET', `${BASE}/couverture`)).status).toBe(200);
+    expect(calls).toEqual([['coverage', SUB]]);
+  });
+
+  it('publication groupée : toutes les langues ou une seule ; langue contrôlée', async () => {
+    const all = await request('POST', `${BASE}/publication`, {});
+    expect(await all.json()).toEqual({ publiees: 2, bloquees: 1 });
+    await request('POST', `${BASE}/publication`, { langue: 'pul' });
+    expect((await request('POST', `${BASE}/publication`, { langue: 'PULAAR' })).status).toBe(400);
+    expect(calls).toEqual([
+      ['publish', SUB, null],
+      ['publish', SUB, 'pul'],
+    ]);
+  });
+
+  it('publication par un autre profil : refus de la base traduit', async () => {
+    failure = new NameVoiceNotAllowedError();
+    expect((await request('POST', `${BASE}/publication`, {})).status).toBe(403);
   });
 });
 

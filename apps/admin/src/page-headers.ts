@@ -78,6 +78,10 @@ export const PAGE_HEADERS = {
     title: 'Contrôle des effets indésirables',
     lead: 'Voix validées de la section « effets indésirables et contre-indications », langue par langue : vérifiez qu’elles rendent fidèlement le texte français. Sans votre contrôle, elles ne peuvent pas être publiées.',
   },
+  '/couverture-vocale': {
+    title: 'Couverture vocale',
+    lead: 'Part des sections des traitements certifiés dont la voix est publiée, langue par langue, et retards par région. Publiez d’un geste les voix validées.',
+  },
   '/voix-des-noms': {
     title: 'Voix des noms',
     lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',

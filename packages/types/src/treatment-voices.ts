@@ -86,6 +86,48 @@ export interface TreatmentVoices {
   sections: TreatmentVoiceSection[];
 }
 
+// Couverture vocale par langue et retards par région (US-074, UC-63)
+export interface VoiceCoverageLanguage {
+  langue: string;
+  langueNom: string;
+  // Sections des traitements certifiés
+  sections: number;
+  publiees: number;
+  // Voix validées, dont celles qui ne peuvent pas encore être publiées
+  validees: number;
+  bloquees: number;
+}
+
+export interface VoiceDelayRegion {
+  region: string;
+  brouillons: number;
+  envoyees: number;
+  validees: number;
+  // Date (AAAA-MM-JJ) de la plus ancienne voix en retard
+  plusAncienne: string;
+}
+
+export interface VoiceCoverage {
+  langues: VoiceCoverageLanguage[];
+  // Voix en attente depuis plus de 7 jours, par région du praticien
+  retards: VoiceDelayRegion[];
+}
+
+export interface VoicePublication {
+  publiees: number;
+  bloquees: number;
+}
+
+export const voicePublicationSchema = z
+  .object({
+    langue: z
+      .string()
+      .regex(/^[a-z]{2,3}$/, 'Langue invalide.')
+      .nullable()
+      .default(null),
+  })
+  .strict();
+
 export const treatmentVoiceTargetSchema = z
   .object({
     code: treatmentCodeSchema,

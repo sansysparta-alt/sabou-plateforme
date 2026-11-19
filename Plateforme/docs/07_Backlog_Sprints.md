@@ -836,6 +836,8 @@ Critères d’acceptation :
 - Pourcentage de sections publiées par langue et retards par région.
 - Publication groupée des voix validées.
 
+Réalisation (19 novembre 2026, 05 §2.82) : écran « Couverture vocale » ; pourcentage des sections des traitements certifiés dont la voix est publiée, par langue ; retards = voix en attente depuis plus de 7 jours, par région du praticien ; publication groupée, par langue ou toutes langues, des seules voix publiables (les autres comptées « bloquées »).
+
 #### US-075 · Résumer une recette en français et enregistrer la voix locale
 *Voix et gouvernance linguistique* · **Must** · 3 points · cas : UC-33
 
