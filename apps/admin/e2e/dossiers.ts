@@ -11,7 +11,14 @@ import { APP } from './keycloak';
 export const RUN = String(randomInt(100_000, 1_000_000));
 
 export async function showRunDossiers(page: Page) {
-  await page.getByRole('searchbox', { name: 'Rechercher un dossier' }).fill(RUN);
+  // L'ossature pré-générée (US-017b) est remplacée par la page à son chargement : une saisie
+  // faite trop tôt est perdue. On ressaisit jusqu'à ce que la valeur tienne.
+  const search = page.getByRole('searchbox', { name: 'Rechercher un dossier' });
+  await expect(async () => {
+    await search.fill(RUN);
+    await page.waitForTimeout(500);
+    await expect(search).toHaveValue(RUN, { timeout: 100 });
+  }).toPass({ timeout: 15_000 });
 }
 
 const PREFECTURES = ['Koubia', 'Labé', 'Kankan'] as const;
