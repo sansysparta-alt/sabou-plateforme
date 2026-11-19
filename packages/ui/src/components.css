@@ -1260,7 +1260,7 @@ details[open] > .ui-dossier__summary {
 }
 /* Formulaires d'un dossier ouvert (pièces, décision, désignation) : largeur de lecture, pas
    toute la largeur de la ligne */
-.ui-dossier__body > .ui-form {
+.ui-dossier__body .ui-form {
   max-width: 48rem;
 }
 
