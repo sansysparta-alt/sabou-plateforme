@@ -15,15 +15,22 @@ import 'dossier/session.dart';
 import 'shell/gate.dart';
 import 'signup/signup_api.dart';
 import 'studio/studio_api.dart';
+import 'studio/voice_device.dart';
+import 'studio/voice_field.dart';
 import 'sync/database_key.dart' show DeviceSecretStore;
 import 'ui/theme.dart';
 
-void main() {
-  runApp(const SabouApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // US-081 : micro, haut-parleur et coffre chiffré des voix en attente
+  final voiceTools = await deviceVoiceTools();
+  runApp(SabouApp(voiceTools: voiceTools));
 }
 
 class SabouApp extends StatefulWidget {
-  const SabouApp({super.key});
+  const SabouApp({super.key, this.voiceTools});
+
+  final VoiceTools? voiceTools;
 
   @override
   State<SabouApp> createState() => _SabouAppState();
@@ -45,6 +52,7 @@ class _SabouAppState extends State<SabouApp> {
       session: session,
     ),
     picker: DevicePhotoPicker(),
+    voiceTools: widget.voiceTools,
   );
 
   @override

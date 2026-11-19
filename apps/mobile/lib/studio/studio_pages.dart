@@ -1,8 +1,10 @@
 // Rubrique « Studio » du praticien (US-067, UC-21) : liste « Mes traitements », création,
-// modification et soumission d'un traitement, en texte. Mêmes règles et même API que le
-// Studio web (US-060 à US-064). La voix et le brouillon hors réseau viennent avec US-080 et
-// US-081. Cibles tactiles de 48 px, erreurs sous le champ, messages annoncés aux lecteurs
+// modification et soumission d'un traitement. Mêmes règles et même API que le Studio web
+// (US-060 à US-064). Voix du praticien par section et par plante (US-081, voice_field.dart) ;
+// le brouillon de texte hors réseau vient avec US-080. Cibles tactiles de 48 px, erreurs sous le champ, messages annoncés aux lecteurs
 // d'écran (WCAG 2.2 AA, CdC §8).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +14,9 @@ import '../ui/widgets.dart';
 import 'propose_plant_page.dart';
 import 'studio_api.dart';
 import 'studio_texts.dart';
+import 'voice_field.dart';
+import 'voice_outbox.dart';
+import 'voice_vault.dart';
 
 // ---------------------------------------------------------------------------------------
 // Liste « Mes traitements »
@@ -22,12 +27,16 @@ class TreatmentsPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.onSignedOut,
+    this.voiceTools,
   });
 
   final StudioApi api;
 
   /// La session a expiré ou a été révoquée : retour à la connexion.
   final VoidCallback onSignedOut;
+
+  /// US-081 : outils de la voix ; null, l'écran reste en texte seulement.
+  final VoiceTools? voiceTools;
 
   @override
   State<TreatmentsPage> createState() => _TreatmentsPageState();
@@ -77,6 +86,7 @@ class _TreatmentsPageState extends State<TreatmentsPage> {
           api: widget.api,
           code: code,
           onSignedOut: _signOut,
+          voiceTools: widget.voiceTools,
         ),
       ),
     );
@@ -177,9 +187,13 @@ class TreatmentEditorPage extends StatefulWidget {
     required this.api,
     required this.code,
     required this.onSignedOut,
+    this.voiceTools,
   });
 
   final StudioApi api;
+
+  /// US-081 : outils de la voix ; null, l'écran reste en texte seulement.
+  final VoiceTools? voiceTools;
 
   /// Traitement à ouvrir ; null pour en créer un.
   final String? code;
@@ -208,6 +222,10 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
   var _contraindications = <String>{};
   bool _consent = false;
   String? _visibility;
+
+  // US-081 : voix en attente d'envoi (coffre du téléphone) et file d'envoi
+  var _pendingVoices = <PendingVoice>[];
+  VoiceOutbox? _outbox;
   int _nextKey = 1;
 
   // Erreurs sous le champ (WCAG 3.3.1) ; le message en tête reste aux refus du serveur
@@ -220,6 +238,10 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
   @override
   void initState() {
     super.initState();
+    final tools = widget.voiceTools;
+    if (tools != null) {
+      _outbox = VoiceOutbox(vault: tools.vault, api: widget.api);
+    }
     _load();
   }
 
@@ -260,6 +282,7 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
         _fill(results.length > 1 ? results[1] as TreatmentDetail : null);
         _loaded = true;
       });
+      unawaited(_sendVoices());
     } on SignedOutException {
       _signedOut();
     } on StudioException catch (error) {
@@ -431,6 +454,95 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
     _fieldErrors.remove(field);
   });
 
+  // --- US-081 : voix du praticien -------------------------------------------------
+
+  /// Une tournée d'envoi des voix en attente ; sans réseau, elles restent sur le téléphone.
+  Future<void> _sendVoices() async {
+    final outbox = _outbox;
+    if (outbox == null) return;
+    try {
+      final result = await outbox.flush();
+      if (result.sent > 0 && _treatment != null) {
+        final fresh = await widget.api.detail(_treatment!.code);
+        if (mounted && !_busy) setState(() => _fill(fresh));
+      }
+    } on SignedOutException {
+      _signedOut();
+      return;
+    } on Exception {
+      // Réseau absent : nouvelle tournée au prochain enregistrement ou à la prochaine ouverture
+    }
+    await _refreshPending();
+  }
+
+  Future<void> _refreshPending() async {
+    final tools = widget.voiceTools;
+    if (tools == null) return;
+    final pending = await tools.vault.pending();
+    if (mounted) setState(() => _pendingVoices = pending);
+  }
+
+  /// Raison pour laquelle la voix ne s'enregistre pas encore ; null si elle le peut.
+  String? _voiceReason() {
+    final t = _treatment;
+    if (t == null) {
+      return 'Enregistrez d’abord le brouillon pour ajouter votre voix.';
+    }
+    if (t.consentedAt == null) {
+      return 'Donnez votre consentement et enregistrez le brouillon avant d’enregistrer votre voix.';
+    }
+    return null;
+  }
+
+  Widget _voiceField(String target, String object, String label) {
+    final tools = widget.voiceTools!;
+    final code = _treatment?.code;
+    PendingVoice? pending;
+    for (final p in _pendingVoices) {
+      if (p.code == code && p.target == target && p.object == object) {
+        pending = p;
+      }
+    }
+    PractitionerVoice? server;
+    for (final v in _treatment?.voices ?? const <PractitionerVoice>[]) {
+      if (v.target == target && v.object == object) server = v;
+    }
+    return VoiceField(
+      key: ValueKey('voix-$target-$object'),
+      id: '$target-$object',
+      label: label,
+      tools: tools,
+      enabledReason: _busy
+          ? 'Enregistrement du brouillon en cours.'
+          : _voiceReason(),
+      pending: pending,
+      server: server,
+      onRecorded: (audio, contentType) async {
+        await tools.vault.put(
+          code: code!,
+          target: target,
+          object: object,
+          contentType: contentType,
+          audio: audio,
+        );
+        await _refreshPending();
+        unawaited(_sendVoices());
+      },
+      onRemove: () async {
+        if (pending != null) {
+          await tools.vault.remove(pending);
+          await _refreshPending();
+        }
+        if (server != null) {
+          await widget.api.removeVoice(code!, target, object);
+          final fresh = await widget.api.detail(code);
+          if (mounted) setState(() => _fill(fresh));
+        }
+      },
+      loadServerAudio: () => widget.api.voiceAudio(code!, target, object),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _treatment;
@@ -566,6 +678,8 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
               lines: 4,
               enabled: enabled,
             ),
+            if (widget.voiceTools != null)
+              _voiceField('section', s.code, s.label),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
               title: const Text('Texte en anglais (facultatif)'),
@@ -726,6 +840,11 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
                 hintText: 'feuilles, écorce, racine…',
               ),
             ),
+            // US-081 : le nom de la plante dit par le praticien (interne, jamais publié)
+            if (widget.voiceTools != null &&
+                row.plant != null &&
+                (_treatment?.plants.any((p) => p.code == row.plant) ?? false))
+              _voiceField('plante', row.plant!, 'Nom de la plante $name'),
             const SizedBox(height: SabouSpace.s2),
             Wrap(
               spacing: SabouSpace.s2,
