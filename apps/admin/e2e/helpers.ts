@@ -16,7 +16,8 @@ export async function expectAccessible(page: Page, screen: string): Promise<void
         .getAnimations()
         // Une animation sans fin (indicateur de chargement) ne doit pas bloquer le test
         .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
-        .map((animation) => animation.finished),
+        // Une animation annulée (élément retiré de la page) rejette `finished` : rien à attendre
+        .map((animation) => animation.finished.catch(() => undefined)),
     ),
   );
   const { violations } = await new AxeBuilder({ page })
