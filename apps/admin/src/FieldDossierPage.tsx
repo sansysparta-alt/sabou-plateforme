@@ -380,6 +380,14 @@ function DossierCard({
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Après chaque dépôt ou retrait, la liste propose la première pièce encore manquante
+  // (ajustement pendant le rendu, sans effet : forme recommandée par React)
+  const nextMissing = dossier.piecesManquantes[0];
+  const [proposedFor, setProposedFor] = useState(nextMissing);
+  if (nextMissing !== proposedFor) {
+    setProposedFor(nextMissing);
+    if (nextMissing) setType(nextMissing);
+  }
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -482,12 +490,6 @@ function DossierCard({
             ))}
           </ul>
         )}
-        {!complete && (
-          <p className="ui-muted">
-            Pièces obligatoires manquantes :{' '}
-            {dossier.piecesManquantes.map((t) => PIECE_LABELS[t].toLowerCase()).join(', ')}.
-          </p>
-        )}
       </section>
       <form className="ui-form" onSubmit={onAdd} noValidate>
         <div className="ui-form-row">
@@ -523,6 +525,7 @@ function DossierCard({
             type="button"
             variant="primary"
             disabled={busy || !complete}
+            aria-describedby={complete ? undefined : `${id}-manque`}
             onClick={() =>
               void run(async () => {
                 await submitFieldDossier(dossier.code);
@@ -533,6 +536,12 @@ function DossierCard({
             Soumettre le dossier <span className="ui-visually-hidden">{dossier.code}</span>
           </Button>
         </div>
+        {!complete && (
+          <p id={`${id}-manque`} className="ui-field__hint">
+            Soumission possible quand toutes les pièces obligatoires sont déposées. Il manque :{' '}
+            {dossier.piecesManquantes.map((t) => PIECE_LABELS[t].toLowerCase()).join(', ')}.
+          </p>
+        )}
       </form>
     </DossierRow>
   );

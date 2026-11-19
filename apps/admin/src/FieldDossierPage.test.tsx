@@ -149,11 +149,13 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
     // Ligne repliable des files de dossiers : repères (badge des pièces) et origine du dossier
     expect(within(card).getByText('1 pièce manquante')).toBeTruthy();
     expect(within(card).getByText('Dossier terrain, créé par vous')).toBeTruthy();
-    expect(
-      within(card).getByText(/Pièces obligatoires manquantes : photo du praticien/),
-    ).toBeTruthy();
+    // Bouton grisé tant qu'il manque une pièce, avec sa raison à côté de lui (reliée au bouton)
     const submit = within(card).getByRole('button', { name: /Soumettre le dossier/ });
     expect(submit.hasAttribute('disabled')).toBe(true);
+    const reason = document.getElementById(submit.getAttribute('aria-describedby')!);
+    expect(reason?.textContent).toMatch(/Il manque : photo du praticien\./);
+    // La liste propose la pièce qui manque, pas celle déjà déposée
+    expect((within(card).getByLabelText('Type de pièce') as HTMLSelectElement).value).toBe('photo');
   });
 
   it('dépose une pièce : le fichier part tel quel vers le dossier', async () => {
