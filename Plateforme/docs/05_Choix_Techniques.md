@@ -1116,6 +1116,48 @@ Décision du maître d'ouvrage du 18 novembre 2026 : page du site (citoyen), éc
 | Lien depuis Keycloak | `sabouSiteUrl=${env.SABOU_SITE_URL}` dans `theme.properties` du thème `sabou-public` : le lien mène à la page du site pour tous les clients du domaine, application mobile comprise | Keycloak lit l'environnement de son conteneur ; pas de « reset credentials » de Keycloak, qui passerait par e-mail |
 | Connexion après le changement | Site : lien « Se connecter » avec le numéro ; application : page de Keycloak avec le numéro déjà rempli (`login_hint`, §2.62) | Aucun jeton délivré hors de Keycloak |
 
+### 2.69 Dossier terrain créé par l'Admin Préfectoral (US-040c, 18 novembre 2026)
+
+Décision du maître d'ouvrage du 18 novembre 2026 : le compte du praticien est créé par l'agent **sans mot de passe** ; le SMS l'invite à le définir par « mot de passe oublié » (US-069, §2.68).
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Application | Écran « Dossiers terrain » de l'application de gestion, menu du préfectoral | Le préfectoral relève de l'encadrement (règle de séparation du 17/11). La saisie hors réseau de ce dossier dans l'application mobile viendra avec US-080/US-082 |
+| Préfecture | Toujours celle de l'agent, lue en base ; aucune préfecture acceptée du client | Cloisonnement (US-011) : l'agent ne crée rien hors de sa zone |
+| Auteur | `dossier_certification.cree_par` (l'agent), posé à la création seulement, jamais modifié (déclencheur `trg_dossier_terrain`) | Critère 2 : le dossier mentionne qu'il a été créé par l'agent ; un praticien ne peut pas forger cette mention |
+| Création | Compte Keycloak du domaine public sans mot de passe (compte de service `sabou-inscription`), puis `dossier_terrain_ouvrir()` dans le contexte de l'agent : compte, fiche, dossier et SMS en file en une transaction, plus la ligne d'audit `dossier.terrain_cree` ; si la base refuse, le compte Keycloak est retiré | Ni compte orphelin, ni dossier sans compte ; numéro déjà inscrit : 409, le praticien passe par l'application |
+| Étape 1 | L'agent dépose et retire les pièces du **seul dossier qu'il a créé** (`trg_piece_terrain`) et le soumet : la règle de l'étape 1 de `dossier_transition` accepte, en plus du praticien, l'agent auteur de la préfecture du praticien | Le dossier entre ensuite dans le circuit habituel, inchangé (étapes 2 à 6) |
+| SMS | `dossier.terrain_cree` à la création (inviter à créer le mot de passe), puis `dossier.soumis` comme pour tout dossier ; un seul SMS GSM 7 bits chacun | Critère 2 ; coût et lisibilité sur tout téléphone |
+
+**Séparation des tâches à l'étape 2** (décision du maître d'œuvre du 19 novembre 2026) : l'agent qui a créé le dossier terrain ne le vérifie pas lui-même. La règle de l'étape 2 de `dossier_transition` refuse l'agent auteur (`cree_par`), y compris pour un renvoi ; un autre agent préfectoral de la même préfecture le vérifie. C'est le principe « celui qui valide n'est jamais celui qui enregistre » (§2.8, R-GOV-07), étendu à la certification. Solution de repli quand la préfecture n'a qu'un agent : l'administrateur régional désigne l'agent de vérification (US-040d).
+
+### 2.70 Un seul compte DG, récupérable par l'administrateur technique (US-024, 18 novembre 2026)
+
+Décisions du maître d'ouvrage des 17 et 18 novembre 2026 : un seul compte DG ; récupération par un script d'exploitation (`pnpm dg:reinitialiser --motif "…"`), sans écran. Procédure : `08_Exploitation_Recuperation_DG.md`.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Unicité | Index unique partiel `ux_utilisateur_dg_unique` (une seule ligne `role_code = 'dg'` active) ; l'API ne propose plus le rôle DG à l'invitation (`INVITABLE_ROLES`) et traduit le refus de la base (réactivation, ancienne invitation) en 409 expliqué | La règle tient même si l'API change ; une invitation de DG encore en attente est refusée à son activation |
+| Bases existantes | La migration laisse active la DG la plus récente et suspend les autres (bases de test seulement : une base réelle n'en a qu'une) ; rien n'est supprimé. Les tests de bout en bout suspendent la DG précédente avant d'en créer une | Sinon l'index ne se crée pas sur une base de test qui porte plusieurs DG d'essai |
+| Récupération | Script `packages/db/src/dg-reset.ts` : sessions fermées, double facteur retiré (par défaut) et/ou mise à jour du mot de passe demandée, par `execute-actions-email` de Keycloak (lien de 12 h envoyé **à la DG**) | L'opérateur ne connaît ni ne choisit aucun code : pas de porte dérobée. Pas d'emprunt d'identité, pas de jeton pour la DG |
+| Accès du script | Compte d'administration de Keycloak (domaine `master`) et migrateur de la base, lus dans le `.env` du poste d'exploitation | Aucun secret nouveau ; en production, un compte d'administration technique nominatif dans `master` (à créer avec le maître d'œuvre) |
+| Journal | `journal_audit` source `exploitation`, action `compte.dg_reinitialise` : opérateur, compte d'administration, motif, moyens, horodatage ; la base refuse une ligne de l'exploitation sans opérateur ou avec un motif de moins de 10 caractères (`ck_audit_exploitation`) | Critère 3 : qui, quand, pourquoi, motif obligatoire |
+| Alertes | E-mail de Keycloak (le lien d'actions) et SMS `compte.dg_reinitialise` en file, dans la même transaction que le journal, validée seulement si Keycloak a tout accepté | Critère 4 ; les changements faits par un administrateur ne déclenchent pas l'écouteur `email` (§2.60) |
+
+Décisions du maître d'œuvre du 19 novembre 2026 : la suspension des DG en trop (la plus récente reste active) est acceptée ; la première exécution réelle de `dg:reinitialiser` se fait avec le maître d'œuvre, sur son poste (secrets de Keycloak).
+
+### 2.71 Agent de vérification désigné par l'administrateur régional (US-040d, 19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026 : quand la préfecture n'a qu'un agent, l'auteur d'un dossier terrain ne pouvant pas le vérifier (§2.69), l'administrateur régional désigne l'agent de vérification. Migration `20261119120000_verificateur_designe.sql`.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Donnée | Colonnes `dossier_certification.verificateur_designe` et `verificateur_designe_le` | Une désignation par dossier ; la date est posée par la base |
+| Contrôle | Déclencheur `trg_dossier_verificateur` sur toute écriture de ces colonnes : régional actif de la région du dossier, dossier terrain en cours aux étapes 1 ou 2, agent préfectoral actif de la région autre que l'auteur | La règle tient quel que soit le chemin d'écriture ; une nouvelle désignation remplace la précédente (agent absent ou suspendu) |
+| Écriture | Fonction `dossier_verificateur_designer(code, agent)`, dans le contexte du régional (cloisonnement appliqué), journal d'audit `dossier.verificateur_designe` (agent, précédent) | Critère 1 |
+| Lecture | Règle de `praticien` : la fiche est visible, en lecture seulement, par l'agent désigné, via `praticien_verificateur_designe` (SECURITY DEFINER, sans récursion entre les règles `praticien` et `dossier_certification`). Règle du dossier : l'agent désigné voit ce seul dossier, pas les autres dossiers du praticien ; pièces, visites et historique suivent leur dossier | Critère 2 : rien d'autre de la préfecture |
+| Étape 2 | `dossier_transition` : l'auteur reste refusé ; si un agent est désigné, lui seul vérifie ; sinon un agent de la préfecture du praticien | Critère 3 |
+
 ### 2.72 Pages de connexion Keycloak : une seule feuille de style, minifiée (19 novembre 2026)
 
 Constat : la page de connexion du domaine public dépassait par moments le seuil bloquant de Lighthouse (LCP médian 2,74 s pour 2,5 s, deux passages du pipeline du sprint 5c ; 2,45 s au repos). Les deux feuilles du thème (`tokens.css`, `sabou.css`, 22 Ko commentés, non compressées par Keycloak) coûtaient un aller-retour de plus en 3G simulée.
@@ -1136,3 +1178,64 @@ Constat : une nuit de travail perdue à relancer le pipeline complet sur le post
 | Fin de sprint et avant toute mise en production | `fin-de-sprint.yml` (à la main, et après chaque fusion dans `main`) et `pnpm ci:fin-sprint` (`infra/ci/fin-sprint.sh`) : Lighthouse (gestion, site, connexion Keycloak), Trivy, Semgrep, analyse des images | Vitesse et sécurité vérifiées sans bloquer le développement ; seuils inchangés |
 | Où tournent les pipelines | Sur GitHub : dépôt rendu public par le maître d'œuvre le 19 novembre 2026 jusqu'au 1er décembre (minutes illimitées), puis privé avec le quota gratuit du mois. Aucune solution payante | Le portable du maître d'œuvre reste libre ; il n'attend plus devant l'écran |
 | Garde-fou | `check-repo.sh` : tout workflow se déclenche sur les demandes de fusion et sur `main`, sauf `fin-de-sprint.yml`, qui doit pouvoir être lancé à la main | La règle d'origine tient pour tous les autres workflows |
+
+### 2.74 Pièces d'un dossier : liste de contrôle et dépôt en un geste (19 novembre 2026)
+
+Remarques du maître d'œuvre du 19 novembre 2026 sur l'écran « Dossiers terrain » : présentation non professionnelle, dépôt des pièces peu pratique (choisir le type, puis le fichier, puis « Ajouter », pièce par pièce), bouton grisé sans explication. Règle : un défaut signalé se corrige partout où il se trouve.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Dossiers dans une liste | Ligne repliable commune (`DossierRow.tsx`, classes `ui-dossier`) pour toutes les files, « Dossiers terrain » et « Agents de vérification » compris ; un dossier tout juste créé s'ouvre | Même gabarit partout (maquette v1.3, US-019) |
+| Pièces | Liste de contrôle (`ui-checklist`) : une ligne par pièce obligatoire, son état (« À déposer », « Déposée le… · format · taille ») et ses actions (« Déposer », « Remplacer », « Retirer ») ; une ligne pour les pièces facultatives | On voit d'un coup d'œil ce qui manque ; une action par pièce |
+| Dépôt | Composant commun `FileButton` (`@sabou/ui`) : vrai champ fichier, focalisable, présenté comme un bouton ; le fichier choisi part aussitôt. « Remplacer » dépose le nouveau fichier puis retire l'ancien. Appliqué aussi à la photo de la fiche de visite (étape 2) | Un seul geste ; accessible au clavier et aux lecteurs d'écran (« Déposer la photo du praticien ») |
+| Boutons et cases grisés | La raison est écrite à côté et reliée par `aria-describedby` (soumission du dossier terrain, photo principale d'une plante ; les référentiels le faisaient déjà) | Un contrôle inactif sans explication bloque l'utilisateur |
+| Formulaires d'un dossier ouvert | Largeur de lecture (48 rem) ; éléments de liste alignés au centre | Lisibilité, alignement des boutons |
+
+### 2.75 Règle typographique (19 novembre 2026)
+
+Remarque du maître d'œuvre du 19 novembre 2026 : « les écritures sont petites en général ». L'échelle était standard (texte courant 16 px) ; c'est l'usage des petites tailles qui était trop large.
+
+| Niveau | Taille | Usage |
+|---|---|---|
+| Texte courant | 16 px (`--sabou-text-md`) | Tout ce qu'on lit en premier ou sur quoi on agit : titres des lignes de dossier, liens du menu, boutons, pagination, onglets segmentés, nom de la personne connectée |
+| Secondaire | 15 px (`--sabou-text-sm`, auparavant 14 px) | Repères d'une ligne, aides et erreurs des champs, en-têtes de tableau, badges |
+| Minimum | 14 px (`--sabou-text-xs`, auparavant 13 px) | Intitulés de rubrique du menu, compteurs ; jamais en dessous |
+
+Les trois copies des jetons restent identiques, vérifiées par les tests : `packages/ui/src/tokens.css` (source), la copie du thème Keycloak (et sa feuille compactée, §2.72) et `apps/mobile/lib/ui/tokens.dart`.
+
+### 2.76 Détail d'un dossier dans un panneau latéral (19 novembre 2026)
+
+Remarque du maître d'œuvre du 19 novembre 2026 : ouvrir le détail d'un dossier au milieu de la liste prête à confusion ; isoler le détail dans une fenêtre, partout où c'est nécessaire.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Où | Composant commun `DossierRow.tsx` : toutes les files (vérification terrain, consolidation, expertise, approbation, traitements, dossiers terrain, agents de vérification) | Un seul comportement pour tous les dossiers ; la maquette v1.3 prévoit « Voir » sur chaque ligne |
+| Forme | Panneau latéral à droite (46 rem) sur ordinateur, la liste visible derrière un fond assombri ; plein écran sur téléphone. En-tête fixe (code, praticien, repères, « Fermer »), corps qui défile, zone « Décision » séparée par un filet | La liste garde le contexte ; une fenêtre centrale serait trop étroite pour la visite, les pièces et les décisions |
+| Accessibilité | Fenêtre native `<dialog>` en modale : focus maintenu dans le panneau, fermeture par Échap, « Fermer » ou clic à côté, retour du focus sur la ligne ; le titre de la ligne est le bouton d'ouverture (toute la ligne est cliquable) | WCAG 2.2 AA (2.1.2, 2.4.3) |
+| Messages | Les messages d'une action faite dans le panneau (pièce déposée, visite signée…) y sont dits (`role="status"`) : la page derrière est inactive tant que le panneau est ouvert | WCAG 4.1.3 |
+| Annotations du Comité | Restent une section repliable à l'intérieur du panneau | Ce n'est pas un dossier, c'est une partie de son détail |
+
+### 2.77 Compte connecté et déconnexion en haut à droite (19 novembre 2026)
+
+Décision du maître d'œuvre du 19 novembre 2026, qui remplace le profil en bas de la colonne de navigation (15 novembre, à la manière de Studium) : le bouton de déconnexion doit être en haut, selon l'usage.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Place | Barre du compte au-dessus du contenu, alignée à droite : initiales, nom, fonction et zone, bouton « Se déconnecter » ; sur téléphone, sous le bandeau « Menu » | Emplacement attendu par la plupart des utilisateurs d'applications de gestion |
+| Bouton | Libellé écrit « Se déconnecter » avec l'icône (plus d'icône seule) | Action importante, compréhensible sans survol |
+| Colonne de navigation | Marque, rubriques et « Réduire le menu » seulement | Une zone, un rôle |
+| Accessibilité | Zone nommée « Compte connecté » (`section`, pas un second en-tête de page), un seul bouton de déconnexion, placé avant le contenu principal | Pas de repère de page en double ; lu en premier |
+| Nom | Jamais tronqué (US-016) : il passe à la ligne | Règle inchangée |
+
+### 2.78 Revue d'ergonomie d'ensemble (19 novembre 2026)
+
+Demande du maître d'œuvre du 19 novembre 2026 : quelques ajustements d'ensemble, sans casser ce qui est en place. Revue de onze écrans (DG, Comité, préfectoral) par captures.
+
+| Constat | Ajustement (niveau commun) |
+|---|---|
+| Menu de la DG plus haut qu'un écran de 768 px : « Référentiels » caché | Liens du menu à 40 px (cible de la DoD), groupes un peu plus serrés |
+| Action de l'en-tête tantôt à droite, tantôt sous l'introduction | Sur ordinateur, toujours à droite du titre |
+| Compteur des listes (« Dossiers à vérifier 16 ») peu lisible | Pastille bordée, 15 px, comme dans les onglets |
+| « Traitements à décider » répété (titre de page et de liste) | Liste renommée « Traitements en attente » |
+| Pages hors navigation (invitation, accès refusé) sans marque sur ordinateur | Bandeau de marque affiché à toutes les tailles |
+| Déconnexion en rouge ? | Non : le rouge reste réservé aux actions destructrices ou irréversibles (suspendre, désactiver, rejet définitif) ; la déconnexion est une action neutre |

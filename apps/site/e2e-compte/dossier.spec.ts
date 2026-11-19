@@ -145,10 +145,13 @@ test('critère 3 : moins de 12 mois après un rejet définitif, un nouveau dossi
   const praticien = api(token);
   expect((await praticien.saveProfile()).status).toBe(204);
 
-  // Rejet définitif prononcé par la DG (compte du jeu d'exemple) par praticien_rejeter, seule
-  // voie depuis US-047, puis reporté d'un mois en arrière (décision, recours et dossier)
+  // Rejet définitif prononcé par la DG par praticien_rejeter, seule voie depuis US-047, puis
+  // reporté d'un mois en arrière (décision, recours et dossier). Une seule DG active (US-024) :
+  // les tests de la gestion la remplacent, on prend donc celle qui est active, pas le compte
+  // du jeu d'exemple
   psql(`BEGIN; SET LOCAL search_path = sabou, public;
-    SELECT sabou.contexte_ouvrir(md5('sabou:dg@sabou-sante.gn')::uuid);
+    SELECT sabou.contexte_ouvrir(
+      (SELECT keycloak_id FROM sabou.utilisateur WHERE role_code = 'dg' AND statut = 'actif'));
     SELECT sabou.praticien_rejeter(p.id, sabou.contexte_utilisateur(), 'fraude_documentaire',
                                    'Pièce d''identité falsifiée.')
       FROM sabou.praticien p JOIN sabou.utilisateur u ON u.id = p.utilisateur_id

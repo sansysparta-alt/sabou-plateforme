@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, TextAreaField, TextField } from '@sabou/ui';
+import { Alert, Badge, Button, FileButton, TextAreaField, TextField } from '@sabou/ui';
 import type { FieldVisit, FieldVisitReport, VisitOpinion } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { attachVisitPhoto, planVisit, reportVisit } from './certification-api';
@@ -404,16 +404,12 @@ function PhotoForm({
   visit: FieldVisit;
   onSaved: (visit: FieldVisit) => void;
 }) {
-  const [file, setFile] = useState<File>();
+  const id = useId();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!file) {
-      setError('Choisissez la photo de la fiche papier.');
-      return;
-    }
+  // Dépôt en un geste (05 §2.74) : la photo choisie part aussitôt
+  async function attach(file: File) {
     setBusy(true);
     setError(undefined);
     try {
@@ -425,21 +421,26 @@ function PhotoForm({
   }
 
   return (
-    <form className="ui-form" onSubmit={submit} noValidate>
-      <TextField
-        type="file"
-        label="Photo de la fiche papier (facultative)"
-        hint="Photo JPEG ou PNG, ou document PDF, 5 Mo au plus. Elle se joint une seule fois."
-        error={error}
-        accept="image/jpeg,image/png,application/pdf"
-        onChange={(event) => setFile(event.target.files?.[0])}
-      />
+    <div className="ui-stack">
+      <span className="ui-field__label" id={`${id}-titre`}>
+        Photo de la fiche papier (facultative)
+      </span>
+      <p className="ui-field__hint" id={`${id}-aide`}>
+        Photo JPEG ou PNG, ou document PDF, 5 Mo au plus. Elle se joint une seule fois et part dès
+        qu’elle est choisie.
+      </p>
+      {error && <Alert tone="error">{error}</Alert>}
       <div className="ui-form__actions">
-        <Button type="submit" variant="secondary" disabled={busy}>
-          Joindre la photo{' '}
-          <span className="ui-visually-hidden">au compte rendu du dossier {code}</span>
-        </Button>
+        <FileButton
+          accept="image/jpeg,image/png,application/pdf"
+          disabled={busy}
+          describedBy={`${id}-aide`}
+          onFile={(file) => void attach(file)}
+        >
+          {busy ? 'Envoi…' : 'Joindre la photo'}{' '}
+          <span className="ui-visually-hidden">de la fiche papier au dossier {code}</span>
+        </FileButton>
       </div>
-    </form>
+    </div>
   );
 }

@@ -6,7 +6,7 @@ import { verifyCertificateQr } from '@sabou/qr';
 import { expect, test } from '@playwright/test';
 import { psql } from './audit';
 import { dossierAtStep, showRunDossiers, stepOf } from './dossiers';
-import { administrator, expectAccessible, firstAdministratorLogin } from './helpers';
+import { administrator, expectAccessible, firstAdministratorLogin, openDossier } from './helpers';
 import { APP } from './keycloak';
 
 test('US-045 : approuver émet un certificat de 12 mois signé par le coffre, QR vérifiable', async ({
@@ -21,11 +21,9 @@ test('US-045 : approuver émet un certificat de 12 mois signé par le coffre, QR
   await page.goto(APP);
   await page.getByRole('link', { name: 'Approbation des dossiers' }).click();
   await showRunDossiers(page);
-  const card = page
-    .getByRole('listitem')
-    .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
-  // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
-  await card.locator('summary').click();
+  // Détail dans le panneau du dossier (05 §2.76)
+  const card = page.getByRole('dialog', { name: new RegExp(`^${code} `) });
+  await openDossier(page, code);
   await expect(card.getByText('Réalisée, compte rendu signé')).toBeVisible();
   await expectAccessible(page, 'approbation des dossiers');
 

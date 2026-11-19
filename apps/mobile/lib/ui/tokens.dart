@@ -123,9 +123,11 @@ abstract final class SabouRadius {
 
 /// Tailles de texte.
 abstract final class SabouText {
-  /// Légendes.
-  static const xs = 13.0;
-  static const sm = 14.0;
+  /// Minimum absolu (intitulés, compteurs).
+  static const xs = 14.0;
+
+  /// Information secondaire (repères, aides, badges).
+  static const sm = 15.0;
 
   /// Texte courant.
   static const md = 16.0;

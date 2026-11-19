@@ -168,16 +168,28 @@ describe('AppShell', () => {
     window.localStorage.clear();
   });
 
-  it('profil en bas de la navigation : initiales, nom et zone', () => {
+  it('compte connecté en haut : initiales, nom, zone et déconnexion, hors de la navigation', () => {
     render(
-      <AppShell user={{ name: 'Awa Camara', zone: 'National' }} nav={nav} currentPath="/">
+      <AppShell
+        user={{ name: 'Awa Camara', zone: 'National' }}
+        nav={nav}
+        currentPath="/"
+        userActions={<button>Se déconnecter</button>}
+      >
         <p>Contenu</p>
       </AppShell>,
     );
+    const account = screen.getByRole('region', { name: 'Compte connecté' });
+    expect(account.textContent).toContain('AC');
+    expect(account.textContent).toContain('Awa Camara');
+    expect(account.textContent).toContain('National');
+    expect(screen.getAllByRole('button', { name: 'Se déconnecter' })).toHaveLength(1);
+    // Placé avant le contenu principal (lu en premier), plus dans la colonne de navigation
     const navigation = screen.getByRole('navigation', { name: 'Navigation principale' });
-    expect(navigation.textContent).toContain('AC');
-    expect(navigation.textContent).toContain('Awa Camara');
-    expect(navigation.textContent).toContain('National');
+    expect(navigation.textContent).not.toContain('Awa Camara');
+    expect(
+      account.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('le bouton Menu ouvre et ferme la navigation sur téléphone', () => {
@@ -214,7 +226,37 @@ describe('Icon', () => {
 });
 
 describe('PageHeader', () => {
+  // Hauteur de la page simulée (jsdom ne calcule pas la mise en page)
+  const pageHeight = (height: number) =>
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      configurable: true,
+      value: height,
+    });
+  afterEach(() => pageHeight(0));
+
+  it('page qui ne défile que de peu : pas de resserrement (sinon clignotement sans fin)', () => {
+    let notify: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    pageHeight(window.innerHeight + 30);
+    render(<PageHeader title="Vérification terrain" lead="Dossiers soumis." />);
+    const header = screen
+      .getByRole('heading', { level: 1, name: 'Vérification terrain' })
+      .closest('.ui-page-header')!;
+    act(() => notify([{ intersectionRatio: 0.98, boundingClientRect: { top: -1 } as DOMRect }]));
+    expect(header.hasAttribute('data-stuck')).toBe(false);
+  });
+
   it('signale quand il est accroché en haut de l’écran, puis quand il reprend sa place', () => {
+    pageHeight(window.innerHeight * 3);
     let notify: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
     const disconnect = vi.fn();
     vi.stubGlobal(

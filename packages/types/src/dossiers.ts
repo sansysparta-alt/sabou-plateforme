@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nationalMobileSchema, personName } from './citizens.js';
 
 // Dossier de certification du praticien (US-040a, 05_Choix_Techniques.md §2.26)
 
@@ -95,3 +96,72 @@ export interface DossierError {
   // missing_pieces : liste des pièces obligatoires manquantes (critère 2 de US-040)
   piecesManquantes?: PractitionerPieceType[];
 }
+
+// Dossier terrain (US-040c) : créé par l'Admin Préfectoral pour un praticien sans smartphone.
+// Préfecture : celle de l'agent (pas de choix). Le compte du praticien est créé sans mot de
+// passe : le SMS l'invite à le définir par « mot de passe oublié » (US-069).
+export const fieldDossierCreateSchema = z.strictObject({
+  telephone: nationalMobileSchema,
+  prenom: personName('prénom', 50),
+  nom: personName('nom', 80),
+  specialiteId: z.number().int().positive(),
+  sousPrefectureId: z.number().int().positive().nullable().default(null),
+  languePrincipale: z.string().regex(/^[a-z]{2,3}$/, 'Langue inconnue.'),
+  anneesExperience: z
+    .number()
+    .int()
+    .min(0, 'L’expérience se compte en années, de 0 à 80.')
+    .max(80, 'L’expérience se compte en années, de 0 à 80.'),
+});
+export type FieldDossierCreate = z.output<typeof fieldDossierCreateSchema>;
+export type FieldDossierCreateInput = z.input<typeof fieldDossierCreateSchema>;
+
+// Dossier terrain en cours de constitution (étape 1), vu par l'agent qui l'a créé
+export interface FieldDossier {
+  code: string;
+  praticien: string;
+  // Forme nationale (9 chiffres)
+  telephone: string;
+  specialite: string;
+  creeLe: string;
+  pieces: DossierPiece[];
+  piecesManquantes: PractitionerPieceType[];
+}
+
+// Listes du formulaire du dossier terrain : sous-préfectures de la préfecture de l'agent
+export interface FieldDossierReferentials {
+  prefecture: string;
+  specialites: { id: number; libelle: string }[];
+  sousPrefectures: { id: number; nom: string }[];
+  langues: { code: string; nom: string }[];
+}
+
+// US-040d : dossier terrain de la région, aux étapes 1 ou 2, vu par l'administrateur régional
+export interface FieldDossierDesignation {
+  code: string;
+  praticien: string;
+  prefecture: string;
+  etape: number;
+  // Agent préfectoral qui a créé le dossier (il ne le vérifie pas lui-même)
+  auteur: string;
+  auteurId: number;
+  // Agent désigné pour la vérification de l'étape 2, sinon null
+  verificateur: { id: number; nom: string; prefecture: string } | null;
+}
+
+// Agent préfectoral actif de la région, désignable (sauf pour les dossiers qu'il a créés)
+export interface DesignableAgent {
+  id: number;
+  nom: string;
+  prefecture: string;
+}
+
+export interface FieldDossierDesignations {
+  dossiers: FieldDossierDesignation[];
+  agents: DesignableAgent[];
+}
+
+export const verifierDesignationSchema = z.strictObject({
+  agentId: z.number().int().positive(),
+});
+export type VerifierDesignation = z.output<typeof verifierDesignationSchema>;

@@ -19,6 +19,7 @@
     "db:migrate": "pnpm --filter @sabou/db migrate",
     "db:hash": "pnpm --filter @sabou/db hash",
     "db:seed": "pnpm --filter @sabou/db seed",
+    "dg:reinitialiser": "pnpm --filter @sabou/db dg:reinitialiser",
     "ci:local": "node infra/ci/require-git-bash.mjs && bash infra/ci/all.sh",
     "ci:fin-sprint": "node infra/ci/require-git-bash.mjs && bash infra/ci/fin-sprint.sh",
     "ci:recit": "node infra/ci/require-git-bash.mjs && bash infra/ci/recit.sh"

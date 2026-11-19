@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ExpertiseItem } from '@sabou/types';
 import { ExpertisePage } from './ExpertisePage';
+import { openDossier } from './test-dossier';
 
 const verified: ExpertiseItem = {
   code: 'DS-3001',
@@ -56,8 +57,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const item = async (code: string) =>
-  (await screen.findByRole('heading', { level: 3, name: new RegExp(code) })).closest('li')!;
+const item = async (code: string) => await openDossier(new RegExp(code));
 
 describe('Liste des dossiers à l’étape 4', () => {
   it('montre la zone de chaque dossier, toutes régions, et l’état de la visite', async () => {

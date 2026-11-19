@@ -18,9 +18,17 @@ export const PAGE_HEADERS = {
     title: 'Référentiels',
     lead: 'Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée.',
   },
+  '/dossiers-terrain': {
+    title: 'Dossiers terrain',
+    lead: 'Dossiers de praticiens sans smartphone, créés sur le terrain dans votre préfecture : pièces déposées par vous, puis soumission à la vérification.',
+  },
   '/verification-terrain': {
     title: 'Vérification terrain',
     lead: 'Dossiers soumis dans votre préfecture, en attente de votre décision. Délai cible : 3 jours par dossier.',
+  },
+  '/agents-verification': {
+    title: 'Agents de vérification',
+    lead: 'Dossiers terrain de votre région : l’auteur d’un dossier ne le vérifie pas lui-même. Si la préfecture n’a qu’un agent, désignez un autre agent préfectoral de la région.',
   },
   '/consolidation': {
     title: 'Consolidation régionale',

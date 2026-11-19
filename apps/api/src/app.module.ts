@@ -3,6 +3,7 @@ import { ConfigModule } from './config/config.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
 import { DossiersModule } from './dossiers/dossiers.module';
+import { FieldDossiersModule } from './field-dossiers/field-dossiers.module';
 import { HealthController } from './health/health.controller';
 import { AccountsModule } from './accounts/accounts.module';
 import { AnnotationsModule } from './annotations/annotations.module';
@@ -39,6 +40,8 @@ import { VisitsModule } from './visits/visits.module';
     VisitsModule,
     DashboardModule,
     DossiersModule,
+    // US-040c
+    FieldDossiersModule,
     ReferentialsModule,
     SignupModule,
     SmsModule,

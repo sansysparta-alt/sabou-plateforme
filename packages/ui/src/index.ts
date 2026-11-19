@@ -2,6 +2,7 @@
 // de l'application. Mode d'emploi : packages/ui/README.md.
 export { Icon, iconNames, type IconName, type IconProps } from './Icon';
 export { Button, ButtonLink, type ButtonVariant } from './Button';
+export { FileButton, type FileButtonProps } from './FileButton';
 export { Alert, type AlertProps, type AlertTone } from './Alert';
 export { TextField, SelectField, TextAreaField } from './Field';
 export { Card, StatCard, Badge, type CardProps, type StatCardProps, type BadgeTone } from './Card';

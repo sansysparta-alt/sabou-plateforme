@@ -44,7 +44,9 @@ function linkToPlatform(user: TestUser): void {
   if (!/^[0-9a-f-]{36}$/.test(user.id) || !/^[a-z_]+-[0-9a-f]{8}$/.test(user.username)) {
     throw new Error(`Compte de test invalide : ${user.username}`);
   }
+  // Un seul compte DG actif (US-024) : la DG de mesure prend la place des précédentes
   psql(`SET search_path = sabou, public;
+        UPDATE sabou.utilisateur SET statut = 'suspendu' WHERE role_code = 'dg' AND statut = 'actif';
         INSERT INTO sabou.utilisateur (email, prenom, nom, role_code, statut, keycloak_id)
         VALUES ('${user.username}@exemple.invalid', 'Essai', 'Mesure', 'dg', 'actif', '${user.id}')`);
 }
@@ -69,7 +71,8 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
       lastName: 'Mesure',
       // Téléphone obligatoire des comptes de gestion (US-012b, décision du 17/11/2026)
       phone: '+224620000042',
-      role: 'dg',
+      // La DG n'invite pas de DG (US-024) : un comité scientifique, national, sans zone
+      role: 'scientifique',
       regionId: null,
       prefectureId: null,
       interfaceLanguage: 'fr',

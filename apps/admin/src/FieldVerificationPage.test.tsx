@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { FieldVerificationItem, FieldVisit } from '@sabou/types';
 import { FieldVerificationPage } from './FieldVerificationPage';
+import { openDossier } from './test-dossier';
 
 const planned: FieldVisit = {
   id: 7,
@@ -40,6 +41,9 @@ const visited: FieldVerificationItem = {
   visiteRequise: true,
   visiteRealisee: true,
   visite: realized,
+  verificateur: null,
+  auteur: false,
+  verificateurEstMoi: false,
 };
 const notVisited: FieldVerificationItem = {
   ...visited,
@@ -102,17 +106,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const item = async (code: string) =>
-  (await screen.findByRole('heading', { level: 3, name: new RegExp(code) })).closest('li')!;
+const item = async (code: string) => await openDossier(new RegExp(code));
 
 describe('Liste des dossiers à l’étape 2', () => {
   it('montre chaque dossier et l’état de sa visite', async () => {
     render(<FieldVerificationPage />);
+    // État de la visite : badge de la ligne ; le détail est dans le bloc « Visite sur place »
     const first = await item('DS-2001');
-    expect(within(first).getByText('Réalisée, compte rendu signé'));
+    expect(within(first).getAllByText('Visite faite')[0]);
+    expect(within(first).getAllByText('Visite sur place')).toHaveLength(1);
     expect(within(first).getByText('Phytothérapie'));
     const second = await item('DS-2002');
-    expect(within(second).getByText('À réaliser'));
+    expect(within(second).getAllByText('Visite attendue')[0]);
   });
 
   it('sans visite réalisée : pas de bouton Valider, la raison est dite (critère 2)', async () => {
@@ -350,7 +355,8 @@ describe('Rejet (critère 3)', () => {
 
 describe('US-041 : visite sur place', () => {
   const VISIT = '/api/dossiers/DS-2002/visite';
-  const status = () => screen.getByRole('status').textContent;
+  // Message de l'action, dit dans le panneau du dossier (la page derrière est inactive)
+  const status = () => screen.getAllByRole('status').at(-1)!.textContent;
 
   it('sans visite : planifier ouvre le formulaire, focus sur la date', async () => {
     render(<FieldVerificationPage />);
@@ -445,7 +451,7 @@ describe('US-041 : visite sur place', () => {
         },
       ]);
       expect(status()).toBe('Compte rendu signé : la visite est enregistrée.');
-      expect(within(card).getByText('Réalisée, compte rendu signé'));
+      expect(within(card).getAllByText('Visite faite')[0]);
       expect(within(card).getByRole('button', { name: /^Valider/ }));
     });
 
@@ -477,12 +483,54 @@ describe('US-041 : visite sur place', () => {
     const photo = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'fiche.jpg', {
       type: 'image/jpeg',
     });
-    fireEvent.change(within(first).getByLabelText('Photo de la fiche papier (facultative)'), {
+    // Dépôt en un geste : la photo choisie part aussitôt
+    fireEvent.change(within(first).getByLabelText(/^Joindre la photo de la fiche papier/), {
       target: { files: [photo] },
     });
-    fireEvent.click(within(first).getByRole('button', { name: /^Joindre la photo/ }));
     expect(await within(first).findByText('Jointe'));
     expect(decisions).toEqual([{ url: '/api/dossiers/DS-2001/visite/7/photo', body: photo }]);
     expect(status()).toBe('Photo de la fiche jointe au compte rendu.');
+  });
+});
+
+// US-040c et US-040d : séparation des tâches, dite d'emblée (pas de décision refusée après coup)
+describe('Qui vérifie un dossier terrain', () => {
+  it('l’auteur voit le dossier pour suivi, sans bouton de décision, avec la raison', async () => {
+    mockApi({ [FIRST]: { elements: [{ ...visited, auteur: true }] } });
+    render(<FieldVerificationPage />);
+    const row = within(await item('DS-2001'));
+    expect(
+      row.getByText(/Vous avez créé ce dossier terrain : un autre agent le vérifie/),
+    ).toBeTruthy();
+    expect(row.queryByRole('button', { name: /^Valider/ })).toBeNull();
+    expect(row.queryByRole('button', { name: /^Rejeter/ })).toBeNull();
+  });
+
+  it('confié à un autre agent : la raison, sans bouton de décision', async () => {
+    mockApi({ [FIRST]: { elements: [{ ...visited, verificateur: 'Oumar Baldé' }] } });
+    render(<FieldVerificationPage />);
+    const row = within(await item('DS-2001'));
+    expect(row.getByText('Oumar Baldé (désigné par l’admin régional)')).toBeTruthy();
+    expect(row.getByText(/confiée à Oumar Baldé, désigné par l’admin régional/)).toBeTruthy();
+    expect(row.queryByRole('button', { name: /^Valider/ })).toBeNull();
+  });
+
+  it('l’agent désigné décide normalement', async () => {
+    mockApi({
+      [FIRST]: {
+        elements: [{ ...visited, verificateur: 'Oumar Baldé', verificateurEstMoi: true }],
+      },
+    });
+    render(<FieldVerificationPage />);
+    const row = within(await item('DS-2001'));
+    expect(row.getByRole('button', { name: /^Valider/ })).toBeTruthy();
+    expect(row.queryByText(/Il est visible ici pour suivi/)).toBeNull();
+  });
+
+  it('sans désignation, un dossier ordinaire se décide normalement', async () => {
+    render(<FieldVerificationPage />);
+    await item('DS-2001');
+    expect(screen.queryByText('Vérification confiée à')).toBeNull();
+    expect(within(await item('DS-2001')).getByRole('button', { name: /^Valider/ })).toBeTruthy();
   });
 });

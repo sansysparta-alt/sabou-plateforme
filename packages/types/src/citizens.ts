@@ -40,7 +40,7 @@ export type SignupVerifyResult = { status: 'new'; ticket: string } | { status: '
 
 export const signupTicketSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 
-const personName = (label: string, max: number) =>
+export const personName = (label: string, max: number) =>
   z
     .string()
     .trim()

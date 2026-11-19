@@ -11,6 +11,7 @@ import { createSmsSender } from './sms.module';
 // Code de dossier le plus long envisagé (un million de dossiers)
 const CODE = 'DS-1000000';
 const ALL_MESSAGES: [string, number | undefined][] = [
+  ['dossier.terrain_cree', undefined],
   ['dossier.soumis', 2],
   ['dossier.valide', 3],
   ['dossier.valide', 4],
@@ -23,6 +24,14 @@ const ALL_MESSAGES: [string, number | undefined][] = [
   ['dossier.rejet_definitif', 5],
   ['dossier.publie', 6],
 ];
+
+describe('US-024 : alerte de la DG après une réinitialisation par l’exploitation', () => {
+  it('tient en un SMS GSM 7 bits et renvoie vers l’e-mail envoyé', () => {
+    const text = notificationText({ modele: 'compte.dg_reinitialise', objet: '1', parametres: {} });
+    expect(text).toMatch(/^SABOU : .*compte DG.*e-mail/);
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+});
 
 describe('US-061 : SMS du circuit d’un traitement', () => {
   const TREATMENT = 'REC-1000000';

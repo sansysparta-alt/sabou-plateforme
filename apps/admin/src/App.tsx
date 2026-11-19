@@ -8,6 +8,8 @@ const loaders = {
   referentials: () => import('./ReferentialsPage'),
   invitation: () => import('./InvitationPage'),
   fieldVerification: () => import('./FieldVerificationPage'),
+  fieldDossiers: () => import('./FieldDossierPage'),
+  verifierDesignation: () => import('./VerifierDesignationPage'),
   consolidation: () => import('./ConsolidationPage'),
   approval: () => import('./ApprovalPage'),
   certificate: () => import('./CertificatePage'),
@@ -33,6 +35,12 @@ const ReferentialsPage = lazy(() =>
 );
 const InvitationPage = lazy(() =>
   loaders.invitation().then((m) => ({ default: m.InvitationPage })),
+);
+const VerifierDesignationPage = lazy(() =>
+  loaders.verifierDesignation().then((m) => ({ default: m.VerifierDesignationPage })),
+);
+const FieldDossierPage = lazy(() =>
+  loaders.fieldDossiers().then((m) => ({ default: m.FieldDossierPage })),
 );
 const FieldVerificationPage = lazy(() =>
   loaders.fieldVerification().then((m) => ({ default: m.FieldVerificationPage })),
@@ -68,6 +76,8 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/referentiels': loaders.referentials,
   '/invitation': loaders.invitation,
   '/verification-terrain': loaders.fieldVerification,
+  '/dossiers-terrain': loaders.fieldDossiers,
+  '/agents-verification': loaders.verifierDesignation,
   '/consolidation': loaders.consolidation,
   '/approbation': loaders.approval,
   '/rejet-definitif': loaders.rejection,
@@ -87,6 +97,8 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/comptes': ['/api/comptes', '/api/comptes/referentiels'],
   '/referentiels': ['/api/referentiels'],
   '/verification-terrain': [() => firstQueuePagePath(QUEUES.fieldVerification)],
+  '/dossiers-terrain': ['/api/dossiers-terrain/referentiels', '/api/dossiers-terrain'],
+  '/agents-verification': ['/api/dossiers-terrain/designations'],
   '/consolidation': [() => firstQueuePagePath(QUEUES.consolidation)],
   '/approbation': [() => firstQueuePagePath(QUEUES.approval)],
   '/entonnoir': ['/api/entonnoir'],
@@ -268,9 +280,9 @@ function ConnectedApp() {
         nav={navigation(user)}
         currentPath={path()}
         userActions={
-          // Bas de la colonne de navigation : icône seule, nom accessible « Se déconnecter »
-          <Button variant="secondary" icon="logout" onClick={onLogout} title="Se déconnecter">
-            <span className="ui-visually-hidden">Se déconnecter</span>
+          // En haut à droite (05 §2.77) : libellé écrit, pas une icône seule
+          <Button variant="secondary" icon="logout" onClick={onLogout}>
+            Se déconnecter
           </Button>
         }
       >
@@ -300,7 +312,7 @@ function ConnectedApp() {
 // Pages hors navigation (connexion, invitation, accès refusé) : bandeau seul
 function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="ui-shell">
+    <div className="ui-shell ui-shell--public">
       <a className="ui-skip-link" href="#contenu">
         Aller au contenu
       </a>
@@ -327,7 +339,11 @@ function navigation(user: SessionUser): NavGroup[] {
   if (isPrefectoral(user)) {
     groups.push({
       heading: 'Certification',
-      items: [{ href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' }],
+      items: [
+        // US-040c : dossier d'un praticien sans smartphone, créé sur le terrain
+        { href: '/dossiers-terrain', label: 'Dossiers terrain', icon: 'folder' },
+        { href: '/verification-terrain', label: 'Vérification terrain', icon: 'map-pin' },
+      ],
     });
   }
   if (isRegional(user)) {
@@ -335,6 +351,8 @@ function navigation(user: SessionUser): NavGroup[] {
       heading: 'Certification',
       items: [
         { href: '/consolidation', label: 'Consolidation régionale', icon: 'layers' },
+        // US-040d : agent de vérification d'un dossier terrain
+        { href: '/agents-verification', label: 'Agents de vérification', icon: 'map-pin' },
         // US-061
         { href: '/traitements', label: 'Traitements à transmettre', icon: 'flask' },
       ],
@@ -411,11 +429,13 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/verification-terrain': FieldVerificationPage,
+  '/dossiers-terrain': FieldDossierPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/consolidation': ConsolidationPage,
+  '/agents-verification': VerifierDesignationPage,
   '/traitements': TreatmentsPage,
 };
 const COMMITTEE_PAGES: Record<string, ComponentType> = {

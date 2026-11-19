@@ -33,6 +33,8 @@ class FakeRepository {
   statuses = new Map<number, string>([[7, 'actif']]);
   activated: [number, string][] = [];
   failActivation = false;
+  // Refus de la base à la réactivation (index d'une seule DG active, US-024)
+  reactivationError: Error | null = null;
   async transaction<T>(work: (trx: never) => Promise<T>): Promise<T> {
     const statuses = new Map(this.statuses);
     try {
@@ -64,6 +66,7 @@ class FakeRepository {
     this.activated.push([pending.accountId, id]);
   }
   async changeStatus(_trx: never, id: number, from: string, to: string) {
+    if (to === 'actif' && this.reactivationError) throw this.reactivationError;
     if (this.statuses.get(id) !== from) return null;
     this.statuses.set(id, to);
     return { keycloakId: TARGET_SUB, email: 'cible@sabou-sante.gn' };
@@ -206,6 +209,33 @@ const invitation: InviteRequest = {
   listeningLanguage: 'sou',
   languages: [{ code: 'sou', record: true, translate: false, validate: true }],
 };
+
+describe('US-024 : un seul compte DG', () => {
+  it('la DG ne peut pas inviter un compte DG', async () => {
+    const response = await call('comptes', {
+      as: 'dg',
+      body: { ...invitation, role: 'dg', regionId: null },
+    });
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(await response.json())).toContain('il n’y a qu’un seul compte DG');
+    expect(repository.invited).toHaveLength(0);
+  });
+
+  it('réactiver une ancienne DG quand une autre est active : 409 expliqué', async () => {
+    repository.statuses.set(7, 'suspendu');
+    repository.reactivationError = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'ux_utilisateur_dg_unique',
+    });
+    try {
+      const response = await call('comptes/7/reactivation', { as: 'dg' });
+      expect(response.status).toBe(409);
+      expect(((await response.json()) as { message: string }).message).toMatch(/un seul compte DG/);
+    } finally {
+      repository.reactivationError = null;
+    }
+  });
+});
 
 describe('Accès réservé à la DG (UC-65, R-ACC-04)', () => {
   it('401 sans session, 403 pour un autre rôle ou sans second facteur', async () => {

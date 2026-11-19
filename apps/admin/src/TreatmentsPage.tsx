@@ -79,7 +79,7 @@ export function TreatmentsPage() {
   return (
     <DossierQueuePage
       {...PAGE_HEADERS['/traitements']}
-      listTitle="Traitements à décider"
+      listTitle="Traitements en attente"
       empty="Aucun traitement n’attend votre décision."
       queue={QUEUES.treatments}
       load={listTreatments}

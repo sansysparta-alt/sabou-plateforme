@@ -3,11 +3,14 @@
 //   pnpm db:seed      charge le jeu d'exemple fictif dans une base migrée et vide
 //                     (--if-empty : ne fait rien si la base contient déjà des comptes)
 //   pnpm db:hash      recalcule atlas.sum après l'ajout d'une migration
+//   pnpm dg:reinitialiser --motif "…" --operateur "…" [--double-facteur] [--mot-de-passe]
+//                     récupération du compte DG (US-024, src/dg-reset.ts)
 // Les mots de passe sont lus dans le .env de la racine du dépôt.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 import { packageDir, runAtlas } from './atlas.ts';
+import { keycloakAdmin, parseResetArgs, resetDirector } from './dg-reset.ts';
 import { migrate, runSqlFile } from './migrate.ts';
 
 function readEnv(): Record<string, string> {
@@ -70,8 +73,26 @@ async function main(command: string | undefined): Promise<void> {
       console.log('Jeu d’exemple fictif chargé.');
       break;
     }
+    case 'dg-reinitialiser': {
+      const request = parseResetArgs(process.argv.slice(3));
+      const keycloak = await keycloakAdmin({
+        baseUrl: `http://127.0.0.1:${env.KEYCLOAK_PORT}`,
+        username: env.KEYCLOAK_ADMIN_USERNAME || 'admin',
+        password: env.KEYCLOAK_ADMIN_PASSWORD,
+        adminAppUrl: `http://localhost:${env.ADMIN_PORT}`,
+      });
+      const result = await resetDirector(url, keycloak, request);
+      console.log(
+        `Compte DG ${result.dg.email} : sessions fermées` +
+          (result.otpRemoved > 0 ? `, double facteur retiré (${result.otpRemoved})` : '') +
+          `. E-mail envoyé à la DG (${result.actions.join(', ')}), SMS d'alerte en file, réinitialisation journalisée.`,
+      );
+      break;
+    }
     default:
-      throw new Error(`Commande inconnue : ${command ?? '(aucune)'} (migrate, seed ou hash)`);
+      throw new Error(
+        `Commande inconnue : ${command ?? '(aucune)'} (migrate, seed, hash ou dg-reinitialiser)`,
+      );
   }
 }
 

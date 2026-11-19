@@ -1,12 +1,4 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ComponentType,
-  type FormEvent,
-  type ReactNode,
-} from 'react';
+import { useEffect, useId, useRef, useState, type ComponentType, type FormEvent } from 'react';
 import {
   Alert,
   Button,
@@ -215,35 +207,8 @@ export function DossierQueuePage<T extends { code: string }>({
   );
 }
 
-// Un dossier de la file, replié sur une ligne (maquette v1.3, US-019) : code, praticien et
-// repères ; ouvert, son détail et les décisions. <details> natif : clavier et lecteurs d'écran
-// sans script, le titre reste dans la navigation par titres.
-export function DossierRow({
-  code,
-  name,
-  meta,
-  children,
-}: {
-  code: string;
-  name: string;
-  meta: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <li className="ui-dossier">
-      <details>
-        <summary className="ui-dossier__summary">
-          <h3 className="ui-dossier__title">
-            {code} · {name}
-          </h3>
-          <span className="ui-dossier__meta">{meta}</span>
-          <span className="ui-dossier__toggle" aria-hidden="true" />
-        </summary>
-        <div className="ui-dossier__body">{children}</div>
-      </details>
-    </li>
-  );
-}
+// Ligne de dossier repliable : composant commun (DossierRow.tsx)
+export { DossierRow } from './DossierRow';
 
 // Valider, ou rejeter avec un motif obligatoire (R-CER-03). L'étape vue à l'écran est
 // envoyée : si le dossier a bougé entre-temps, l'API refuse (05 §2.31).
@@ -329,8 +294,13 @@ export function DecisionActions({
     setTimeout(() => rejectButton.current?.focus());
   }
 
+  const decisionId = useId();
   return (
-    <>
+    // Zone « Décision », séparée du détail du dossier (panneau, 05 §2.76)
+    <section className="ui-decision" aria-labelledby={`${decisionId}-titre`}>
+      <h4 id={`${decisionId}-titre`} className="ui-decision__title">
+        Décision
+      </h4>
       {error && <Alert tone="error">{error}</Alert>}
       {!canValidate && !rejecting && blockedReason && <p className="ui-muted">{blockedReason}</p>}
       {!rejecting && (
@@ -386,6 +356,6 @@ export function DecisionActions({
           </div>
         </form>
       )}
-    </>
+    </section>
   );
 }
