@@ -214,7 +214,37 @@ describe('Icon', () => {
 });
 
 describe('PageHeader', () => {
+  // Hauteur de la page simulée (jsdom ne calcule pas la mise en page)
+  const pageHeight = (height: number) =>
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      configurable: true,
+      value: height,
+    });
+  afterEach(() => pageHeight(0));
+
+  it('page qui ne défile que de peu : pas de resserrement (sinon clignotement sans fin)', () => {
+    let notify: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: Partial<IntersectionObserverEntry>[]) => void) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    pageHeight(window.innerHeight + 30);
+    render(<PageHeader title="Vérification terrain" lead="Dossiers soumis." />);
+    const header = screen
+      .getByRole('heading', { level: 1, name: 'Vérification terrain' })
+      .closest('.ui-page-header')!;
+    act(() => notify([{ intersectionRatio: 0.98, boundingClientRect: { top: -1 } as DOMRect }]));
+    expect(header.hasAttribute('data-stuck')).toBe(false);
+  });
+
   it('signale quand il est accroché en haut de l’écran, puis quand il reprend sa place', () => {
+    pageHeight(window.innerHeight * 3);
     let notify: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
     const disconnect = vi.fn();
     vi.stubGlobal(

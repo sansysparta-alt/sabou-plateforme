@@ -171,6 +171,10 @@ export interface PageHeaderProps {
   actions?: ReactNode;
 }
 
+// Marge ajoutée à la hauteur de l'introduction (titre réduit, espacements) pour décider du
+// resserrement de l'en-tête
+const SHRINK_MARGIN_PX = 24;
+
 // En-tête de page : le seul h1 de la page (Cambria), une phrase d'introduction, les actions.
 // Sur ordinateur, il reste en haut de l'écran pendant le défilement : titre et action principale
 // toujours à portée. Une fois accroché, il se resserre (l'introduction s'efface) et un filet le
@@ -182,12 +186,19 @@ export function PageHeader({ title, lead, actions }: PageHeaderProps) {
     const element = ref.current;
     // Navigateur sans IntersectionObserver (ou tests) : en-tête simplement fixe, sans resserrement
     if (!element || typeof IntersectionObserver === 'undefined') return;
-    // L'en-tête est accroché à -1 px : dès qu'il est collé, il n'est plus entièrement visible
+    // L'en-tête est accroché à -1 px : dès qu'il est collé, il n'est plus entièrement visible.
+    // Se resserrer raccourcit la page de la hauteur de l'introduction : si la page ne défile
+    // que de peu, elle ne défilerait plus, l'en-tête se décollerait, puis se recollerait…
+    // (clignotement sans fin). On ne le resserre donc que s'il reste de quoi défiler ensuite.
     const observer = new IntersectionObserver(
-      ([entry]) =>
-        setStuck(
-          entry !== undefined && entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1,
-        ),
+      ([entry]) => {
+        const sticks =
+          entry !== undefined && entry.intersectionRatio < 1 && entry.boundingClientRect.top < 1;
+        const lead = element.querySelector<HTMLElement>('.ui-page-header__lead');
+        const shrink = (lead?.offsetHeight ?? 0) + SHRINK_MARGIN_PX;
+        const room = document.documentElement.scrollHeight - window.innerHeight;
+        setStuck((wasStuck) => sticks && (wasStuck || room > 2 * shrink));
+      },
       { threshold: [1] },
     );
     observer.observe(element);
