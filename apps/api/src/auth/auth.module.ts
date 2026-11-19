@@ -15,6 +15,7 @@ import {
   IDENTITY_PROVIDER,
   KeycloakIdentityProvider,
 } from './identity-provider';
+import { FIELD_AGENT_TOKEN_VERIFIER, keycloakFieldAgentTokenVerifier } from './mobile-token';
 import { SESSION_STORE, ValkeySessionStore } from './session.store';
 
 export const VALKEY = Symbol('VALKEY');
@@ -55,8 +56,14 @@ export const VALKEY = Symbol('VALKEY');
     },
     // Lien entre la connexion et l'utilisateur de la plateforme (lot A)
     { provide: LOGIN_RECORDER, useClass: AccountsRepository },
+    // Jetons de l'agent préfectoral dans l'application mobile (US-082)
+    {
+      provide: FIELD_AGENT_TOKEN_VERIFIER,
+      inject: [ENV],
+      useFactory: keycloakFieldAgentTokenVerifier,
+    },
   ],
-  exports: [SESSION_STORE, VALKEY],
+  exports: [SESSION_STORE, VALKEY, FIELD_AGENT_TOKEN_VERIFIER],
 })
 export class AuthModule implements OnApplicationShutdown {
   constructor(@Inject(VALKEY) private readonly valkey: Redis) {}

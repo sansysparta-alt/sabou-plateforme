@@ -56,7 +56,13 @@ describe('jeton d’accès de l’application mobile', () => {
     await expect(verifier.verify(await token())).resolves.toEqual({
       sub: SUB,
       roles: ['praticien', 'offline_access'],
+      amr: [],
     });
+  });
+
+  it('rend les méthodes d’authentification du claim « amr » (second facteur, US-082)', async () => {
+    const identity = await verifier.verify(await token({ amr: ['pwd', 'otp', 7] }));
+    expect(identity.amr).toEqual(['pwd', 'otp']);
   });
 
   it.each([
