@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, PageHeader, SelectField, TextField } from '@sabou/ui';
+import { Alert, Badge, Button, FileButton, PageHeader, SelectField, TextField } from '@sabou/ui';
 import {
   fieldDossierCreateSchema,
   PIECE_LABELS,
   PRACTITIONER_PIECE_TYPES,
+  REQUIRED_PIECE_TYPES,
   type FieldDossier,
   type FieldDossierReferentials,
   type PractitionerPieceType,
@@ -358,6 +359,22 @@ function CreateForm({
   );
 }
 
+// Formats et tailles des pièces, lisibles par l'agent
+const FORMATS: Record<string, string> = {
+  'image/jpeg': 'JPEG',
+  'image/png': 'PNG',
+  'application/pdf': 'PDF',
+};
+const size = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
+    : `${(bytes / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`;
+const ACCEPT = 'image/jpeg,image/png,application/pdf';
+const isRequired = (type: string) => (REQUIRED_PIECE_TYPES as readonly string[]).includes(type);
+const OPTIONAL_TYPES = PRACTITIONER_PIECE_TYPES.filter((t) => !isRequired(t));
+
+// Un dossier terrain à constituer : ses pièces en liste de contrôle (une ligne par pièce,
+// son état, son action ; dépôt en un geste), puis la soumission
 function DossierCard({
   dossier,
   defaultOpen,
@@ -372,22 +389,8 @@ function DossierCard({
   announce: (text: string) => void;
 }) {
   const id = useId();
-  const [type, setType] = useState<PractitionerPieceType>(
-    dossier.piecesManquantes[0] ?? 'identite',
-  );
-  const [file, setFile] = useState<File>();
-  const [fileError, setFileError] = useState<string>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
-  // Après chaque dépôt ou retrait, la liste propose la première pièce encore manquante
-  // (ajustement pendant le rendu, sans effet : forme recommandée par React)
-  const nextMissing = dossier.piecesManquantes[0];
-  const [proposedFor, setProposedFor] = useState(nextMissing);
-  if (nextMissing !== proposedFor) {
-    setProposedFor(nextMissing);
-    if (nextMissing) setType(nextMissing);
-  }
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -401,33 +404,49 @@ function DossierCard({
     }
   }
 
-  function onAdd(event: FormEvent) {
-    event.preventDefault();
-    if (!file) {
-      setFileError('Choisissez le fichier de la pièce.');
-      return;
-    }
-    setFileError(undefined);
+  // Dépôt d'une pièce ; « Remplacer » dépose la nouvelle puis retire l'ancienne
+  function deposit(type: PractitionerPieceType, file: File, replaced: number[] = []) {
     void run(async () => {
       try {
         await addFieldPiece(dossier.code, type, file);
       } catch (failure) {
-        // Format ou taille refusés : sous le champ du fichier
+        // Format ou taille refusés : le message dit quelle pièce
         if (failure instanceof ApiError && (failure.status === 413 || failure.status === 415)) {
-          setFileError(failure.message);
-          return;
+          throw new ApiError(failure.status, `${PIECE_LABELS[type]} : ${failure.message}`);
         }
         throw failure;
       }
-      setFile(undefined);
-      if (fileInput.current) fileInput.current.value = '';
-      announce(`${PIECE_LABELS[type]} ajoutée au dossier ${dossier.code}.`);
+      for (const pieceId of replaced) await removeFieldPiece(dossier.code, pieceId);
+      const verb = replaced.length > 0 ? 'remplacée' : 'ajoutée';
+      announce(`${PIECE_LABELS[type]} ${verb} au dossier ${dossier.code}.`);
       await onChanged();
     });
   }
 
+  function remove(pieceId: number, label: string) {
+    void run(async () => {
+      await removeFieldPiece(dossier.code, pieceId);
+      announce(`${label} retirée du dossier ${dossier.code}.`);
+      await onChanged();
+    });
+  }
+
+  const pieceLabel = (type: string) =>
+    type === 'compte_rendu_visite'
+      ? 'Compte rendu de visite'
+      : PIECE_LABELS[type as PractitionerPieceType];
+  const detail = (piece: FieldDossier['pieces'][number]) =>
+    [
+      `Déposée le ${longDate(piece.deposeLe)}`,
+      piece.typeMime && (FORMATS[piece.typeMime] ?? piece.typeMime),
+      piece.tailleOctets !== null && size(piece.tailleOctets),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
   const complete = dossier.piecesManquantes.length === 0;
   const missing = dossier.piecesManquantes.length;
+  const optionalPieces = dossier.pieces.filter((piece) => !isRequired(piece.type));
   return (
     <DossierRow
       code={dossier.code}
@@ -446,7 +465,6 @@ function DossierCard({
         </>
       }
     >
-      {error && <Alert tone="error">{error}</Alert>}
       <dl className="ui-facts">
         <dt>Praticien</dt>
         <dd>{dossier.praticien}</dd>
@@ -461,66 +479,105 @@ function DossierCard({
       </dl>
       <section aria-labelledby={`${id}-pieces`} className="ui-stack">
         <h4 id={`${id}-pieces`}>Pièces du dossier</h4>
-        {dossier.pieces.length === 0 ? (
-          <p className="ui-muted">Aucune pièce déposée.</p>
-        ) : (
-          <ul className="ui-list">
-            {dossier.pieces.map((piece) => (
-              <li key={piece.id}>
-                <span>
-                  {piece.type === 'compte_rendu_visite'
-                    ? 'Compte rendu de visite'
-                    : PIECE_LABELS[piece.type]}
+        <p id={`${id}-formats`} className="ui-field__hint">
+          Photo JPEG ou PNG, ou document PDF, 5 Mo au plus. Le fichier part dès qu’il est choisi.
+        </p>
+        {error && <Alert tone="error">{error}</Alert>}
+        <ul className="ui-checklist">
+          {REQUIRED_PIECE_TYPES.map((type) => {
+            const deposited = dossier.pieces.filter((piece) => piece.type === type);
+            const label = PIECE_LABELS[type];
+            const current = deposited[0];
+            return (
+              <li key={type} className="ui-checklist__item">
+                <span className="ui-checklist__label">
+                  <span className="ui-checklist__name">
+                    {label}{' '}
+                    {current ? (
+                      <Badge tone="success">Déposée</Badge>
+                    ) : (
+                      <Badge tone="warning">À déposer</Badge>
+                    )}
+                  </span>
+                  <span className="ui-checklist__detail">
+                    {current ? detail(current) : 'Obligatoire'}
+                  </span>
                 </span>
+                <span className="ui-checklist__actions">
+                  <FileButton
+                    accept={ACCEPT}
+                    disabled={busy}
+                    variant={current ? 'secondary' : 'primary'}
+                    describedBy={`${id}-formats`}
+                    onFile={(file) =>
+                      deposit(
+                        type,
+                        file,
+                        deposited.map((piece) => piece.id),
+                      )
+                    }
+                  >
+                    {current ? 'Remplacer' : 'Déposer'}{' '}
+                    <span className="ui-visually-hidden">la {label.toLowerCase()}</span>
+                  </FileButton>
+                  {current && (
+                    <Button
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => remove(current.id, label)}
+                    >
+                      Retirer <span className="ui-visually-hidden">la {label.toLowerCase()}</span>
+                    </Button>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+          {optionalPieces.map((piece) => (
+            <li key={piece.id} className="ui-checklist__item">
+              <span className="ui-checklist__label">
+                <span className="ui-checklist__name">
+                  {pieceLabel(piece.type)} <Badge tone="success">Déposée</Badge>
+                </span>
+                <span className="ui-checklist__detail">{detail(piece)}</span>
+              </span>
+              <span className="ui-checklist__actions">
                 <Button
                   variant="secondary"
                   disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await removeFieldPiece(dossier.code, piece.id);
-                      announce(`Pièce retirée du dossier ${dossier.code}.`);
-                      await onChanged();
-                    })
-                  }
+                  onClick={() => remove(piece.id, pieceLabel(piece.type))}
                 >
                   Retirer{' '}
-                  <span className="ui-visually-hidden">cette pièce du dossier {dossier.code}</span>
+                  <span className="ui-visually-hidden">
+                    : {pieceLabel(piece.type).toLowerCase()}
+                  </span>
                 </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+              </span>
+            </li>
+          ))}
+          <li className="ui-checklist__item">
+            <span className="ui-checklist__label">
+              <span className="ui-checklist__name">Pièces complémentaires</span>
+              <span className="ui-checklist__detail">Facultatives : justificatif, autre pièce</span>
+            </span>
+            <span className="ui-checklist__actions">
+              {OPTIONAL_TYPES.map((type) => (
+                <FileButton
+                  key={type}
+                  accept={ACCEPT}
+                  disabled={busy}
+                  describedBy={`${id}-formats`}
+                  onFile={(file) => deposit(type, file)}
+                >
+                  {type === 'justificatif' ? 'Ajouter un justificatif' : 'Ajouter une autre pièce'}
+                </FileButton>
+              ))}
+            </span>
+          </li>
+        </ul>
       </section>
-      <form className="ui-form" onSubmit={onAdd} noValidate>
-        <div className="ui-form-row">
-          <SelectField
-            label="Type de pièce"
-            value={type}
-            onChange={(event) => setType(event.target.value as PractitionerPieceType)}
-          >
-            {PRACTITIONER_PIECE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {PIECE_LABELS[t]}
-              </option>
-            ))}
-          </SelectField>
-          <TextField
-            ref={fileInput}
-            type="file"
-            label="Fichier"
-            hint="Photo JPEG ou PNG, ou document PDF, 5 Mo au plus."
-            accept="image/jpeg,image/png,application/pdf"
-            error={fileError}
-            onChange={(event) => {
-              setFile(event.target.files?.[0]);
-              setFileError(undefined);
-            }}
-          />
-        </div>
+      <div className="ui-stack">
         <div className="ui-form__actions">
-          <Button type="submit" variant="secondary" disabled={busy}>
-            Ajouter la pièce <span className="ui-visually-hidden">au dossier {dossier.code}</span>
-          </Button>
           <Button
             type="button"
             variant="primary"
@@ -542,7 +599,7 @@ function DossierCard({
             {dossier.piecesManquantes.map((t) => PIECE_LABELS[t].toLowerCase()).join(', ')}.
           </p>
         )}
-      </form>
+      </div>
     </DossierRow>
   );
 }

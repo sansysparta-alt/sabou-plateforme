@@ -61,17 +61,18 @@ test('US-040c : dossier terrain créé, pièces déposées, soumis par l’agent
   ).toBe('1');
 
   // Pièces obligatoires, déposées par l'agent ; la soumission attend qu'elles y soient
-  const card = page.getByRole('article', { name: /Mamadou Barry/ });
+  // Ligne du dossier, ouverte à sa création ; une ligne par pièce, dépôt en un geste
+  const card = page
+    .getByRole('heading', { level: 3, name: /Mamadou Barry/ })
+    .locator('xpath=ancestor::li[1]');
   await expect(card.getByRole('button', { name: /Soumettre le dossier/ })).toBeDisabled();
   for (const [type, label] of [
     ['identite', 'Pièce d’identité'],
     ['photo', 'Photo du praticien'],
   ] as const) {
-    await card.getByLabel('Type de pièce').selectOption(type);
     await card
-      .getByLabel('Fichier')
+      .getByLabel(`Déposer la ${label.toLowerCase()}`)
       .setInputFiles({ name: `${type}.jpg`, mimeType: 'image/jpeg', buffer: JPEG });
-    await card.getByRole('button', { name: /Ajouter la pièce/ }).click();
     await expect(page.getByRole('status')).toContainText(`${label} ajoutée au dossier ${code}`);
   }
   await expectAccessible(page, 'dossier terrain : pièces');

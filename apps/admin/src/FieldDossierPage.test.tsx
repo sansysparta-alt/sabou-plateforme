@@ -154,8 +154,12 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
     expect(submit.hasAttribute('disabled')).toBe(true);
     const reason = document.getElementById(submit.getAttribute('aria-describedby')!);
     expect(reason?.textContent).toMatch(/Il manque : photo du praticien\./);
-    // La liste propose la pièce qui manque, pas celle déjà déposée
-    expect((within(card).getByLabelText('Type de pièce') as HTMLSelectElement).value).toBe('photo');
+    // Liste de contrôle : une ligne par pièce obligatoire, son état et son action
+    expect(within(card).getByText(/Déposée le 18 novembre 2026 · JPEG · 1 Ko/)).toBeTruthy();
+    expect(within(card).getByLabelText('Remplacer la pièce d’identité')).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Retirer la pièce d’identité' })).toBeTruthy();
+    expect(within(card).getByLabelText('Déposer la photo du praticien')).toBeTruthy();
+    expect(within(card).getByText('À déposer')).toBeTruthy();
   });
 
   it('dépose une pièce : le fichier part tel quel vers le dossier', async () => {
@@ -166,14 +170,51 @@ describe('Critère 1 : identité, téléphone, spécialité ; préfecture de l�
     const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'photo.jpg', {
       type: 'image/jpeg',
     });
-    fireEvent.change(within(card).getByLabelText('Type de pièce'), { target: { value: 'photo' } });
-    fireEvent.change(within(card).getByLabelText('Fichier'), { target: { files: [file] } });
     answers['POST /api/dossiers-terrain/DS-000042/pieces/photo'] = [
       { status: 201, body: { id: 8 } },
     ];
-    fireEvent.click(within(card).getByRole('button', { name: /Ajouter la pièce/ }));
+    // Un seul geste : le fichier choisi part aussitôt, sans bouton « Ajouter » à part
+    fireEvent.change(within(card).getByLabelText('Déposer la photo du praticien'), {
+      target: { files: [file] },
+    });
     await screen.findByText('Photo du praticien ajoutée au dossier DS-000042.');
     expect(calls.find((c) => c.path.endsWith('/pieces/photo'))?.body).toBe(file);
+  });
+
+  it('remplace une pièce : la nouvelle est déposée, puis l’ancienne retirée', async () => {
+    render(<FieldDossierPage />);
+    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
+      'li',
+    )!;
+    const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'cni.jpg', { type: 'image/jpeg' });
+    answers['POST /api/dossiers-terrain/DS-000042/pieces/identite'] = [
+      { status: 201, body: { id: 9 } },
+    ];
+    answers['DELETE /api/dossiers-terrain/DS-000042/pieces/7'] = [{ status: 204 }];
+    fireEvent.change(within(card).getByLabelText('Remplacer la pièce d’identité'), {
+      target: { files: [file] },
+    });
+    await screen.findByText('Pièce d’identité remplacée au dossier DS-000042.');
+    const order = calls.map((c) => `${c.method} ${c.path}`);
+    expect(order.indexOf('POST /api/dossiers-terrain/DS-000042/pieces/identite')).toBeLessThan(
+      order.indexOf('DELETE /api/dossiers-terrain/DS-000042/pieces/7'),
+    );
+  });
+
+  it('format refusé : le message dit quelle pièce, rien n’est retiré', async () => {
+    render(<FieldDossierPage />);
+    const card = (await screen.findByRole('heading', { level: 3, name: /Mamadou Barry/ })).closest(
+      'li',
+    )!;
+    const file = new File(['x'], 'note.txt', { type: 'text/plain' });
+    answers['POST /api/dossiers-terrain/DS-000042/pieces/photo'] = [
+      { status: 415, body: { message: 'Format refusé : JPEG, PNG ou PDF.' } },
+    ];
+    fireEvent.change(within(card).getByLabelText('Déposer la photo du praticien'), {
+      target: { files: [file] },
+    });
+    await within(card).findByText('Photo du praticien : Format refusé : JPEG, PNG ou PDF.');
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
   });
 
   it('dossier complet : soumis, il quitte la liste et l’agent est prévenu', async () => {

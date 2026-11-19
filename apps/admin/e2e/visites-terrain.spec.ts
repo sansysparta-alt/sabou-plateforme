@@ -130,10 +130,10 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   expect(again.status()).toBe(409);
 
   // Photo facultative de la fiche papier
+  // Dépôt en un geste : la photo choisie part aussitôt
   await card
-    .getByLabel('Photo de la fiche papier (facultative)')
+    .getByLabel(/^Joindre la photo de la fiche papier/)
     .setInputFiles({ name: 'fiche.jpg', mimeType: 'image/jpeg', buffer: JPEG });
-  await card.getByRole('button', { name: /^Joindre la photo/ }).click();
   await expect(card.getByText('Jointe')).toBeVisible();
   expect(visitRow('vt.compte_rendu_piece_id IS NOT NULL')).toBe('t');
 

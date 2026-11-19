@@ -47,7 +47,10 @@ test('US-040d : désignation par le régional, journalisée ; l’agent désign�
   await page.goto(APP);
   await page.getByRole('link', { name: 'Agents de vérification' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Agents de vérification');
-  const card = page.getByRole('article', { name: new RegExp(code) });
+  // Ligne repliable du dossier, ouverte pour la désignation
+  const title = page.getByRole('heading', { level: 3, name: new RegExp(code) });
+  await title.click();
+  const card = title.locator('xpath=ancestor::li[1]');
   await expect(card.getByText('Un agent de la préfecture, autre que l’auteur')).toBeVisible();
   // L'auteur n'est pas proposé
   const select = card.getByLabel('Désigner un agent');

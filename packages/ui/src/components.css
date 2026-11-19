@@ -64,6 +64,66 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+/* Dépôt d'un fichier en un geste (FileButton) : le champ reste focalisable, masqué ; son
+   libellé porte l'apparence du bouton et montre le focus du champ */
+.ui-file-button {
+  position: relative;
+  display: inline-flex;
+}
+.ui-file-button__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.ui-file-button__input:focus-visible + .ui-button {
+  outline: 2px solid var(--sabou-focus);
+  outline-offset: 2px;
+}
+.ui-file-button .ui-button {
+  cursor: pointer;
+}
+.ui-file-button .ui-button[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+/* Pièces d'un dossier : une ligne par pièce, son état et son action (liste de contrôle) */
+.ui-checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--sabou-border);
+  border-radius: var(--sabou-radius-md);
+}
+.ui-checklist__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-2) var(--sabou-space-4);
+  padding: var(--sabou-space-3) var(--sabou-space-4);
+}
+.ui-checklist__item + .ui-checklist__item {
+  border-top: 1px solid var(--sabou-border);
+}
+.ui-checklist__label {
+  flex: 1 1 14rem;
+  display: grid;
+  gap: var(--sabou-space-1);
+}
+.ui-checklist__name {
+  font-weight: var(--sabou-weight-semibold);
+}
+.ui-checklist__detail {
+  font-size: var(--sabou-text-sm);
+  color: var(--sabou-text-muted);
+}
+.ui-checklist__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-2);
+}
 .ui-button__icon {
   flex: none;
 }

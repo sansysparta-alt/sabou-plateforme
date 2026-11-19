@@ -478,10 +478,10 @@ describe('US-041 : visite sur place', () => {
     const photo = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'fiche.jpg', {
       type: 'image/jpeg',
     });
-    fireEvent.change(within(first).getByLabelText('Photo de la fiche papier (facultative)'), {
+    // Dépôt en un geste : la photo choisie part aussitôt
+    fireEvent.change(within(first).getByLabelText(/^Joindre la photo de la fiche papier/), {
       target: { files: [photo] },
     });
-    fireEvent.click(within(first).getByRole('button', { name: /^Joindre la photo/ }));
     expect(await within(first).findByText('Jointe'));
     expect(decisions).toEqual([{ url: '/api/dossiers/DS-2001/visite/7/photo', body: photo }]);
     expect(status()).toBe('Photo de la fiche jointe au compte rendu.');
