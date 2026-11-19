@@ -754,6 +754,8 @@ Critères d’acceptation :
 - La validation d’une plante est refusée à tout autre rôle, par l’application, par l’API et par la base.
 - Les droits de création et de modification de la DG sur les fiches plantes sont alignés sur la matrice du §6.5.
 
+Réalisation (18 novembre 2026, 05 §2.65) : la validation était déjà réservée au Comité depuis US-051, à chaque niveau (`plante_valider`, écriture directe retirée au rôle de l'API, bouton absent hors Comité) ; ajout de la preuve au niveau de l'application (`App.test.tsx`). Décision du maître d'œuvre du 18 novembre 2026 : la DG garde l'ajout, la modification et l'export des fiches, sans la validation (écart au §6.2).
+
 #### US-040c · Créer un dossier terrain (Admin Préfectoral)
 *Certification des praticiens* · **Must** · 5 points · §6.4
 
