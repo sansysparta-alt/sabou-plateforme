@@ -14,6 +14,7 @@ import 'dossier/photo.dart';
 import 'dossier/session.dart';
 import 'shell/gate.dart';
 import 'signup/signup_api.dart';
+import 'studio/studio_api.dart';
 import 'sync/database_key.dart' show DeviceSecretStore;
 import 'ui/theme.dart';
 
@@ -36,6 +37,10 @@ class _SabouAppState extends State<SabouApp> {
   );
   late final rubrics = appRubrics(
     dossierApi: DossierApi(
+      baseUrl: Uri.parse(practitionerApiUrl),
+      session: session,
+    ),
+    studioApi: StudioApi(
       baseUrl: Uri.parse(practitionerApiUrl),
       session: session,
     ),

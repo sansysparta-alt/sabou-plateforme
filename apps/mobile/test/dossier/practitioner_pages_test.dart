@@ -11,6 +11,7 @@ import 'package:sabou_mobile/dossier/dossier_api.dart';
 import 'package:sabou_mobile/dossier/photo.dart';
 import 'package:sabou_mobile/dossier/session.dart';
 import 'package:sabou_mobile/shell/gate.dart';
+import 'package:sabou_mobile/studio/studio_api.dart';
 import 'package:sabou_mobile/ui/theme.dart';
 
 import '../signup/fake_signup_server.dart';
@@ -69,6 +70,11 @@ void main() {
         session: session,
         rubrics: appRubrics(
           dossierApi: DossierApi(
+            baseUrl: Uri.parse('http://api.test'),
+            session: session,
+            client: server.client,
+          ),
+          studioApi: StudioApi(
             baseUrl: Uri.parse('http://api.test'),
             session: session,
             client: server.client,
