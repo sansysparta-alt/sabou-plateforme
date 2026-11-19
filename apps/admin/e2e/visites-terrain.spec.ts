@@ -34,7 +34,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
     .filter({ has: page.getByRole('heading', { name: new RegExp(`^${code} `) }) });
   // Dossiers repliés sur une ligne (US-019) : on ouvre celui qu'on traite
   await card.locator('summary').click();
-  await expect(card.getByText('À réaliser')).toBeVisible();
+  await expect(card.getByText('Visite attendue')).toBeVisible();
   await expect(card.getByRole('button', { name: /^Valider/ })).toHaveCount(0);
 
   // Planifier : dans moins d'un jour, le rappel est dû aussitôt (la veille est passée)
@@ -93,7 +93,7 @@ test('US-041 : planifier, rappel la veille, compte rendu signé obligatoire, pho
   await expect(page.getByRole('status')).toHaveText(
     'Compte rendu signé : la visite est enregistrée.',
   );
-  await expect(card.getByText('Réalisée, compte rendu signé')).toBeVisible();
+  await expect(card.getByText('Visite faite')).toBeVisible();
   const [statut, author, stored, fingerprint] = visitRow(
     `vt.statut || '|' || vt.signe_par || '|' || vt.constats || '|' || vt.empreinte_sha3`,
   ).split('|');
