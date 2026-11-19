@@ -43,8 +43,12 @@ describe('US-061 : SMS du circuit d’un traitement', () => {
     ['recette.renvoyee', 'brouillon'],
     ['recette.renvoyee', 'soumise'],
     ['recette.renvoyee', 'transmise'],
-  ])('%s (%s) tient en un SMS GSM 7 bits, sans le motif', (modele, statut) => {
-    const text = notificationText({ modele, objet: TREATMENT, parametres: { statut } });
+    // US-100 : suspension, retrait, levée de la suspension
+    ['recette.suspendue', undefined],
+    ['recette.retiree', undefined],
+    ['recette.certifiee', undefined, 'suspendue'],
+  ])('%s (%s) tient en un SMS GSM 7 bits, sans le motif', (modele, statut, de?: string) => {
+    const text = notificationText({ modele, objet: TREATMENT, parametres: { statut, de } });
     expect(text).toMatch(/^SABOU : .*votre traitement REC-1000000 /);
     expect(isSingleGsm7Sms(text!)).toBe(true);
   });
@@ -58,6 +62,15 @@ describe('US-061 : SMS du circuit d’un traitement', () => {
     expect(text('transmise')).toContain('renvoyé au Comité scientifique');
     expect(text('certifiee')).toBe(null);
     expect(text()).toBe(null);
+  });
+
+  it('US-100 : la levée d’une suspension ne se lit pas comme une première certification', () => {
+    const certified = (de?: string) =>
+      notificationText({ modele: 'recette.certifiee', objet: 'REC-0001', parametres: { de } });
+    expect(certified('expertisee')).toContain('félicitations');
+    expect(certified('suspendue')).toBe(
+      'SABOU : la suspension de votre traitement REC-0001 est levée. Il est de nouveau visible sur SABOU.',
+    );
   });
 });
 
@@ -217,6 +230,7 @@ function fakeQueue(messages: QueuedSms[], outcome: SmsOutcome = 'envoyee') {
   const queue: NotificationQueue = {
     queueVisitReminders: vi.fn(async () => 0),
     processCertificateDeadlines: vi.fn(async () => ({ expired: 0, reminders: 0 })),
+    eraseHealthReportContacts: vi.fn(async () => 0),
     take: vi.fn(async (limit: number) => messages.splice(0, limit)),
     async record(id, error, definitive = false) {
       recorded.push([id, error, definitive]);
@@ -360,6 +374,7 @@ describe('Envoi de la file', () => {
     const queue: NotificationQueue = {
       queueVisitReminders: () => Promise.reject(new Error('connexion refusée')),
       processCertificateDeadlines: () => Promise.reject(new Error('connexion refusée')),
+      eraseHealthReportContacts: () => Promise.reject(new Error('connexion refusée')),
       take: () => Promise.reject(new Error('connexion refusée')),
       record: vi.fn(),
     };

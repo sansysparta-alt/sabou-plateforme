@@ -42,6 +42,14 @@ export const PAGE_HEADERS = {
     title: 'Expertise des dossiers',
     lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
   },
+  '/signalements': {
+    title: 'Signalements',
+    lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',
+  },
+  '/traitements-suspendus': {
+    title: 'Traitements suspendus',
+    lead: 'Traitements retirés du site par une suspension du Comité. Levez la suspension, avec un motif, quand le danger est écarté.',
+  },
   '/traitements': {
     title: 'Traitements à décider',
     lead: 'Traitements qui attendent votre décision : transmission au Comité par la région, expertise par le Comité scientifique, certification par la Direction Générale. Un renvoi exige un motif.',

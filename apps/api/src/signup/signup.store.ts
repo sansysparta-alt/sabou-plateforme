@@ -61,7 +61,8 @@ return {0, remaining}
 // (le numéro est lié au code dans l'empreinte, un code ne vaut que pour son numéro).
 // Un espace de clés par usage : inscription (US-014) ou mot de passe oublié (US-069). Un code
 // ou un ticket de l'un ne vaut rien pour l'autre ; leurs limites se comptent à part.
-export type StoreNamespace = 'inscription' | 'mot-de-passe';
+// US-100 : « signalement » ne sert qu'aux compteurs de la limite par adresse IP
+export type StoreNamespace = 'inscription' | 'mot-de-passe' | 'signalement';
 
 export class ValkeySignupStore implements SignupStore {
   constructor(

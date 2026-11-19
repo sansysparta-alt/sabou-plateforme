@@ -4,6 +4,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
 import { DossiersModule } from './dossiers/dossiers.module';
 import { FieldDossiersModule } from './field-dossiers/field-dossiers.module';
+import { HealthReportsModule } from './health-reports/health-reports.module';
 import { HealthController } from './health/health.controller';
 import { AccountsModule } from './accounts/accounts.module';
 import { AnnotationsModule } from './annotations/annotations.module';
@@ -42,6 +43,8 @@ import { VisitsModule } from './visits/visits.module';
     DossiersModule,
     // US-040c
     FieldDossiersModule,
+    // US-100 : signalements de danger et d'effets indésirables
+    HealthReportsModule,
     ReferentialsModule,
     SignupModule,
     SmsModule,

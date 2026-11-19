@@ -140,7 +140,8 @@ describe('Critère : un rejet exige un motif et renvoie à l’étape précéden
       {
         motif: 'Partie utilisée à préciser.',
         modele: 'recette.renvoyee',
-        parametres: { statut: 'brouillon' },
+        // statut de départ ajouté par US-100 (levée de suspension distincte d'une certification)
+        parametres: { statut: 'brouillon', de: 'soumise' },
       },
     ]);
   });

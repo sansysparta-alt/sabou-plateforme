@@ -858,6 +858,8 @@ Critères d’acceptation :
 - Signalements graves en tête de file, délai cible 24 h.
 - Décision motivée : aucune action, révision, suspension ou retrait ; la suspension retire le traitement du site immédiatement.
 
+Réalisation (19 novembre 2026, 05 §2.83) : page publique `/signaler` (sans compte, code prérempli par lien, contact facultatif visible du seul Comité et effacé 12 mois après la clôture, limite par adresse IP et leurre) ; écrans « Signalements » (graves en tête, échéance de 24 h) et « Traitements suspendus » (levée avec motif) du Comité ; une plante signalée peut revenir à la revue du Comité.
+
 ### Sprint 7 — Un praticien enregistre une recette complète sans réseau et la retrouve synchronisée.
 
 #### US-080 · Une application mobile qui fonctionne sans réseau

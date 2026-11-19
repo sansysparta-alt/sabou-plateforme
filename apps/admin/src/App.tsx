@@ -31,6 +31,8 @@ const loaders = {
   treatmentVoices: () => import('./TreatmentVoicesPage'),
   // US-074 : couverture vocale et publication groupée
   voiceCoverage: () => import('./VoiceCoveragePage'),
+  // US-100 : signalements et traitements suspendus
+  healthReports: () => import('./HealthReportsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -80,6 +82,13 @@ function LanguageWorkshopPage() {
 function EffectsControlPage() {
   return <TreatmentVoicesPage mode="controle" />;
 }
+// US-100 : signalements et traitements suspendus (Comité scientifique)
+const HealthReportsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.HealthReportsPage })),
+);
+const SuspendedTreatmentsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.SuspendedTreatmentsPage })),
+);
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
 );
@@ -110,6 +119,8 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/atelier-linguistique': loaders.treatmentVoices,
   '/controle-effets': loaders.treatmentVoices,
   '/couverture-vocale': loaders.voiceCoverage,
+  '/signalements': loaders.healthReports,
+  '/traitements-suspendus': loaders.healthReports,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -134,6 +145,8 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/atelier-linguistique': ['/api/voix-des-traitements'],
   '/controle-effets': ['/api/voix-des-traitements'],
   '/couverture-vocale': ['/api/voix-des-traitements/couverture'],
+  '/signalements': [() => firstQueuePagePath(QUEUES.healthReports)],
+  '/traitements-suspendus': ['/api/signalements/suspendus'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -408,6 +421,14 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/controle-effets', label: 'Effets indésirables (voix)', icon: 'shield' },
       ],
     });
+    // US-100 : sécurité sanitaire (R-SAN-03)
+    groups.push({
+      heading: 'Sécurité sanitaire',
+      items: [
+        { href: '/signalements', label: 'Signalements', icon: 'warning' },
+        { href: '/traitements-suspendus', label: 'Traitements suspendus', icon: 'ban' },
+      ],
+    });
   }
   // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
   // locaux (US-053) et voix des noms (US-071) pour tout administrateur, chaque geste selon ses
@@ -496,6 +517,8 @@ const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/expertise': ExpertisePage,
   '/traitements': TreatmentsPage,
   '/controle-effets': EffectsControlPage,
+  '/signalements': HealthReportsPage,
+  '/traitements-suspendus': SuspendedTreatmentsPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };
