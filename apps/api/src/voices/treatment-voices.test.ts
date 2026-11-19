@@ -36,6 +36,7 @@ const VOICES: TreatmentVoices = {
   praticien: 'Mamadou Diallo',
   peutReviser: true,
   prefectoral: true,
+  comite: false,
   sections: [],
 };
 
@@ -279,6 +280,22 @@ describe('Critère US-072 : validation ou renvoi motivé', () => {
     const response = await request('POST', `${BASE}/REC-0001/cycle/pul/statut`, { vers: 'valide' });
     expect(response.status).toBe(403);
     expect(((await response.json()) as { error: string }).error).toBe('self_validation');
+  });
+});
+
+describe('Critère US-073 : contrôle des effets indésirables par le Comité', () => {
+  it('contrôler, ou renvoyer avec motif obligatoire ; seulement sur les effets indésirables', async () => {
+    const path = `${BASE}/REC-0001/effets_indesirables/pul/statut`;
+    expect((await request('POST', path, { vers: 'controle' })).status).toBe(200);
+    expect((await request('POST', path, { vers: 'controle_refuse' })).status).toBe(400);
+    expect(
+      (await request('POST', path, { vers: 'controle_refuse', motif: 'Contre-indication omise' }))
+        .status,
+    ).toBe(200);
+    expect(calls.map((c) => [c[3], c[5]])).toEqual([
+      ['effets_indesirables', { vers: 'controle', motif: null }],
+      ['effets_indesirables', { vers: 'controle_refuse', motif: 'Contre-indication omise' }],
+    ]);
   });
 });
 

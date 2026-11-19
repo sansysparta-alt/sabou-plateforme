@@ -33,6 +33,8 @@ export interface TreatmentVoiceTarget {
   publiees: number;
   // Voix envoyées que le compte connecté peut valider (langues où il en a le droit, US-072)
   aValider: number;
+  // Voix validées des effets indésirables qui attendent le contrôle du Comité (US-073)
+  aControler: number;
 }
 
 export interface TreatmentVoiceEntry {
@@ -46,6 +48,8 @@ export interface TreatmentVoiceEntry {
   motif: string | null;
   consentement: boolean;
   secours: boolean;
+  // Contrôlée par le Comité (effets indésirables, R-LNG-12)
+  controle: boolean;
   // Droits du compte connecté dans la langue (R-GOV-06)
   peutEnregistrer: boolean;
   peutTraduire: boolean;
@@ -77,6 +81,8 @@ export interface TreatmentVoices {
   peutReviser: boolean;
   // Le compte connecté est le préfectoral de la préfecture du praticien
   prefectoral: boolean;
+  // Le compte connecté est membre du Comité scientifique (contrôle, US-073)
+  comite: boolean;
   sections: TreatmentVoiceSection[];
 }
 
@@ -116,7 +122,11 @@ export type TreatmentSectionRevise = z.infer<typeof treatmentSectionReviseSchema
 
 export const treatmentVoiceMoveSchema = z
   .object({
-    vers: z.enum(['traduit', 'valide', 'brouillon'], 'Statut invalide.'),
+    // controle / controle_refuse : geste du Comité sur les effets indésirables (US-073)
+    vers: z.enum(
+      ['traduit', 'valide', 'brouillon', 'controle', 'controle_refuse'],
+      'Statut invalide.',
+    ),
     motif: z
       .string()
       .trim()
@@ -128,7 +138,7 @@ export const treatmentVoiceMoveSchema = z
       .default(null),
   })
   .strict()
-  .refine((m) => m.vers !== 'brouillon' || !!m.motif, {
+  .refine((m) => (m.vers !== 'brouillon' && m.vers !== 'controle_refuse') || !!m.motif, {
     message: 'Motif du renvoi : champ obligatoire.',
     path: ['motif'],
   });

@@ -1,5 +1,5 @@
 // US-075 et US-072 : écrans « Résumés et traductions » du préfectoral et « Atelier
-// linguistique » du régional. API simulée ; les règles (zone,
+// linguistique » du régional ; US-073 : « Contrôle des effets indésirables » du Comité. API simulée ; les règles (zone,
 // statut du traitement, droits par langue, historique) sont prouvées par la base
 // (packages/db/test/resume-voix-locale.test.ts) et l'API
 // (apps/api/src/voices/treatment-voices.test.ts).
@@ -27,6 +27,7 @@ const TARGETS: TreatmentVoiceTarget[] = [
     validees: 0,
     publiees: 0,
     aValider: 0,
+    aControler: 0,
   },
 ];
 const entry = (over: Partial<TreatmentVoiceEntry>): TreatmentVoiceEntry => ({
@@ -38,6 +39,7 @@ const entry = (over: Partial<TreatmentVoiceEntry>): TreatmentVoiceEntry => ({
   motif: null,
   consentement: true,
   secours: true,
+  controle: false,
   peutEnregistrer: false,
   peutTraduire: false,
   peutValider: false,
@@ -64,6 +66,7 @@ beforeEach(() => {
     praticien: 'Mamadou Diallo',
     peutReviser: true,
     prefectoral: true,
+    comite: false,
     sections: [
       section({
         voix: [
@@ -274,5 +277,73 @@ describe('Atelier linguistique (US-072)', () => {
     voices.sections[0]!.voix[0] = { ...voices.sections[0]!.voix[0]!, parMoi: true };
     const row = await openWorkshop();
     expect(within(row).queryByRole('button', { name: /Valider/ })).toBeNull();
+  });
+});
+
+describe('Contrôle des effets indésirables (US-073)', () => {
+  const committee = (controle = false) => {
+    voices = {
+      ...voices,
+      prefectoral: false,
+      peutReviser: false,
+      comite: true,
+      sections: [
+        section({ voix: [entry({ statut: 'valide', enregistrePar: 'Ibrahima Sow' })] }),
+        section({
+          type: 'effets_indesirables',
+          libelle: 'Effets indésirables et contre-indications',
+          texteFr: 'Pas pendant la grossesse.',
+          voix: [
+            entry({ statut: 'valide', enregistrePar: 'Ibrahima Sow', controle }),
+            entry({ langue: 'mal', langueNom: 'Malinké', statut: 'traduit', enregistrePar: 'X' }),
+          ],
+        }),
+      ],
+    };
+  };
+  const openControl = async () => {
+    render(<TreatmentVoicesPage mode="controle" />);
+    const row = await openDossier(/REC-0007/);
+    await within(row).findByRole('heading', { name: 'Effets indésirables et contre-indications' });
+    return row;
+  };
+
+  it('seule la section des effets indésirables, chaque langue à part', async () => {
+    committee();
+    const row = await openControl();
+    expect(within(row).queryByRole('heading', { name: 'Mode de préparation' })).toBeNull();
+    expect(within(row).getByText(/contrôle du Comité attendu/)).toBeTruthy();
+    // Voix seulement envoyée (pas validée) : rien à contrôler
+    expect(within(row).getAllByRole('button', { name: /Contrôler/ })).toHaveLength(1);
+  });
+
+  it('critère : contrôler la voix, ou la renvoyer avec un motif', async () => {
+    committee();
+    const row = await openControl();
+    fireEvent.click(within(row).getByRole('button', { name: 'Contrôler la voix en Pular' }));
+    expect(await within(row).findByText(/contrôlée : elle peut être publiée/)).toBeTruthy();
+    fireEvent.click(within(row).getByRole('button', { name: 'Renvoyer la voix en Pular' }));
+    fireEvent.change(within(row).getByLabelText(/Motif du renvoi/), {
+      target: { value: 'Contre-indication omise' },
+    });
+    fireEvent.click(within(row).getByRole('button', { name: 'Confirmer le renvoi' }));
+    expect(await within(row).findByText(/motif du Comité/)).toBeTruthy();
+    expect(bodies('POST')).toEqual([
+      [
+        '/api/voix-des-traitements/REC-0007/effets_indesirables/pul/statut',
+        { vers: 'controle', motif: null },
+      ],
+      [
+        '/api/voix-des-traitements/REC-0007/effets_indesirables/pul/statut',
+        { vers: 'controle_refuse', motif: 'Contre-indication omise' },
+      ],
+    ]);
+  });
+
+  it('voix déjà contrôlée : plus de geste, l’état est dit', async () => {
+    committee(true);
+    const row = await openControl();
+    expect(within(row).getByText(/contrôlée par le Comité/)).toBeTruthy();
+    expect(within(row).queryByRole('button', { name: /Contrôler/ })).toBeNull();
   });
 });

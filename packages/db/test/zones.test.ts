@@ -342,6 +342,8 @@ describe('Garde-fous du schéma', () => {
       // US-075 : révision du texte et voix des sections par le préfectoral (05 §2.79)
       'traitement_section_reviser',
       'traitement_soumettre',
+      // US-073 : contrôle des effets indésirables par le Comité (05 §2.81)
+      'traitement_voix_controler',
       'traitement_voix_enregistrer',
       'traitement_voix_envoyer',
       // US-072 : validation par le régional de la langue et de la région (05 §2.80)

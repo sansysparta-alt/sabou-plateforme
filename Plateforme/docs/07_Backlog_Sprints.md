@@ -825,6 +825,8 @@ Réalisation (19 novembre 2026, 05 §2.80) : écran « Atelier linguistique » ;
 Critères d’acceptation :
 - Sans ce contrôle, la voix des effets indésirables ne peut pas être publiée.
 
+Réalisation (19 novembre 2026, 05 §2.81) : le Comité contrôle, langue par langue, la voix validée des effets indésirables, ou la renvoie en brouillon avec un motif ; la base refuse toute publication sans ce contrôle. Écran « Effets indésirables (voix) ».
+
 #### US-074 · Suivre la couverture vocale par langue et publier les voix validées
 *Voix et gouvernance linguistique* · **Should** · 3 points · cas : UC-63
 

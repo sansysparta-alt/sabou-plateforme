@@ -71,6 +71,10 @@ const TreatmentVoicesPage = lazy(() =>
 function LanguageWorkshopPage() {
   return <TreatmentVoicesPage mode="atelier" />;
 }
+// Même écran, en mode contrôle du Comité (US-073)
+function EffectsControlPage() {
+  return <TreatmentVoicesPage mode="controle" />;
+}
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
 );
@@ -99,6 +103,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/traitements': loaders.treatments,
   '/resumes-traductions': loaders.treatmentVoices,
   '/atelier-linguistique': loaders.treatmentVoices,
+  '/controle-effets': loaders.treatmentVoices,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -121,6 +126,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
   '/resumes-traductions': ['/api/voix-des-traitements'],
   '/atelier-linguistique': ['/api/voix-des-traitements'],
+  '/controle-effets': ['/api/voix-des-traitements'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -391,6 +397,8 @@ function navigation(user: SessionUser): NavGroup[] {
       items: [
         { href: '/expertise', label: 'Expertise des dossiers', icon: 'clipboard-check' },
         { href: '/traitements', label: 'Traitements à expertiser', icon: 'flask' },
+        // US-073 : voix des effets indésirables, langue par langue
+        { href: '/controle-effets', label: 'Effets indésirables (voix)', icon: 'shield' },
       ],
     });
   }
@@ -472,6 +480,7 @@ const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/voix-des-noms': NameVoicesPage,
   '/expertise': ExpertisePage,
   '/traitements': TreatmentsPage,
+  '/controle-effets': EffectsControlPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };

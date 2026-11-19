@@ -1265,3 +1265,13 @@ Décision du maître d'œuvre du 19 novembre 2026 : le « résumé » du préfec
 | Ce que voit le régional | Traitements de sa région (cloisonnement), voix des seules langues qu'il valide ; les traitements avec des voix à valider en tête | Critère de US-072 |
 | Écran | Même écran que « Résumés et traductions » en mode atelier ; texte français et voix côte à côte sur ordinateur (`.ui-split`), empilés sur téléphone | Un seul gabarit à maintenir |
 
+### 2.81 Contrôle par le Comité de la voix des effets indésirables (US-073, 19 novembre 2026)
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Quand | Après la validation du régional (voix « validée »), avant la publication par la DG | Le Comité vérifie une voix déjà jugée bonne dans sa langue (R-LNG-12) |
+| Qui | Un seul membre du Comité suffit | Décision du maître d'œuvre du 12 novembre 2026 (US-044) |
+| Gestes | Contrôler (auteur et date notés) ou renvoyer en brouillon avec un motif | Même logique de renvoi que l'atelier |
+| Blocage de la publication | Tenu par le déclencheur `trg_voix_publiable` du schéma initial, quel que soit le chemin d'écriture | Une règle de sécurité sanitaire ne dépend pas de l'interface |
+| Écran | « Effets indésirables (voix) » du Comité : même écran, seule la section concernée, langue par langue | Un seul gabarit |
+

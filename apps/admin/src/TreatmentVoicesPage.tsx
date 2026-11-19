@@ -36,9 +36,16 @@ import { RecordForm, SendBackForm, STATUS } from './VoiceForms';
 // - Atelier linguistique (US-072, UC-41) : le régional écoute les voix de ses langues, pour les
 //   traitements de sa région, à côté du texte français, et les valide ou les renvoie avec un
 //   motif.
+// - Contrôle des effets indésirables (US-073, UC-53) : le Comité écoute, langue par langue, la
+//   voix validée des effets indésirables et contre-indications et la contrôle ou la renvoie ;
+//   sans ce contrôle, elle ne peut pas être publiée (R-LNG-12).
 // La base contrôle chaque geste (zone, droits par langue, séparation des tâches, statut).
-export type TreatmentVoicesMode = 'resumes' | 'atelier';
-const MODE_PATH = { resumes: '/resumes-traductions', atelier: '/atelier-linguistique' } as const;
+export type TreatmentVoicesMode = 'resumes' | 'atelier' | 'controle';
+const MODE_PATH = {
+  resumes: '/resumes-traductions',
+  atelier: '/atelier-linguistique',
+  controle: '/controle-effets',
+} as const;
 
 // Défini ici plutôt qu'importé de @sabou/types : l'application n'en importe que des types
 const TEXT_MAX_LENGTH = 4000;
@@ -79,7 +86,13 @@ export function TreatmentVoicesPage({ mode = 'resumes' }: { mode?: TreatmentVoic
         term === '' || foldText(`${t.code} ${t.titre} ${t.maladie} ${t.praticien}`).includes(term),
     )
     // Atelier : les traitements qui ont des voix à valider d'abord
-    .sort((a, b) => (mode === 'atelier' ? b.aValider - a.aValider : 0));
+    .sort((a, b) =>
+      mode === 'atelier'
+        ? b.aValider - a.aValider
+        : mode === 'controle'
+          ? b.aControler - a.aControler
+          : 0,
+    );
 
   return (
     <>
@@ -113,7 +126,11 @@ export function TreatmentVoicesPage({ mode = 'resumes' }: { mode?: TreatmentVoic
                   <Badge tone={t.statut === 'soumise' ? 'warning' : 'neutral'}>
                     {TREATMENT_STATUS[t.statut] ?? t.statut}
                   </Badge>{' '}
-                  {mode === 'atelier' ? (
+                  {mode === 'controle' ? (
+                    <>
+                      · <strong>{t.aControler} à contrôler</strong>
+                    </>
+                  ) : mode === 'atelier' ? (
                     <>
                       · <strong>{t.aValider} à valider</strong>, {t.validees} validées
                     </>
@@ -163,21 +180,31 @@ function TreatmentDetail({ code, mode }: { code: string; mode: TreatmentVoicesMo
           Comité. Les voix s’enregistrent à toutes les étapes.
         </p>
       )}
-      {voices.sections.map((section) => (
-        <SectionVoices
-          key={section.type}
-          mode={mode}
-          voices={voices}
-          section={section}
-          onChange={setVoices}
-        />
-      ))}
+      {voices.sections
+        // Comité : la seule section des effets indésirables et contre-indications
+        .filter((section) => mode !== 'controle' || section.type === 'effets_indesirables')
+        .map((section) => (
+          <SectionVoices
+            key={section.type}
+            mode={mode}
+            voices={voices}
+            section={section}
+            onChange={setVoices}
+          />
+        ))}
     </>
   );
 }
 
 // Gestes possibles pour le compte connecté ; la base les contrôle aussi
-function actionsFor(entry: TreatmentVoiceEntry, prefectoral: boolean, mode: TreatmentVoicesMode) {
+function actionsFor(
+  entry: TreatmentVoiceEntry,
+  voices: TreatmentVoices,
+  mode: TreatmentVoicesMode,
+) {
+  const prefectoral = voices.prefectoral;
+  const comite =
+    mode === 'controle' && voices.comite && entry.statut === 'valide' && !entry.controle;
   const resumes = mode === 'resumes' && prefectoral;
   const atelier = mode === 'atelier' && entry.peutValider;
   return {
@@ -185,6 +212,7 @@ function actionsFor(entry: TreatmentVoiceEntry, prefectoral: boolean, mode: Trea
     send: resumes && entry.statut === 'brouillon' && (entry.parMoi || entry.peutTraduire),
     validate: atelier && entry.statut === 'traduit' && !entry.parMoi,
     sendBack: atelier && (entry.statut === 'traduit' || entry.statut === 'valide'),
+    control: comite,
   };
 }
 
@@ -203,7 +231,7 @@ function SectionVoices({
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [form, setForm] = useState<
-    { kind: 'revise' } | { kind: 'record' | 'sendBack'; langue: string } | null
+    { kind: 'revise' } | { kind: 'record' | 'sendBack' | 'refuse'; langue: string } | null
   >(null);
 
   async function act(run: () => Promise<TreatmentVoices>, done: string) {
@@ -223,14 +251,18 @@ function SectionVoices({
 
   // Langues montrées. Résumés : celles où une voix existe, ou où le compte peut enregistrer.
   // Atelier : seules les voix des langues que le compte valide (critère de US-072).
+  // Contrôle : toutes les voix existantes, chaque langue étant contrôlée à part.
   const languages = section.voix.filter((e) =>
     mode === 'atelier'
       ? e.statut !== null && e.peutValider
-      : e.statut !== null || (voices.prefectoral && e.peutEnregistrer),
+      : mode === 'controle'
+        ? e.statut !== null
+        : e.statut !== null || (voices.prefectoral && e.peutEnregistrer),
   );
   const headingId = `section-${voices.code}-${section.type}`;
   const recordLanguage = form?.kind === 'record' ? form.langue : null;
   const sendBackLanguage = form?.kind === 'sendBack' ? form.langue : null;
+  const refuseLanguage = form?.kind === 'refuse' ? form.langue : null;
   const languageName = (code: string) => section.voix.find((e) => e.langue === code)!.langueNom;
 
   return (
@@ -300,7 +332,7 @@ function SectionVoices({
           ) : (
             <ul className="ui-list" aria-label={`Voix : ${section.libelle}`}>
               {languages.map((e) => {
-                const can = actionsFor(e, voices.prefectoral, mode);
+                const can = actionsFor(e, voices, mode);
                 return (
                   <li key={e.langue}>
                     <strong>{e.langueNom}</strong>{' '}
@@ -315,6 +347,11 @@ function SectionVoices({
                         · enregistrée par {e.enregistrePar}
                         {!e.consentement && ' · sans consentement de publication'}
                         {e.motif && ` · renvoyée : ${e.motif}`}
+                        {section.type === 'effets_indesirables' &&
+                          e.statut === 'valide' &&
+                          (e.controle
+                            ? ' · contrôlée par le Comité'
+                            : ' · contrôle du Comité attendu')}
                       </span>
                     )}
                     {e.statut && (
@@ -378,6 +415,32 @@ function SectionVoices({
                           <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
                         </Button>
                       )}
+                      {can.control && (
+                        <Button
+                          variant="primary"
+                          disabled={busy}
+                          onClick={() =>
+                            act(
+                              () =>
+                                moveTreatmentVoice(voices.code, section.type, e.langue, 'controle'),
+                              `Voix en ${e.langueNom} contrôlée : elle peut être publiée.`,
+                            )
+                          }
+                        >
+                          Contrôler{' '}
+                          <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
+                        </Button>
+                      )}
+                      {can.control && (
+                        <Button
+                          variant="tertiary"
+                          disabled={busy}
+                          onClick={() => setForm({ kind: 'refuse', langue: e.langue })}
+                        >
+                          Renvoyer{' '}
+                          <span className="ui-visually-hidden">la voix en {e.langueNom}</span>
+                        </Button>
+                      )}
                       {can.sendBack && (
                         <Button
                           variant="tertiary"
@@ -406,6 +469,26 @@ function SectionVoices({
               () =>
                 moveTreatmentVoice(voices.code, section.type, sendBackLanguage, 'brouillon', motif),
               'Voix renvoyée en brouillon avec le motif.',
+            )
+          }
+        />
+      )}
+      {refuseLanguage && (
+        <SendBackForm
+          title={`${section.libelle} : renvoyer la voix en ${languageName(refuseLanguage)}`}
+          busy={busy}
+          onCancel={() => setForm(null)}
+          onSubmit={(motif) =>
+            act(
+              () =>
+                moveTreatmentVoice(
+                  voices.code,
+                  section.type,
+                  refuseLanguage,
+                  'controle_refuse',
+                  motif,
+                ),
+              'Voix renvoyée en brouillon avec le motif du Comité.',
             )
           }
         />

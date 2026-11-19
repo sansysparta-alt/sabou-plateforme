@@ -74,6 +74,10 @@ export const PAGE_HEADERS = {
     title: 'Atelier linguistique',
     lead: 'Voix des traitements de votre région, dans les langues que vous validez : écoutez chaque voix à côté du texte français, puis validez-la ou renvoyez-la avec un motif.',
   },
+  '/controle-effets': {
+    title: 'Contrôle des effets indésirables',
+    lead: 'Voix validées de la section « effets indésirables et contre-indications », langue par langue : vérifiez qu’elles rendent fidèlement le texte français. Sans votre contrôle, elles ne peuvent pas être publiées.',
+  },
   '/voix-des-noms': {
     title: 'Voix des noms',
     lead: 'La voix du nom de chaque plante et de chaque maladie, langue par langue : enregistrée par le référent, validée par un autre membre de l’atelier linguistique, publiée par la Direction Générale.',

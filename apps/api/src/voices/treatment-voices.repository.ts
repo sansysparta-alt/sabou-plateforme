@@ -32,7 +32,7 @@ function translate(error: unknown): never {
   const message = (error as { message?: string }).message ?? '';
   if (message.includes('jamais celui qui a enregistré')) throw new NameVoiceSelfValidationError();
   if (
-    /réservée? à/.test(message) ||
+    /réservée? à|Contrôle réservé/.test(message) ||
     /Droit d'enregistrer en|Droit de (traduire|valider) en/.test(message) ||
     message.includes('Acteur inconnu ou suspendu')
   ) {
@@ -85,7 +85,9 @@ export class TreatmentVoicesRepository {
                count(*) FILTER (WHERE v.statut = 'traduit' AND EXISTS (
                  SELECT 1 FROM sabou.utilisateur_langue ul
                   WHERE ul.utilisateur_id = sabou.contexte_utilisateur()
-                    AND ul.langue_code = v.langue_code AND ul.peut_valider))::int AS "aValider"
+                    AND ul.langue_code = v.langue_code AND ul.peut_valider))::int AS "aValider",
+               count(*) FILTER (WHERE v.statut = 'valide' AND s.type_code = 'effets_indesirables'
+                                  AND v.controle_comite_par IS NULL)::int AS "aControler"
           FROM sabou.recette r
           JOIN sabou.maladie m ON m.id = r.maladie_id
           JOIN sabou.praticien p ON p.id = r.praticien_id
@@ -145,11 +147,17 @@ export class TreatmentVoicesRepository {
     move: TreatmentVoiceMove,
   ): Promise<TreatmentVoices> {
     // Envoi au régional (US-075) ; validation ou renvoi motivé par le régional (US-072)
+    // ; contrôle des effets indésirables par le Comité (US-073)
+    const control = move.vers === 'controle' || move.vers === 'controle_refuse';
+    if (control && type !== 'effets_indesirables') throw new NameVoiceNotFoundError();
     const statement =
       move.vers === 'traduit'
         ? sql`SELECT sabou.traitement_voix_envoyer(${code}, ${type}, ${langue})`
-        : sql`SELECT sabou.traitement_voix_valider(${code}, ${type}, ${langue},
-                                                   ${move.vers === 'valide'}, ${move.motif})`;
+        : control
+          ? sql`SELECT sabou.traitement_voix_controler(${code}, ${langue},
+                                                       ${move.vers === 'controle'}, ${move.motif})`
+          : sql`SELECT sabou.traitement_voix_valider(${code}, ${type}, ${langue},
+                                                     ${move.vers === 'valide'}, ${move.motif})`;
     return this.act(sub, ip, code, statement);
   }
 
@@ -201,11 +209,13 @@ export class TreatmentVoicesRepository {
       statut: string;
       praticien: string;
       prefectoral: boolean;
+      comite: boolean;
     }>`
       SELECT r.titre_fr AS titre, r.statut, trim(u.prenom || ' ' || u.nom) AS praticien,
              EXISTS (SELECT 1 FROM sabou.utilisateur a
                       WHERE a.id = sabou.contexte_utilisateur() AND a.role_code = 'prefectoral'
-                        AND a.prefecture_id = p.prefecture_id) AS prefectoral
+                        AND a.prefecture_id = p.prefecture_id) AS prefectoral,
+             sabou.contexte_role() = 'scientifique' AS comite
         FROM sabou.recette r
         JOIN sabou.praticien p ON p.id = r.praticien_id
         JOIN sabou.utilisateur u ON u.id = p.utilisateur_id
@@ -244,6 +254,7 @@ export class TreatmentVoicesRepository {
              v.renvoi_motif AS motif,
              coalesce(a.consentement_voix, false) AS consentement,
              a.chemin_secours IS NOT NULL AS secours,
+             v.controle_comite_par IS NOT NULL AS controle,
              coalesce(ul.peut_enregistrer, false) AS "peutEnregistrer",
              coalesce(ul.peut_traduire, false) AS "peutTraduire",
              coalesce(ul.peut_valider, false) AS "peutValider"
@@ -263,6 +274,7 @@ export class TreatmentVoicesRepository {
       statut: head.statut,
       praticien: head.praticien,
       prefectoral: head.prefectoral,
+      comite: head.comite,
       peutReviser: head.prefectoral && head.statut === 'soumise',
       sections: sections.rows.map(({ id, ...section }) => ({
         ...section,
