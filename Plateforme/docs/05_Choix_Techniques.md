@@ -1036,3 +1036,14 @@ Décisions du maître d'ouvrage du 17 novembre 2026, une ligne chacune, avec le 
 | Droits de langue par défaut selon le rôle, réglage par langue conservé | §2.8, §3.2 | US-012c |
 | Rejet définitif par la DG conservé | §4 (absent) | Écart noté, aucun changement |
 | Découpage administratif d'août 2026 | §1.2 (8 régions, 33 préfectures, dépassé) | §2.58, §2.59 |
+
+### 2.73 Pipeline avant fusion et pipeline de fin de sprint (décision du maître d'œuvre du 19 novembre 2026)
+
+Constat : une nuit de travail perdue à relancer le pipeline complet sur le poste du maître d'œuvre (1 h 20 par passage, mémoire insuffisante, arrêts de Docker, mesure Lighthouse à la limite). Le maître d'œuvre juge le backlog trop exigeant pour avancer vite et allège les contrôles.
+
+| Sujet | Décision | Raison |
+|---|---|---|
+| Avant chaque fusion | `ci.yml` (GitHub) et `pnpm ci:local` (`infra/ci/all.sh`) : contrôles du dépôt, lint, tests unitaires et de la base, compilation, bout en bout du site, de la gestion (avec axe) et du compte citoyen, lecture audio, application mobile, variables d'environnement. Lighthouse désactivé (`RECIT_LIGHTHOUSE=0`) | Prouver que tout fonctionne, en 40 min environ au lieu de 1 h 20 |
+| Fin de sprint et avant toute mise en production | `fin-de-sprint.yml` (à la main, et après chaque fusion dans `main`) et `pnpm ci:fin-sprint` (`infra/ci/fin-sprint.sh`) : Lighthouse (gestion, site, connexion Keycloak), Trivy, Semgrep, analyse des images | Vitesse et sécurité vérifiées sans bloquer le développement ; seuils inchangés |
+| Où tournent les pipelines | Sur GitHub : dépôt rendu public par le maître d'œuvre le 19 novembre 2026 jusqu'au 1er décembre (minutes illimitées), puis privé avec le quota gratuit du mois. Aucune solution payante | Le portable du maître d'œuvre reste libre ; il n'attend plus devant l'écran |
+| Garde-fou | `check-repo.sh` : tout workflow se déclenche sur les demandes de fusion et sur `main`, sauf `fin-de-sprint.yml`, qui doit pouvoir être lancé à la main | La règle d'origine tient pour tous les autres workflows |
