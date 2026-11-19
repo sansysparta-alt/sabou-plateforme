@@ -905,6 +905,7 @@
 }
 .ui-list > li {
   display: flex;
+  align-items: center;
   gap: var(--sabou-space-3);
   justify-content: space-between;
   padding: var(--sabou-space-3) 0;
@@ -1256,6 +1257,11 @@ details[open] > .ui-dossier__summary {
   display: grid;
   gap: var(--sabou-space-4);
   padding: var(--sabou-space-4);
+}
+/* Formulaires d'un dossier ouvert (pièces, décision, désignation) : largeur de lecture, pas
+   toute la largeur de la ligne */
+.ui-dossier__body > .ui-form {
+  max-width: 48rem;
 }
 
 /* ---------- Listes de gestion (US-019) : recherche et filtres, tableau, pagination ----------
