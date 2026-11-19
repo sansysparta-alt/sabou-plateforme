@@ -1239,3 +1239,19 @@ Demande du maître d'œuvre du 19 novembre 2026 : quelques ajustements d'ensembl
 | « Traitements à décider » répété (titre de page et de liste) | Liste renommée « Traitements en attente » |
 | Pages hors navigation (invitation, accès refusé) sans marque sur ordinateur | Bandeau de marque affiché à toutes les tailles |
 | Déconnexion en rouge ? | Non : le rouge reste réservé aux actions destructrices ou irréversibles (suspendre, désactiver, rejet définitif) ; la déconnexion est une action neutre |
+
+### 2.83 Signalements de danger et d'effets indésirables (US-100, 19 novembre 2026)
+
+Décisions du maître d'œuvre du 19 novembre 2026 : révision = retour au praticien en brouillon ; suspension levée par le Comité avec un motif, retrait définitif ; page publique /signaler dès S6.
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Dépôt | Page publique `/signaler` du site, sans compte ; code du traitement (REC-…) ou de la plante (PL-…) prérempli par lien (`?code=`) ; seuls un traitement publié (certifié ou suspendu) ou une plante validée sont acceptés ; référence SIG-00001 remise | R-SAN-01 : ouvert à tous ; on ne signale que ce que le public a pu voir. Boutons des pages traitement et plante en S10 et S11 |
+| Anti-abus | Sans service externe : origine du site exigée, 10 dépôts par heure et par adresse IP (compteur Valkey existant), leurre (champ caché rempli par les robots : même réponse, rien n'est enregistré) | Pas de captcha tiers (souveraineté, réseau faible) ; limite assez large pour une adresse IP partagée par les abonnés mobiles d'un même opérateur |
+| Contact | Facultatif, visible du seul Comité (RLS : la table n'est lisible que sous le rôle scientifique), effacé 12 mois après la clôture par `signalements_effacer_contacts()`, appelée à chaque relève de la file des SMS ; ni le contact ni la description au journal d'audit | Minimisation des données ; même mécanisme périodique que les échéances des certificats (US-049) |
+| File | Comité scientifique : signalements ouverts, graves d'abord puis du plus ancien au plus récent ; échéance = réception + 24 h pour un grave, « délai dépassé » au-delà ; pagination par décalage | R-SAN-03 ; l'ordre de priorité n'est pas l'ordre des codes de `zonePage`, d'où une requête propre |
+| Décisions | `signalement_decider` : motif obligatoire, signalement clos. Traitement : révision = brouillon (SMS de renvoi), suspension = retrait du site immédiat, retrait = définitif. Plante : révision = retour à la revue du Comité (validation effacée de la fiche, gardée au journal) ; suspension et retrait sans objet | Critère de US-100 ; un traitement retiré n'a plus aucune transition |
+| Transitions | Ajouts au tableau de `recette_transition` : Comité certifié ou suspendu → brouillon (renvoi) et → retiré ; motif exigé quand le Comité lève une suspension (la recertification par la DG après un recours, US-047, est inchangée) ; statut de départ dans les paramètres du SMS | Une levée envoie « suspension levée », pas « félicitations, certifié » |
+| SMS | Textes ajoutés pour « recette.suspendue » et « recette.retiree » (absents jusqu'ici : ces SMS auraient fini en erreur définitive) et pour la levée | Le praticien est prévenu de chaque décision qui touche son traitement ; le motif est dans son Studio |
+| Levée | Écran « Traitements suspendus » du Comité : motif de la suspension, levée avec motif ; refusée si le traitement ne remplit plus les conditions de certification (`trg_recette_publiable`) | Retour en ligne seulement d'un traitement toujours certifiable |
+

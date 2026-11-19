@@ -65,7 +65,7 @@ SELECT recette_transition(3, 'certifiee', 1);
 -- Suspension d'un traitement après un signalement grave (R-SAN-03)
 SELECT contexte_ouvrir(md5('sabou:comite@sabou-sante.gn')::uuid);
 SELECT recette_transition(1, 'suspendue', 4, 'Signalement de vomissements en cours d''examen');
-SELECT recette_transition(1, 'certifiee', 4);                         -- levée de la suspension
+SELECT recette_transition(1, 'certifiee', 4, 'Examen clos : effet non lié au traitement'); -- levée, motif exigé (US-100)
 
 -- ===================== CRUD =====================
 -- CREATE : un citoyen dépose un témoignage (en attente de modération)

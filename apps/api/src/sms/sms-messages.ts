@@ -40,6 +40,8 @@ export interface QueuedMessage {
     contenu?: number;
     // Traitement (US-061) : statut d'arrivée, utile pour un renvoi
     statut?: string;
+    // Statut de départ (US-100) : une levée de suspension n'est pas une première certification
+    de?: string;
     // Rejet définitif (US-047) : dossier clos, s'il y en avait un en cours, et dernier jour
     // du recours (2026-12-14)
     dossier?: string;
@@ -143,7 +145,15 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
     case 'recette.expertisee':
       return `SABOU : votre traitement ${objet} est expertisé par le Comité scientifique. Il attend la certification de la Direction Générale.`;
     case 'recette.certifiee':
-      return `SABOU : félicitations, votre traitement ${objet} est certifié.`;
+      // US-100 : levée d'une suspension par le Comité, distincte d'une première certification
+      return parametres.de === 'suspendue'
+        ? `SABOU : la suspension de votre traitement ${objet} est levée. Il est de nouveau visible sur SABOU.`
+        : `SABOU : félicitations, votre traitement ${objet} est certifié.`;
+    // US-100 : suspension (après un signalement) et retrait ; le motif est dans le Studio
+    case 'recette.suspendue':
+      return `SABOU : votre traitement ${objet} est suspendu et retiré du site. Le motif est dans votre Studio SABOU.`;
+    case 'recette.retiree':
+      return `SABOU : votre traitement ${objet} est retiré du site. Le motif est dans votre Studio SABOU.`;
     case 'recette.renvoyee': {
       const to = TREATMENT_RETURN[parametres.statut ?? ''];
       return to

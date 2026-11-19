@@ -16,6 +16,10 @@ export default function HomePage() {
           </li>
         </ul>
       </nav>
+      {/* US-100 : signalement ouvert à tous, sans compte */}
+      <p>
+        <Link href="/signaler">Signaler un danger ou un effet indésirable</Link>
+      </p>
     </main>
   );
 }

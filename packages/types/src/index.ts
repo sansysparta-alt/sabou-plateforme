@@ -23,3 +23,4 @@ export * from './local-names.js';
 export * from './name-voices.js';
 export * from './treatments.js';
 export * from './annotations.js';
+export * from './health-reports.js';

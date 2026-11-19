@@ -27,6 +27,8 @@ const loaders = {
   nameVoices: () => import('./NameVoicesPage'),
   // US-061 : traitements à transmettre, expertiser ou certifier
   treatments: () => import('./TreatmentsPage'),
+  // US-100 : signalements et traitements suspendus
+  healthReports: () => import('./HealthReportsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -62,6 +64,13 @@ const DiseasePage = lazy(() => loaders.diseases().then((m) => ({ default: m.Dise
 const NameVoicesPage = lazy(() =>
   loaders.nameVoices().then((m) => ({ default: m.NameVoicesPage })),
 );
+// US-100 : signalements et traitements suspendus (Comité scientifique)
+const HealthReportsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.HealthReportsPage })),
+);
+const SuspendedTreatmentsPage = lazy(() =>
+  loaders.healthReports().then((m) => ({ default: m.SuspendedTreatmentsPage })),
+);
 const TreatmentsPage = lazy(() =>
   loaders.treatments().then((m) => ({ default: m.TreatmentsPage })),
 );
@@ -88,6 +97,8 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/noms-locaux': loaders.localNames,
   '/voix-des-noms': loaders.nameVoices,
   '/traitements': loaders.treatments,
+  '/signalements': loaders.healthReports,
+  '/traitements-suspendus': loaders.healthReports,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -108,6 +119,8 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/noms-locaux': ['/api/noms-locaux/langues', '/api/noms-locaux/plantes'],
   '/voix-des-noms': ['/api/voix-des-noms'],
   '/traitements': [() => firstQueuePagePath(QUEUES.treatments)],
+  '/signalements': [() => firstQueuePagePath(QUEUES.healthReports)],
+  '/traitements-suspendus': ['/api/signalements/suspendus'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -366,6 +379,14 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/traitements', label: 'Traitements à expertiser', icon: 'flask' },
       ],
     });
+    // US-100 : sécurité sanitaire (R-SAN-03)
+    groups.push({
+      heading: 'Sécurité sanitaire',
+      items: [
+        { href: '/signalements', label: 'Signalements', icon: 'warning' },
+        { href: '/traitements-suspendus', label: 'Traitements suspendus', icon: 'ban' },
+      ],
+    });
   }
   // Dictionnaire (US-050) : fiches plantes, tenues par la DG et le Comité scientifique ; noms
   // locaux (US-053) et voix des noms (US-071) pour tout administrateur, chaque geste selon ses
@@ -443,6 +464,8 @@ const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/voix-des-noms': NameVoicesPage,
   '/expertise': ExpertisePage,
   '/traitements': TreatmentsPage,
+  '/signalements': HealthReportsPage,
+  '/traitements-suspendus': SuspendedTreatmentsPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };

@@ -273,7 +273,6 @@ describe('Garde-fous du schéma', () => {
     forum_discussion: 'US-122',
     litige: 'US-101',
     produit: 'US-142',
-    signalement_sanitaire: 'US-100',
     // Référentiel public des sous-préfectures, pas une donnée de zone
     sous_prefecture: 'aucun : référentiel public',
     // Lu par contexte_ouvrir ; gestion réservée à la DG (US-012), garde de l'API
@@ -335,11 +334,16 @@ describe('Garde-fous du schéma', () => {
       'redecoupage_appliquer',
       'redecoupage_controler',
       'saisie_terrain_recevoir',
+      // US-100 : dépôt public, décision et levée par le Comité, effacement des contacts (05 §2.83)
+      'signalement_decider',
+      'signalement_deposer',
+      'signalements_effacer_contacts',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',
       'traitement_enregistrer',
       'traitement_soumettre',
+      'traitement_suspension_lever',
       // US-047 : un traitement d'un praticien rejeté ne progresse plus, quelle que soit la zone
       // de l'acteur (05 §2.36)
       'trg_recette_praticien_rejete',
