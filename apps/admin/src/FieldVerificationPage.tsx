@@ -65,6 +65,12 @@ function DossierItem({
         <dd>{dossier.type === 'initial' ? 'Première certification' : 'Renouvellement'}</dd>
         <dt>Soumis le</dt>
         <dd>{longDate(dossier.soumisLe)}</dd>
+        {dossier.verificateur && (
+          <>
+            <dt>Vérification confiée à</dt>
+            <dd>{dossier.verificateur} (désigné par l’admin régional)</dd>
+          </>
+        )}
         <dt>Visite sur place</dt>
         <dd>
           {visitDone ? (

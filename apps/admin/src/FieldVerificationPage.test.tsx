@@ -40,6 +40,7 @@ const visited: FieldVerificationItem = {
   visiteRequise: true,
   visiteRealisee: true,
   visite: realized,
+  verificateur: null,
 };
 const notVisited: FieldVerificationItem = {
   ...visited,
@@ -484,5 +485,21 @@ describe('US-041 : visite sur place', () => {
     expect(await within(first).findByText('Jointe'));
     expect(decisions).toEqual([{ url: '/api/dossiers/DS-2001/visite/7/photo', body: photo }]);
     expect(status()).toBe('Photo de la fiche jointe au compte rendu.');
+  });
+});
+
+// US-040d : dossier terrain dont l'admin régional a désigné l'agent de vérification
+describe('Agent de vérification désigné', () => {
+  it('le dossier indique à qui la vérification est confiée', async () => {
+    mockApi({ [FIRST]: { elements: [{ ...visited, verificateur: 'Oumar Baldé' }] } });
+    render(<FieldVerificationPage />);
+    const row = within(await item('DS-2001'));
+    expect(row.getByText('Oumar Baldé (désigné par l’admin régional)')).toBeTruthy();
+  });
+
+  it('rien n’est affiché sans désignation', async () => {
+    render(<FieldVerificationPage />);
+    await item('DS-2001');
+    expect(screen.queryByText('Vérification confiée à')).toBeNull();
   });
 });
