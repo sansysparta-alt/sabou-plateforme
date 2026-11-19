@@ -42,6 +42,45 @@ Future<SealedFiles> deviceDossierCopy() async {
   );
 }
 
+/// US-082 : données de l'agent préfectoral (brouillons de dossiers, listes), chiffrées.
+Future<SealedFiles> deviceFieldFiles() async {
+  final support = await getApplicationSupportDirectory();
+  return SealedFiles(
+    directory: Directory('${support.path}/terrain'),
+    secrets: DeviceSecretStore(),
+    keyName: 'sabou.terrain_key',
+  );
+}
+
+/// US-082 : copie du Studio et coffre de voix propres au praticien [code], numérisé par
+/// l'agent : une voix ou un envoi en attente ne part jamais au nom d'un autre praticien.
+Future<({StudioStore store, VoiceTools tools})> deviceFieldStudio(
+  String code,
+  VoiceTools base,
+) async {
+  final support = await getApplicationSupportDirectory();
+  final folder = '${support.path}/terrain/praticiens/$code';
+  return (
+    store: StudioStore(
+      SealedFiles(
+        directory: Directory('$folder/studio'),
+        secrets: DeviceSecretStore(),
+        keyName: 'sabou.terrain_key',
+      ),
+    ),
+    tools: VoiceTools(
+      recorder: base.recorder,
+      player: base.player,
+      format: base.format,
+      vault: VoiceVault(
+        directory: Directory('$folder/voix'),
+        secrets: DeviceSecretStore(),
+      ),
+      tempPath: base.tempPath,
+    ),
+  );
+}
+
 /// US-080 : copie chiffrée du Studio, dans l'espace privé de l'application.
 Future<StudioStore> deviceStudioStore() async {
   final support = await getApplicationSupportDirectory();

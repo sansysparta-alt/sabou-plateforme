@@ -169,4 +169,48 @@ void main() {
       expect(store.values['sabou.session.roles'], '');
     });
   });
+
+  // US-082 : l'agent préfectoral se connecte dans le domaine interne (client sabou-terrain) ;
+  // le domaine est gardé avec la session pour rafraîchir et révoquer auprès du bon client.
+  group('US-082 : session de l’agent préfectoral', () {
+    late PractitionerSession agent;
+
+    setUp(() {
+      agent = PractitionerSession(
+        store: store,
+        launcher: launcher,
+        client: server.client,
+        now: () => now,
+        issuer: 'http://kc.test/realms/autre',
+        fieldIssuer: issuer,
+      );
+    });
+
+    test('connexion dans le domaine interne, gardée avec la session', () async {
+      expect(await agent.signIn(realm: SignInRealm.fieldAgent), isTrue);
+      expect(launcher.lastRealm, SignInRealm.fieldAgent);
+      expect(store.values['sabou.session.domaine'], 'fieldAgent');
+      expect(await agent.realm(), SignInRealm.fieldAgent);
+    });
+
+    test('rafraîchi et révoqué par le client sabou-terrain, même après réouverture', () async {
+      store.values['sabou.praticien.refresh_token'] = 'rafraichissement-1';
+      store.values['sabou.session.domaine'] = 'fieldAgent';
+      expect(await agent.accessToken(), fakeAccess('acces-2'));
+      expect(server.requests.last.url.toString(), '$oidc/token');
+      expect(server.requests.last.bodyFields['client_id'], 'sabou-terrain');
+      await agent.signOut();
+      expect(server.requests.last.url.toString(), '$oidc/revoke');
+      expect(server.requests.last.bodyFields['client_id'], 'sabou-terrain');
+      expect(store.values['sabou.session.domaine'], '');
+      expect(await agent.realm(), SignInRealm.practitioner);
+    });
+
+    test('session ouverte avant US-082 : domaine du praticien', () async {
+      store.values['sabou.praticien.refresh_token'] = 'rafraichissement-1';
+      expect(await session.realm(), SignInRealm.practitioner);
+      await session.accessToken();
+      expect(server.requests.last.bodyFields['client_id'], 'sabou-mobile');
+    });
+  });
 }

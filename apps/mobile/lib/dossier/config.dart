@@ -22,5 +22,16 @@ const String publicSiteUrl = String.fromEnvironment(
 /// Client public de l'application (client Keycloak « sabou-mobile », §2.29).
 const String mobileClientId = 'sabou-mobile';
 
+/// Domaine Keycloak interne (lot D, §2.25) : l'agent préfectoral s'y connecte avec son second
+/// facteur (US-082, §2.86).
+const String internalIssuer = String.fromEnvironment(
+  'SABOU_INTERNAL_ISSUER',
+  defaultValue: 'http://localhost:8080/realms/sabou',
+);
+
+/// Client public de l'agent préfectoral dans l'application (client Keycloak « sabou-terrain »,
+/// session hors ligne de 7 jours, §2.86).
+const String fieldClientId = 'sabou-terrain';
+
 /// Retour de la page de connexion vers l'application (schéma privé, RFC 8252).
 const String mobileRedirectUri = 'gn.sabou.mobile:/oauth2redirect';
