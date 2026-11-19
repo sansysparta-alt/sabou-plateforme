@@ -674,7 +674,7 @@
   flex: 1;
   display: grid;
   align-content: start;
-  gap: var(--sabou-space-4);
+  gap: var(--sabou-space-3);
 }
 .ui-nav__group {
   display: grid;
@@ -700,7 +700,8 @@
   display: flex;
   align-items: center;
   gap: var(--sabou-space-3);
-  min-height: var(--sabou-target);
+  /* 40 px : cible confortable (DoD), le menu de la DG tient sur un écran de 768 px */
+  min-height: 2.5rem;
   padding: 0 var(--sabou-space-3);
   border-radius: var(--sabou-radius-sm);
   color: var(--sabou-on-dark);
@@ -899,6 +900,10 @@
   display: grid;
   gap: var(--sabou-space-2);
   max-width: 48rem;
+  min-width: 0;
+}
+.ui-page-header > :not(.ui-page-header__text) {
+  flex: none;
 }
 .ui-page-header__lead {
   color: var(--sabou-text-muted);
@@ -910,6 +915,8 @@
     overflow-x: clip;
   }
   .ui-page-header {
+    flex-wrap: nowrap;
+    align-items: flex-start;
     position: sticky;
     top: -1px;
     z-index: 5;
@@ -1645,11 +1652,14 @@
   color: var(--sabou-forest);
 }
 .ui-tabs__count {
-  min-width: 1.5rem;
+  min-width: 1.75rem;
   padding: 0 var(--sabou-space-2);
+  border: 1px solid var(--sabou-border);
   border-radius: var(--sabou-radius-full);
-  background: var(--sabou-bg);
-  font-size: var(--sabou-text-xs);
+  background: var(--sabou-surface);
+  font-size: var(--sabou-text-sm);
+  font-weight: var(--sabou-weight-semibold);
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 .ui-tabs__panel {
@@ -1741,4 +1751,15 @@
 }
 .ui-annotations__list p {
   margin: 0 0 var(--sabou-space-1);
+}
+
+/* Pages hors navigation (invitation, accès refusé) : le bandeau de marque reste affiché sur
+   ordinateur, où la colonne de navigation n'existe pas */
+@media (min-width: 60rem) {
+  .ui-shell--public {
+    grid-template-rows: auto 1fr;
+  }
+  .ui-shell--public .ui-topbar {
+    display: flex;
+  }
 }

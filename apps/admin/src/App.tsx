@@ -312,7 +312,7 @@ function ConnectedApp() {
 // Pages hors navigation (connexion, invitation, accès refusé) : bandeau seul
 function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="ui-shell">
+    <div className="ui-shell ui-shell--public">
       <a className="ui-skip-link" href="#contenu">
         Aller au contenu
       </a>
