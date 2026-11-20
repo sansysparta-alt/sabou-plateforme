@@ -309,10 +309,7 @@ describe('Critère 2 : historique des exports', () => {
       /type inconnu/,
     );
     await expect(run(exportBoard('aminata@exemple.gn'))).rejects.toThrow(/réservé/);
-    for (const write of [
-      `UPDATE rapport_export SET format = 'xlsx'`,
-      `DELETE FROM rapport_export`,
-    ])
+    for (const write of [`UPDATE rapport_export SET format = 'xlsx'`, `DELETE FROM rapport_export`])
       await expect(
         run(`${exportBoard(PREFECTORAL_LABE)} ${openContext(PREFECTORAL_LABE)} ${write};`),
       ).rejects.toThrow(/permission denied/);
