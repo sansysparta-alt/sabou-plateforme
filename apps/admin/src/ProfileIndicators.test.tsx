@@ -122,9 +122,9 @@ describe('Admin préfectoral (§6.4)', () => {
     expect(screen.getByRole('row', { name: /DS-1041/ }).textContent).toMatch(
       /Sékou Kourouma.*2 nov\. 2026/,
     );
-    expect(screen.getByRole('link', { name: 'Tous les dossiers à valider' }).getAttribute('href')).toBe(
-      '/verification-terrain',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Tous les dossiers à valider' }).getAttribute('href'),
+    ).toBe('/verification-terrain');
   });
 });
 
