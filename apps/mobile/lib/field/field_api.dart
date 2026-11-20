@@ -136,6 +136,125 @@ class FieldDraft {
   };
 }
 
+/// US-083 : ligne de l'agenda (GET /api/terrain/visites).
+class AgendaItem {
+  const AgendaItem({
+    required this.planned,
+    required this.dossier,
+    required this.visit,
+    required this.practitioner,
+    required this.subPrefecture,
+    required this.prefecture,
+    required this.when,
+    required this.since,
+  });
+
+  factory AgendaItem.fromJson(Map<String, dynamic> json) => AgendaItem(
+    planned: json['categorie'] == 'planifiee',
+    dossier: json['dossier'] as String,
+    visit: json['visite'] as int?,
+    practitioner: json['praticien'] as String,
+    subPrefecture: json['sousPrefecture'] as String?,
+    prefecture: json['prefecture'] as String,
+    when: json['prevueLe'] as String?,
+    since: json['entreeLe'] as String,
+  );
+
+  /// Visite planifiée ; sinon dossier à l'étape 2 encore sans visite.
+  final bool planned;
+  final String dossier;
+  final int? visit;
+  final String practitioner;
+  final String? subPrefecture;
+  final String prefecture;
+
+  /// Heure de Conakry, 2026-11-23T09:30 (visite planifiée).
+  final String? when;
+
+  /// Entrée du dossier à l'étape 2, 2026-11-14.
+  final String since;
+
+  /// Localité, seule donnée passée à l'application de cartes (jamais le nom du praticien).
+  String get locality => [?subPrefecture, prefecture, 'Guinée'].join(', ');
+}
+
+/// US-083 : compte rendu de visite signé sur le téléphone (attestation cochée), figé, en
+/// attente d'envoi. L'heure d'attestation est celle du téléphone ; le serveur garde à côté
+/// son heure de réception, qui fait foi, et calcule l'empreinte SHA3-256.
+class FieldReport {
+  FieldReport({
+    required this.dossier,
+    required this.visit,
+    required this.practitioner,
+    required this.date,
+    required this.opinion,
+    required this.notes,
+    required this.attestedAt,
+    this.hasPhoto = false,
+    this.tried = false,
+    this.reportSent = false,
+    this.error,
+  });
+
+  factory FieldReport.fromJson(Map<String, dynamic> json) => FieldReport(
+    dossier: json['dossier'] as String,
+    visit: json['visite'] as int,
+    practitioner: json['praticien'] as String,
+    date: json['realiseeLe'] as String,
+    opinion: json['avis'] as String,
+    notes: json['constats'] as String,
+    attestedAt: DateTime.parse(json['attesteLe'] as String),
+    hasPhoto: json['photo'] as bool? ?? false,
+    tried: json['essaye'] as bool? ?? false,
+    reportSent: json['envoye'] as bool? ?? false,
+    error: json['erreur'] as String?,
+  );
+
+  final String dossier;
+  final int visit;
+  final String practitioner;
+
+  /// Date de la visite (heure de Conakry) : 2026-11-20.
+  final String date;
+
+  /// favorable, reserve, defavorable.
+  final String opinion;
+  final String notes;
+  final DateTime attestedAt;
+  bool hasPhoto;
+
+  /// Un envoi a été tenté (sa réponse a pu se perdre).
+  bool tried;
+  bool reportSent;
+
+  /// Refus définitif de l'API, montré à l'agent.
+  String? error;
+
+  /// Corps de POST /api/dossiers/:code/visite/compte-rendu.
+  Map<String, Object?> get body => {
+    'visite': visit,
+    'realiseeLe': date,
+    'avis': opinion,
+    'constats': notes,
+    'attestation': true,
+    'attesteLe': attestedAt.toUtc().toIso8601String(),
+  };
+
+  Map<String, Object?> toJson() => {
+    'dossier': dossier,
+    'visite': visit,
+    'praticien': practitioner,
+    'realiseeLe': date,
+    'avis': opinion,
+    'constats': notes,
+    'attesteLe': attestedAt.toUtc().toIso8601String(),
+    'photo': hasPhoto,
+    'essaye': tried,
+    'envoye': reportSent,
+    'erreur': error,
+  };
+}
+
 /// Refus de l'API, à montrer tel quel ; [definitive] : un nouvel essai n'y changera rien.
 class FieldException implements Exception {
   const FieldException(this.code, this.message, {this.definitive = true});
@@ -186,6 +305,40 @@ class FieldStore {
 
   Future<void> deletePiece(FieldDraft draft, String type) =>
       files.delete(_pieceName(draft.id, type));
+
+  // US-083 : comptes rendus signés en attente d'envoi, et photo de la fiche de chacun
+  Future<List<FieldReport>> reports() async => [
+    for (final r in (await _safe('comptes-rendus.json')) as List? ?? const [])
+      FieldReport.fromJson(r as Map<String, dynamic>),
+  ];
+
+  Future<void> saveReport(FieldReport report) async {
+    final all = await reports();
+    final i = all.indexWhere((r) => r.visit == report.visit);
+    i < 0 ? all.add(report) : all[i] = report;
+    await files.writeJson('comptes-rendus.json', [
+      for (final r in all) r.toJson(),
+    ]);
+  }
+
+  Future<void> removeReport(FieldReport report) async {
+    await files.writeJson('comptes-rendus.json', [
+      for (final r in await reports())
+        if (r.visit != report.visit) r.toJson(),
+    ]);
+    await files.delete(_reportPhotoName(report));
+  }
+
+  Future<void> saveReportPhoto(FieldReport report, Uint8List jpeg) =>
+      files.write(_reportPhotoName(report), jpeg);
+
+  Future<Uint8List?> reportPhoto(FieldReport report) async {
+    final bytes = await files.read(_reportPhotoName(report));
+    return bytes == null ? null : Uint8List.fromList(bytes);
+  }
+
+  static String _reportPhotoName(FieldReport report) =>
+      'fiche-visite-${report.visit}.bin';
 
   Future<Object?> cached(String name) => _safe(name);
   Future<void> keep(String name, Object? json) => files.writeJson(name, json);
@@ -250,6 +403,93 @@ class FieldApi {
         : FieldReferentials.fromJson(json.value as Map<String, dynamic>);
   }
 
+  /// US-083 : agenda de l'agent (visites planifiées, dossiers à planifier) ; copie gardée
+  /// pour la tournée sans réseau ; null si jamais reçu et hors réseau.
+  Future<Fetched<List<AgendaItem>>?> agenda() async {
+    final json = await _fetch('terrain/visites', 'agenda.json');
+    if (json == null) return null;
+    return Fetched([
+      for (final v in json.value as List)
+        AgendaItem.fromJson(v as Map<String, dynamic>),
+    ], fromCopy: json.fromCopy);
+  }
+
+  /// US-083 : planifie (ou replanifie) la visite d'un dossier ; [when] : heure de Conakry,
+  /// telle que choisie (2026-11-23T09:30). En ligne seulement : la base contrôle la date.
+  Future<void> plan(String dossier, String when) async {
+    await check(
+      await _http.sendJson(
+        'POST',
+        'dossiers/${Uri.encodeComponent(dossier)}/visite',
+        {'prevueLe': when},
+      ),
+    );
+  }
+
+  /// US-083 : envoie un compte rendu signé sur le téléphone, puis la photo de la fiche.
+  /// Chaque étape réussie est gardée ; un envoi dont la réponse s'est perdue est reconnu au
+  /// nouvel essai (visite déjà enregistrée, photo déjà jointe) sans doublon.
+  Future<void> sendReport(FieldReport report) async {
+    final dossier = Uri.encodeComponent(report.dossier);
+    if (!report.reportSent) {
+      final wasTried = report.tried;
+      report.tried = true;
+      await store.saveReport(report);
+      try {
+        await check(
+          await _http.sendJson(
+            'POST',
+            'dossiers/$dossier/visite/compte-rendu',
+            report.body,
+          ),
+        );
+      } on FieldException catch (e) {
+        // Premier envoi arrivé, réponse perdue : la visite n'est plus « planifiée »
+        if (!(wasTried && e.code == 'stale')) rethrow;
+      }
+      report.reportSent = true;
+      await store.saveReport(report);
+    }
+    if (report.hasPhoto) {
+      final jpeg = await store.reportPhoto(report);
+      if (jpeg != null) {
+        try {
+          await check(
+            await _http.send(
+              'POST',
+              'dossiers/$dossier/visite/${report.visit}/photo',
+              body: jpeg,
+              contentType: 'image/jpeg',
+              timeout: const Duration(seconds: 90),
+            ),
+          );
+        } on FieldException catch (e) {
+          if (e.code != 'photo_exists') rethrow;
+        }
+      }
+    }
+    await store.removeReport(report);
+  }
+
+  /// Envoie les comptes rendus en attente ; renvoie ceux qui restent sur le téléphone.
+  /// Une absence de réseau arrête l'envoi sans erreur.
+  Future<List<FieldReport>> sendPendingReports() async {
+    for (final report in await store.reports()) {
+      try {
+        await sendReport(report);
+      } on SignedOutException {
+        rethrow;
+      } on FieldException catch (e) {
+        if (!e.definitive) break;
+        report.error = e.message;
+        await store.saveReport(report);
+      } on Exception {
+        break;
+      }
+    }
+    return store.reports();
+  }
+
   /// Envoie le dossier : création (une seule fois), pièces pas encore reçues, soumission.
   /// Chaque étape réussie est gardée : un envoi coupé reprend où il s'est arrêté. Renvoie
   /// le code du dossier soumis ; le brouillon est alors effacé du téléphone.
@@ -262,7 +502,7 @@ class FieldApi {
     }
     if (draft.code == null) {
       final created = _object(
-        await _check(
+        await check(
           await _http.sendJson('POST', 'dossiers-terrain', draft.fields),
         ),
       );
@@ -276,7 +516,7 @@ class FieldApi {
       }
       final bytes = await store.piece(draft, type);
       if (bytes == null) continue;
-      await _check(
+      await check(
         await _http.send(
           'POST',
           'dossiers-terrain/$code/pieces/$type',
@@ -290,7 +530,7 @@ class FieldApi {
       await store.saveDraft(draft);
     }
     final receipt = _object(
-      await _check(
+      await check(
         await _http.send('POST', 'dossiers-terrain/$code/soumission'),
       ),
     );
@@ -301,7 +541,7 @@ class FieldApi {
   Future<Fetched<Object?>?> _fetch(String path, String copy) async {
     try {
       final json = PractitionerHttp.decode(
-        await _check(await _http.send('GET', path)),
+        await check(await _http.send('GET', path)),
       );
       await store.keep(copy, json);
       return Fetched(json, fromCopy: false);
@@ -319,7 +559,8 @@ class FieldApi {
   static Map<String, dynamic> _object(http.Response response) =>
       PractitionerHttp.decode(response) as Map<String, dynamic>;
 
-  static Future<http.Response> _check(http.Response response) async {
+  /// Réponse 2xx, sinon [FieldException] (message de l'API, ou message générique).
+  static Future<http.Response> check(http.Response response) async {
     if (PractitionerHttp.ok(response)) return response;
     String? code;
     String? message;

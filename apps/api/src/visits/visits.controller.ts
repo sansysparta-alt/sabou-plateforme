@@ -33,6 +33,7 @@ import { ZoneContextError } from '../database/zone';
 import { inspectPiece, PieceTooLargeError, readLimited } from '../dossiers/piece-content';
 import { PIECE_STORAGE, type PieceStorage } from '../dossiers/piece-storage';
 import {
+  VisitClockError,
   VisitDateError,
   VisitDossierNotFoundError,
   VisitNotAllowedError,
@@ -77,6 +78,13 @@ function visitError(error: unknown): never {
       error: 'invalid_date',
       message:
         'Date refusée : une visite se planifie dans les 90 prochains jours, et se déclare réalisée entre la soumission du dossier et aujourd’hui.',
+    });
+  }
+  if (error instanceof VisitClockError) {
+    throw new UnprocessableEntityException({
+      error: 'clock',
+      message:
+        'L’heure du téléphone est en avance sur celle du serveur : réglez la date et l’heure du téléphone, puis renvoyez le compte rendu.',
     });
   }
   if (error instanceof VisitPhotoError) {
