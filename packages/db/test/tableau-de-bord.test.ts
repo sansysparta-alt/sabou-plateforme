@@ -51,14 +51,20 @@ describe('Critère 1 et 2 : Admin préfectoral (§6.4)', () => {
     const submitted = `SET LOCAL ROLE sabou_app; ${openContext(PRATICIEN)}
       SELECT dossier_transition(1, 'soumis', contexte_utilisateur()); RESET ROLE;`;
     const t = await board(PREFECTORAL_LABE, submitted);
-    const { aValider: toValidate, ...ref } = await expected(4);
+    // Référence mesurée hors de la transaction du cas (dossier non soumis) : stocks seulement
+    const ref = await expected(4);
     expect(t.profil).toBe('prefectoral');
     expect({
       enregistres: t.enregistres,
       certifies: t.certifies,
       enAttente: t.enAttente,
       recettesNumerisees: t.recettesNumerisees,
-    }).toEqual(ref);
+    }).toEqual({
+      enregistres: ref.enregistres,
+      certifies: ref.certifies,
+      enAttente: ref.enAttente,
+      recettesNumerisees: ref.recettesNumerisees,
+    });
     expect(t.enregistres).toBe(2);
     // Répartition par spécialité : tous ses praticiens, aucun autre
     const specialites = t.parSpecialite as { praticiens: number }[];
@@ -68,7 +74,7 @@ describe('Critère 1 et 2 : Admin préfectoral (§6.4)', () => {
       total: number;
       dossiers: { dossier: string; depuis: string }[];
     };
-    expect(aValider.total).toBe(toValidate);
+    expect(aValider.total).toBe((ref.aValider as number) + 1);
     expect(aValider.total).toBe(1);
     expect(aValider.dossiers[0]!.dossier).toBe('DS-1041');
     expect(aValider.dossiers[0]!.depuis).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
