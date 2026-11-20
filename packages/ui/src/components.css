@@ -1850,8 +1850,12 @@
   transform: rotate(-90deg);
 }
 .ui-ring__center {
+  /* Disque inscrit dans le trou de l'anneau, sur la couleur de surface : le texte a un fond
+     uni et mesurable (contraste) */
   position: absolute;
-  inset: 0;
+  inset: 16%;
+  border-radius: 50%;
+  background: var(--sabou-surface);
   display: flex;
   flex-direction: column;
   align-items: center;

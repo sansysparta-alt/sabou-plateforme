@@ -227,7 +227,7 @@ function Prefectoral({ data }: { data: PrefectoralIndicators | null }) {
           <Card
             headingLevel={3}
             title={`Dossiers à valider (${data.aValider.total})`}
-            actions={<More href="/verification-terrain">Vérification terrain</More>}
+            actions={<More href="/verification-terrain">Tous les dossiers à valider</More>}
           >
             <DataTable
               caption="Dossiers à valider, les plus anciens d’abord"
@@ -289,7 +289,7 @@ function Scientific({ data }: { data: ScientificIndicators | null }) {
           <Card
             headingLevel={3}
             title={`File d’expertise (${data.file.total})`}
-            actions={<More href="/traitements">Traitements</More>}
+            actions={<More href="/traitements">Toute la file d’expertise</More>}
           >
             <DataTable
               caption="Traitements à expertiser, les plus anciens d’abord"
