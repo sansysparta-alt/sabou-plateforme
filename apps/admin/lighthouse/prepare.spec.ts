@@ -142,7 +142,8 @@ test('sessions des pages mesurées par Lighthouse', async ({ browser }) => {
     {
       name: 'admin préfectoral connecté',
       cookie: await cookieHeader(prefectoralContext),
-      urls: [`${APP}/verification-terrain`],
+      // Rapport mensuel et historique des exports (US-091)
+      urls: [`${APP}/verification-terrain`, `${APP}/rapports`],
     },
     {
       name: 'admin régional connecté',

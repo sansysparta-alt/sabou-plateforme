@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Alert, Badge, Button, type BadgeTone } from '@sabou/ui';
+import { Alert, Badge, Button, ButtonLink, type BadgeTone } from '@sabou/ui';
 import type { CertificateView } from '@sabou/types';
 import { ApiError } from './accounts-api';
 import { fetchCertificate } from './certification-api';
 
 // Certificat signé, page à imprimer (US-045 ; décision du maître d'œuvre du 12 novembre 2026 :
-// données, QR et empreinte ; le PDF viendra en S9). À l'impression, seuls le certificat et
+// données, QR et empreinte) et son PDF (US-091). À l'impression, seuls le certificat et
 // ses mentions restent : bandeau, menu et boutons sont masqués (feuille « print » de @sabou/ui).
 
 const STATUS: Record<CertificateView['statut'], { label: string; tone: BadgeTone }> = {
@@ -40,6 +40,10 @@ export function CertificatePage({ numero }: { numero: string }) {
         <Button variant="primary" onClick={() => window.print()}>
           Imprimer le certificat
         </Button>
+        {/* US-091 : PDF balisé, mêmes mentions et QR signé */}
+        <ButtonLink variant="secondary" href={`/api/certificats/${certificate.numero}/pdf`}>
+          Télécharger le PDF
+        </ButtonLink>
         <a href="/approbation">Retour aux dossiers à approuver</a>
       </div>
       <header className="ui-certificate__header">

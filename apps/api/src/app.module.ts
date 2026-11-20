@@ -19,6 +19,7 @@ import { VoicesModule } from './voices/voices.module';
 import { PlantsModule } from './plants/plants.module';
 import { ReferentialsModule } from './referentials/referentials.module';
 import { RejectionsModule } from './rejections/rejections.module';
+import { ReportsModule } from './reports/reports.module';
 import { SignupModule } from './signup/signup.module';
 import { SmsModule } from './sms/sms.module';
 import { SyncModule } from './sync/sync.module';
@@ -51,6 +52,7 @@ import { VisitsModule } from './visits/visits.module';
     DisputesModule,
     // US-102 : alertes territoriales
     AlertsModule,
+    ReportsModule,
     ReferentialsModule,
     SignupModule,
     SmsModule,

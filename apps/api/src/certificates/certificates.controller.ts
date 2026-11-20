@@ -11,10 +11,11 @@ import {
   Post,
   Query,
   Req,
+  Res,
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import {
   certificateNumberSchema,
   dossierCodeSchema,
@@ -33,7 +34,12 @@ import {
   StaleDossierError,
 } from '../certification/certification.repository';
 import { ZoneContextError } from '../database/zone';
-import { CertificateNotFoundError, CertificatesRepository } from './certificates.repository';
+import { renderCertificatePdf } from './certificate-pdf';
+import {
+  CertificateNotFoundError,
+  CertificatesRepository,
+  type CertificateSource,
+} from './certificates.repository';
 import { SignerUnavailableError } from './vault-signer';
 
 type SessionRequest = Request & { session?: SessionData };
@@ -109,5 +115,35 @@ export class CertificatesController {
       }
       return approvalError(error);
     }
+  }
+
+  // PDF du certificat (US-091), même contenu que la page imprimable ; jamais mis en cache
+  @Get('certificats/:numero/pdf')
+  async certificatePdf(
+    @Param('numero') numero: string,
+    @Req() req: SessionRequest,
+    @Res() res: Response,
+  ): Promise<void> {
+    const parsed = parse(certificateNumberSchema, numero);
+    let source: CertificateSource;
+    try {
+      source = await this.repository.source(req.session!.sub, parsed);
+    } catch (error) {
+      if (error instanceof CertificateNotFoundError) {
+        throw new NotFoundException({ error: 'not_found', message: 'Certificat introuvable.' });
+      }
+      return approvalError(error);
+    }
+    const body = await renderCertificatePdf(source.view, source.qr);
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="certificat-${parsed}.pdf"`,
+        'Content-Length': String(body.length),
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      })
+      .end(body);
   }
 }

@@ -24,6 +24,12 @@ import { CERTIFICATE_SIGNER, SignerUnavailableError, type CertificateSigner } fr
 // Autorité émettrice, écrite dans les données signées du QR (R-QR-02)
 export const AUTHORITY = 'Direction générale SABOU';
 
+// Données du certificat et texte de son QR signé (null pour un certificat fictif du jeu d'exemple)
+export interface CertificateSource {
+  view: Omit<CertificateView, 'qrSvg'>;
+  qr: string | null;
+}
+
 export class CertificateNotFoundError extends Error {}
 
 // Messages des fonctions certificat_* (migration 20261113140000) ; chaque branche est
@@ -132,8 +138,9 @@ export class CertificatesRepository {
     });
   }
 
-  // Certificat à imprimer. Le praticien est cloisonné par zone (RLS) : hors zone, introuvable.
-  get(sub: string, numero: string): Promise<CertificateView> {
+  // Certificat et texte de son QR signé. Le praticien est cloisonné par zone (RLS) : hors
+  // zone, introuvable.
+  source(sub: string, numero: string): Promise<CertificateSource> {
     return inZone(this.db, sub, async (trx) => {
       const { rows } = await sql<
         Omit<CertificateView, 'autorite' | 'qrSvg'> & { qr: string | null }
@@ -154,14 +161,19 @@ export class CertificatesRepository {
       const row = rows[0];
       if (!row) throw new CertificateNotFoundError();
       const { qr, ...view } = row;
-      return {
-        ...view,
-        autorite: AUTHORITY,
-        // Correction M, comme le prototype validé (05 §2.16) ; marge de 4 modules (norme)
-        qrSvg: qr
-          ? await QRCode.toString(qr, { type: 'svg', errorCorrectionLevel: 'M', margin: 4 })
-          : null,
-      };
+      return { view: { ...view, autorite: AUTHORITY }, qr };
     });
+  }
+
+  // Certificat à imprimer (page de l'application de gestion)
+  async get(sub: string, numero: string): Promise<CertificateView> {
+    const { view, qr } = await this.source(sub, numero);
+    return {
+      ...view,
+      // Correction M, comme le prototype validé (05 §2.16) ; marge de 4 modules (norme)
+      qrSvg: qr
+        ? await QRCode.toString(qr, { type: 'svg', errorCorrectionLevel: 'M', margin: 4 })
+        : null,
+    };
   }
 }
