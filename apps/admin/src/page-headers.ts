@@ -42,6 +42,10 @@ export const PAGE_HEADERS = {
     title: 'Expertise des dossiers',
     lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
   },
+  '/alertes': {
+    title: 'Alertes territoriales',
+    lead: 'Dossiers bloqués depuis plus de 15 jours et préfectures sans praticien certifié, détectés automatiquement ; hausses de pathologie déclarées par les préfectures ou la DG. Accusez réception, relancez les responsables, closez avec un motif.',
+  },
   '/signalements': {
     title: 'Signalements',
     lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',

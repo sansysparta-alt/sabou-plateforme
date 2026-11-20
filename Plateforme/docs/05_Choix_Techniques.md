@@ -1338,3 +1338,17 @@ Règle de conflit R-DON-04 (validée le 3 novembre 2026) appliquée au Studio. D
 | Copie | Mise à jour à chaque réponse ; après chaque liste reçue, copie des listes du formulaire et du détail des traitements nouveaux ou modifiés (50 au plus, un à la fois) ; copie illisible = absente | Un traitement jamais ouvert en ligne s'ouvre quand même sans réseau ; 3G ménagée |
 | Connexion | Inchangée (§2.29) : session de 30 jours dans le magasin sécurisé, profil lu dans le jeton ; l'application s'ouvre sans réseau | Critère « connexion, puis usage hors réseau » |
 
+### 2.89 Alertes territoriales (US-102, 20 novembre 2026)
+
+Décisions du maître d'œuvre du 19 novembre 2026 : dossier bloqué (plus de 15 jours) et désert thérapeutique (préfecture sans aucun praticien certifié) automatiques ; hausse de pathologie déclarée par le préfectoral ou la DG ; relance par e-mail et dans l'application ; SMS simulés. Migration `20261120030000_alertes.sql`.
+
+| Sujet | Choix | Raison |
+|---|---|---|
+| Détection | `alertes_detecter()` (SECURITY DEFINER, toutes zones, réservée à l'API), appelée à chaque relève de la file des SMS : une alerte par dossier en cours aux étapes 2 à 5 depuis plus de 15 jours (seuil de l'entonnoir, §2.38) et par préfecture active sans praticien certifié ; une seule alerte ouverte par dossier et par préfecture (index uniques partiels) ; les alertes résolues (dossier qui avance, premier praticien certifié) se closent d'elles-mêmes | Pas de tâche planifiée de plus ; même mécanisme que les rappels de visite et les échéances des certificats |
+| Hausse de pathologie | `alerte_declarer` : le préfectoral pour sa préfecture, la DG pour toute préfecture active ; maladie du référentiel et constat écrit | Décision du MOE ; la donnée vient du terrain, pas d'un calcul sur les recherches du site (pas encore de statistiques, S9) |
+| Cloisonnement | RLS : la DG voit tout ; le régional sa région ; le préfectoral sa préfecture ; ni le Comité ni les praticiens. La table sort de la liste « pas encore cloisonnée » | Même règle que les dossiers |
+| Accusé de réception et relance | Accusé : tout administrateur qui voit l'alerte (une fois par relance). Relance : le régional ou la DG, une par jour au plus ; l'alerte passe « relancée » et les responsables (régionaux de la région ; préfectoraux de la préfecture pour un dossier bloqué à l'étape 2) reçoivent une notification « application » et un e-mail. Clôture motivée par le régional ou la DG. Tout est tracé au journal d'audit | UC-44 ; la relance quotidienne évite le harcèlement |
+| E-mail | Mis en file (`notification`, canal `email`) sans envoi : l'API n'a pas de serveur d'envoi d'e-mails, et la relève ne prend que les SMS (prouvé). **Question posée au maître d'œuvre le 20 novembre 2026** : choix du serveur SMTP (service externe) | Jamais seul pour un service externe ; rien n'est perdu, l'envoi pourra rattraper la file |
+| Écran | Gestion : « Alertes territoriales » dans « Pilotage » (régional, DG, préfectoral) ; formulaire de déclaration pour le préfectoral et la DG ; relance et clôture pour le régional et la DG | Séparation des applications (17 novembre 2026) |
+
+**Contrôles du pipeline** : `packages/db/test/alertes.test.ts` (dossier bloqué une fois, clôture automatique, déserts, déclaration, cloisonnement, accusé, relance et notifications, une relance par jour, e-mails jamais pris par la relève des SMS, clôture) ; `apps/api/src/alerts/alerts.test.ts` ; `apps/api/src/sms/sms.test.ts` (détection à chaque relève, sans bloquer les SMS) ; `apps/admin/src/AlertsPage.test.tsx`.

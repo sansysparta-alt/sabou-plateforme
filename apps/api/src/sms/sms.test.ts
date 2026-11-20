@@ -231,6 +231,7 @@ function fakeQueue(messages: QueuedSms[], outcome: SmsOutcome = 'envoyee') {
     queueVisitReminders: vi.fn(async () => 0),
     processCertificateDeadlines: vi.fn(async () => ({ expired: 0, reminders: 0 })),
     eraseHealthReportContacts: vi.fn(async () => 0),
+    detectTerritorialAlerts: vi.fn(async () => 0),
     take: vi.fn(async (limit: number) => messages.splice(0, limit)),
     async record(id, error, definitive = false) {
       recorded.push([id, error, definitive]);
@@ -375,6 +376,7 @@ describe('Envoi de la file', () => {
       queueVisitReminders: () => Promise.reject(new Error('connexion refusée')),
       processCertificateDeadlines: () => Promise.reject(new Error('connexion refusée')),
       eraseHealthReportContacts: () => Promise.reject(new Error('connexion refusée')),
+      detectTerritorialAlerts: () => Promise.reject(new Error('connexion refusée')),
       take: () => Promise.reject(new Error('connexion refusée')),
       record: vi.fn(),
     };
@@ -423,5 +425,17 @@ describe('Choix du fournisseur', () => {
     await expect(refused).rejects.toBeInstanceOf(SmsSendError);
     await expect(refused).rejects.toMatchObject({ permanent: true });
     await expect(new JournalSmsSender().send('+224669980001', 'SABOU')).resolves.toBeUndefined();
+  });
+});
+
+// US-102 : la détection des alertes passe à chaque relève, sans retenir les SMS
+describe('US-102 : détection des alertes territoriales', () => {
+  it('appelée à chaque passage ; son échec n’empêche pas l’envoi des SMS', async () => {
+    const { queue, recorded } = fakeQueue([message('1')]);
+    queue.detectTerritorialAlerts = vi.fn(() => Promise.reject(new Error('base occupée')));
+    const dispatcher = new SmsDispatcher(env, queue, { send: async () => undefined });
+    expect(await dispatcher.dispatch()).toBe(1);
+    expect(queue.detectTerritorialAlerts).toHaveBeenCalledTimes(1);
+    expect(recorded).toEqual([['1', null, false]]);
   });
 });

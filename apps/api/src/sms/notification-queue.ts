@@ -35,6 +35,9 @@ export interface NotificationQueue {
   processCertificateDeadlines(): Promise<CertificateDeadlines>;
   // US-100 : efface le contact des signalements clos depuis plus de 12 mois ; renvoie leur nombre
   eraseHealthReportContacts(): Promise<number>;
+  // US-102 : détecte les dossiers bloqués et les déserts thérapeutiques, clôt les alertes
+  // résolues ; renvoie le nombre d'alertes créées
+  detectTerritorialAlerts(): Promise<number>;
   take(limit: number): Promise<QueuedSms[]>;
   // error null : envoyé ; definitive : pas de nouvel essai
   record(id: string, error: string | null, definitive?: boolean): Promise<SmsOutcome>;
@@ -60,6 +63,12 @@ export class PgNotificationQueue implements NotificationQueue {
   async eraseHealthReportContacts(): Promise<number> {
     const { rows } = await sql<{ n: number }>`
       SELECT sabou.signalements_effacer_contacts() AS n`.execute(this.db);
+    return rows[0]?.n ?? 0;
+  }
+
+  async detectTerritorialAlerts(): Promise<number> {
+    const { rows } = await sql<{ n: number }>`
+      SELECT sabou.alertes_detecter() AS n`.execute(this.db);
     return rows[0]?.n ?? 0;
   }
 

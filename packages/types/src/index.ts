@@ -25,3 +25,4 @@ export * from './treatment-voices.js';
 export * from './treatments.js';
 export * from './annotations.js';
 export * from './health-reports.js';
+export * from './alerts.js';
