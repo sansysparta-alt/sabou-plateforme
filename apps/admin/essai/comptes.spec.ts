@@ -4,12 +4,14 @@
 // à chaque étape dans la préfecture de Kankan, puis écrit le tout dans apps/admin/.essai/
 // comptes.txt (non versionné). Base locale seulement : jamais de donnée réelle.
 import { test } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { psql } from '../e2e/audit';
 import { certifiedPractitioner, dossierAtStep, dossierAtStep2 } from '../e2e/dossiers';
 import { administrator } from '../e2e/helpers';
 import { APP } from '../e2e/keycloak';
+import { newPhone, signUpThroughApi } from '../../site/e2e-compte/helpers';
 
 test('comptes et dossiers d’essai', async () => {
   const prefectoral = await administrator('admin_prefectoral', { prefecture: 'Kankan' });
@@ -74,6 +76,28 @@ test('comptes et dossiers d’essai', async () => {
             FROM sabou.utilisateur WHERE keycloak_id = '${user.id}'`);
   }
 
+  // Sprint 8 : praticien de l'application mobile (numéro + mot de passe), certifié à Kankan
+  // puis rejeté définitivement par la DG : son recours de 30 jours est ouvert (US-101)
+  const mobilePhone = newPhone();
+  const mobilePassword = randomBytes(12).toString('base64url');
+  await signUpThroughApi(mobilePhone, 'Essai', mobilePassword, {
+    profile: 'praticien',
+    lastName: 'Mobile',
+  });
+  const mobilePractitioner = psql(`SET search_path = sabou, public;
+    INSERT INTO praticien (utilisateur_id, specialite_id, prefecture_id, langue_principale,
+                           annees_experience, statut)
+    SELECT u.id, 1, (SELECT id FROM prefecture WHERE nom = 'Kankan'), 'mal', 12, 'certifie'
+      FROM utilisateur u WHERE u.telephone = '+224${mobilePhone}'
+    RETURNING code;`)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^PR-\d+$/.test(line))!;
+  psql(`SET search_path = sabou, public;
+    SELECT praticien_rejeter(p.id, (SELECT id FROM utilisateur WHERE keycloak_id = '${dg.id}'),
+                             'fraude_documentaire', 'Essai du recours (sprint 8)')
+      FROM praticien p WHERE p.code = '${mobilePractitioner}';`);
+
   const text = [
     `Application de gestion : ${APP}`,
     'Au premier passage, Keycloak demande d’enregistrer le code dans une application',
@@ -103,6 +127,11 @@ test('comptes et dossiers d’essai', async () => {
     `  Traitement soumis (voix : résumés, atelier, contrôle)     ${treatment}`,
     '  Signalements du jeu d’exemple : SIG-00001 (grave) et SIG-00002 (faible)',
     '  Page publique de signalement : http://localhost:3000/signaler?code=REC-2042',
+    '',
+    'Sprint 8 (application mobile, adb reverse) :',
+    `  Praticien (recours ouvert)   ${mobilePhone} / ${mobilePassword}   ${mobilePractitioner}, rejeté`,
+    `  Agent préfectoral            ${prefectoral.username} : bouton « Connexion agent préfectoral »,`,
+    '                               même mot de passe et même code que sur la gestion',
     '',
   ].join('\n');
   const dir = fileURLToPath(new URL('../.essai/', import.meta.url));
