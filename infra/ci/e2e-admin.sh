@@ -39,7 +39,11 @@ fi
 if [[ "$admin_specs" != "-" ]]; then
   # Chemins relatifs à apps/admin (specs non cités entre guillemets : liste séparée par des espaces)
   # shellcheck disable=SC2086
-  pnpm --filter @sabou/admin run e2e $admin_specs
+  # DIAGNOSTIC TEMPORAIRE (branche fin-s8-pipeline seulement) : état de la page à l'échec
+  pnpm --filter @sabou/admin run e2e $admin_specs || {
+    find apps/admin/test-results -name error-context.md -exec sh -c 'echo "=== $1"; cat "$1"' _ {} \; >&2
+    exit 1
+  }
 fi
 if [[ "$lighthouse" != "0" ]]; then
   pnpm --filter @sabou/admin run lighthouse
