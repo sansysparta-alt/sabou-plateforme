@@ -201,9 +201,10 @@ function LanguagesSection({ languages, onDone }: { languages: Language[]; onDone
         Langues
       </h2>
       <div className="ui-panel-header">
-        {/* Phrase courte : l'introduction de la page (pré-générée) reste le plus grand texte
-            affiché, donc la mesure du LCP ne dépend pas du code de l'onglet (fin S7). */}
-        <p>Une langue ajoutée reste inactive jusqu’à son activation.</p>
+        <p>
+          Les langues nationales existent uniquement en voix. Une langue ajoutée reste inactive
+          jusqu’à son activation.
+        </p>
         <OnDemand label="Ajouter une langue">
           <LanguageForm onDone={onDone} />
         </OnDemand>

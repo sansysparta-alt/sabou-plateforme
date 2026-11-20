@@ -16,7 +16,7 @@ export const PAGE_HEADERS = {
   },
   '/referentiels': {
     title: 'Référentiels',
-    lead: 'Langues, territoires et spécialités de la plateforme. Les langues nationales existent uniquement en voix. Chaque modification est journalisée.',
+    lead: 'Langues, territoires et spécialités de la plateforme. Chaque modification est journalisée.',
   },
   '/dossiers-terrain': {
     title: 'Dossiers terrain',
