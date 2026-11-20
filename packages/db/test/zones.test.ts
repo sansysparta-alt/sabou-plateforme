@@ -271,7 +271,6 @@ describe('Garde-fous du schéma', () => {
     certificat: 'US-045 (lecture publique par verifier_certificat)',
     demande_plante: 'US-121',
     forum_discussion: 'US-122',
-    litige: 'US-101',
     produit: 'US-142',
     // Référentiel public des sous-préfectures, pas une donnée de zone
     sous_prefecture: 'aucun : référentiel public',
