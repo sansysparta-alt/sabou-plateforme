@@ -4,9 +4,19 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { PrefectoralIndicators, RegionalIndicators, ScientificIndicators } from '@sabou/types';
+import { ProfileDetails } from './ProfileDetails';
 import { ProfileIndicators } from './ProfileIndicators';
 
 afterEach(cleanup);
+
+// Tableau de bord chargé : tuiles et graphiques ou listes (morceau à part dans l'application)
+const board = (data: RegionalIndicators | PrefectoralIndicators | ScientificIndicators) =>
+  render(
+    <>
+      <ProfileIndicators profile={data.profil} data={data} />
+      <ProfileDetails data={data} />
+    </>,
+  );
 
 // Valeur de la tuile d'un libellé donné (espaces insécables ramenées à des espaces)
 const tile = (label: string) =>
@@ -84,7 +94,7 @@ const SCIENTIFIC: ScientificIndicators = {
 
 describe('Admin régional (§6.3)', () => {
   it('praticiens, consolidés, litiges, couverture, dossiers à consolider', () => {
-    render(<ProfileIndicators profile="regional" data={REGIONAL} />);
+    board(REGIONAL);
     expect(tile('Praticiens')).toMatch(/186/);
     expect(tile('Consolidés')).toMatch(/12.*12 derniers mois/);
     expect(tile('Litiges')).toMatch(/2/);
@@ -93,7 +103,7 @@ describe('Admin régional (§6.3)', () => {
   });
 
   it('dossiers par préfecture et alertes du jour, avec lien vers les alertes', () => {
-    render(<ProfileIndicators profile="regional" data={REGIONAL} />);
+    board(REGIONAL);
     const labe = screen.getByRole('row', { name: /Labé 4 3 9/ });
     expect(labe).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Alertes territoriales (7)' }));
@@ -107,7 +117,7 @@ describe('Admin régional (§6.3)', () => {
 
 describe('Admin préfectoral (§6.4)', () => {
   it('enregistrés, certifiés, en attente, recettes numérisées', () => {
-    render(<ProfileIndicators profile="prefectoral" data={PREFECTORAL} />);
+    board(PREFECTORAL);
     expect(tile('Enregistrés')).toMatch(/186/);
     expect(tile('Certifiés')).toMatch(/140/);
     expect(tile('En attente')).toMatch(/46/);
@@ -115,7 +125,7 @@ describe('Admin préfectoral (§6.4)', () => {
   });
 
   it('répartition par spécialité et dossiers à valider, les plus anciens d’abord', () => {
-    render(<ProfileIndicators profile="prefectoral" data={PREFECTORAL} />);
+    board(PREFECTORAL);
     const table = screen.getByRole('table', { name: 'Praticiens par spécialité' });
     expect(within(table).getByRole('row', { name: /Herboristerie/ }).textContent).toMatch(/120/);
     expect(screen.getByRole('heading', { name: 'Dossiers à valider (15)' }));
@@ -130,7 +140,7 @@ describe('Admin préfectoral (§6.4)', () => {
 
 describe('Comité scientifique (§6.5)', () => {
   it('expertisés, en attente, plantes, alertes ; top pathologies ; file d’expertise', () => {
-    render(<ProfileIndicators profile="scientifique" data={SCIENTIFIC} />);
+    board(SCIENTIFIC);
     expect(tile('Expertisés')).toMatch(/31/);
     expect(tile('En attente')).toMatch(/4/);
     expect(tile('Plantes')).toMatch(/52.*3 en revue/);
@@ -163,7 +173,7 @@ describe('Chargement et garde-fous', () => {
 
   it('aucun indicateur sans donnée (revenus, vues, écoutes)', () => {
     for (const data of [REGIONAL, PREFECTORAL, SCIENTIFIC]) {
-      const { container } = render(<ProfileIndicators profile={data.profil} data={data} />);
+      const { container } = board(data);
       expect(container.textContent).not.toMatch(/revenu|vues|écoutes|À venir/i);
       cleanup();
     }

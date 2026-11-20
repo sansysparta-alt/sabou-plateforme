@@ -201,8 +201,9 @@ describe('App', () => {
       screen.getByText('Certifiés', { selector: '.ui-stat__label' }).parentElement!.textContent,
     ).toMatch(/1\s240/);
     expect(screen.getByText('Traitements').parentElement!.textContent).toMatch(/7/);
+    // Graphiques : morceau chargé à part, en même temps que les chiffres
     expect(
-      screen.getByRole('table', { name: 'Praticiens certifiés par région' }).textContent,
+      (await screen.findByRole('table', { name: 'Praticiens certifiés par région' })).textContent,
     ).toMatch(/Kindia.*640.*Labé.*600/);
     expect(screen.getByRole('heading', { name: 'Statut du registre' }));
     // Activité récente : heure de Conakry, libellé en clair
@@ -225,7 +226,7 @@ describe('App', () => {
     expect(screen.getByText('SMS non remis', { selector: 'p' }).parentElement!.textContent).toMatch(
       /2.*Après 4 essais/,
     );
-    expect(screen.getByRole('heading', { level: 2, name: 'SMS non remis' }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'SMS non remis' }));
     const row = screen.getByRole('row', { name: /DS-2011/ });
     expect(row.textContent).toMatch(/08:15.*Sékou Kourouma.*Aucun numéro de téléphone/);
   });

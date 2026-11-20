@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react';
-import type { DashboardDecision, DashboardEvent, DashboardSummary, SmsFailure } from '@sabou/types';
+import { useEffect, useState, type ComponentType } from 'react';
+import type {
+  AdminIndicators,
+  DashboardDecision,
+  DashboardEvent,
+  DashboardSummary,
+  SmsFailure,
+} from '@sabou/types';
 import { Alert, Badge, ButtonLink, Card, DataTable, PageHeader, type Column } from '@sabou/ui';
 import { ApiError, call } from './accounts-api';
 import { ExportButtons } from './ExportButtons';
@@ -83,10 +89,15 @@ export function Dashboard({
   const canRead = user.administrator && user.secondFactor;
   const profile = indicatorProfile(user);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
+  // Graphiques et listes du profil : morceau à part, demandé en même temps que les chiffres
+  const [Details, setDetails] = useState<ComponentType<{ data: AdminIndicators }> | null>(null);
 
   useEffect(() => {
     if (!canRead) return;
     let active = true;
+    if (profile) {
+      void import('./ProfileDetails').then((m) => active && setDetails(() => m.ProfileDetails));
+    }
     fetchDashboard().then(
       (data) => active && setLoad({ status: 'ready', data }),
       (error: Error) => active && setLoad({ status: 'error', message: errorMessage(error) }),
@@ -94,9 +105,12 @@ export function Dashboard({
     return () => {
       active = false;
     };
-  }, [canRead]);
+  }, [canRead, profile]);
 
   const data = load.status === 'ready' ? load.data : null;
+  // Graphiques, listes et activité apparaissent ensemble, une fois chiffres et morceau arrivés :
+  // un seul ajout sous les tuiles, aucun bloc ne se décale ensuite (CLS)
+  const ready = data !== null && (profile === null || Details !== null) ? data : null;
   const zone = data ? ` · ${data.zone}` : '';
 
   return (
@@ -176,23 +190,26 @@ export function Dashboard({
               />
             )
           )}
+          {ready && Details && ready.indicateurs.profil === profile && (
+            <Details data={ready.indicateurs} />
+          )}
         </section>
       )}
       {/* En dernier : sa hauteur dépend des données, elle ne pousse donc aucun autre bloc */}
-      {data && (
+      {ready && (
         <section className="ui-section" aria-labelledby="activite">
           <h2 id="activite">Activité récente</h2>
           <DataTable
             caption="Dernières étapes des dossiers de la zone"
             captionHidden
             columns={ACTIVITY_COLUMNS}
-            rows={data.activite}
+            rows={ready.activite}
             rowKey={(e) => `${e.dossier}-${e.le}-${e.decision}`}
             empty="Aucun dossier n’a encore changé d’étape dans votre zone."
           />
         </section>
       )}
-      {isDirector(user) && data?.smsNonRemis && data.smsNonRemis.total > 0 && (
+      {ready && isDirector(user) && ready.smsNonRemis && ready.smsNonRemis.total > 0 && (
         <section className="ui-section" aria-labelledby="sms-non-remis">
           <h2 id="sms-non-remis">SMS non remis</h2>
           <p>
@@ -203,7 +220,7 @@ export function Dashboard({
             caption="Derniers SMS non remis"
             captionHidden
             columns={SMS_FAILURE_COLUMNS}
-            rows={data.smsNonRemis.derniers}
+            rows={ready.smsNonRemis.derniers}
             rowKey={(f) => `${f.objet}-${f.le}`}
             paginate={{ key: 'sms-non-remis', noun: ['SMS', 'SMS'] }}
             empty=""
