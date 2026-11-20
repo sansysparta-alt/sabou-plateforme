@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type {
   ExportEntry,
   MonthlyReport,
@@ -75,27 +75,32 @@ export function ReportsPage({ role }: { role: ReportsRole }) {
   const [status, setStatus] = useState<string>();
   const [error, setError] = useState<string>();
 
-  const reload = useCallback(async () => {
-    try {
-      // Même lecture pour tous les profils (préchargée au démarrage, US-017) ; pour le Comité,
-      // les listes sont vides
-      const [reports, history] = await Promise.all([fetchReports(), fetchExports()]);
-      setList(reports);
-      setExports(history);
-      setError(undefined);
-    } catch (failure) {
-      setError(errorMessage(failure));
-    }
-  }, [role]);
+  // Relecture des listes : incrémenter ce compteur
+  const [listVersion, setListVersion] = useState(0);
+  const reload = () => setListVersion((n) => n + 1);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let active = true;
+    // Même lecture pour tous les profils (préchargée au démarrage, US-017) ; pour le Comité,
+    // les listes sont vides
+    Promise.all([fetchReports(), fetchExports()]).then(
+      ([reports, history]) => {
+        if (!active) return;
+        setList(reports);
+        setExports(history);
+        setError(undefined);
+      },
+      (failure: unknown) => active && setError(errorMessage(failure)),
+    );
+    return () => {
+      active = false;
+    };
+  }, [listVersion]);
 
   const done = (text: string) => {
     setStatus(text);
     setRevision((n) => n + 1);
-    void reload();
+    reload();
   };
 
   const header = PAGE_HEADERS['/rapports'];
@@ -112,7 +117,7 @@ export function ReportsPage({ role }: { role: ReportsRole }) {
           role={role}
           onPrepared={(id) => {
             setSelected(id);
-            void reload();
+            reload();
           }}
         />
       )}
@@ -283,17 +288,19 @@ function ReportDetail({
   const [error, setError] = useState<string>();
   const heading = useRef<HTMLHeadingElement>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setReport(await fetchReport(id));
-    } catch (failure) {
-      setError(errorMessage(failure));
-    }
-  }, [id]);
+  // Relecture du rapport (après l'enregistrement du commentaire) : incrémenter ce compteur
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    fetchReport(id).then(
+      (data) => active && setReport(data),
+      (failure: unknown) => active && setError(errorMessage(failure)),
+    );
+    return () => {
+      active = false;
+    };
+  }, [id, version]);
 
   // Le détail s'ouvre sous les listes : le focus y est porté pour le clavier et les lecteurs
   useEffect(() => {
@@ -337,7 +344,7 @@ function ReportDetail({
           <CommentForm
             report={report}
             recipient={recipient}
-            onSaved={() => void load()}
+            onSaved={() => setVersion((n) => n + 1)}
             onSent={() => onDone(`Rapport de ${monthLabel(report.mois)} envoyé à ${recipient}.`)}
           />
         ) : (
