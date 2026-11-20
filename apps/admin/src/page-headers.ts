@@ -46,6 +46,10 @@ export const PAGE_HEADERS = {
     title: 'Litiges et recours',
     lead: 'Litiges ouverts par les praticiens, avec leurs pièces et les échanges. Le régional arbitre les litiges et rend un avis motivé sur les recours après un rejet définitif ; la DG décide des recours. Chaque décision est motivée et notifiée au praticien.',
   },
+  '/alertes': {
+    title: 'Alertes territoriales',
+    lead: 'Dossiers bloqués depuis plus de 15 jours et préfectures sans praticien certifié, détectés automatiquement ; hausses de pathologie déclarées par les préfectures ou la DG. Accusez réception, relancez les responsables, closez avec un motif.',
+  },
   '/signalements': {
     title: 'Signalements',
     lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',

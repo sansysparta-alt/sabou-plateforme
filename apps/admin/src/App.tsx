@@ -35,6 +35,8 @@ const loaders = {
   healthReports: () => import('./HealthReportsPage'),
   // US-101 : litiges et recours
   disputes: () => import('./DisputesPage'),
+  // US-102 : alertes territoriales
+  alerts: () => import('./AlertsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -91,6 +93,16 @@ const RegionalDisputesPage = lazy(() =>
 const DirectorDisputesPage = lazy(() =>
   loaders.disputes().then((m) => ({ default: m.DirectorDisputesPage })),
 );
+// US-102 : alertes territoriales, selon le profil
+const RegionalAlertsPage = lazy(() =>
+  loaders.alerts().then((m) => ({ default: m.RegionalAlertsPage })),
+);
+const DirectorAlertsPage = lazy(() =>
+  loaders.alerts().then((m) => ({ default: m.DirectorAlertsPage })),
+);
+const PrefectoralAlertsPage = lazy(() =>
+  loaders.alerts().then((m) => ({ default: m.PrefectoralAlertsPage })),
+);
 // US-100 : signalements et traitements suspendus (Comité scientifique)
 const HealthReportsPage = lazy(() =>
   loaders.healthReports().then((m) => ({ default: m.HealthReportsPage })),
@@ -131,6 +143,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/signalements': loaders.healthReports,
   '/traitements-suspendus': loaders.healthReports,
   '/litiges': loaders.disputes,
+  '/alertes': loaders.alerts,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -158,6 +171,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/signalements': [() => firstQueuePagePath(QUEUES.healthReports)],
   '/traitements-suspendus': ['/api/signalements/suspendus'],
   '/litiges': [() => firstQueuePagePath(QUEUES.disputes)],
+  '/alertes': ['/api/alertes'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -384,7 +398,16 @@ function PublicLayout({ children }: { children: ReactNode }) {
 // Navigation selon le rôle ; l'API refuse aussi les pages de gestion aux autres profils
 function navigation(user: SessionUser): NavGroup[] {
   const groups: NavGroup[] = [
-    { heading: 'Pilotage', items: [{ href: '/', label: 'Tableau de bord', icon: 'dashboard' }] },
+    {
+      heading: 'Pilotage',
+      items: [
+        { href: '/', label: 'Tableau de bord', icon: 'dashboard' },
+        // US-102 : alertes territoriales (pas pour le Comité scientifique)
+        ...(isCommittee(user)
+          ? []
+          : [{ href: '/alertes', label: 'Alertes territoriales', icon: 'warning' as const }]),
+      ],
+    },
   ];
   if (isPrefectoral(user)) {
     groups.push({
@@ -506,6 +529,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/traitements': TreatmentsPage,
   '/rejet-definitif': RejectionPage,
   '/litiges': DirectorDisputesPage,
+  '/alertes': DirectorAlertsPage,
   '/couverture-vocale': VoiceCoveragePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
@@ -518,11 +542,13 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/verification-terrain': FieldVerificationPage,
   '/dossiers-terrain': FieldDossierPage,
   '/resumes-traductions': TreatmentVoicesPage,
+  '/alertes': PrefectoralAlertsPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/consolidation': ConsolidationPage,
+  '/alertes': RegionalAlertsPage,
   '/agents-verification': VerifierDesignationPage,
   '/litiges': RegionalDisputesPage,
   '/traitements': TreatmentsPage,
