@@ -34,7 +34,7 @@ services:
       start_period: 10s
 
   keycloak:
-    image: quay.io/keycloak/keycloak@sha256:7e66a96e4739239070aeaf72e4c5decf0f7f682cfc725b9f7ea2b336eaba38b3 # 26.8.2 (CVE-2026-114938 corrigée, 20/11/2026)
+    image: quay.io/keycloak/keycloak@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332 # 26.8.1
     # Mode développement (HTTP) ; la base reste PostgreSQL, comme en production.
     # Les domaines « sabou » (administration, US-010) et « sabou-public » (citoyens, lot D)
     # ne sont importés qu'au premier démarrage : après une modification de leur fichier,
