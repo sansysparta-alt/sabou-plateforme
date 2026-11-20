@@ -196,6 +196,7 @@ Risque : la LTS a quelques jours ; les versions de Node acceptées par un outil 
 | Faille | Image et fichier | Justification | Expire le |
 |---|---|---|---|
 | CVE-2025-68121 (Go, `crypto/tls`) | `postgis/postgis` 17-3.6, `usr/local/bin/gosu` | `gosu` ne fait que changer d'utilisateur au démarrage et n'ouvre aucune connexion TLS : faille non atteignable. Aucune image PostGIS corrigée en novembre 2026 | 1er février 2027 |
+| CVE-2026-114938 (Java, critique) | `quay.io/keycloak/keycloak` 26.8.1, paquet `java-21-openjdk-headless` 21.0.13.0.9 | Le correctif (Keycloak 26.8.2) casse les comptes de service : l'API d'administration répond 401 à tout jeton `client_credentials`, donc plus de vérification du second facteur (reproduit le 20 novembre 2026, #99). Exception provisoire en attendant Keycloak 26.8.3 ; environnement local sans donnée réelle. Validée par le maître d'œuvre le 20 novembre 2026 | 15 décembre 2026 |
 
 ### 2.15 Migrations de la base (décision de novembre 2026, récit US-003)
 
