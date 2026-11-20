@@ -13,3 +13,14 @@ vulnerabilities:
       TLS de la bibliothèque standard Go (crypto/tls). gosu ne sert qu'à changer d'utilisateur au
       démarrage du conteneur et n'ouvre aucune connexion TLS : faille non atteignable. Aucune
       image PostGIS corrigée n'existe en novembre 2026. Validée par le maître d'œuvre (US-002).
+  - id: CVE-2026-114938
+    purls:
+      - pkg:rpm/redhat/java-21-openjdk-headless@21.0.13.0.9-1.2.el9?arch=x86_64&distro=redhat-9.8&epoch=1
+    expired_at: 2026-12-15
+    statement: >-
+      Image quay.io/keycloak/keycloak 26.8.1 (environnement local). Le correctif publié dans
+      Keycloak 26.8.2 casse les comptes de service : l'API d'administration de Keycloak répond
+      401 à tout jeton client_credentials, ce qui empêche l'API de vérifier le second facteur
+      (reproduit le 20 novembre 2026, voir #99). Exception provisoire, limitée à ce paquet de
+      cette image, en attendant une version corrigée de Keycloak (26.8.3) ; aucune donnée réelle
+      avant l'hébergement souverain. Validée par le maître d'œuvre le 20 novembre 2026.
