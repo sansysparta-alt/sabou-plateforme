@@ -35,6 +35,25 @@ function translate(error: unknown): never {
   throw error;
 }
 
+// Fait signer les données d'un certificat par le coffre (US-045) et contre-vérifie le QR avec
+// la clé publique annoncée : il doit être vert pour le vérificateur du site. Partagé avec le
+// recours accepté (US-101), qui émet un nouveau certificat.
+export async function signCertificate(signer: CertificateSigner, data: CertificateData) {
+  const key = await signer.currentKey();
+  const kid = keyIdFor(key.publicKey);
+  const x = Buffer.from(key.publicKey).toString('base64url');
+  const signed = await signCertificateQrWith(data, kid, (input) => signer.sign(input, key.version));
+  const verdict = verifyCertificateQr(
+    signed.qr,
+    [{ kty: 'OKP', crv: 'Ed25519', kid, x }],
+    new Date(`${data.issuedOn}T12:00:00Z`),
+  );
+  if (verdict.color !== 'vert') {
+    throw new SignerUnavailableError('Signature du coffre invalide pour sa clé publique');
+  }
+  return { signed, kid, x };
+}
+
 @Injectable()
 export class CertificatesRepository {
   constructor(
@@ -101,22 +120,7 @@ export class CertificatesRepository {
         authority: AUTHORITY,
       };
 
-      const key = await this.signer.currentKey();
-      const kid = keyIdFor(key.publicKey);
-      const x = Buffer.from(key.publicKey).toString('base64url');
-      const signed = await signCertificateQrWith(data, kid, (input) =>
-        this.signer.sign(input, key.version),
-      );
-      // Contre-vérification avant d'enregistrer : le QR doit être vert pour le vérificateur
-      // du site, avec la clé publique annoncée par le coffre
-      const verdict = verifyCertificateQr(
-        signed.qr,
-        [{ kty: 'OKP', crv: 'Ed25519', kid, x }],
-        new Date(`${emis}T12:00:00Z`),
-      );
-      if (verdict.color !== 'vert') {
-        throw new SignerUnavailableError('Signature du coffre invalide pour sa clé publique');
-      }
+      const { signed, kid, x } = await signCertificate(this.signer, data);
 
       const result = await sql<{ etape: number }>`
         SELECT sabou.certificat_emettre(${dossier.id}, sabou.contexte_utilisateur(), ${numero},

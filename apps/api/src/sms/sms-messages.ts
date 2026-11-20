@@ -48,6 +48,8 @@ export interface QueuedMessage {
     recoursJusquau?: string;
     // Échéance du certificat (US-049), 2027-01-14
     expireLe?: string;
+    // Décision d'un litige (US-101)
+    issue?: string;
   };
 }
 
@@ -165,6 +167,23 @@ export function notificationText({ modele, objet, parametres }: QueuedMessage): 
       const date = calendarDate(parametres.expireLe);
       return date && /^SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3}$/.test(objet)
         ? `SABOU : votre certificat ${objet} expire le ${date}. Renouvelez-le dans votre espace SABOU pour rester dans l'annuaire.`
+        : null;
+    }
+    // US-101 : réponse de l'administration dans un litige, puis décision motivée (le motif
+    // se lit dans l'espace du praticien)
+    case 'litige.message':
+      return /^(LT-\d{5}|L-\d{3})$/.test(objet)
+        ? `SABOU : nouvelle réponse dans votre litige ${objet}. Lisez-la dans votre espace SABOU.`
+        : null;
+    case 'litige.decide': {
+      const issue =
+        parametres.issue === 'accepte'
+          ? 'accepté'
+          : parametres.issue === 'refuse'
+            ? 'refusé'
+            : null;
+      return issue && /^(LT-\d{5}|L-\d{3})$/.test(objet)
+        ? `SABOU : votre litige ${objet} est ${issue}. La décision motivée est dans votre espace SABOU.`
         : null;
     }
     case 'dossier.publie':

@@ -42,6 +42,10 @@ export const PAGE_HEADERS = {
     title: 'Expertise des dossiers',
     lead: 'Dossiers consolidés par les régions, en attente de l’avis du Comité scientifique. Délai cible : 3 jours par dossier.',
   },
+  '/litiges': {
+    title: 'Litiges et recours',
+    lead: 'Litiges ouverts par les praticiens, avec leurs pièces et les échanges. Le régional arbitre les litiges et rend un avis motivé sur les recours après un rejet définitif ; la DG décide des recours. Chaque décision est motivée et notifiée au praticien.',
+  },
   '/signalements': {
     title: 'Signalements',
     lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',

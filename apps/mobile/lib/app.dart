@@ -8,6 +8,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'disputes/disputes_api.dart';
+import 'disputes/disputes_pages.dart';
 import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/practitioner_pages.dart';
@@ -25,6 +27,7 @@ List<Rubric> appRubrics({
   Future<Uint8List> Function(Uint8List) prepare = preparePhotoInBackground,
   VoiceTools? voiceTools,
   StudioStore? studioStore,
+  DisputesApi? disputesApi,
 }) => [
   Rubric(
     id: 'dossier',
@@ -53,4 +56,19 @@ List<Rubric> appRubrics({
       store: studioStore,
     ),
   ),
+  // US-101 : litiges et recours de 30 jours après un rejet définitif
+  if (disputesApi != null)
+    Rubric(
+      id: 'litiges',
+      label: 'Litiges',
+      icon: Icons.gavel_outlined,
+      selectedIcon: Icons.gavel,
+      profiles: const {SabouProfile.practitioner},
+      builder: (context, rubric) => DisputesPage(
+        api: disputesApi,
+        picker: picker,
+        prepare: prepare,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
 ];
