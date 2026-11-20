@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { DossiersModule } from './dossiers/dossiers.module';
 import { FieldDossiersModule } from './field-dossiers/field-dossiers.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { AlertsModule } from './alerts/alerts.module';
 import { HealthReportsModule } from './health-reports/health-reports.module';
 import { HealthController } from './health/health.controller';
 import { AccountsModule } from './accounts/accounts.module';
@@ -48,6 +49,8 @@ import { VisitsModule } from './visits/visits.module';
     HealthReportsModule,
     // US-101 : litiges et recours
     DisputesModule,
+    // US-102 : alertes territoriales
+    AlertsModule,
     ReferentialsModule,
     SignupModule,
     SmsModule,

@@ -77,12 +77,23 @@ export class SmsDispatcher implements OnApplicationBootstrap, OnApplicationShutd
     }
   }
 
+  // US-102 : détection des alertes territoriales ; une erreur ne retient pas les SMS
+  private async detectTerritorialAlerts(): Promise<void> {
+    try {
+      const created = await this.queue.detectTerritorialAlerts();
+      if (created > 0) this.logger.log(`${created} alerte(s) territoriale(s) créée(s)`);
+    } catch (error: unknown) {
+      this.logger.error(`Alertes territoriales non détectées : ${(error as Error).message}`);
+    }
+  }
+
   private async dispatchOnce(): Promise<number> {
     // Échéances des certificats (US-049) : tâche quotidienne de fait, puisqu'elle n'agit
     // qu'une fois par certificat ; à chaque passage, elle rattrape un arrêt de l'API. Une
     // erreur ici est journalisée sans retenir les SMS déjà en file.
     await this.processCertificateDeadlines();
     await this.eraseHealthReportContacts();
+    await this.detectTerritorialAlerts();
     // Rappels de visite (US-041) : mis en file avant la relève, ils partent dans ce passage
     await this.queue.queueVisitReminders();
     const messages = await this.queue.take(BATCH_SIZE);

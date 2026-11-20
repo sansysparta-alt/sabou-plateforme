@@ -266,7 +266,6 @@ describe('Garde-fous du schéma', () => {
   // récit. Retirer la ligne quand le RLS est activé (le test l'exige).
   const notYetPartitioned: Record<string, string> = {
     abonnement: 'US-141 (GOLD)',
-    alerte_territoriale: 'US-102',
     attestation: 'US-143 (formation)',
     certificat: 'US-045 (lecture publique par verifier_certificat)',
     demande_plante: 'US-121',
@@ -303,6 +302,8 @@ describe('Garde-fous du schéma', () => {
         WHERE p.prosecdef ORDER BY 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      // US-102 : détection des alertes, toutes zones, réservée à l'API (05 §2.89)
+      'alertes_detecter',
       // US-064 : annotations du seul Comité, jamais modifiées (05 §2.54)
       'annotation_ajouter',
       // US-049 : échéances des certificats, toutes zones, réservée à l'API (05 §2.37)

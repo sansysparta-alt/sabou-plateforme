@@ -927,6 +927,8 @@ Critères d’acceptation :
 - Alertes : hausse de pathologie, désert thérapeutique, dossier bloqué.
 - Accusé de réception et relance.
 
+Décisions du maître d'œuvre (19 novembre 2026) : dossier bloqué et désert thérapeutique automatiques, hausse de pathologie déclarée par le préfectoral ou la DG, relance par e-mail et dans l'application (voir 05 §2.89). L'envoi réel des e-mails attend le choix du serveur SMTP (question du 20 novembre 2026).
+
 ### Sprint 9 — Chaque profil dispose de son tableau de bord et de ses rapports.
 
 #### US-090 · Un tableau de bord adapté à mon profil
