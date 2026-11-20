@@ -36,10 +36,19 @@ const committee: SessionUser = {
 };
 const SUMMARY: DashboardSummary = {
   zone: 'Labé',
-  praticiens: 1240,
-  dossiersSoumis: 7,
-  comptes: 3,
-  specialites: 8,
+  praticiens: 1300,
+  indicateurs: {
+    profil: 'dg',
+    certifies: 1240,
+    traitements: 7,
+    plantes: 52,
+    certificats: 1180,
+    parRegion: [
+      { region: 'Kindia', certifies: 640 },
+      { region: 'Labé', certifies: 600 },
+    ],
+    registre: { enAttente: 50, certifies: 1240, suspendus: 6, rejetes: 4 },
+  },
   activite: [
     {
       dossier: 'DS-2018',
@@ -187,8 +196,15 @@ describe('App', () => {
     );
     expect(within(nav).getByRole('link', { name: 'Référentiels' }));
     expect(await screen.findByText('Direction Générale · Labé'));
-    expect(screen.getByText('1 240'));
-    expect(screen.getByText('Dossiers soumis').parentElement!.textContent).toMatch(/7/);
+    // Indicateurs de la DG (US-090) : chiffres clés, certifiés par région, statut du registre
+    expect(
+      screen.getByText('Certifiés', { selector: '.ui-stat__label' }).parentElement!.textContent,
+    ).toMatch(/1\s240/);
+    expect(screen.getByText('Traitements').parentElement!.textContent).toMatch(/7/);
+    expect(
+      screen.getByRole('table', { name: 'Praticiens certifiés par région' }).textContent,
+    ).toMatch(/Kindia.*640.*Labé.*600/);
+    expect(screen.getByRole('heading', { name: 'Statut du registre' }));
     // Activité récente : heure de Conakry, libellé en clair
     const row = screen.getByRole('row', { name: /DS-2018/ });
     expect(row.textContent).toMatch(/Mariama Diallo.*Dossier soumis.*2 sur 6/);

@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { DashboardDecision, DashboardEvent, DashboardSummary, SmsFailure } from '@sabou/types';
-import {
-  Alert,
-  Badge,
-  ButtonLink,
-  Card,
-  DataTable,
-  PageHeader,
-  StatCard,
-  type Column,
-} from '@sabou/ui';
+import { Alert, Badge, ButtonLink, Card, DataTable, PageHeader, type Column } from '@sabou/ui';
 import { ApiError, call } from './accounts-api';
-import { isDirector, profileLabel, type SessionUser } from './session';
+import { ProfileIndicators, type IndicatorProfile } from './ProfileIndicators';
+import {
+  isCommittee,
+  isDirector,
+  isPrefectoral,
+  isRegional,
+  profileLabel,
+  type SessionUser,
+} from './session';
 
-// Tableau de bord d'accueil (US-016) : chiffres de la zone, activité récente, fonctions à venir
+// Tableau de bord d'accueil (US-016, US-090) : indicateurs du profil dans sa zone (CdC §6.2 à
+// §6.5), activité récente ; SMS non remis pour la DG
 
 export const fetchDashboard = () => call<DashboardSummary>('/api/tableau-de-bord');
 
@@ -48,8 +48,15 @@ const SMS_FAILURE_COLUMNS: Column<SmsFailure>[] = [
   { key: 'raison', header: 'Raison', render: (f) => f.raison },
 ];
 
-// Valeur affichée pendant le chargement des chiffres (lue « points de suspension »)
-const PENDING = '…';
+// Profil dont les indicateurs sont attendus, connu dès la session : la grille s'affiche avant
+// l'arrivée des chiffres (rien ne se décale, CLS)
+function indicatorProfile(user: SessionUser): IndicatorProfile | null {
+  if (isDirector(user)) return 'dg';
+  if (isRegional(user)) return 'regional';
+  if (isPrefectoral(user)) return 'prefectoral';
+  if (isCommittee(user)) return 'scientifique';
+  return null;
+}
 
 // Refus de l'API (compte sans zone active en base) : message en clair, jamais celui de l'API
 function errorMessage(error: Error): string {
@@ -73,6 +80,7 @@ export function Dashboard({
 }) {
   // Les chiffres sont réservés aux administrateurs connectés avec leur second facteur
   const canRead = user.administrator && user.secondFactor;
+  const profile = indicatorProfile(user);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
 
   useEffect(() => {
@@ -141,38 +149,24 @@ export function Dashboard({
           {load.status === 'error' ? (
             <Alert tone="error">{load.message}</Alert>
           ) : (
-            // Grille affichée dès le départ, valeurs « … » en attendant : rien ne se décale à
-            // l'arrivée des chiffres (CLS mesuré par Lighthouse)
-            <div className="ui-grid ui-grid--stats">
-              <StatCard
-                label="Praticiens"
-                value={data?.praticiens ?? PENDING}
-                detail="Inscrits dans la zone"
+            profile && (
+              <ProfileIndicators
+                profile={profile}
+                data={data?.indicateurs ?? null}
+                // Tuile présente dès le départ pour la DG : rien ne se décale (CLS)
+                extra={
+                  isDirector(user)
+                    ? [
+                        {
+                          label: 'SMS non remis',
+                          value: data?.smsNonRemis?.total,
+                          detail: 'Après 4 essais d’envoi',
+                        },
+                      ]
+                    : []
+                }
               />
-              <StatCard
-                label="Dossiers soumis"
-                value={data?.dossiersSoumis ?? PENDING}
-                detail="En cours de certification"
-              />
-              <StatCard
-                label="Comptes"
-                value={data?.comptes ?? PENDING}
-                detail="Administrateurs actifs de la zone"
-              />
-              <StatCard
-                label="Spécialités"
-                value={data?.specialites ?? PENDING}
-                detail="Référentiel de la DG"
-              />
-              {/* Carte présente dès le départ pour la DG : rien ne se décale (CLS) */}
-              {isDirector(user) && (
-                <StatCard
-                  label="SMS non remis"
-                  value={data?.smsNonRemis?.total ?? PENDING}
-                  detail="Après 4 essais d’envoi"
-                />
-              )}
-            </div>
+            )
           )}
         </section>
       )}

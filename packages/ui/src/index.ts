@@ -8,6 +8,15 @@ export { TextField, SelectField, TextAreaField } from './Field';
 export { Card, StatCard, Badge, type CardProps, type StatCardProps, type BadgeTone } from './Card';
 export { DataTable, type Column, type DataTableProps } from './Table';
 export {
+  BarList,
+  StatusRing,
+  type BarListProps,
+  type BarListRow,
+  type RingSegment,
+  type RingTone,
+  type StatusRingProps,
+} from './Chart';
+export {
   Pagination,
   PAGE_SIZES,
   pageNumbers,
