@@ -425,3 +425,23 @@ describe('Choix du fournisseur', () => {
     await expect(new JournalSmsSender().send('+224669980001', 'SABOU')).resolves.toBeUndefined();
   });
 });
+
+// US-101 : réponse dans un litige et décision motivée, sans le motif (lu dans l'espace)
+describe('US-101 : SMS des litiges', () => {
+  it.each([
+    ['litige.message', {}],
+    ['litige.decide', { issue: 'accepte' }],
+    ['litige.decide', { issue: 'refuse' }],
+  ])('%s %o tient en un SMS GSM 7 bits', (modele, parametres) => {
+    const text = notificationText({ modele, objet: 'LT-00001', parametres });
+    expect(text).toMatch(/^SABOU : .*LT-00001/);
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+
+  it('décision sans issue connue, ou code de litige mal formé : aucun SMS', () => {
+    expect(notificationText({ modele: 'litige.decide', objet: 'LT-00001', parametres: {} })).toBe(
+      null,
+    );
+    expect(notificationText({ modele: 'litige.message', objet: 'X', parametres: {} })).toBe(null);
+  });
+});

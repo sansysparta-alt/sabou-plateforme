@@ -1777,3 +1777,20 @@
     align-items: start;
   }
 }
+
+/* Échanges d'un litige (US-101) : messages dans l'ordre, l'auteur et l'heure au-dessus */
+.ui-thread {
+  display: grid;
+  gap: var(--sabou-space-3);
+  margin: 0 0 var(--sabou-space-4);
+  padding: 0;
+  list-style: none;
+}
+.ui-thread > li + li {
+  padding-block-start: var(--sabou-space-3);
+  border-block-start: 1px solid var(--sabou-border);
+}
+.ui-thread__meta {
+  margin: 0 0 var(--sabou-space-1);
+  color: var(--sabou-text-muted);
+}

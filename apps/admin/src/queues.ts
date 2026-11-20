@@ -14,6 +14,8 @@ export const QUEUES = {
   treatments: '/api/traitements/a-decider',
   // US-100 : signalements ouverts, graves en tête (Comité scientifique)
   healthReports: '/api/signalements/a-traiter',
+  // US-101 : litiges non résolus de la zone ; recours pour la DG
+  disputes: '/api/litiges/a-arbitrer',
 } as const;
 export type QueuePath = (typeof QUEUES)[keyof typeof QUEUES];
 

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app.dart';
 import 'dev/prototypes.dart';
+import 'disputes/disputes_api.dart';
 import 'dossier/config.dart';
 import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
@@ -94,6 +95,10 @@ class _SabouAppState extends State<SabouApp> {
         throw Exception('Aucune application pour $url');
       }
     },
+    disputesApi: DisputesApi(
+      baseUrl: Uri.parse(practitionerApiUrl),
+      session: session,
+    ),
   );
 
   // US-082 : Studio du praticien choisi par l'agent, avec sa copie et son coffre à part
