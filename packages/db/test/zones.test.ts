@@ -270,7 +270,6 @@ describe('Garde-fous du schéma', () => {
     certificat: 'US-045 (lecture publique par verifier_certificat)',
     demande_plante: 'US-121',
     forum_discussion: 'US-122',
-    litige: 'US-101',
     produit: 'US-142',
     // Référentiel public des sous-préfectures, pas une donnée de zone
     sous_prefecture: 'aucun : référentiel public',
@@ -339,6 +338,8 @@ describe('Garde-fous du schéma', () => {
       'signalement_decider',
       'signalement_deposer',
       'signalements_effacer_contacts',
+      // US-082 : praticien du Studio (le sien, ou celui que numérise l'agent), pour les lectures
+      'studio_praticien_id',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',

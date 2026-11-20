@@ -249,6 +249,11 @@ class _TreatmentTile extends StatelessWidget {
               const SizedBox(height: SabouSpace.s1),
               Text(waiting),
             ],
+            // US-082 : mention de la numérisation sur le terrain, vue aussi par le praticien
+            if (item.fieldEntry) ...[
+              const SizedBox(height: SabouSpace.s1),
+              const Text('Saisie sur le terrain par l’agent préfectoral.'),
+            ],
             if (this.waiting) ...[
               const SizedBox(height: SabouSpace.s1),
               const Text('Gardé sur le téléphone : envoi au retour du réseau.'),

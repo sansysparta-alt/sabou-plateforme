@@ -8,6 +8,10 @@ import type { Database } from './database';
 
 export type ZoneTrx = Transaction<never>;
 
+// Compte connecté (identifiant Keycloak) ; pour l'agent préfectoral qui numérise une recette
+// (US-082), avec le code du praticien visé, transmis à la base pour la transaction seulement
+export type ZoneSubject = string | { sub: string; onBehalfOf: string };
+
 // Le compte n'existe pas, n'est pas actif, ou son identifiant n'est pas un UUID
 export class ZoneContextError extends Error {
   constructor() {
@@ -20,9 +24,11 @@ const INSUFFICIENT_PRIVILEGE = '42501';
 
 export async function inZone<T>(
   db: Database,
-  keycloakId: string,
+  subject: ZoneSubject,
   work: (trx: ZoneTrx) => Promise<T>,
 ): Promise<T> {
+  const keycloakId = typeof subject === 'string' ? subject : subject.sub;
+  const onBehalfOf = typeof subject === 'string' ? null : subject.onBehalfOf;
   if (!UUID.test(keycloakId)) throw new ZoneContextError();
   return db.transaction().execute(async (trx) => {
     try {
@@ -31,6 +37,13 @@ export async function inZone<T>(
       if ((error as { code?: string }).code === INSUFFICIENT_PRIVILEGE)
         throw new ZoneContextError();
       throw error;
+    }
+    // Paramètre local à la transaction : studio_praticien() vérifie que l'agent est le
+    // préfectoral de ce praticien ; il ne sert à rien pour un autre rôle
+    if (onBehalfOf !== null) {
+      await sql`SELECT set_config('sabou.numerisation_praticien', ${onBehalfOf}, true)`.execute(
+        trx,
+      );
     }
     return work(trx as unknown as ZoneTrx);
   });

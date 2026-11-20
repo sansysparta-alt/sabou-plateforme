@@ -8,11 +8,18 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { TreatmentDetail, TreatmentFieldsInput } from '@sabou/types';
 import { CITIZEN_SESSION_COOKIE } from '../auth/auth.controller';
-import { InvalidMobileTokenError, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-token';
+import {
+  FIELD_AGENT_TOKEN_VERIFIER,
+  InvalidMobileTokenError,
+  MOBILE_TOKEN_VERIFIER,
+} from '../auth/mobile-token';
 import { SESSION_STORE, type SessionData } from '../auth/session.store';
 import { ENV } from '../config/env';
 import { ZoneContextError } from '../database/zone';
+import { AdministratorGuard } from '../certification/certification.controller';
 import { PractitionerGuard } from '../dossiers/dossiers.controller';
+import { StudioActorGuard } from './studio-actor';
+import { FieldPractitionersController } from './field-practitioners.controller';
 import { StudioController } from './studio.controller';
 import {
   PlantProposalLimitError,
@@ -64,6 +71,7 @@ const DETAIL: TreatmentDetail = {
   dossier: null,
   dernierMotif: null,
   modifieLe: '2026-11-16T10:00:00.000000Z',
+  saisieTerrain: false,
 };
 
 const calls: unknown[][] = [];
@@ -71,6 +79,11 @@ let failure: Error | null = null;
 const repository = {
   async referentials() {
     return { maladies: [], plantes: [], sections: [] };
+  },
+  async fieldPractitioners(sub: string) {
+    calls.push(['fieldPractitioners', sub]);
+    if (failure) throw failure;
+    return [{ code: 'PR-1042', nom: 'Mamadou Diallo', langue: 'pul', statut: 'certifie' }];
   },
   async list(sub: string) {
     calls.push(['list', sub]);
@@ -130,18 +143,36 @@ const mobileTokens = {
   },
 };
 
+// US-082 : jetons de l'agent préfectoral (client « sabou-terrain »)
+const AGENT_SUB = '70707070-7070-4070-8070-707070707070';
+const AGENT_TOKENS: Record<string, { roles: string[]; amr: string[] }> = {
+  'jeton.agent.ok': { roles: ['administrateur', 'admin_prefectoral'], amr: ['pwd', 'otp'] },
+  'jeton.agent.sans2fa': { roles: ['administrateur', 'admin_prefectoral'], amr: ['pwd'] },
+  'jeton.regional.ok': { roles: ['administrateur', 'admin_regional'], amr: ['pwd', 'otp'] },
+};
+const fieldTokens = {
+  async verify(token: string) {
+    const identity = AGENT_TOKENS[token];
+    if (!identity) throw new InvalidMobileTokenError();
+    return { sub: AGENT_SUB, ...identity };
+  },
+};
+
 let app: INestApplication;
 let base: string;
 
 beforeAll(async () => {
   @Module({
-    controllers: [StudioController],
+    controllers: [StudioController, FieldPractitionersController],
     providers: [
       PractitionerGuard,
+      AdministratorGuard,
+      StudioActorGuard,
+      { provide: FIELD_AGENT_TOKEN_VERIFIER, useValue: fieldTokens },
       { provide: StudioRepository, useValue: repository },
       { provide: SESSION_STORE, useValue: sessions },
       { provide: MOBILE_TOKEN_VERIFIER, useValue: mobileTokens },
-      { provide: ENV, useValue: { SITE_URL: SITE } },
+      { provide: ENV, useValue: { SITE_URL: SITE, ADMIN_APP_URL: 'http://localhost:5173' } },
     ],
   })
   class TestModule {}
@@ -431,5 +462,74 @@ describe('US-080 : synchronisation hors réseau', () => {
       body: { cle: CLE, code: null, vueLe: null, fields: FIELDS },
     });
     expect(response.status).toBe(401);
+  });
+});
+
+// US-082 : l'agent préfectoral numérise la recette d'un praticien par les mêmes routes, sous
+// /api/terrain/praticiens/:praticien ; la base vérifie la préfecture et pose la mention.
+describe('US-082 : routes du Studio pour l’agent préfectoral', () => {
+  const field = (method: string, path: string, token: string | null, body?: unknown) =>
+    fetch(`${base}/api/terrain/${path}`, {
+      method,
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+  it('jeton de l’agent avec second facteur : la base reçoit l’agent et le praticien visé', async () => {
+    expect((await field('GET', 'praticiens/PR-1042/traitements', 'jeton.agent.ok')).status).toBe(
+      200,
+    );
+    expect(
+      (await field('POST', 'praticiens/PR-1042/traitements', 'jeton.agent.ok', FIELDS)).status,
+    ).toBe(201);
+    expect(
+      (await field('POST', 'praticiens/PR-1042/traitements/REC-0001/soumission', 'jeton.agent.ok'))
+        .status,
+    ).toBe(200);
+    const subject = { sub: AGENT_SUB, onBehalfOf: 'PR-1042' };
+    expect(calls.map((c) => [c[0], c[1]])).toEqual([
+      ['list', subject],
+      ['save', subject],
+      ['submit', subject],
+    ]);
+  });
+
+  it('sans second facteur, autre profil, jeton du praticien ou sans jeton : refusé', async () => {
+    const path = 'praticiens/PR-1042/traitements';
+    expect((await field('GET', path, 'jeton.agent.sans2fa')).status).toBe(403);
+    expect((await field('GET', path, 'jeton.regional.ok')).status).toBe(403);
+    expect((await field('GET', path, 'jeton.praticien.ok')).status).toBe(401);
+    expect((await field('GET', path, null)).status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it('liste des praticiens rattachables : agent seulement', async () => {
+    const response = await field('GET', 'praticiens', 'jeton.agent.ok');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([
+      { code: 'PR-1042', nom: 'Mamadou Diallo', langue: 'pul', statut: 'certifie' },
+    ]);
+    expect((await field('GET', 'praticiens', 'jeton.praticien.ok')).status).toBe(401);
+    expect(calls).toEqual([['fieldPractitioners', AGENT_SUB]]);
+  });
+
+  it('code de praticien mal formé : 400 avant la base', async () => {
+    expect((await field('GET', 'praticiens/1042/traitements', 'jeton.agent.ok')).status).toBe(400);
+    expect(calls).toEqual([]);
+  });
+
+  it('le jeton de l’agent n’ouvre pas les routes du praticien', async () => {
+    expect((await call('GET', 'traitements', { token: 'jeton.agent.ok' })).status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it('praticien hors de la préfecture de l’agent (refus de la base) : 403', async () => {
+    failure = new ZoneContextError();
+    expect((await field('GET', 'praticiens/PR-1043/traitements', 'jeton.agent.ok')).status).toBe(
+      403,
+    );
   });
 });

@@ -106,6 +106,7 @@ class TreatmentSummary {
     required this.status,
     required this.waitingReason,
     required this.modifiedAt,
+    this.fieldEntry = false,
   });
 
   factory TreatmentSummary.fromJson(Map<String, dynamic> json) =>
@@ -119,6 +120,7 @@ class TreatmentSummary {
         status: json['statut'] as String,
         waitingReason: json['attenteRaison'] as String?,
         modifiedAt: json['modifieLe'] as String,
+        fieldEntry: json['saisieTerrain'] as bool? ?? false,
       );
 
   final String code;
@@ -133,6 +135,9 @@ class TreatmentSummary {
 
   /// Date de lecture, renvoyée à l'enregistrement (contrôle des modifications concurrentes).
   final String modifiedAt;
+
+  /// US-082 : recette numérisée sur le terrain par l'agent préfectoral pour le praticien.
+  final bool fieldEntry;
 
   bool get isDraft => status == 'brouillon';
 }
@@ -384,10 +389,27 @@ class StudioApi {
     required Uri baseUrl,
     required PractitionerSession session,
     http.Client? client,
+    String prefix = 'api/praticien',
   }) : _http = PractitionerHttp(
          baseUrl: baseUrl,
          session: session,
          client: client,
+         prefix: prefix,
+       );
+
+  /// US-082 : Studio du praticien [practitionerCode], numérisé par l'agent préfectoral (mêmes
+  /// routes sous /api/terrain/praticiens/PR-…, la base pose la mention de l'agent).
+  StudioApi.forPractitioner({
+    required Uri baseUrl,
+    required PractitionerSession session,
+    required String practitionerCode,
+    http.Client? client,
+  }) : this(
+         baseUrl: baseUrl,
+         session: session,
+         client: client,
+         prefix:
+             'api/terrain/praticiens/${Uri.encodeComponent(practitionerCode)}',
        );
 
   final PractitionerHttp _http;

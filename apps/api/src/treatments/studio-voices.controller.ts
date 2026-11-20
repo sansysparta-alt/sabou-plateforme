@@ -16,15 +16,20 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   practitionerVoiceKeySchema,
   practitionerVoiceTargetSchema,
   type PractitionerVoice,
 } from '@sabou/types';
+import {
+  StudioActorGuard,
+  studioSubject,
+  withoutPractitioner,
+  type StudioRequest,
+} from './studio-actor';
 import { parse } from '../accounts/accounts.controller';
-import { PractitionerGuard } from '../dossiers/dossiers.controller';
 import { PieceTooLargeError, readLimited } from '../dossiers/piece-content';
 import { PIECE_STORAGE, type PieceStorage } from '../dossiers/piece-storage';
 import { inspectVoice, VOICE_MAX_BYTES } from '../voices/voice-processing';
@@ -35,8 +40,6 @@ import {
   VoiceConsentRequiredError,
   VoiceRateLimitError,
 } from './studio-voices.repository';
-
-type PractitionerRequest = Request & { practitioner?: { sub: string } };
 
 function voiceError(error: unknown): never {
   if (error instanceof VoiceConsentRequiredError) {
@@ -60,8 +63,11 @@ function voiceError(error: unknown): never {
 // US-081 : voix du praticien au Studio mobile, une par section et par nom de plante. Le corps
 // est le fichier enregistré ; la clé ?cle= est tirée sur le téléphone, pour qu'un envoi rejoué
 // au retour du réseau ne crée pas de doublon (R-DON-04, file d'envoi de l'application).
-@Controller('api/praticien/traitements/:code/voix/:cible/:objet')
-@UseGuards(PractitionerGuard)
+@Controller([
+  'api/praticien/traitements/:code/voix/:cible/:objet',
+  'api/terrain/praticiens/:praticien/traitements/:code/voix/:cible/:objet',
+])
+@UseGuards(StudioActorGuard)
 export class StudioVoicesController {
   constructor(
     private readonly repository: StudioVoicesRepository,
@@ -73,11 +79,11 @@ export class StudioVoicesController {
   async record(
     @Param() params: Record<string, string>,
     @Query('cle') key: string | undefined,
-    @Req() req: PractitionerRequest,
+    @Req() req: StudioRequest,
   ): Promise<PractitionerVoice[]> {
-    const target = parse(practitionerVoiceTargetSchema, params);
+    const target = parse(practitionerVoiceTargetSchema, withoutPractitioner(params));
     const clientKey = parse(practitionerVoiceKeySchema, key);
-    const sub = req.practitioner!.sub;
+    const sub = studioSubject(req);
     // Envoi rejoué après une coupure : déjà reçu, le fichier n'est pas rangé une seconde fois
     if (await this.repository.known(sub, clientKey)) {
       return this.repository.list(sub, target.code).catch(voiceError);
@@ -131,10 +137,10 @@ export class StudioVoicesController {
   @Header('Cache-Control', 'no-store')
   async remove(
     @Param() params: Record<string, string>,
-    @Req() req: PractitionerRequest,
+    @Req() req: StudioRequest,
   ): Promise<PractitionerVoice[]> {
-    const target = parse(practitionerVoiceTargetSchema, params);
-    const sub = req.practitioner!.sub;
+    const target = parse(practitionerVoiceTargetSchema, withoutPractitioner(params));
+    const sub = studioSubject(req);
     await this.repository
       .remove(sub, req.ip, target.code, target.cible, target.objet)
       .catch(voiceError);
@@ -145,12 +151,12 @@ export class StudioVoicesController {
   @Get('audio')
   async audio(
     @Param() params: Record<string, string>,
-    @Req() req: PractitionerRequest,
+    @Req() req: StudioRequest,
     @Res() res: Response,
   ): Promise<void> {
-    const target = parse(practitionerVoiceTargetSchema, params);
+    const target = parse(practitionerVoiceTargetSchema, withoutPractitioner(params));
     const file = await this.repository
-      .file(req.practitioner!.sub, target.code, target.cible, target.objet)
+      .file(studioSubject(req), target.code, target.cible, target.objet)
       .catch(voiceError);
     const body = await this.storage.get(file.key);
     if (!body) throw new NotFoundException({ error: 'not_found', message: 'Voix introuvable.' });

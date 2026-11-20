@@ -15,7 +15,6 @@ import {
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   plantProposalSchema,
   treatmentCodeSchema,
@@ -29,7 +28,7 @@ import {
 } from '@sabou/types';
 import { parse } from '../accounts/accounts.controller';
 import { ZoneContextError } from '../database/zone';
-import { PractitionerGuard } from '../dossiers/dossiers.controller';
+import { StudioActorGuard, studioSubject, type StudioRequest } from './studio-actor';
 import {
   PlantProposalLimitError,
   PlantProposalRefusedError,
@@ -43,8 +42,6 @@ import {
   TreatmentRejectedPractitionerError,
   TreatmentStaleError,
 } from './studio.repository';
-
-type PractitionerRequest = Request & { practitioner?: { sub: string } };
 
 export function studioError(error: unknown): never {
   if (error instanceof ZoneContextError) throw new ForbiddenException();
@@ -107,10 +104,11 @@ export function studioError(error: unknown): never {
 
 const treatmentCode = (code: string) => parse(treatmentCodeSchema, code);
 
-// Studio web du praticien (US-060, UC-21) : session du site ou jeton de l'application mobile
-// (PractitionerGuard) ; toujours ses propres traitements, lus et écrits dans son contexte.
-@Controller('api/praticien')
-@UseGuards(PractitionerGuard)
+// Studio du praticien (US-060, UC-21) : jeton de l'application mobile ; toujours ses propres
+// traitements, lus et écrits dans son contexte. Les mêmes routes servent l'agent préfectoral
+// qui numérise la recette d'un praticien de sa préfecture (US-082, studio-actor.ts).
+@Controller(['api/praticien', 'api/terrain/praticiens/:praticien'])
+@UseGuards(StudioActorGuard)
 export class StudioController {
   constructor(private readonly repository: StudioRepository) {}
 
@@ -123,23 +121,21 @@ export class StudioController {
 
   @Get('traitements')
   @Header('Cache-Control', 'no-store')
-  list(@Req() req: PractitionerRequest): Promise<TreatmentSummary[]> {
-    return this.repository.list(req.practitioner!.sub).catch(studioError);
+  list(@Req() req: StudioRequest): Promise<TreatmentSummary[]> {
+    return this.repository.list(studioSubject(req)).catch(studioError);
   }
 
   @Get('traitements/:code')
   @Header('Cache-Control', 'no-store')
-  detail(@Param('code') code: string, @Req() req: PractitionerRequest): Promise<TreatmentDetail> {
-    return this.repository.detail(req.practitioner!.sub, treatmentCode(code)).catch(studioError);
+  detail(@Param('code') code: string, @Req() req: StudioRequest): Promise<TreatmentDetail> {
+    return this.repository.detail(studioSubject(req), treatmentCode(code)).catch(studioError);
   }
 
   @Post('traitements')
   @Header('Cache-Control', 'no-store')
-  create(@Body() body: unknown, @Req() req: PractitionerRequest): Promise<TreatmentDetail> {
+  create(@Body() body: unknown, @Req() req: StudioRequest): Promise<TreatmentDetail> {
     const fields = parse(treatmentFieldsSchema, body);
-    return this.repository
-      .save(req.practitioner!.sub, req.ip, null, null, fields)
-      .catch(studioError);
+    return this.repository.save(studioSubject(req), req.ip, null, null, fields).catch(studioError);
   }
 
   @Put('traitements/:code')
@@ -147,11 +143,11 @@ export class StudioController {
   update(
     @Param('code') code: string,
     @Body() body: unknown,
-    @Req() req: PractitionerRequest,
+    @Req() req: StudioRequest,
   ): Promise<TreatmentDetail> {
     const { vueLe, fields } = parse(treatmentUpdateSchema, body);
     return this.repository
-      .save(req.practitioner!.sub, req.ip, treatmentCode(code), vueLe, fields)
+      .save(studioSubject(req), req.ip, treatmentCode(code), vueLe, fields)
       .catch(studioError);
   }
 
@@ -160,27 +156,27 @@ export class StudioController {
   @Header('Cache-Control', 'no-store')
   propose(
     @Body() body: unknown,
-    @Req() req: PractitionerRequest,
+    @Req() req: StudioRequest,
   ): Promise<StudioReferentials['plantes'][number]> {
     const input = parse(plantProposalSchema, body);
-    return this.repository.propose(req.practitioner!.sub, input).catch(studioError);
+    return this.repository.propose(studioSubject(req), input).catch(studioError);
   }
 
   // US-080 : brouillon saisi hors réseau, rejoué au retour du réseau (R-DON-04)
   @Post('synchro/traitements')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
-  sync(@Body() body: unknown, @Req() req: PractitionerRequest): Promise<TreatmentSyncResult> {
+  sync(@Body() body: unknown, @Req() req: StudioRequest): Promise<TreatmentSyncResult> {
     const input = parse(treatmentSyncSchema, body);
-    return this.repository.sync(req.practitioner!.sub, req.ip, input).catch(studioError);
+    return this.repository.sync(studioSubject(req), req.ip, input).catch(studioError);
   }
 
   @Post('traitements/:code/soumission')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
-  submit(@Param('code') code: string, @Req() req: PractitionerRequest): Promise<TreatmentDetail> {
+  submit(@Param('code') code: string, @Req() req: StudioRequest): Promise<TreatmentDetail> {
     return this.repository
-      .submit(req.practitioner!.sub, req.ip, treatmentCode(code))
+      .submit(studioSubject(req), req.ip, treatmentCode(code))
       .catch(studioError);
   }
 }

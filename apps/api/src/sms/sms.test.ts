@@ -428,6 +428,26 @@ describe('Choix du fournisseur', () => {
   });
 });
 
+// US-101 : réponse dans un litige et décision motivée, sans le motif (lu dans l'espace)
+describe('US-101 : SMS des litiges', () => {
+  it.each([
+    ['litige.message', {}],
+    ['litige.decide', { issue: 'accepte' }],
+    ['litige.decide', { issue: 'refuse' }],
+  ])('%s %o tient en un SMS GSM 7 bits', (modele, parametres) => {
+    const text = notificationText({ modele, objet: 'LT-00001', parametres });
+    expect(text).toMatch(/^SABOU : .*LT-00001/);
+    expect(isSingleGsm7Sms(text!)).toBe(true);
+  });
+
+  it('décision sans issue connue, ou code de litige mal formé : aucun SMS', () => {
+    expect(notificationText({ modele: 'litige.decide', objet: 'LT-00001', parametres: {} })).toBe(
+      null,
+    );
+    expect(notificationText({ modele: 'litige.message', objet: 'X', parametres: {} })).toBe(null);
+  });
+});
+
 // US-102 : la détection des alertes passe à chaque relève, sans retenir les SMS
 describe('US-102 : détection des alertes territoriales', () => {
   it('appelée à chaque passage ; son échec n’empêche pas l’envoi des SMS', async () => {

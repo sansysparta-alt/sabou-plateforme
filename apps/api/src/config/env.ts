@@ -45,6 +45,9 @@ const envSchema = z
     // l'API n'accepte que ses jetons d'accès émis pour l'audience « sabou-api »
     MOBILE_CLIENT_ID: z.string().min(1).default('sabou-mobile'),
     API_AUDIENCE: z.string().min(1).default('sabou-api'),
+    // Agent préfectoral dans l'application mobile (US-082) : client public « sabou-terrain »
+    // du domaine d'administration ; jetons d'accès pour la même audience « sabou-api »
+    FIELD_CLIENT_ID: z.string().min(1).default('sabou-terrain'),
     // Compte de service « sabou-audit » du domaine public (view-events) : échecs de connexion
     // des citoyens versés au journal d'audit
     PUBLIC_AUDIT_CLIENT_ID: z.string().min(1).default('sabou-audit'),

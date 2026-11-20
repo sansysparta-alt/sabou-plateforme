@@ -33,6 +33,8 @@ const loaders = {
   voiceCoverage: () => import('./VoiceCoveragePage'),
   // US-100 : signalements et traitements suspendus
   healthReports: () => import('./HealthReportsPage'),
+  // US-101 : litiges et recours
+  disputes: () => import('./DisputesPage'),
   // US-102 : alertes territoriales
   alerts: () => import('./AlertsPage'),
 };
@@ -84,6 +86,13 @@ function LanguageWorkshopPage() {
 function EffectsControlPage() {
   return <TreatmentVoicesPage mode="controle" />;
 }
+// US-101 : litiges (régional) et recours (DG)
+const RegionalDisputesPage = lazy(() =>
+  loaders.disputes().then((m) => ({ default: m.RegionalDisputesPage })),
+);
+const DirectorDisputesPage = lazy(() =>
+  loaders.disputes().then((m) => ({ default: m.DirectorDisputesPage })),
+);
 // US-102 : alertes territoriales, selon le profil
 const RegionalAlertsPage = lazy(() =>
   loaders.alerts().then((m) => ({ default: m.RegionalAlertsPage })),
@@ -133,6 +142,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/couverture-vocale': loaders.voiceCoverage,
   '/signalements': loaders.healthReports,
   '/traitements-suspendus': loaders.healthReports,
+  '/litiges': loaders.disputes,
   '/alertes': loaders.alerts,
 };
 
@@ -160,6 +170,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/couverture-vocale': ['/api/voix-des-traitements/couverture'],
   '/signalements': [() => firstQueuePagePath(QUEUES.healthReports)],
   '/traitements-suspendus': ['/api/signalements/suspendus'],
+  '/litiges': [() => firstQueuePagePath(QUEUES.disputes)],
   '/alertes': ['/api/alertes'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
@@ -424,6 +435,8 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/agents-verification', label: 'Agents de vérification', icon: 'map-pin' },
         // US-061
         { href: '/traitements', label: 'Traitements à transmettre', icon: 'flask' },
+        // US-101 : litiges et avis sur les recours
+        { href: '/litiges', label: 'Litiges et recours', icon: 'shield' },
       ],
     });
     groups.push({
@@ -485,6 +498,8 @@ function navigation(user: SessionUser): NavGroup[] {
         { href: '/approbation', label: 'Approbation des dossiers', icon: 'badge-check' },
         { href: '/traitements', label: 'Traitements à certifier', icon: 'flask' },
         { href: '/rejet-definitif', label: 'Rejet définitif', icon: 'ban' },
+        // US-101 : décision des recours après l'avis du régional
+        { href: '/litiges', label: 'Recours', icon: 'shield' },
       ],
     });
     groups.push({
@@ -513,6 +528,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/approbation': ApprovalPage,
   '/traitements': TreatmentsPage,
   '/rejet-definitif': RejectionPage,
+  '/litiges': DirectorDisputesPage,
   '/alertes': DirectorAlertsPage,
   '/couverture-vocale': VoiceCoveragePage,
   '/plantes': PlantsPage,
@@ -534,6 +550,7 @@ const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/consolidation': ConsolidationPage,
   '/alertes': RegionalAlertsPage,
   '/agents-verification': VerifierDesignationPage,
+  '/litiges': RegionalDisputesPage,
   '/traitements': TreatmentsPage,
   '/atelier-linguistique': LanguageWorkshopPage,
 };
