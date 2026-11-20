@@ -112,20 +112,10 @@ void main() {
       await tester.ensureVisible(title);
       await tester.enterText(title, 'Tisane du soir, corrigée');
       await tester.pump();
-      final save = find.text('Enregistrer le brouillon');
-      await tester.scrollUntilVisible(
-        save,
-        300,
-        scrollable: find.byType(Scrollable).last,
-      );
-      await tester.tap(save);
+      // « Suivant » garde le brouillon sur le téléphone, et la saisie continue
+      await tester.tap(find.byKey(const Key('studio-suivant')));
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'Brouillon gardé sur le téléphone : il partira au retour du réseau.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Étape 2 sur 6'), findsOneWidget);
       await tester.tap(find.byTooltip('Retour'));
       await tester.pumpAndSettle();
       expect(
@@ -152,7 +142,8 @@ void main() {
     await pumpStudio(tester);
     server.offline = true;
     await tapText(tester, 'Décoction');
-    await tapText(tester, 'Enregistrer le brouillon');
+    await tester.tap(find.byKey(const Key('studio-suivant')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Retour'));
     await tester.pumpAndSettle();
     // Soumis depuis ailleurs pendant ce temps : la version du serveur primera

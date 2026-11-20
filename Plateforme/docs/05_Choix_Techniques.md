@@ -1406,3 +1406,17 @@ Décisions du maître d'œuvre du 19 novembre 2026 : dossier bloqué (plus de 15
 | Écran | Gestion : « Alertes territoriales » dans « Pilotage » (régional, DG, préfectoral) ; formulaire de déclaration pour le préfectoral et la DG ; relance et clôture pour le régional et la DG | Séparation des applications (17 novembre 2026) |
 
 **Contrôles du pipeline** : `packages/db/test/alertes.test.ts` (dossier bloqué une fois, clôture automatique, déserts, déclaration, cloisonnement, accusé, relance et notifications, une relance par jour, e-mails jamais pris par la relève des SMS, clôture) ; `apps/api/src/alerts/alerts.test.ts` ; `apps/api/src/sms/sms.test.ts` (détection à chaque relève, sans bloquer les SMS) ; `apps/admin/src/AlertsPage.test.tsx`.
+
+### 2.90 Saisie en étapes du Studio mobile (ergonomie, 20 novembre 2026)
+
+Demande du maître d'œuvre, après essai sur téléphone : la fiche « Nouveau traitement » montrait tout sur une seule page (maladie, plantes, cycle, quatre sections avec voix, contre-indications, consentement), trop longue et peu lisible.
+
+| Sujet | Décision |
+|---|---|
+| Découpage | Six étapes, une idée par écran, dans l'ordre de la maquette du Studio (diapositive 26) : 1. le traitement (maladie, titres, cycle) ; 2. consentement et visibilité ; 3. plantes ; 4. préparation et prise (sections sauf effets indésirables) ; 5. précautions (effets indésirables, contre-indications) ; 6. vérifier et soumettre (récapitulatif, chaque ligne avec « Modifier »). |
+| Consentement tôt | Le consentement ouvre l'enregistrement des voix (US-081) : placé à l'étape 2, il précède les étapes où le praticien parle. |
+| Enregistrement | Chaque « Suivant » enregistre le brouillon (sur le téléphone sans réseau, US-080) : rien ne se perd entre deux étapes. Un champ en erreur ramène à son étape. |
+| Navigation | Barre du bas toujours visible (« Précédent », « Suivant », « Soumettre » à la fin) ; en tête « Étape n sur 6 » et une barre d'avancement, annoncés aux lecteurs d'écran. Le geste « retour » du téléphone revient à l'étape précédente ; la flèche du haut quitte l'éditeur. |
+| Composants communs | `StepHeader` et `StepNavigation` (`apps/mobile/lib/ui/widgets.dart`) : tout formulaire mobile de plus de deux rubriques les reprend. Les autres formulaires (dossier du praticien, dossier terrain, compte rendu de visite, litige) ont deux rubriques au plus et restent sur une page. |
+
+**Contrôles du pipeline** : `apps/mobile/test/studio/studio_pages_test.dart` (parcours complet en six étapes, enregistrement à chaque « Suivant », erreurs sous les champs de l’étape, geste « retour », règles d'accessibilité) ; contre-épreuve faite (geste « retour » cassé : le test échoue).

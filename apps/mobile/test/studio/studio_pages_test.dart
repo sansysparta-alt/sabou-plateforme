@@ -115,6 +115,25 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Saisie en étapes : « Suivant » enregistre le brouillon puis passe à l'étape suivante
+  Future<void> next(WidgetTester tester, [int times = 1]) async {
+    for (var i = 0; i < times; i++) {
+      await tester.tap(find.byKey(const Key('studio-suivant')));
+      await tester.pumpAndSettle();
+    }
+  }
+
+  Future<void> identify(WidgetTester tester) async {
+    await choose(tester, 'maladie', 'Paludisme');
+    await enter(tester, 'titreFr', 'Tisane');
+  }
+
+  // Étape affichée, avec son titre
+  Finder step(int index, String title) {
+    expect(find.text(title), findsWidgets);
+    return find.text('Étape ${index + 1} sur 6');
+  }
+
   // Dernière requête d'écriture reçue par l'API (POST ou PUT sur un traitement)
   Map<String, Object?> lastWrite() {
     final request = server.requests.lastWhere(
@@ -123,7 +142,9 @@ void main() {
           r.url.path.contains('/traitements') &&
           !r.url.path.endsWith('/soumission'),
     );
-    return jsonDecode(request.body) as Map<String, Object?>;
+    // Création : les champs à plat ; modification : sous « fields », avec la date lue
+    final body = jsonDecode(request.body) as Map<String, Object?>;
+    return (body['fields'] as Map<String, Object?>?) ?? body;
   }
 
   String? errorUnder(WidgetTester tester, String key) => tester
@@ -139,8 +160,19 @@ void main() {
         await tapText(tester, 'Nouveau traitement');
         expect(find.text('Nouveau traitement'), findsOneWidget);
 
+        // Étape 1 : le traitement et son cycle
+        expect(step(0, 'Le traitement'), findsOneWidget);
+        expect(find.text('Précédent'), findsNothing);
         await choose(tester, 'maladie', 'Paludisme');
         await enter(tester, 'titreFr', '  Tisane du soir ');
+        await enter(tester, 'cycleDureeJours', '7');
+        await enter(tester, 'cyclePrisesParJour', '2');
+        await next(tester);
+        // Étape 2 : consentement, laissé pour plus tard ; « Suivant » a enregistré le brouillon
+        expect(step(1, 'Consentement et visibilité'), findsOneWidget);
+        expect(lastWrite()['titreFr'], 'Tisane du soir');
+        await next(tester);
+        // Étape 3 : plantes
         await choose(tester, 'plante-0', 'Neem (Azadirachta indica)');
         await enter(tester, 'partie-0', 'écorce');
         await tapText(tester, 'Ajouter une plante');
@@ -150,17 +182,27 @@ void main() {
         await tester.ensureVisible(find.text('Monter').at(1));
         await tester.tap(find.text('Monter').at(1));
         await tester.pumpAndSettle();
-        await enter(tester, 'cycleDureeJours', '7');
-        await enter(tester, 'cyclePrisesParJour', '2');
-        for (final s in [
-          'preparation',
-          'consommation',
-          'cycle',
-          'effets_indesirables',
-        ]) {
+        await next(tester);
+        // Étape 4 : préparation et prise ; les effets indésirables vont aux précautions
+        expect(
+          find.byKey(const Key('studio-section-effets_indesirables')),
+          findsNothing,
+        );
+        for (final s in ['preparation', 'consommation', 'cycle']) {
           await enter(tester, 'section-$s', 'Texte $s');
         }
+        await next(tester);
+        // Étape 5 : précautions
+        await enter(
+          tester,
+          'section-effets_indesirables',
+          'Texte effets_indesirables',
+        );
         await check(tester, 'ci-grossesse');
+        await next(tester);
+        // Étape 6 : récapitulatif
+        expect(step(5, 'Vérifier et soumettre'), findsOneWidget);
+        expect(find.text('Femmes enceintes'), findsOneWidget);
 
         // Brouillon d'abord : enregistré sans consentement
         await tapText(tester, 'Enregistrer le brouillon');
@@ -191,9 +233,14 @@ void main() {
           findsOneWidget,
         );
 
+        // « Modifier » ramène à l'étape du consentement
+        await tester.tap(find.bySemanticsLabel('Modifier : Visibilité'));
+        await tester.pumpAndSettle();
+        expect(step(1, 'Consentement et visibilité'), findsOneWidget);
         await check(tester, 'consentement');
         await check(tester, 'visibilite-restreinte');
-        await tapText(tester, 'Soumettre pour certification');
+        await next(tester, 4);
+        await tapText(tester, 'Soumettre');
 
         // Modification : la date lue est renvoyée (contrôle des modifications concurrentes)
         final put = server.requests.lastWhere((r) => r.method == 'PUT');
@@ -201,7 +248,7 @@ void main() {
           (jsonDecode(put.body) as Map)['vueLe'],
           startsWith('2026-11-18T10:00:00.'),
         );
-        expect(lastWrite()['fields'], containsPair('visibilite', 'restreinte'));
+        expect(lastWrite(), containsPair('visibilite', 'restreinte'));
         expect(
           server.requests.last.url.path,
           '/api/praticien/traitements/REC-1000/soumission',
@@ -227,7 +274,8 @@ void main() {
       (tester) async {
         await pumpStudio(tester);
         await tapText(tester, 'Nouveau traitement');
-        await tapText(tester, 'Enregistrer le brouillon');
+        await next(tester);
+        expect(step(0, 'Le traitement'), findsOneWidget);
         expect(errorUnder(tester, 'titreFr'), 'Donnez un titre au traitement.');
         expect(find.text('Choisissez la maladie soignée.'), findsOneWidget);
         expect(server.requests.where((r) => r.method == 'POST'), isEmpty);
@@ -243,12 +291,17 @@ void main() {
     ) async {
       await pumpStudio(tester);
       await tapText(tester, 'Nouveau traitement');
-      await choose(tester, 'maladie', 'Paludisme');
-      await enter(tester, 'titreFr', 'Tisane');
+      await identify(tester);
+      await next(tester);
+      int writes() => server.requests
+          .where((r) => r.method == 'POST' || r.method == 'PUT')
+          .length;
+      final before = writes();
       await check(tester, 'consentement');
-      await tapText(tester, 'Enregistrer le brouillon');
+      await next(tester);
+      expect(step(1, 'Consentement et visibilité'), findsOneWidget);
       expect(find.byKey(const Key('studio-visibilite-erreur')), findsOneWidget);
-      expect(server.requests.where((r) => r.method == 'POST'), isEmpty);
+      expect(writes(), before);
     });
 
     testWidgets(
@@ -260,7 +313,8 @@ void main() {
         });
         await pumpStudio(tester);
         await tapText(tester, 'Tisane du soir');
-        await tapText(tester, 'Soumettre pour certification');
+        await next(tester, 5);
+        await tapText(tester, 'Soumettre');
         expect(
           find.text(
             'Avant de soumettre, complétez : les 4 sections obligatoires.',
@@ -288,7 +342,9 @@ void main() {
           'message': 'Ce traitement a été modifié entre-temps. Rechargez-le avant de l’enregistrer.',
         },
       );
-      await tapText(tester, 'Enregistrer le brouillon');
+      await next(tester);
+      // Refusé : on reste à l'étape, le message est en tête
+      expect(step(0, 'Le traitement'), findsOneWidget);
       expect(
         find.text(
           'Ce traitement a été modifié entre-temps. Rechargez-le avant de l’enregistrer.',
@@ -302,6 +358,8 @@ void main() {
     ) async {
       await pumpStudio(tester);
       await tapText(tester, 'Nouveau traitement');
+      await identify(tester);
+      await next(tester, 2);
       await choose(
         tester,
         'plante-0',
@@ -315,10 +373,9 @@ void main() {
     ) async {
       await pumpStudio(tester);
       await tapText(tester, 'Nouveau traitement');
-      await choose(tester, 'maladie', 'Paludisme');
-      await enter(tester, 'titreFr', 'Tisane');
+      await identify(tester);
       server.offline = true;
-      await tapText(tester, 'Enregistrer le brouillon');
+      await next(tester);
       expect(
         find.text(
           'La demande n’a pas abouti. Vérifiez le réseau, puis réessayez.',
@@ -328,14 +385,40 @@ void main() {
       expect(find.text('Tisane'), findsOneWidget);
     });
 
+    testWidgets(
+      'ergonomie : une étape par écran ; le geste « retour » revient à l’étape précédente',
+      (tester) async {
+        await pumpStudio(tester);
+        await tapText(tester, 'Nouveau traitement');
+        // Première étape : ni plantes, ni sections, ni consentement sur l'écran
+        expect(find.byKey(const Key('studio-plante-0')), findsNothing);
+        expect(find.byKey(const Key('studio-consentement')), findsNothing);
+        await identify(tester);
+        await next(tester, 2);
+        expect(step(2, 'Plantes'), findsOneWidget);
+        expect(find.byKey(const Key('studio-maladie')), findsNothing);
+        // Geste « retour » du téléphone : étape précédente, l'éditeur reste ouvert
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(step(1, 'Consentement et visibilité'), findsOneWidget);
+        await tapText(tester, 'Précédent');
+        expect(step(0, 'Le traitement'), findsOneWidget);
+        expect(find.widgetWithText(TextField, 'Tisane'), findsOneWidget);
+        // La flèche du haut quitte l'éditeur
+        await next(tester);
+        await tester.tap(find.byTooltip('Retour'));
+        await tester.pumpAndSettle();
+        expect(find.byType(TreatmentEditorPage), findsNothing);
+      },
+    );
+
     testWidgets('session expirée : retour à la connexion', (tester) async {
       await pumpStudio(tester);
       await tapText(tester, 'Nouveau traitement');
-      await choose(tester, 'maladie', 'Paludisme');
-      await enter(tester, 'titreFr', 'Tisane');
+      await identify(tester);
       server.validAccess.clear();
       server.keycloakRejectsRefresh = true;
-      await tapText(tester, 'Enregistrer le brouillon');
+      await next(tester);
       expect(signedOut, 1);
       // L'écran d'édition est fermé : la connexion ne reste pas cachée dessous
       expect(find.byType(TreatmentEditorPage), findsNothing);
@@ -348,6 +431,8 @@ void main() {
   ) async {
     await pumpStudio(tester);
     await tapText(tester, 'Nouveau traitement');
+    await identify(tester);
+    await next(tester, 2);
     await choose(tester, 'plante-0', 'Neem (Azadirachta indica)');
     await tapText(tester, 'Ajouter une plante');
     await choose(tester, 'plante-1', 'Kinkéliba (Combretum micranthum)');
@@ -368,6 +453,8 @@ void main() {
       (tester) async {
         await pumpStudio(tester);
         await tapText(tester, 'Nouveau traitement');
+        await identify(tester);
+        await next(tester, 2);
         await tapText(tester, 'Proposer une plante absente de la liste');
         expect(find.text('Proposer une plante'), findsOneWidget);
 
@@ -415,6 +502,8 @@ void main() {
     ) async {
       await pumpStudio(tester);
       await tapText(tester, 'Nouveau traitement');
+      await identify(tester);
+      await next(tester, 2);
       await tapText(tester, 'Proposer une plante absente de la liste');
       await tester.enterText(find.byKey(const Key('proposer-nomFr')), 'Plante');
       server.nextStudioRefusal = null;
