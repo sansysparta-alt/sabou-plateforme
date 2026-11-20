@@ -5,6 +5,7 @@
 --   le téléphone (atteste_le_declare) et l'heure de réception par le serveur (signe_le) ;
 -- - itinéraire sans carte intégrée : liste ordonnée par jour puis par localité.
 -- La photo de la fiche signée reste la pièce « compte_rendu_visite » du dossier (US-041).
+SET search_path = sabou, public;
 
 -- ---------------------------------------------------------------------
 -- 1. Heure d'attestation déclarée par le téléphone
