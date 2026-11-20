@@ -88,6 +88,12 @@ class _SabouAppState extends State<SabouApp> {
             store: FieldStore(widget.fieldFiles!),
           ),
     fieldStudio: _fieldStudio,
+    // US-083 : itinéraire dans l'application de cartes du téléphone
+    openExternal: (url) async {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Aucune application pour $url');
+      }
+    },
   );
 
   // US-082 : Studio du praticien choisi par l'agent, avec sa copie et son coffre à part

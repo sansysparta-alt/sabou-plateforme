@@ -1,8 +1,8 @@
 // Registre des rubriques de l'application mobile (US-018).
 // Ajouter une rubrique = ajouter une entrée ici, avec les profils qui la voient. La barre
 // de navigation du bas paraît d'elle-même dès qu'un profil a deux rubriques.
-// Agent préfectoral : numérisation d'une recette et dossier sur le terrain (US-082) ; agenda
-// des visites et compte rendu signé à venir (US-083).
+// Agent préfectoral : agenda des visites et compte rendu signé (US-083), numérisation d'une
+// recette et dossier sur le terrain (US-082).
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import 'dossier/photo.dart';
 import 'dossier/practitioner_pages.dart';
 import 'field/field_api.dart';
 import 'field/field_pages.dart';
+import 'field/field_visits_pages.dart';
 import 'shell/rubric.dart';
 import 'studio/studio_api.dart';
 import 'studio/studio_pages.dart';
@@ -28,6 +29,7 @@ List<Rubric> appRubrics({
   StudioStore? studioStore,
   FieldApi? fieldApi,
   FieldStudioFactory? fieldStudio,
+  OpenExternal? openExternal,
 }) => [
   Rubric(
     id: 'dossier',
@@ -57,7 +59,22 @@ List<Rubric> appRubrics({
     ),
   ),
   // US-082 : agent préfectoral, numérisation au nom du praticien et dossier terrain
-  if (fieldApi != null && fieldStudio != null) ...[
+  if (fieldApi != null && fieldStudio != null && openExternal != null) ...[
+    // US-083 : tournée du jour, itinéraire par localité, compte rendu signé sans réseau
+    Rubric(
+      id: 'visites',
+      label: 'Visites',
+      icon: Icons.event_note_outlined,
+      selectedIcon: Icons.event_note,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldVisitsPage(
+        api: fieldApi,
+        picker: picker,
+        prepare: prepare,
+        openExternal: openExternal,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
     Rubric(
       id: 'numeriser',
       label: 'Numériser',

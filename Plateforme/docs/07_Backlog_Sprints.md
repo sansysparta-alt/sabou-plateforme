@@ -905,6 +905,8 @@ Décisions du maître d’œuvre (19 novembre 2026) : connexion de l’agent ave
 Critères d’acceptation :
 - Agenda des visites, itinéraire, photo du compte rendu signé ajoutée au dossier.
 
+Décisions du maître d'œuvre (19 novembre 2026) : compte rendu rédigé et attesté sans réseau, empreinte calculée par l'API à la réception, heure déclarée par le téléphone gardée à côté de l'heure de réception ; itinéraire sans carte intégrée (liste par jour et par localité, ouverture dans l'application de cartes avec la localité seule) (voir 05 §2.87).
+
 #### US-101 · Arbitrer les litiges
 *Sécurité sanitaire, litiges, alertes* · **Should** · 3 points · cas : UC-43
 

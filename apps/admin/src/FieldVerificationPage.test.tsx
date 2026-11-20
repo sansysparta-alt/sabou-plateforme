@@ -18,6 +18,7 @@ const planned: FieldVisit = {
   signePar: null,
   signeLe: null,
   empreinte: null,
+  attesteLeDeclare: null,
   photo: false,
 };
 const realized: FieldVisit = {

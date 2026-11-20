@@ -49,6 +49,11 @@ export const fieldVisitReportSchema = z
         `Le compte rendu ne doit pas dépasser ${VISIT_NOTES_MAX_LENGTH} caractères.`,
       ),
     attestation: z.literal(true, 'Cochez l’attestation pour signer le compte rendu.'),
+    // US-083 : heure d'attestation déclarée par le téléphone (compte rendu rédigé sans
+    // réseau) ; l'heure qui fait foi reste celle de la réception par le serveur
+    attesteLe: z.iso
+      .datetime({ offset: true, message: 'Heure d’attestation invalide.' })
+      .optional(),
   })
   .strict();
 export type FieldVisitReport = z.infer<typeof fieldVisitReportSchema>;
@@ -67,5 +72,23 @@ export interface FieldVisit {
   signePar: string | null;
   signeLe: string | null;
   empreinte: string | null;
+  // US-083 : heure d'attestation déclarée par le téléphone (ISO 8601, UTC), ou null
+  attesteLeDeclare: string | null;
   photo: boolean;
+}
+
+// US-083 : agenda de l'agent préfectoral. Visites planifiées de sa préfecture, dans l'ordre de
+// la tournée (jour, localité, heure), puis dossiers à l'étape 2 encore sans visite.
+export interface FieldAgendaItem {
+  categorie: 'planifiee' | 'a_planifier';
+  dossier: string;
+  visite: number | null;
+  praticien: string;
+  // Localité, seule donnée passée à l'application de cartes
+  sousPrefecture: string | null;
+  prefecture: string;
+  // Heure de Conakry : 2026-11-20T09:30 ; null pour un dossier à planifier
+  prevueLe: string | null;
+  // Entrée du dossier à l'étape 2 (2026-11-14)
+  entreeLe: string;
 }
