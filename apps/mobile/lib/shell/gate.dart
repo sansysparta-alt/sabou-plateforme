@@ -130,8 +130,8 @@ class _SabouGateState extends State<SabouGate> {
   }
 }
 
-/// Connexion par la page de Keycloak (US-040b). Seuls les praticiens se connectent pour
-/// l'instant ; l'agent préfectoral viendra avec sa première rubrique (US-082).
+/// Connexion par la page de Keycloak (US-040b) : praticien (domaine public) ou agent
+/// préfectoral (domaine interne, second facteur, US-082).
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -154,13 +154,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _busy = false;
   String? _error;
 
-  Future<void> _signIn() async {
+  Future<void> _signIn([SignInRealm realm = SignInRealm.practitioner]) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      if (await widget.session.signIn()) {
+      if (await widget.session.signIn(realm: realm)) {
         widget.onSignedIn();
         return;
       }
@@ -233,6 +233,25 @@ class _LoginPageState extends State<LoginPage> {
             OutlinedButton(
               onPressed: _busy ? null : _openSignup,
               child: const Text('Créer un compte praticien'),
+            ),
+            const SizedBox(height: SabouSpace.s6),
+            const Divider(),
+            const SizedBox(height: SabouSpace.s4),
+            // US-082 : agent préfectoral, compte de l'administration et second facteur
+            Text(
+              'Agent préfectoral',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: SabouSpace.s2),
+            const Text(
+              'Numérisation des recettes et dossiers sur le terrain, avec votre compte de '
+              'l’administration et votre code de vérification.',
+            ),
+            const SizedBox(height: SabouSpace.s2),
+            OutlinedButton(
+              key: const Key('connexion-agent'),
+              onPressed: _busy ? null : () => _signIn(SignInRealm.fieldAgent),
+              child: const Text('Connexion agent préfectoral'),
             ),
           ],
         ),

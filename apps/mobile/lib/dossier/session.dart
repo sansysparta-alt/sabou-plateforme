@@ -4,6 +4,10 @@
 // - jeton de rafraîchissement hors ligne (30 jours d'inactivité) gardé dans le magasin
 //   sécurisé du téléphone (Keystore) ; le jeton d'accès (5 minutes) reste en mémoire ;
 // - « Se déconnecter » révoque le jeton auprès de Keycloak puis l'efface du téléphone.
+// Agent préfectoral (US-082, §2.86) : même mécanisme dans le domaine interne « sabou »,
+// client « sabou-terrain », second facteur exigé par l'API, session hors ligne de 7 jours.
+// Le domaine choisi à la connexion est gardé avec la session : le rafraîchissement et la
+// révocation s'adressent au bon client.
 // Rôles du compte (US-018) : lus dans le jeton d'accès et gardés sur le téléphone, pour
 // ouvrir les rubriques du bon profil même sans réseau. Ils ne servent qu'à l'affichage :
 // l'API vérifie elle-même le jeton et le rôle à chaque demande.
@@ -34,11 +38,25 @@ class SignedOutException implements Exception {
   const SignedOutException();
 }
 
+/// Domaine de connexion : praticien (domaine public) ou agent préfectoral (domaine interne).
+enum SignInRealm {
+  practitioner(mobileClientId),
+  fieldAgent(fieldClientId);
+
+  const SignInRealm(this.clientId);
+
+  /// Client Keycloak de l'application dans ce domaine.
+  final String clientId;
+}
+
 /// Ouverture de la page de connexion ; remplaçable dans les tests.
 abstract interface class LoginLauncher {
-  /// Jetons, ou null si le praticien a fermé la page sans se connecter. [loginHint] : numéro
-  /// déjà rempli sur la page (après l'inscription, US-066).
-  Future<Tokens?> login({String? loginHint});
+  /// Jetons, ou null si la page a été fermée sans se connecter. [loginHint] : numéro déjà
+  /// rempli sur la page (après l'inscription, US-066).
+  Future<Tokens?> login({
+    String? loginHint,
+    SignInRealm realm = SignInRealm.practitioner,
+  });
 }
 
 /// Page de connexion de Keycloak dans un onglet du navigateur (Custom Tabs), par AppAuth.
@@ -49,18 +67,24 @@ class AppAuthLoginLauncher implements LoginLauncher {
   final FlutterAppAuth _appAuth;
 
   @override
-  Future<Tokens?> login({String? loginHint}) async {
+  Future<Tokens?> login({
+    String? loginHint,
+    SignInRealm realm = SignInRealm.practitioner,
+  }) async {
+    final issuer = realm == SignInRealm.fieldAgent
+        ? internalIssuer
+        : publicIssuer;
     try {
       final response = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
-          mobileClientId,
+          realm.clientId,
           mobileRedirectUri,
-          issuer: publicIssuer,
+          issuer: issuer,
           scopes: const ['openid', 'offline_access'],
           promptValues: const ['login'],
           loginHint: loginHint,
           // HTTP seulement vers le poste de développement (adb reverse)
-          allowInsecureConnections: publicIssuer.startsWith('http://localhost'),
+          allowInsecureConnections: issuer.startsWith('http://localhost'),
         ),
       );
       final access = response.accessToken;
@@ -81,6 +105,7 @@ class AppAuthLoginLauncher implements LoginLauncher {
 
 const _refreshTokenName = 'sabou.praticien.refresh_token';
 const _rolesName = 'sabou.session.roles';
+const _realmName = 'sabou.session.domaine';
 
 /// Rôles du domaine Keycloak portés par un jeton d'accès (claim `roles`), sans vérifier sa
 /// signature : c'est le rôle de l'API. Ensemble vide si le jeton est illisible.
@@ -106,18 +131,34 @@ class PractitionerSession {
     http.Client? client,
     DateTime Function()? now,
     String issuer = publicIssuer,
+    String fieldIssuer = internalIssuer,
   }) : _client = client ?? http.Client(),
        _now = now ?? DateTime.now,
-       _oidc =
-           '${issuer.replaceAll(RegExp(r'/$'), '')}/protocol/openid-connect';
+       _issuers = {
+         SignInRealm.practitioner: issuer,
+         SignInRealm.fieldAgent: fieldIssuer,
+       };
 
   final SecretStore _store;
   final LoginLauncher _launcher;
   final http.Client _client;
   final DateTime Function() _now;
-  final String _oidc;
+  final Map<SignInRealm, String> _issuers;
 
   Tokens? _tokens;
+  SignInRealm? _realm;
+
+  /// Domaine de la session gardée (praticien par défaut : sessions ouvertes avant US-082).
+  Future<SignInRealm> realm() async =>
+      _realm ??= await _store.read(_realmName) == SignInRealm.fieldAgent.name
+      ? SignInRealm.fieldAgent
+      : SignInRealm.practitioner;
+
+  Future<String> _oidc() async {
+    final issuer = _issuers[await realm()]!;
+    return '${issuer.replaceAll(RegExp(r'/$'), '')}/protocol/openid-connect';
+  }
+
   Future<Tokens>? _refreshing;
 
   /// Vrai si un jeton de rafraîchissement est gardé sur le téléphone.
@@ -126,10 +167,16 @@ class PractitionerSession {
     return stored != null && stored.isNotEmpty;
   }
 
-  /// Ouvre la page de connexion. Faux si le praticien l'a fermée sans se connecter.
-  Future<bool> signIn({String? loginHint}) async {
-    final tokens = await _launcher.login(loginHint: loginHint);
+  /// Ouvre la page de connexion du domaine [realm]. Faux si elle a été fermée sans se
+  /// connecter.
+  Future<bool> signIn({
+    String? loginHint,
+    SignInRealm realm = SignInRealm.practitioner,
+  }) async {
+    final tokens = await _launcher.login(loginHint: loginHint, realm: realm);
     if (tokens == null) return false;
+    _realm = realm;
+    await _store.write(_realmName, realm.name);
     await _keep(tokens);
     return true;
   }
@@ -166,15 +213,16 @@ class PractitionerSession {
     }
     final response = await _client
         .post(
-          Uri.parse('$_oidc/token'),
+          Uri.parse('${await _oidc()}/token'),
           body: {
             'grant_type': 'refresh_token',
-            'client_id': mobileClientId,
+            'client_id': (await realm()).clientId,
             'refresh_token': refreshToken,
           },
         )
         .timeout(const Duration(seconds: 30));
-    // 400 / 401 : session expirée (30 jours sans ouvrir l'application), révoquée ou compte
+    // 400 / 401 : session expirée (30 jours sans ouvrir l'application, 7 jours pour l'agent),
+    // révoquée ou compte
     // suspendu. Le jeton gardé ne servira plus : il est effacé.
     if (response.statusCode == 400 || response.statusCode == 401) {
       await _forget();
@@ -200,21 +248,24 @@ class PractitionerSession {
   Future<void> signOut() async {
     final refreshToken =
         _tokens?.refreshToken ?? await _store.read(_refreshTokenName);
+    final oidc = await _oidc();
+    final clientId = (await realm()).clientId;
     await _forget();
     if (refreshToken == null || refreshToken.isEmpty) return;
     try {
       await _client
           .post(
-            Uri.parse('$_oidc/revoke'),
+            Uri.parse('$oidc/revoke'),
             body: {
-              'client_id': mobileClientId,
+              'client_id': clientId,
               'token': refreshToken,
               'token_type_hint': 'refresh_token',
             },
           )
           .timeout(const Duration(seconds: 15));
     } on Exception {
-      // Hors réseau : la session expirera d'elle-même après 30 jours d'inactivité
+      // Hors réseau : la session expirera d'elle-même (30 jours d'inactivité, 7 jours pour
+      // l'agent)
     }
   }
 
@@ -229,7 +280,9 @@ class PractitionerSession {
 
   Future<void> _forget() async {
     _tokens = null;
+    _realm = null;
     await _store.write(_refreshTokenName, '');
     await _store.write(_rolesName, '');
+    await _store.write(_realmName, '');
   }
 }

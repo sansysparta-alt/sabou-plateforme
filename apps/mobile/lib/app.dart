@@ -1,9 +1,8 @@
 // Registre des rubriques de l'application mobile (US-018).
 // Ajouter une rubrique = ajouter une entrée ici, avec les profils qui la voient. La barre
 // de navigation du bas paraît d'elle-même dès qu'un profil a deux rubriques.
-// Rubriques prévues au backlog :
-// - agent préfectoral : numérisation d'une recette et dossier sur le terrain (US-082, S8),
-//   agenda des visites et compte rendu signé (US-083, S8).
+// Agent préfectoral : agenda des visites et compte rendu signé (US-083), numérisation d'une
+// recette et dossier sur le terrain (US-082).
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -13,6 +12,9 @@ import 'disputes/disputes_pages.dart';
 import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/practitioner_pages.dart';
+import 'field/field_api.dart';
+import 'field/field_pages.dart';
+import 'field/field_visits_pages.dart';
 import 'shell/rubric.dart';
 import 'studio/studio_api.dart';
 import 'studio/studio_pages.dart';
@@ -27,6 +29,9 @@ List<Rubric> appRubrics({
   Future<Uint8List> Function(Uint8List) prepare = preparePhotoInBackground,
   VoiceTools? voiceTools,
   StudioStore? studioStore,
+  FieldApi? fieldApi,
+  FieldStudioFactory? fieldStudio,
+  OpenExternal? openExternal,
   DisputesApi? disputesApi,
 }) => [
   Rubric(
@@ -71,4 +76,47 @@ List<Rubric> appRubrics({
         onSignedOut: rubric.onSignedOut,
       ),
     ),
+  // US-082 : agent préfectoral, numérisation au nom du praticien et dossier terrain
+  if (fieldApi != null && fieldStudio != null && openExternal != null) ...[
+    // US-083 : tournée du jour, itinéraire par localité, compte rendu signé sans réseau
+    Rubric(
+      id: 'visites',
+      label: 'Visites',
+      icon: Icons.event_note_outlined,
+      selectedIcon: Icons.event_note,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldVisitsPage(
+        api: fieldApi,
+        picker: picker,
+        prepare: prepare,
+        openExternal: openExternal,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
+    Rubric(
+      id: 'numeriser',
+      label: 'Numériser',
+      icon: Icons.record_voice_over_outlined,
+      selectedIcon: Icons.record_voice_over,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldPractitionersPage(
+        api: fieldApi,
+        studioFor: fieldStudio,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
+    Rubric(
+      id: 'dossiers-terrain',
+      label: 'Dossiers',
+      icon: Icons.folder_shared_outlined,
+      selectedIcon: Icons.folder_shared,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldDossiersPage(
+        api: fieldApi,
+        picker: picker,
+        prepare: prepare,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
+  ],
 ];

@@ -25,6 +25,9 @@
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
   "accessTokenLifespan": 300,
+  "offlineSessionIdleTimeout": 604800,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 604800,
   "accessCodeLifespan": 60,
   "accessCodeLifespanLogin": 1800,
   "accessCodeLifespanUserAction": 300,
@@ -160,6 +163,69 @@
             "access.token.claim": "false",
             "userinfo.token.claim": "false",
             "introspection.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "sabou-terrain",
+      "name": "Application mobile SABOU (agent préfectoral)",
+      "description": "Client public de l'application mobile pour l'agent préfectoral (US-082) : code + PKCE, second facteur, jeton hors ligne de 7 jours au plus.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["gn.sabou.mobile:/oauth2redirect"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "gn.sabou.mobile:/oauth2redirect",
+        "use.refresh.tokens": "true",
+        "client.use.lightweight.access.token.enabled": "false",
+        "client.offline.session.idle.timeout": "604800",
+        "client.offline.session.max.lifespan": "604800"
+      },
+      "defaultClientScopes": ["basic", "roles"],
+      "optionalClientScopes": ["offline_access"],
+      "protocolMappers": [
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience de l'API",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "sabou-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "roles (jeton d'accès)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
           }
         }
       ]
@@ -572,35 +638,35 @@
       "alias": "sabou-amr-pwd",
       "config": {
         "default.reference.value": "pwd",
-        "default.reference.maxAge": "36000"
+        "default.reference.maxAge": "604800"
       }
     },
     {
       "alias": "sabou-amr-otp",
       "config": {
         "default.reference.value": "otp",
-        "default.reference.maxAge": "36000"
+        "default.reference.maxAge": "604800"
       }
     },
     {
       "alias": "sabou-amr-otp-recovery",
       "config": {
         "default.reference.value": "otp",
-        "default.reference.maxAge": "36000"
+        "default.reference.maxAge": "604800"
       }
     },
     {
       "alias": "sabou-amr-otp-optional",
       "config": {
         "default.reference.value": "otp",
-        "default.reference.maxAge": "36000"
+        "default.reference.maxAge": "604800"
       }
     },
     {
       "alias": "sabou-amr-otp-setup",
       "config": {
         "default.reference.value": "otp",
-        "default.reference.maxAge": "36000"
+        "default.reference.maxAge": "604800"
       }
     },
     {

@@ -7,6 +7,8 @@ export const MOBILE_TOKEN_VERIFIER = Symbol('MOBILE_TOKEN_VERIFIER');
 export interface MobileIdentity {
   sub: string;
   roles: string[];
+  // Méthodes d'authentification réellement utilisées (claim « amr ») : « otp » = second facteur
+  amr: string[];
 }
 
 export interface MobileTokenVerifier {
@@ -64,19 +66,39 @@ export class JoseMobileTokenVerifier implements MobileTokenVerifier {
     if (payload.typ !== 'Bearer' || payload.azp !== clientId || !payload.sub) {
       throw new InvalidMobileTokenError();
     }
-    const roles = Array.isArray(payload.roles)
-      ? payload.roles.filter((r: unknown): r is string => typeof r === 'string')
-      : [];
-    return { sub: payload.sub, roles };
+    return { sub: payload.sub, roles: strings(payload.roles), amr: strings(payload.amr) };
   }
 }
 
-// Clés publiques du domaine « sabou-public », lues par l'adresse interne de Keycloak quand
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v: unknown): v is string => typeof v === 'string')
+    : [];
+}
+
+// Clés publiques du domaine, lues par l'adresse interne de Keycloak quand
 // elle existe (réseau Docker), comme la découverte OIDC (identity-provider.ts). Mise en cache
 // par jose : 10 minutes, nouvelle lecture au plus toutes les 30 s si une clé est inconnue
 // (rotation des clés).
 export function keycloakMobileTokenVerifier(env: Env): JoseMobileTokenVerifier {
-  const issuer = new URL(env.PUBLIC_KEYCLOAK_ISSUER);
+  return realmTokenVerifier(env, env.PUBLIC_KEYCLOAK_ISSUER, env.MOBILE_CLIENT_ID);
+}
+
+export const FIELD_AGENT_TOKEN_VERIFIER = Symbol('FIELD_AGENT_TOKEN_VERIFIER');
+
+// Agent préfectoral dans l'application mobile (US-082, décision du maître d'œuvre du
+// 19 novembre 2026) : client public « sabou-terrain » du domaine d'administration « sabou »,
+// même page de connexion et même second facteur que l'application de gestion.
+export function keycloakFieldAgentTokenVerifier(env: Env): JoseMobileTokenVerifier {
+  return realmTokenVerifier(env, env.KEYCLOAK_ISSUER, env.FIELD_CLIENT_ID);
+}
+
+function realmTokenVerifier(
+  env: Env,
+  issuerUrl: string,
+  clientId: string,
+): JoseMobileTokenVerifier {
+  const issuer = new URL(issuerUrl);
   const certs = new URL(`${issuer.href.replace(/\/$/, '')}/protocol/openid-connect/certs`);
   const internal = env.KEYCLOAK_INTERNAL_URL ? new URL(env.KEYCLOAK_INTERNAL_URL) : undefined;
   if (internal) {
@@ -89,9 +111,9 @@ export function keycloakMobileTokenVerifier(env: Env): JoseMobileTokenVerifier {
     cacheMaxAge: 600_000,
   });
   return new JoseMobileTokenVerifier({
-    issuer: env.PUBLIC_KEYCLOAK_ISSUER,
+    issuer: issuerUrl,
     audience: env.API_AUDIENCE,
-    clientId: env.MOBILE_CLIENT_ID,
+    clientId,
     keys,
   });
 }

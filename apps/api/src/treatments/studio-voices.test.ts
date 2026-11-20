@@ -6,11 +6,17 @@ import 'reflect-metadata';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { InvalidMobileTokenError, MOBILE_TOKEN_VERIFIER } from '../auth/mobile-token';
+import {
+  FIELD_AGENT_TOKEN_VERIFIER,
+  InvalidMobileTokenError,
+  MOBILE_TOKEN_VERIFIER,
+} from '../auth/mobile-token';
+import { AdministratorGuard } from '../certification/certification.controller';
 import { SESSION_STORE } from '../auth/session.store';
 import { ENV } from '../config/env';
 import { PractitionerGuard } from '../dossiers/dossiers.controller';
 import { PIECE_STORAGE } from '../dossiers/piece-storage';
+import { StudioActorGuard } from './studio-actor';
 import { TreatmentLockedError } from './studio.repository';
 import { StudioVoicesController } from './studio-voices.controller';
 import {
@@ -85,6 +91,15 @@ const mobileTokens = {
   },
 };
 
+// US-082 : jeton de l'agent préfectoral (client « sabou-terrain ») avec second facteur
+const AGENT_SUB = '70707070-7070-4070-8070-707070707070';
+const fieldTokens = {
+  async verify(token: string) {
+    if (token !== 'jeton.agent.ok') throw new InvalidMobileTokenError();
+    return { sub: AGENT_SUB, roles: ['administrateur', 'admin_prefectoral'], amr: ['pwd', 'otp'] };
+  },
+};
+
 let app: INestApplication;
 let base: string;
 
@@ -93,6 +108,9 @@ beforeAll(async () => {
     controllers: [StudioVoicesController],
     providers: [
       PractitionerGuard,
+      AdministratorGuard,
+      StudioActorGuard,
+      { provide: FIELD_AGENT_TOKEN_VERIFIER, useValue: fieldTokens },
       { provide: StudioVoicesRepository, useValue: repository },
       { provide: PIECE_STORAGE, useValue: storage },
       { provide: SESSION_STORE, useValue: { touch: async () => null } },
@@ -234,5 +252,34 @@ describe('Refus de la base traduits', () => {
     expect((await call('PUT', PATH, { body: M4A })).status).toBe(429);
     failure = new VoiceAbsentError();
     expect((await call('GET', `${PATH}/audio`)).status).toBe(404);
+  });
+});
+
+// US-082 : voix par champ enregistrée par l'agent, dans la langue du praticien, pour le
+// praticien visé (l'accord du praticien est la règle du dépôt, prouvée en base)
+describe('US-082 : voix déposée par l’agent préfectoral pour un praticien', () => {
+  it('même route sous /api/terrain/praticiens/:praticien ; la base reçoit l’agent et le praticien', async () => {
+    const response = await fetch(`${base}/api/terrain/praticiens/PR-1042/${PATH}?cle=${KEY}`, {
+      method: 'PUT',
+      headers: { authorization: 'Bearer jeton.agent.ok', 'content-type': 'audio/mp4' },
+      body: new Uint8Array(M4A),
+    });
+    expect(response.status).toBe(200);
+    const subject = { sub: AGENT_SUB, onBehalfOf: 'PR-1042' };
+    expect(calls.map((c) => [c[0], c[1]])).toEqual([
+      ['known', subject],
+      ['deposit', subject],
+      ['list', subject],
+    ]);
+  });
+
+  it('le jeton du praticien n’ouvre pas la route de l’agent', async () => {
+    const response = await fetch(`${base}/api/terrain/praticiens/PR-1042/${PATH}?cle=${KEY}`, {
+      method: 'PUT',
+      headers: { authorization: 'Bearer jeton.praticien.ok', 'content-type': 'audio/mp4' },
+      body: new Uint8Array(M4A),
+    });
+    expect(response.status).toBe(401);
+    expect(calls).toEqual([]);
   });
 });

@@ -7,13 +7,14 @@ import type {
   TreatmentDetail,
   TreatmentFields,
   TreatmentSummary,
+  FieldPractitioner,
   TreatmentSync,
   TreatmentSyncConflict,
   TreatmentSyncResult,
 } from '@sabou/types';
 import { normalizeIp } from '../audit/audit.log';
 import { DATABASE, type Database } from '../database/database';
-import { inZone, type ZoneTrx } from '../database/zone';
+import { inZone, type ZoneSubject, type ZoneTrx } from '../database/zone';
 
 export class StudioNoProfileError extends Error {}
 export class TreatmentNotFoundError extends Error {}
@@ -57,8 +58,8 @@ function translate(error: unknown): never {
 
 // Praticien connecté : ses seuls traitements (le RLS laisse aussi voir les traitements
 // certifiés publics des autres, qui n'ont pas leur place dans son Studio)
-const OWN = sql`r.praticien_id = (SELECT p.id FROM sabou.praticien p
-                                   WHERE p.utilisateur_id = sabou.contexte_utilisateur())`;
+// Le praticien connecté, ou celui que numérise l'agent préfectoral (US-082)
+const OWN = sql`r.praticien_id = sabou.studio_praticien_id()`;
 const STAMP = (column: string) =>
   sql.raw(`to_char(${column} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`);
 
@@ -94,7 +95,7 @@ export class StudioRepository {
 
   // US-054 : proposition d'une plante qui manque au Dictionnaire ; la base la crée « en revue »
   // avec le praticien comme auteur (plante_proposer)
-  propose(sub: string, input: PlantProposal): Promise<StudioReferentials['plantes'][number]> {
+  propose(sub: ZoneSubject, input: PlantProposal): Promise<StudioReferentials['plantes'][number]> {
     return inZone(this.db, sub, async (trx) => {
       try {
         const { rows } = await sql<StudioReferentials['plantes'][number]>`
@@ -119,12 +120,23 @@ export class StudioRepository {
     });
   }
 
-  list(sub: string): Promise<TreatmentSummary[]> {
+  // US-082 : praticiens de la préfecture de l'agent, auxquels il rattache une recette
+  fieldPractitioners(sub: string): Promise<FieldPractitioner[]> {
+    return inZone(this.db, sub, async (trx) => {
+      const { rows } = await sql<FieldPractitioner>`
+        SELECT code, nom, langue_principale AS langue, statut
+          FROM sabou.numerisation_praticiens()`.execute(trx);
+      return rows;
+    });
+  }
+
+  list(sub: ZoneSubject): Promise<TreatmentSummary[]> {
     return inZone(this.db, sub, async (trx) => {
       const { rows } = await sql<TreatmentSummary>`
         SELECT r.code, r.titre_fr AS "titreFr",
                jsonb_build_object('code', m.code, 'nomFr', m.nom_fr) AS maladie,
-               r.statut, r.attente_raison AS "attenteRaison", ${STAMP('r.updated_at')} AS "modifieLe"
+               r.statut, r.attente_raison AS "attenteRaison", ${STAMP('r.updated_at')} AS "modifieLe",
+               r.saisi_par IS NOT NULL AS "saisieTerrain"
           FROM sabou.recette r JOIN sabou.maladie m ON m.id = r.maladie_id
          WHERE ${OWN}
          ORDER BY r.updated_at DESC, r.code
@@ -133,12 +145,12 @@ export class StudioRepository {
     });
   }
 
-  detail(sub: string, code: string): Promise<TreatmentDetail> {
+  detail(sub: ZoneSubject, code: string): Promise<TreatmentDetail> {
     return inZone(this.db, sub, (trx) => this.read(trx, code));
   }
 
   save(
-    sub: string,
+    sub: ZoneSubject,
     ip: string | undefined,
     code: string | null,
     seenAt: string | null,
@@ -164,7 +176,11 @@ export class StudioRepository {
   // US-080 : brouillon saisi hors réseau, rejoué au retour du réseau ; la base applique la règle
   // R-DON-04 et rend l'envoi rejouable (traitement_synchroniser). La soumission demandée hors
   // réseau est tentée à part (point de sauvegarde) : refusée, l'enregistrement reste acquis.
-  sync(sub: string, ip: string | undefined, input: TreatmentSync): Promise<TreatmentSyncResult> {
+  sync(
+    sub: ZoneSubject,
+    ip: string | undefined,
+    input: TreatmentSync,
+  ): Promise<TreatmentSyncResult> {
     return inZone(this.db, sub, async (trx) => {
       await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
       const { contreIndications, ...content } = input.fields;
@@ -206,7 +222,7 @@ export class StudioRepository {
     });
   }
 
-  submit(sub: string, ip: string | undefined, code: string): Promise<TreatmentDetail> {
+  submit(sub: ZoneSubject, ip: string | undefined, code: string): Promise<TreatmentDetail> {
     return inZone(this.db, sub, async (trx) => {
       await sql`SELECT sabou.audit_contexte(${normalizeIp(ip)}::inet)`.execute(trx);
       await sql`SELECT sabou.traitement_soumettre(${code})`.execute(trx).catch(translate);
@@ -259,7 +275,8 @@ export class StudioRepository {
              (SELECT h.motif FROM sabou.recette_historique h
                WHERE h.recette_id = r.id AND h.motif IS NOT NULL
                ORDER BY h.decide_le DESC, h.id DESC LIMIT 1) AS "dernierMotif",
-             ${STAMP('r.updated_at')} AS "modifieLe"
+             ${STAMP('r.updated_at')} AS "modifieLe",
+             r.saisi_par IS NOT NULL AS "saisieTerrain"
         FROM sabou.recette r JOIN sabou.maladie m ON m.id = r.maladie_id
        WHERE r.code = ${code} AND ${OWN}`.execute(trx);
     const treatment = rows[0];

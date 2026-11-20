@@ -12,6 +12,8 @@ import { AUDIT_LOG } from './audit/audit.log';
 import { ENV, loadEnv } from './config/env';
 import { DATABASE } from './database/database';
 import { DisputesModule } from './disputes/disputes.module';
+import { TreatmentsModule } from './treatments/treatments.module';
+import { VisitsModule } from './visits/visits.module';
 
 const secret = () => randomBytes(32).toString('base64url');
 const env = loadEnv({
@@ -48,7 +50,11 @@ const env = loadEnv({
 })
 class InfrastructureStub {}
 
-const modules: [string, Type][] = [['DisputesModule (US-101)', DisputesModule]];
+const modules: [string, Type][] = [
+  ['TreatmentsModule (US-082)', TreatmentsModule],
+  ['VisitsModule (US-083)', VisitsModule],
+  ['DisputesModule (US-101)', DisputesModule],
+];
 
 describe('Chaque module se construit avec ses propres fournisseurs', () => {
   it.each(modules)('%s', async (_, feature) => {
