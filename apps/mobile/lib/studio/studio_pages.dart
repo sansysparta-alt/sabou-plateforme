@@ -538,7 +538,10 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
 
   Future<void> _onSave() => _run(() async {
     final saved = await _save();
-    if (saved == null) return;
+    if (saved == null) {
+      _showFieldErrors();
+      return;
+    }
     _say(
       _queued
           ? 'Brouillon gardé sur le téléphone : il partira au retour du réseau.'
@@ -549,7 +552,10 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
   });
 
   Future<void> _onSubmit() => _run(() async {
-    if (!_validate()) return;
+    if (!_validate()) {
+      _showFieldErrors();
+      return;
+    }
     final (saved, queued) = await _studio.save(
       _treatment,
       _fields(),
@@ -692,7 +698,14 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
       body = _form();
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_loaded ? title : 'Studio')),
+      appBar: AppBar(
+        // La flèche du haut quitte le Studio ; le geste « retour » du téléphone revient à
+        // l'étape précédente (PopScope de _form)
+        leading: _step > 0 && Navigator.of(context).canPop()
+            ? BackButton(onPressed: () => Navigator.of(context).pop())
+            : null,
+        title: Text(_loaded ? title : 'Studio'),
+      ),
       body: SafeArea(child: body),
     );
   }
@@ -715,202 +728,372 @@ class _TreatmentEditorPageState extends State<TreatmentEditorPage> {
     if (_message != null) StatusMessage(_message!, kind: _messageKind),
   ];
 
+  // --- Saisie en étapes (ergonomie, MOE 20/11) ------------------------------------
+  // Une idée par écran, dans l'ordre de la maquette du Studio (identification, plantes,
+  // sections) : le consentement vient tôt, car il ouvre l'enregistrement des voix. Chaque
+  // « Suivant » enregistre le brouillon (sur le téléphone sans réseau) : rien ne se perd.
+
+  static const _steps = [
+    'Le traitement',
+    'Consentement et visibilité',
+    'Plantes',
+    'Préparation et prise',
+    'Précautions',
+    'Vérifier et soumettre',
+  ];
+
+  /// Section rangée à l'étape « Précautions » ; les autres vont à « Préparation et prise ».
+  static const _cautionSection = 'effets_indesirables';
+
+  /// Étape de chaque champ contrôlé, pour y ramener la personne quand il est en erreur.
+  static const _fieldStep = {'maladie': 0, 'titreFr': 0, 'visibilite': 1};
+
+  int _step = 0;
+
+  void _goTo(int step) => setState(() {
+    _step = step;
+    _message = null;
+  });
+
+  /// Ramène à la première étape qui porte une erreur de champ.
+  void _showFieldErrors() {
+    final steps = [for (final f in _fieldErrors.keys) _fieldStep[f] ?? _step];
+    if (steps.isEmpty) return;
+    final first = steps.reduce((a, b) => a < b ? a : b);
+    if (first != _step) setState(() => _step = first);
+  }
+
+  Future<void> _onNext() => _run(() async {
+    final saved = await _save();
+    if (saved == null) {
+      _showFieldErrors();
+      return;
+    }
+    unawaited(_sendVoices());
+    if (mounted) _goTo(_step + 1);
+  });
+
   Widget _form() {
-    final refs = _refs!;
-    final t = _treatment;
+    final last = _step == _steps.length - 1;
     final enabled = !_busy;
-    final plantByCode = {for (final p in refs.plants) p.code: p};
-    final chosen = {for (final p in _plants) p.plant};
-    // Liste active, plus celles que le traitement a déjà et qui ont été désactivées depuis
-    final contraindications = [
-      ...refs.contraindications,
-      ...?t?.contraindications.where(
-        (c) => !refs.contraindications.any((r) => r.code == c.code),
-      ),
-    ];
-    return SingleChildScrollView(
-      controller: _scroll,
-      padding: const EdgeInsets.all(SabouSpace.s4),
+    return PopScope(
+      // Le bouton « retour » du téléphone revient à l'étape précédente
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _step > 0) _goTo(_step - 1);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ..._header(t),
-          DropdownButtonFormField<String>(
-            key: const Key('studio-maladie'),
-            initialValue: _disease,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'Maladie soignée',
-              errorText: _fieldErrors['maladie'],
-            ),
-            items: [
-              for (final m in refs.diseases)
-                DropdownMenuItem(value: m.code, child: Text(m.label)),
-            ],
-            onChanged: enabled
-                ? (v) => _edit('maladie', () => _disease = v)
-                : null,
-          ),
-          const SizedBox(height: SabouSpace.s3),
-          _text(
-            id: 'titreFr',
-            controller: _titleFr,
-            label: 'Titre du traitement',
-            max: treatmentTitleMax,
-            enabled: enabled,
-          ),
-          _text(
-            id: 'titreEn',
-            controller: _titleEn,
-            label: 'Titre en anglais (facultatif)',
-            max: treatmentTitleMax,
-            enabled: enabled,
-          ),
-          const SizedBox(height: SabouSpace.s3),
-          const SectionTitle('Plantes, dans l’ordre de la préparation'),
-          for (final (index, row) in _plants.indexed)
-            _plantCard(index, row, plantByCode, chosen, enabled),
-          if (_plants.length < treatmentPlantsMax)
-            OutlinedButton.icon(
-              onPressed: enabled
-                  ? () => setState(() => _plants.add(_PlantRow(_nextKey++)))
-                  : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Ajouter une plante'),
-            ),
-          // US-054 : la plante manque au Dictionnaire
-          TextButton.icon(
-            onPressed: enabled ? _proposePlant : null,
-            icon: const Icon(Icons.local_florist_outlined),
-            label: const Text('Proposer une plante absente de la liste'),
-          ),
-          const SizedBox(height: SabouSpace.s5),
-          const SectionTitle('Cycle de traitement'),
-          _number('cycleDureeJours', _cycleDays, 'Durée (jours)', enabled),
-          _number('cyclePrisesParJour', _doses, 'Prises par jour', enabled),
-          _number(
-            'cyclePauseJours',
-            _pause,
-            'Pause (jours, facultatif)',
-            enabled,
-          ),
-          const SizedBox(height: SabouSpace.s3),
-          for (final s in refs.sections) ...[
-            SectionTitle(s.required ? s.label : '${s.label} (facultatif)'),
-            _text(
-              id: 'section-${s.code}',
-              controller: _sectionsFr[s.code]!,
-              label: 'Texte en français',
-              semanticsLabel: 'Texte en français : ${s.label}',
-              max: treatmentSectionMax,
-              lines: 4,
-              enabled: enabled,
-            ),
-            if (widget.voiceTools != null)
-              _voiceField('section', s.code, s.label),
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text('Texte en anglais (facultatif)'),
-              initiallyExpanded: _sectionsEn[s.code]!.text.isNotEmpty,
-              children: [
-                _text(
-                  id: 'section-${s.code}-en',
-                  controller: _sectionsEn[s.code]!,
-                  label: 'Texte en anglais',
-                  semanticsLabel: 'Texte en anglais : ${s.label}',
-                  max: treatmentSectionMax,
-                  lines: 4,
-                  enabled: enabled,
-                ),
-              ],
-            ),
-            const SizedBox(height: SabouSpace.s3),
-          ],
-          const SectionTitle('Contre-indications'),
-          const Text(
-            'Cochez les personnes à qui ce traitement est déconseillé : elles seront '
-            'affichées en alerte sur la page du traitement.',
-          ),
-          for (final c in contraindications)
-            CheckboxListTile(
-              key: Key('studio-ci-${c.code}'),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              value: _contraindications.contains(c.code),
-              title: Text(c.label),
-              onChanged: enabled
-                  ? (v) => setState(
-                      () => v == true
-                          ? _contraindications.add(c.code)
-                          : _contraindications.remove(c.code),
-                    )
-                  : null,
-            ),
-          const SizedBox(height: SabouSpace.s3),
-          const SectionTitle('Consentement et visibilité'),
-          CheckboxListTile(
-            key: const Key('studio-consentement'),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            value: _consent,
-            title: const Text(
-              'J’accepte que ce traitement soit examiné par SABOU puis, une fois certifié, '
-              'publié selon le niveau de visibilité choisi.',
-            ),
-            onChanged: enabled
-                ? (v) => _edit('visibilite', () => _consent = v ?? false)
-                : null,
-          ),
-          Semantics(
-            label: 'Niveau de visibilité',
-            container: true,
-            child: RadioGroup<String>(
-              groupValue: _visibility,
-              onChanged: (v) => _edit('visibilite', () => _visibility = v),
+          Expanded(
+            child: SingleChildScrollView(
+              key: ValueKey('studio-etape-$_step'),
+              controller: _scroll,
+              padding: const EdgeInsets.all(SabouSpace.s4),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final v in visibilities)
-                    RadioListTile<String>(
-                      key: Key('studio-visibilite-$v'),
-                      contentPadding: EdgeInsets.zero,
-                      value: v,
-                      enabled: enabled && _consent,
-                      title: Text(visibilityLabels[v]!.label),
-                      subtitle: Text(visibilityLabels[v]!.help),
-                    ),
+                  StepHeader(
+                    index: _step,
+                    count: _steps.length,
+                    title: _steps[_step],
+                  ),
+                  ..._header(_treatment),
+                  ...switch (_step) {
+                    0 => _identificationStep(enabled),
+                    1 => _consentStep(enabled),
+                    2 => _plantsStep(enabled),
+                    3 => _sectionsStep(enabled, caution: false),
+                    4 => _cautionStep(enabled),
+                    _ => _reviewStep(enabled),
+                  },
                 ],
               ),
             ),
           ),
-          if (_fieldErrors['visibilite'] != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: SabouSpace.s3),
-              child: Text(
-                _fieldErrors['visibilite']!,
-                key: const Key('studio-visibilite-erreur'),
-                style: const TextStyle(color: SabouColors.error),
-              ),
-            ),
-          if (t != null && t.gaps.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: SabouSpace.s3),
-              child: Text(
-                'Avant de soumettre : ${t.gaps.map((g) => gapLabels[g] ?? g).join(' ; ')}.',
-              ),
-            ),
-          const SizedBox(height: SabouSpace.s4),
-          OutlinedButton(
-            onPressed: enabled ? _onSave : null,
-            child: const Text('Enregistrer le brouillon'),
-          ),
-          const SizedBox(height: SabouSpace.s3),
-          FilledButton(
-            onPressed: enabled ? _onSubmit : null,
-            child: const Text('Soumettre pour certification'),
+          StepNavigation(
+            onPrevious: _step == 0 || !enabled ? null : () => _goTo(_step - 1),
+            primary: last
+                ? FilledButton(
+                    onPressed: enabled ? _onSubmit : null,
+                    child: const Text('Soumettre'),
+                  )
+                : FilledButton(
+                    key: const Key('studio-suivant'),
+                    onPressed: enabled ? _onNext : null,
+                    child: const Text('Suivant'),
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _identificationStep(bool enabled) => [
+    DropdownButtonFormField<String>(
+      key: const Key('studio-maladie'),
+      initialValue: _disease,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Maladie soignée',
+        errorText: _fieldErrors['maladie'],
+      ),
+      items: [
+        for (final m in _refs!.diseases)
+          DropdownMenuItem(value: m.code, child: Text(m.label)),
+      ],
+      onChanged: enabled ? (v) => _edit('maladie', () => _disease = v) : null,
+    ),
+    const SizedBox(height: SabouSpace.s3),
+    _text(
+      id: 'titreFr',
+      controller: _titleFr,
+      label: 'Titre du traitement',
+      max: treatmentTitleMax,
+      enabled: enabled,
+    ),
+    _text(
+      id: 'titreEn',
+      controller: _titleEn,
+      label: 'Titre en anglais (facultatif)',
+      max: treatmentTitleMax,
+      enabled: enabled,
+    ),
+    const SizedBox(height: SabouSpace.s2),
+    Text('Cycle de traitement', style: Theme.of(context).textTheme.titleMedium),
+    const SizedBox(height: SabouSpace.s3),
+    _number('cycleDureeJours', _cycleDays, 'Durée (jours)', enabled),
+    _number('cyclePrisesParJour', _doses, 'Prises par jour', enabled),
+    _number('cyclePauseJours', _pause, 'Pause (jours, facultatif)', enabled),
+  ];
+
+  List<Widget> _consentStep(bool enabled) => [
+    const Text(
+      'Votre accord permet à SABOU d’examiner ce traitement et d’enregistrer votre voix '
+      'aux étapes suivantes.',
+    ),
+    const SizedBox(height: SabouSpace.s2),
+    CheckboxListTile(
+      key: const Key('studio-consentement'),
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      value: _consent,
+      title: const Text(
+        'J’accepte que ce traitement soit examiné par SABOU puis, une fois certifié, '
+        'publié selon le niveau de visibilité choisi.',
+      ),
+      onChanged: enabled
+          ? (v) => _edit('visibilite', () => _consent = v ?? false)
+          : null,
+    ),
+    const SizedBox(height: SabouSpace.s2),
+    Semantics(
+      label: 'Niveau de visibilité',
+      container: true,
+      child: RadioGroup<String>(
+        groupValue: _visibility,
+        onChanged: (v) => _edit('visibilite', () => _visibility = v),
+        child: Column(
+          children: [
+            for (final v in visibilities)
+              RadioListTile<String>(
+                key: Key('studio-visibilite-$v'),
+                contentPadding: EdgeInsets.zero,
+                value: v,
+                enabled: enabled && _consent,
+                title: Text(visibilityLabels[v]!.label),
+                subtitle: Text(visibilityLabels[v]!.help),
+              ),
+          ],
+        ),
+      ),
+    ),
+    if (_fieldErrors['visibilite'] != null)
+      Padding(
+        padding: const EdgeInsets.only(bottom: SabouSpace.s3),
+        child: Text(
+          _fieldErrors['visibilite']!,
+          key: const Key('studio-visibilite-erreur'),
+          style: const TextStyle(color: SabouColors.error),
+        ),
+      ),
+  ];
+
+  List<Widget> _plantsStep(bool enabled) {
+    final plantByCode = {for (final p in _refs!.plants) p.code: p};
+    final chosen = {for (final p in _plants) p.plant};
+    return [
+      const Text('Dans l’ordre de la préparation.'),
+      const SizedBox(height: SabouSpace.s3),
+      for (final (index, row) in _plants.indexed)
+        _plantCard(index, row, plantByCode, chosen, enabled),
+      if (_plants.length < treatmentPlantsMax)
+        OutlinedButton.icon(
+          onPressed: enabled
+              ? () => setState(() => _plants.add(_PlantRow(_nextKey++)))
+              : null,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter une plante'),
+        ),
+      // US-054 : la plante manque au Dictionnaire
+      TextButton.icon(
+        onPressed: enabled ? _proposePlant : null,
+        icon: const Icon(Icons.local_florist_outlined),
+        label: const Text('Proposer une plante absente de la liste'),
+      ),
+    ];
+  }
+
+  /// Sections du traitement : texte en français, voix du praticien, texte en anglais replié.
+  List<Widget> _sectionsStep(bool enabled, {required bool caution}) => [
+    for (final s in _refs!.sections)
+      if ((s.code == _cautionSection) == caution) ...[
+        Text(
+          s.required ? s.label : '${s.label} (facultatif)',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: SabouSpace.s3),
+        _text(
+          id: 'section-${s.code}',
+          controller: _sectionsFr[s.code]!,
+          label: 'Texte en français',
+          semanticsLabel: 'Texte en français : ${s.label}',
+          max: treatmentSectionMax,
+          lines: 4,
+          enabled: enabled,
+        ),
+        if (widget.voiceTools != null) _voiceField('section', s.code, s.label),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('Texte en anglais (facultatif)'),
+          initiallyExpanded: _sectionsEn[s.code]!.text.isNotEmpty,
+          children: [
+            _text(
+              id: 'section-${s.code}-en',
+              controller: _sectionsEn[s.code]!,
+              label: 'Texte en anglais',
+              semanticsLabel: 'Texte en anglais : ${s.label}',
+              max: treatmentSectionMax,
+              lines: 4,
+              enabled: enabled,
+            ),
+          ],
+        ),
+        const SizedBox(height: SabouSpace.s4),
+      ],
+  ];
+
+  List<Widget> _cautionStep(bool enabled) {
+    final t = _treatment;
+    // Liste active, plus celles que le traitement a déjà et qui ont été désactivées depuis
+    final contraindications = [
+      ..._refs!.contraindications,
+      ...?t?.contraindications.where(
+        (c) => !_refs!.contraindications.any((r) => r.code == c.code),
+      ),
+    ];
+    return [
+      ..._sectionsStep(enabled, caution: true),
+      Text(
+        'Contre-indications',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: SabouSpace.s2),
+      const Text(
+        'Cochez les personnes à qui ce traitement est déconseillé : elles seront '
+        'affichées en alerte sur la page du traitement.',
+      ),
+      for (final c in contraindications)
+        CheckboxListTile(
+          key: Key('studio-ci-${c.code}'),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _contraindications.contains(c.code),
+          title: Text(c.label),
+          onChanged: enabled
+              ? (v) => setState(
+                  () => v == true
+                      ? _contraindications.add(c.code)
+                      : _contraindications.remove(c.code),
+                )
+              : null,
+        ),
+    ];
+  }
+
+  /// Récapitulatif avant l'envoi ; chaque ligne ramène à son étape.
+  List<Widget> _reviewStep(bool enabled) {
+    final refs = _refs!;
+    final t = _treatment;
+    String label(List<CodeLabel> list, String? code) =>
+        list.where((e) => e.code == code).firstOrNull?.label ?? '—';
+    final plantByCode = {for (final p in refs.plants) p.code: p.name};
+    final plants = [
+      for (final p in _plants)
+        if (p.plant != null) plantByCode[p.plant] ?? p.plant!,
+    ];
+    final cycle = [
+      '${_cycleDays.text.isEmpty ? '—' : _cycleDays.text} jours',
+      '${_doses.text.isEmpty ? '—' : _doses.text} prise(s) par jour',
+      if (_pause.text.isNotEmpty && _pause.text != '0')
+        'pause de ${_pause.text} jours',
+    ].join(', ');
+    final written = [
+      for (final s in refs.sections)
+        if (_sectionsFr[s.code]!.text.trim().isNotEmpty) s.label,
+    ];
+    final rows = <(String, String, int)>[
+      ('Maladie', label(refs.diseases, _disease), 0),
+      ('Titre', _titleFr.text.trim().isEmpty ? '—' : _titleFr.text.trim(), 0),
+      ('Cycle', cycle, 0),
+      (
+        'Visibilité',
+        !_consent
+            ? 'Consentement non donné'
+            : _visibility == null
+            ? '—'
+            : visibilityLabels[_visibility]!.label,
+        1,
+      ),
+      ('Plantes', plants.isEmpty ? '—' : plants.join(', '), 2),
+      ('Sections rédigées', written.isEmpty ? '—' : written.join(', '), 3),
+      (
+        'Contre-indications',
+        _contraindications.isEmpty
+            ? 'Aucune'
+            : [
+                for (final c in refs.contraindications)
+                  if (_contraindications.contains(c.code)) c.label,
+              ].join(', '),
+        4,
+      ),
+    ];
+    return [
+      for (final (name, value, step) in rows)
+        Padding(
+          padding: const EdgeInsets.only(bottom: SabouSpace.s2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _summary(name, value)),
+              TextButton(
+                onPressed: enabled ? () => _goTo(step) : null,
+                child: Text('Modifier', semanticsLabel: 'Modifier : $name'),
+              ),
+            ],
+          ),
+        ),
+      if (t != null && t.gaps.isNotEmpty)
+        StatusMessage(
+          'Avant de soumettre : ${t.gaps.map((g) => gapLabels[g] ?? g).join(' ; ')}.',
+          kind: StatusKind.warning,
+        ),
+      const SizedBox(height: SabouSpace.s3),
+      OutlinedButton(
+        onPressed: enabled ? _onSave : null,
+        child: const Text('Enregistrer le brouillon'),
+      ),
+    ];
   }
 
   Widget _plantCard(

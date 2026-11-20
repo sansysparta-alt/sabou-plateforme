@@ -145,3 +145,97 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
+
+/// En-tête d'une saisie en plusieurs étapes : « Étape 2 sur 6 », barre d'avancement et titre
+/// de l'étape. Une idée par écran : les longs formulaires sont découpés (ergonomie, MOE
+/// 20/11). Le changement d'étape est annoncé aux lecteurs d'écran.
+class StepHeader extends StatelessWidget {
+  const StepHeader({
+    super.key,
+    required this.index,
+    required this.count,
+    required this.title,
+  });
+
+  /// Étape affichée, à partir de 0.
+  final int index;
+  final int count;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final position = 'Étape ${index + 1} sur $count';
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      label: '$position : $title',
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              position,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: SabouColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: SabouSpace.s2),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(SabouRadius.sm),
+              child: LinearProgressIndicator(
+                value: (index + 1) / count,
+                minHeight: 6,
+                color: SabouColors.action,
+                backgroundColor: SabouColors.mint,
+              ),
+            ),
+            const SizedBox(height: SabouSpace.s4),
+            SectionTitle(title),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Barre du bas d'une saisie en étapes : « Précédent » (absent à la première étape) et
+/// l'action principale de l'étape (« Suivant », ou l'envoi à la dernière). Toujours visible,
+/// au-dessus du clavier, pour qu'on ne cherche jamais le bouton au bas d'une longue page.
+class StepNavigation extends StatelessWidget {
+  const StepNavigation({super.key, this.onPrevious, required this.primary});
+
+  /// Null à la première étape : le bouton n'est pas affiché.
+  final VoidCallback? onPrevious;
+  final Widget primary;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      color: SabouColors.surface,
+      border: Border(top: BorderSide(color: SabouColors.border)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(
+        SabouSpace.s4,
+        SabouSpace.s3,
+        SabouSpace.s4,
+        SabouSpace.s3,
+      ),
+      child: Row(
+        children: [
+          if (onPrevious != null) ...[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onPrevious,
+                child: const Text('Précédent'),
+              ),
+            ),
+            const SizedBox(width: SabouSpace.s3),
+          ],
+          Expanded(child: primary),
+        ],
+      ),
+    ),
+  );
+}
