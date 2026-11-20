@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react';
-import type { DashboardDecision, DashboardEvent, DashboardSummary, SmsFailure } from '@sabou/types';
-import {
-  Alert,
-  Badge,
-  ButtonLink,
-  Card,
-  DataTable,
-  PageHeader,
-  StatCard,
-  type Column,
-} from '@sabou/ui';
+import { useEffect, useState, type ComponentType } from 'react';
+import type {
+  AdminIndicators,
+  DashboardDecision,
+  DashboardEvent,
+  DashboardSummary,
+  SmsFailure,
+} from '@sabou/types';
+import { Alert, Badge, ButtonLink, Card, DataTable, PageHeader, type Column } from '@sabou/ui';
 import { ApiError, call } from './accounts-api';
-import { isDirector, profileLabel, type SessionUser } from './session';
+import { ProfileIndicators, type IndicatorProfile } from './ProfileIndicators';
+import {
+  isCommittee,
+  isDirector,
+  isPrefectoral,
+  isRegional,
+  profileLabel,
+  type SessionUser,
+} from './session';
 
-// Tableau de bord d'accueil (US-016) : chiffres de la zone, activité récente, fonctions à venir
+// Tableau de bord d'accueil (US-016, US-090) : indicateurs du profil dans sa zone (CdC §6.2 à
+// §6.5), activité récente ; SMS non remis pour la DG
 
 export const fetchDashboard = () => call<DashboardSummary>('/api/tableau-de-bord');
 
@@ -48,8 +54,15 @@ const SMS_FAILURE_COLUMNS: Column<SmsFailure>[] = [
   { key: 'raison', header: 'Raison', render: (f) => f.raison },
 ];
 
-// Valeur affichée pendant le chargement des chiffres (lue « points de suspension »)
-const PENDING = '…';
+// Profil dont les indicateurs sont attendus, connu dès la session : la grille s'affiche avant
+// l'arrivée des chiffres (rien ne se décale, CLS)
+function indicatorProfile(user: SessionUser): IndicatorProfile | null {
+  if (isDirector(user)) return 'dg';
+  if (isRegional(user)) return 'regional';
+  if (isPrefectoral(user)) return 'prefectoral';
+  if (isCommittee(user)) return 'scientifique';
+  return null;
+}
 
 // Refus de l'API (compte sans zone active en base) : message en clair, jamais celui de l'API
 function errorMessage(error: Error): string {
@@ -73,11 +86,17 @@ export function Dashboard({
 }) {
   // Les chiffres sont réservés aux administrateurs connectés avec leur second facteur
   const canRead = user.administrator && user.secondFactor;
+  const profile = indicatorProfile(user);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
+  // Graphiques et listes du profil : morceau à part, demandé en même temps que les chiffres
+  const [Details, setDetails] = useState<ComponentType<{ data: AdminIndicators }> | null>(null);
 
   useEffect(() => {
     if (!canRead) return;
     let active = true;
+    if (profile) {
+      void import('./ProfileDetails').then((m) => active && setDetails(() => m.ProfileDetails));
+    }
     fetchDashboard().then(
       (data) => active && setLoad({ status: 'ready', data }),
       (error: Error) => active && setLoad({ status: 'error', message: errorMessage(error) }),
@@ -85,9 +104,12 @@ export function Dashboard({
     return () => {
       active = false;
     };
-  }, [canRead]);
+  }, [canRead, profile]);
 
   const data = load.status === 'ready' ? load.data : null;
+  // Graphiques, listes et activité apparaissent ensemble, une fois chiffres et morceau arrivés :
+  // un seul ajout sous les tuiles, aucun bloc ne se décale ensuite (CLS)
+  const ready = data !== null && (profile === null || Details !== null) ? data : null;
   const zone = data ? ` · ${data.zone}` : '';
 
   return (
@@ -141,56 +163,45 @@ export function Dashboard({
           {load.status === 'error' ? (
             <Alert tone="error">{load.message}</Alert>
           ) : (
-            // Grille affichée dès le départ, valeurs « … » en attendant : rien ne se décale à
-            // l'arrivée des chiffres (CLS mesuré par Lighthouse)
-            <div className="ui-grid ui-grid--stats">
-              <StatCard
-                label="Praticiens"
-                value={data?.praticiens ?? PENDING}
-                detail="Inscrits dans la zone"
+            profile && (
+              <ProfileIndicators
+                profile={profile}
+                data={data?.indicateurs ?? null}
+                // Tuile présente dès le départ pour la DG : rien ne se décale (CLS)
+                extra={
+                  isDirector(user)
+                    ? [
+                        {
+                          label: 'SMS non remis',
+                          value: data?.smsNonRemis?.total,
+                          detail: 'Après 4 essais d’envoi',
+                        },
+                      ]
+                    : []
+                }
               />
-              <StatCard
-                label="Dossiers soumis"
-                value={data?.dossiersSoumis ?? PENDING}
-                detail="En cours de certification"
-              />
-              <StatCard
-                label="Comptes"
-                value={data?.comptes ?? PENDING}
-                detail="Administrateurs actifs de la zone"
-              />
-              <StatCard
-                label="Spécialités"
-                value={data?.specialites ?? PENDING}
-                detail="Référentiel de la DG"
-              />
-              {/* Carte présente dès le départ pour la DG : rien ne se décale (CLS) */}
-              {isDirector(user) && (
-                <StatCard
-                  label="SMS non remis"
-                  value={data?.smsNonRemis?.total ?? PENDING}
-                  detail="Après 4 essais d’envoi"
-                />
-              )}
-            </div>
+            )
+          )}
+          {ready && Details && ready.indicateurs.profil === profile && (
+            <Details data={ready.indicateurs} />
           )}
         </section>
       )}
       {/* En dernier : sa hauteur dépend des données, elle ne pousse donc aucun autre bloc */}
-      {data && (
+      {ready && (
         <section className="ui-section" aria-labelledby="activite">
           <h2 id="activite">Activité récente</h2>
           <DataTable
             caption="Dernières étapes des dossiers de la zone"
             captionHidden
             columns={ACTIVITY_COLUMNS}
-            rows={data.activite}
+            rows={ready.activite}
             rowKey={(e) => `${e.dossier}-${e.le}-${e.decision}`}
             empty="Aucun dossier n’a encore changé d’étape dans votre zone."
           />
         </section>
       )}
-      {isDirector(user) && data?.smsNonRemis && data.smsNonRemis.total > 0 && (
+      {ready && isDirector(user) && ready.smsNonRemis && ready.smsNonRemis.total > 0 && (
         <section className="ui-section" aria-labelledby="sms-non-remis">
           <h2 id="sms-non-remis">SMS non remis</h2>
           <p>
@@ -201,7 +212,7 @@ export function Dashboard({
             caption="Derniers SMS non remis"
             captionHidden
             columns={SMS_FAILURE_COLUMNS}
-            rows={data.smsNonRemis.derniers}
+            rows={ready.smsNonRemis.derniers}
             rowKey={(f) => `${f.objet}-${f.le}`}
             paginate={{ key: 'sms-non-remis', noun: ['SMS', 'SMS'] }}
             empty=""

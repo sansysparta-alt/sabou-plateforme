@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app.dart';
 import 'dev/prototypes.dart';
+import 'dashboard/dashboard_api.dart';
 import 'disputes/disputes_api.dart';
 import 'dossier/config.dart';
 import 'dossier/dossier_api.dart';
@@ -96,6 +97,10 @@ class _SabouAppState extends State<SabouApp> {
       }
     },
     disputesApi: DisputesApi(
+      baseUrl: Uri.parse(practitionerApiUrl),
+      session: session,
+    ),
+    dashboardApi: DashboardApi(
       baseUrl: Uri.parse(practitionerApiUrl),
       session: session,
     ),

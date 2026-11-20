@@ -1794,3 +1794,144 @@
   margin: 0 0 var(--sabou-space-1);
   color: var(--sabou-text-muted);
 }
+
+/* Graphiques des tableaux de bord (US-090) : marques fines, base commune, valeurs en clair */
+.ui-bars {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 var(--sabou-space-2);
+}
+.ui-bars__label {
+  width: 40%;
+  padding-right: var(--sabou-space-3);
+  font-weight: var(--sabou-weight-regular);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.ui-bars__cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sabou-space-2);
+}
+.ui-bars__track {
+  flex: 1;
+  min-width: 0;
+}
+.ui-bars__bar {
+  display: block;
+  height: 0.75rem;
+  border-radius: 0 4px 4px 0;
+  background: var(--sabou-action);
+}
+.ui-bars__value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--sabou-weight-semibold);
+}
+
+.ui-ring {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sabou-space-5);
+}
+.ui-ring__figure {
+  position: relative;
+  width: 9rem;
+  height: 9rem;
+  flex: none;
+}
+.ui-ring__chart {
+  width: 100%;
+  height: 100%;
+  /* Le premier segment part de midi */
+  transform: rotate(-90deg);
+}
+.ui-ring__center {
+  /* Disque inscrit dans le trou de l'anneau, sur la couleur de surface : le texte a un fond
+     uni et mesurable (contraste) */
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  background: var(--sabou-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  line-height: var(--sabou-leading-tight);
+}
+.ui-ring__track,
+.ui-ring__segment {
+  fill: none;
+  stroke-width: 12;
+}
+.ui-ring__track {
+  stroke: var(--sabou-bg);
+}
+.ui-ring__total {
+  font-size: var(--sabou-text-xl);
+  font-weight: var(--sabou-weight-bold);
+  color: var(--sabou-text);
+  font-variant-numeric: tabular-nums;
+}
+.ui-ring__noun {
+  font-size: var(--sabou-text-xs);
+  color: var(--sabou-text-muted);
+}
+.ui-ring__legend {
+  display: grid;
+  gap: var(--sabou-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1;
+  min-width: 12rem;
+}
+.ui-ring__legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--sabou-space-2);
+}
+.ui-ring__label {
+  flex: 1;
+}
+.ui-ring__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--sabou-weight-semibold);
+}
+.ui-ring__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  flex: none;
+}
+/* États du registre : couleurs d'état de la charte, toujours accompagnées de leur nom */
+.ui-ring--success {
+  stroke: var(--sabou-action);
+  background: var(--sabou-action);
+}
+.ui-ring--pending {
+  stroke: var(--sabou-gold);
+  background: var(--sabou-gold);
+}
+.ui-ring--neutral {
+  stroke: var(--sabou-border-strong);
+  background: var(--sabou-border-strong);
+}
+.ui-ring--error {
+  stroke: var(--sabou-error);
+  background: var(--sabou-error);
+}
+/* Mode contraste forcé : les couleurs disparaissent, la légende en clair reste */
+@media (forced-colors: active) {
+  .ui-bars__bar,
+  .ui-ring__swatch {
+    background: CanvasText;
+  }
+  .ui-ring__segment {
+    stroke: CanvasText;
+  }
+}

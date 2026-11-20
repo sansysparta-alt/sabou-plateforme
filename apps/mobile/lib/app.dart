@@ -1,12 +1,15 @@
 // Registre des rubriques de l'application mobile (US-018).
 // Ajouter une rubrique = ajouter une entrée ici, avec les profils qui la voient. La barre
 // de navigation du bas paraît d'elle-même dès qu'un profil a deux rubriques.
+// Praticien : tableau de bord en premier onglet (US-090).
 // Agent préfectoral : agenda des visites et compte rendu signé (US-083), numérisation d'une
 // recette et dossier sur le terrain (US-082).
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'dashboard/dashboard_api.dart';
+import 'dashboard/dashboard_page.dart';
 import 'disputes/disputes_api.dart';
 import 'disputes/disputes_pages.dart';
 import 'dossier/dossier_api.dart';
@@ -33,7 +36,19 @@ List<Rubric> appRubrics({
   FieldStudioFactory? fieldStudio,
   OpenExternal? openExternal,
   DisputesApi? disputesApi,
+  DashboardApi? dashboardApi,
 }) => [
+  // US-090 : tableau de bord du praticien (traitements, frise de certification, certificat)
+  if (dashboardApi != null)
+    Rubric(
+      id: 'accueil',
+      label: 'Accueil',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      profiles: const {SabouProfile.practitioner},
+      builder: (context, rubric) =>
+          DashboardPage(api: dashboardApi, onSignedOut: rubric.onSignedOut),
+    ),
   Rubric(
     id: 'dossier',
     label: 'Mon dossier',

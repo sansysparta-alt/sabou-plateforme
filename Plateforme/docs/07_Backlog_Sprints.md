@@ -51,7 +51,7 @@ Réestimation du 3 novembre 2026 (décision du maître d’œuvre) : le chiffrem
 | **S6** | 3. Application de gestion et mobile | Les voix d’un traitement sont résumées, validées, contrôlées par le Comité et publiées ; un signalement peut suspendre un traitement. | US-072, US-073, US-074, US-075, US-100 | 19 |
 | **S7** | 3. Application de gestion et mobile | Un praticien enregistre une recette complète sans réseau et la retrouve synchronisée. | US-080, US-081 | 16 |
 | **S8** | 3. Application de gestion et mobile | Un agent préfectoral numérise une recette et réalise une visite sans réseau ; litiges et alertes sont traités. | US-082, US-083, US-101, US-102 | 16 |
-| **S9** | 3. Application de gestion et mobile | Chaque profil dispose de son tableau de bord et de ses rapports. | US-090, US-091 | 8 |
+| **S9** | 3. Application de gestion et mobile | Chaque profil dispose de son tableau de bord et de ses rapports. | US-090, US-091 | 11 |
 | **S10** | 4. Site public | Un visiteur cherche « paludisme » dans sa langue et voit les traitements certifiés ; la DG pilote les menus. | US-110, US-111, US-117, US-130 | 21 |
 | **S11** | 4. Site public | Un visiteur écoute un traitement en malinké, même sans réseau, et trouve un praticien certifié. | US-112, US-113, US-114 | 18 |
 | **S12** | 4. Site public | Un visiteur consulte le Dictionnaire, vérifie un certificat et un citoyen témoigne. | US-115, US-116, US-120 | 18 |
@@ -940,6 +940,8 @@ Critères d’acceptation :
 - Indicateurs du cahier des charges pour chaque profil (§6.2 à 6.6).
 - Données limitées à la zone du compte.
 
+Décisions du maître d'œuvre (20 novembre 2026) : les indicateurs dont la donnée n'existe pas encore ne sont pas affichés ; le tableau de bord du praticien est livré dans l'application mobile (voir 05 §2.90, où sont aussi les choix tranchés par Claude). Indicateurs reportés, chacun ajouté au tableau de bord par le récit qui crée sa donnée : vues et écoutes (praticien, DG) → US-111 et US-112 ; réputation et satisfaction → US-120 ; revenus de la boutique (praticien) → US-142 ; revenus (DG) → US-140. Les tuiles génériques de US-016 (comptes, spécialités, dossiers soumis) sont remplacées par les indicateurs du profil.
+
 #### US-091 · Générer des rapports PDF et XLSX
 *Tableaux de bord et rapports* · **Should** · 3 points · cas : UC-36, UC-67
 
@@ -948,6 +950,14 @@ Critères d’acceptation :
 Critères d’acceptation :
 - Rapport mensuel préfectoral prérempli, envoi au régional.
 - Historique des exports.
+
+Décisions du maître d'œuvre (20 novembre 2026), changement de périmètre accepté (3 → 6 points) :
+- chaîne complète du rapport mensuel (R-MOD-09) : le préfectoral envoie au régional, le régional regroupe les rapports de ses préfectures et envoie le sien à la DG (+1 à 2 points) ;
+- rapport du mois écoulé, prérempli dès le 1er ; commentaire, puis envoi qui le fige ; le régional peut le renvoyer avec un motif : nouvelle version, l'ancienne est gardée ;
+- export PDF et XLSX de chaque tableau de bord, et historique des exports ;
+- PDF du certificat (Gotenberg), annoncé pour S9 par la décision du 12 novembre 2026 (+1 point).
+
+Hors S9, à planifier (décision du maître d'œuvre du 20 novembre 2026) : pages « Statistiques » de la DG, du régional et du préfectoral (délais, couverture, comparaison avec la moyenne nationale ou l'objectif de 3 jours) ; rapports épidémiologiques et de sécurité de la DG.
 
 ### Sprint 10 — Un visiteur cherche « paludisme » dans sa langue et voit les traitements certifiés ; la DG pilote les menus.
 

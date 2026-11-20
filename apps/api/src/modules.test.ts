@@ -12,6 +12,7 @@ import { AUDIT_LOG } from './audit/audit.log';
 import { ENV, loadEnv } from './config/env';
 import { DATABASE } from './database/database';
 import { AlertsModule } from './alerts/alerts.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { TreatmentsModule } from './treatments/treatments.module';
 import { VisitsModule } from './visits/visits.module';
@@ -56,6 +57,7 @@ const modules: [string, Type][] = [
   ['VisitsModule (US-083)', VisitsModule],
   ['DisputesModule (US-101)', DisputesModule],
   ['AlertsModule (US-102)', AlertsModule],
+  ['DashboardModule (US-090)', DashboardModule],
 ];
 
 describe('Chaque module se construit avec ses propres fournisseurs', () => {

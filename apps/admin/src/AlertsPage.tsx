@@ -1,14 +1,16 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, PageHeader, SelectField, TextAreaField } from '@sabou/ui';
-import type { AlertReferentials, AlertType, TerritorialAlert } from '@sabou/types';
+import type { AlertReferentials, TerritorialAlert } from '@sabou/types';
 import { ApiError, call } from './accounts-api';
+import { ALERT_STATUS, ALERT_TYPE } from './alert-labels';
 import { DossierRow } from './DossierDecision';
 import { PAGE_HEADERS } from './page-headers';
 
 // Alertes territoriales (US-102, UC-44, R-MOD-04 ; 05 §2.89) : dossiers bloqués et déserts
 // thérapeutiques détectés automatiquement, hausses de pathologie déclarées par le préfectoral
-// ou la DG ; accusé de réception, relance des responsables, clôture motivée. Libellés définis
-// ici : l'application n'importe que des types de @sabou/types (réseau 3G).
+// ou la DG ; accusé de réception, relance des responsables, clôture motivée. Libellés dans
+// alert-labels.ts (partagés avec le tableau de bord) : l'application n'importe que des types
+// de @sabou/types (réseau 3G).
 
 export type AlertRole = 'regional' | 'dg' | 'prefectoral';
 
@@ -21,21 +23,8 @@ const errorMessage = (error: unknown) =>
 const dateTime = (iso: string) =>
   new Date(iso).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
 
-const TYPE: Record<AlertType, string> = {
-  hausse_pathologie: 'Hausse de pathologie',
-  desert_therapeutique: 'Désert thérapeutique',
-  dossier_bloque: 'Dossier bloqué',
-};
-
-const STATUS: Record<
-  TerritorialAlert['statut'],
-  { label: string; tone: 'warning' | 'error' | 'neutral' }
-> = {
-  nouvelle: { label: 'Nouvelle', tone: 'warning' },
-  relancee: { label: 'Relancée', tone: 'error' },
-  accusee: { label: 'Reçue', tone: 'neutral' },
-  close: { label: 'Close', tone: 'neutral' },
-};
+const TYPE = ALERT_TYPE;
+const STATUS = ALERT_STATUS;
 
 export function RegionalAlertsPage() {
   return <AlertsPage role="regional" />;
