@@ -14,5 +14,7 @@ import { CERTIFICATE_SIGNER, VaultSigner } from './vault-signer';
     AdministratorGuard,
     { provide: CERTIFICATE_SIGNER, useClass: VaultSigner },
   ],
+  // US-101 : le recours accepté fait signer un nouveau certificat par le même coffre
+  exports: [CERTIFICATE_SIGNER],
 })
 export class CertificatesModule {}

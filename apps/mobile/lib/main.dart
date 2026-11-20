@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app.dart';
+import 'disputes/disputes_api.dart';
 import 'dev/prototypes.dart';
 import 'dossier/config.dart';
 import 'dossier/dossier_api.dart';
@@ -73,6 +74,10 @@ class _SabouAppState extends State<SabouApp> {
     picker: DevicePhotoPicker(),
     voiceTools: widget.voiceTools,
     studioStore: widget.studioStore,
+    disputesApi: DisputesApi(
+      baseUrl: Uri.parse(practitionerApiUrl),
+      session: session,
+    ),
   );
 
   @override
