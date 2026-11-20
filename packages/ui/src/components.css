@@ -1921,3 +1921,9 @@
     stroke: CanvasText;
   }
 }
+
+/* Texte saisi par une personne (commentaire d'un rapport, US-091) : retours à la ligne gardés */
+.ui-prewrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

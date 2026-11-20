@@ -37,6 +37,8 @@ const loaders = {
   disputes: () => import('./DisputesPage'),
   // US-102 : alertes territoriales
   alerts: () => import('./AlertsPage'),
+  // US-091 : rapports mensuels et historique des exports
+  reports: () => import('./ReportsPage'),
 };
 const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })));
 const AccountsPage = lazy(() => loaders.accounts().then((m) => ({ default: m.AccountsPage })));
@@ -103,6 +105,13 @@ const DirectorAlertsPage = lazy(() =>
 const PrefectoralAlertsPage = lazy(() =>
   loaders.alerts().then((m) => ({ default: m.PrefectoralAlertsPage })),
 );
+// US-091 : rapports mensuels et exports, selon le profil
+const reportsPage = (role: 'dg' | 'regional' | 'prefectoral' | 'scientifique') =>
+  lazy(() => loaders.reports().then((m) => ({ default: () => <m.ReportsPage role={role} /> })));
+const DirectorReportsPage = reportsPage('dg');
+const RegionalReportsPage = reportsPage('regional');
+const PrefectoralReportsPage = reportsPage('prefectoral');
+const CommitteeReportsPage = reportsPage('scientifique');
 // US-100 : signalements et traitements suspendus (Comité scientifique)
 const HealthReportsPage = lazy(() =>
   loaders.healthReports().then((m) => ({ default: m.HealthReportsPage })),
@@ -144,6 +153,7 @@ const PAGE_LOADERS: Record<string, () => Promise<unknown>> = {
   '/traitements-suspendus': loaders.healthReports,
   '/litiges': loaders.disputes,
   '/alertes': loaders.alerts,
+  '/rapports': loaders.reports,
 };
 
 // Lectures que chaque page fait à son ouverture, exactement comme elle les demande ; une file
@@ -172,6 +182,7 @@ const PAGE_DATA: Record<string, (string | (() => string))[]> = {
   '/traitements-suspendus': ['/api/signalements/suspendus'],
   '/litiges': [() => firstQueuePagePath(QUEUES.disputes)],
   '/alertes': ['/api/alertes'],
+  '/rapports': ['/api/rapports-mensuels', '/api/exports'],
 };
 const CERTIFICATE_PREFIX = /^\/certificats\/(SAB-\d{4}-PR\d{1,10}-[A-Z2-9]{3})$/;
 // Fiche plante (US-050) : /plantes/PL-001, pour la DG et le Comité
@@ -395,6 +406,14 @@ function PublicLayout({ children }: { children: ReactNode }) {
   );
 }
 
+// Entrée « rapports » de chaque profil, nommée comme dans le cahier des charges (§6.2 à §6.5)
+function reportsLabel(user: SessionUser): string {
+  if (isDirector(user)) return 'Rapports et exports';
+  if (isRegional(user)) return 'Rapports d’activité';
+  if (isPrefectoral(user)) return 'Mon rapport mensuel';
+  return 'Historique des exports';
+}
+
 // Navigation selon le rôle ; l'API refuse aussi les pages de gestion aux autres profils
 function navigation(user: SessionUser): NavGroup[] {
   const groups: NavGroup[] = [
@@ -406,6 +425,8 @@ function navigation(user: SessionUser): NavGroup[] {
         ...(isCommittee(user)
           ? []
           : [{ href: '/alertes', label: 'Alertes territoriales', icon: 'warning' as const }]),
+        // US-091 : rapports mensuels (CdC §6.2 à §6.5 : libellé de chaque profil) et exports
+        { href: '/rapports', label: reportsLabel(user), icon: 'book' as const },
       ],
     },
   ];
@@ -530,6 +551,7 @@ const DIRECTOR_PAGES: Record<string, ComponentType> = {
   '/rejet-definitif': RejectionPage,
   '/litiges': DirectorDisputesPage,
   '/alertes': DirectorAlertsPage,
+  '/rapports': DirectorReportsPage,
   '/couverture-vocale': VoiceCoveragePage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
@@ -543,12 +565,14 @@ const PREFECTORAL_PAGES: Record<string, ComponentType> = {
   '/dossiers-terrain': FieldDossierPage,
   '/resumes-traductions': TreatmentVoicesPage,
   '/alertes': PrefectoralAlertsPage,
+  '/rapports': PrefectoralReportsPage,
 };
 const REGIONAL_PAGES: Record<string, ComponentType> = {
   '/noms-locaux': LocalNamesPage,
   '/voix-des-noms': NameVoicesPage,
   '/consolidation': ConsolidationPage,
   '/alertes': RegionalAlertsPage,
+  '/rapports': RegionalReportsPage,
   '/agents-verification': VerifierDesignationPage,
   '/litiges': RegionalDisputesPage,
   '/traitements': TreatmentsPage,
@@ -562,6 +586,7 @@ const COMMITTEE_PAGES: Record<string, ComponentType> = {
   '/controle-effets': EffectsControlPage,
   '/signalements': HealthReportsPage,
   '/traitements-suspendus': SuspendedTreatmentsPage,
+  '/rapports': CommitteeReportsPage,
   '/plantes': PlantsPage,
   '/maladies': DiseasesPage,
 };

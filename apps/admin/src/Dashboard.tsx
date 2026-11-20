@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DashboardDecision, DashboardEvent, DashboardSummary, SmsFailure } from '@sabou/types';
 import { Alert, Badge, ButtonLink, Card, DataTable, PageHeader, type Column } from '@sabou/ui';
 import { ApiError, call } from './accounts-api';
+import { ExportButtons } from './ExportButtons';
 import { ProfileIndicators, type IndicatorProfile } from './ProfileIndicators';
 import {
   isCommittee,
@@ -146,6 +147,13 @@ export function Dashboard({
       {canRead && (
         <section className="ui-section" aria-labelledby="chiffres" aria-busy={!data}>
           <h2 id="chiffres">Chiffres de votre zone</h2>
+          {/* US-091 : export des chiffres affichés, gardé dans l'historique des exports */}
+          {profile && (
+            <ExportButtons
+              subject="le tableau de bord"
+              request={(format) => ({ type: 'tableau_de_bord', format })}
+            />
+          )}
           {load.status === 'error' ? (
             <Alert tone="error">{load.message}</Alert>
           ) : (

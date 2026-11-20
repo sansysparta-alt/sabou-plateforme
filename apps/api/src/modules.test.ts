@@ -14,6 +14,7 @@ import { DATABASE } from './database/database';
 import { AlertsModule } from './alerts/alerts.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { ReportsModule } from './reports/reports.module';
 import { TreatmentsModule } from './treatments/treatments.module';
 import { VisitsModule } from './visits/visits.module';
 
@@ -58,6 +59,7 @@ const modules: [string, Type][] = [
   ['DisputesModule (US-101)', DisputesModule],
   ['AlertsModule (US-102)', AlertsModule],
   ['DashboardModule (US-090)', DashboardModule],
+  ['ReportsModule (US-091)', ReportsModule],
 ];
 
 describe('Chaque module se construit avec ses propres fournisseurs', () => {

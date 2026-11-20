@@ -50,6 +50,10 @@ export const PAGE_HEADERS = {
     title: 'Alertes territoriales',
     lead: 'Dossiers bloqués depuis plus de 15 jours et préfectures sans praticien certifié, détectés automatiquement ; hausses de pathologie déclarées par les préfectures ou la DG. Accusez réception, relancez les responsables, closez avec un motif.',
   },
+  '/rapports': {
+    title: 'Rapports et exports',
+    lead: 'Rapport mensuel prérempli avec les chiffres de votre zone : le préfectoral l’envoie au régional, le régional regroupe ceux de ses préfectures et envoie le sien à la DG. Un rapport envoyé ne change plus ; son destinataire peut le renvoyer avec un motif. Historique des exports PDF et XLSX.',
+  },
   '/signalements': {
     title: 'Signalements',
     lead: 'Dangers et effets indésirables signalés par le public sur un traitement ou une plante. Les signalements graves sont en tête : délai cible de 24 heures. Chaque décision est motivée.',

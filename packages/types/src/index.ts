@@ -27,3 +27,4 @@ export * from './annotations.js';
 export * from './health-reports.js';
 export * from './disputes.js';
 export * from './alerts.js';
+export * from './reports.js';

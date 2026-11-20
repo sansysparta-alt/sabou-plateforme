@@ -46,6 +46,27 @@ const repository = {
     if (failure) throw failure;
     return { numero };
   },
+  async source(sub: string, numero: string) {
+    calls.push(['source', sub, numero]);
+    if (failure) throw failure;
+    return {
+      view: {
+        numero,
+        statut: 'actif',
+        titulaire: 'Mamadou Diallo',
+        praticien: 'PR-1042',
+        specialite: 'Herboristerie',
+        prefecture: 'Labé',
+        autorite: 'Ministère de la Santé',
+        emisLe: '2026-10-16',
+        expireLe: '2029-10-15',
+        dossier: 'DS-1042',
+        empreinte: 'a'.repeat(64),
+        cle: 'sabou-2026-01',
+      },
+      qr: 'SB1:6BFOXN*TS0BI$ZD.P9UOL97O4-2HH77HRM3DSPTKQ',
+    };
+  },
 };
 
 const session = (roles: string[], secondFactor = true): SessionData => ({
@@ -109,6 +130,7 @@ describe.each([
   ['POST', '/api/dossiers/DS-1041/approbation'],
   ['GET', '/api/dossiers/approbation'],
   ['GET', '/api/certificats/SAB-2026-PR1041-K7Q'],
+  ['GET', '/api/certificats/SAB-2026-PR1041-K7Q/pdf'],
 ] as const)('%s %s : accès', (method, path) => {
   it('refuse un compte qui n’est pas administrateur, ou sans second facteur (R-ACC-03)', async () => {
     expect((await request(method, path, { cookie: 'praticien' })).status).toBe(403);
@@ -169,6 +191,30 @@ describe('certificat à imprimer', () => {
   it('certificat inconnu ou hors zone : 404', async () => {
     failure = new CertificateNotFoundError();
     expect((await request('GET', '/api/certificats/SAB-2026-PR1041-K7Q')).status).toBe(404);
+    expect((await request('GET', '/api/certificats/SAB-2026-PR1041-K7Q/pdf')).status).toBe(404);
+  });
+});
+
+// US-091 : PDF du certificat, mêmes mentions que la page imprimable, QR vectoriel balisé
+describe('PDF du certificat', () => {
+  it('pièce jointe PDF balisée, sans cache, avec le QR décrit pour les lecteurs d’écran', async () => {
+    const response = await request('GET', '/api/certificats/SAB-2026-PR1041-K7Q/pdf');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('application/pdf');
+    expect(response.headers.get('content-disposition')).toBe(
+      'attachment; filename="certificat-SAB-2026-PR1041-K7Q.pdf"',
+    );
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const raw = Buffer.from(await response.arrayBuffer()).toString('latin1');
+    expect(raw.startsWith('%PDF-1.7')).toBe(true);
+    expect(raw).toContain('/S /Figure');
+    expect(raw).toContain('/Lang (fr-FR)');
+    expect(calls).toEqual([['source', SUB, 'SAB-2026-PR1041-K7Q']]);
+  });
+
+  it('numéro mal formé : 400, sans appeler la base', async () => {
+    expect((await request('GET', '/api/certificats/SAB-2026-PR1041-K7%27/pdf')).status).toBe(400);
+    expect(calls).toEqual([]);
   });
 });
 
