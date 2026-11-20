@@ -9,7 +9,7 @@ import type {
   MonthlyReportList,
   PrefectoralReportContent,
 } from '@sabou/types';
-import { monthLabel, ReportsPage } from './ReportsPage';
+import { monthLabel, pastMonths, ReportsPage } from './ReportsPage';
 
 const CONTENT: PrefectoralReportContent = {
   activite: {
@@ -100,11 +100,14 @@ describe('Critère 1 : rapport mensuel préfectoral prérempli, envoi au région
     render(<ReportsPage role="prefectoral" />);
     expect(screen.getByRole('heading', { level: 1, name: 'Rapports et exports' }));
     const month = await screen.findByRole('combobox', { name: /Mois/ });
-    expect(
-      within(month)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['octobre 2026', 'septembre 2026']);
+    // Mois proposés par l'API, une fois sa réponse arrivée (12 mois calculés avant)
+    await waitFor(() =>
+      expect(
+        within(month)
+          .getAllByRole('option')
+          .map((o) => o.textContent),
+      ).toEqual(['octobre 2026', 'septembre 2026']),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Préparer le rapport' }));
     expect(
       await screen.findByRole('heading', {
@@ -171,7 +174,7 @@ describe('Critère 1 : réception et renvoi par le régional', () => {
     list = { ...list, recus: [report] };
     render(<ReportsPage role="regional" />);
     expect(await screen.findByRole('heading', { name: 'Rapports reçus des préfectures' }));
-    fireEvent.click(screen.getByRole('button', { name: /Ouvrir le rapport Labé/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Ouvrir le rapport Labé/ }));
     const send = await screen.findByRole('button', { name: 'Renvoyer le rapport' });
     fireEvent.click(send);
     expect(await screen.findByText('Indiquez ce qui doit être revu.'));
@@ -229,4 +232,22 @@ describe('Critère 2 : historique des exports', () => {
 
 it('mois en clair', () => {
   expect(monthLabel('2026-01-01')).toBe('janvier 2026');
+});
+
+it('mois proposés avant la réponse de l’API : les 12 derniers mois écoulés', () => {
+  const months = pastMonths(new Date('2026-01-15T10:00:00Z'));
+  expect(months).toHaveLength(12);
+  expect(months[0]).toBe('2025-12-01');
+  expect(months.at(-1)).toBe('2025-01-01');
+});
+
+it('blocs du profil présents dès l’ouverture, avant les données (aucun décalage)', () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise(() => {})),
+  );
+  render(<ReportsPage role="prefectoral" />);
+  expect(screen.getByRole('button', { name: 'Préparer le rapport' }));
+  expect(screen.getByRole('heading', { name: 'Mes rapports' }));
+  expect(screen.getByRole('heading', { name: 'Historique des exports' }));
 });

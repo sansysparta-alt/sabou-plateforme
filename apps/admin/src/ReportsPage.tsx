@@ -63,6 +63,15 @@ const dateTime = new Intl.DateTimeFormat('fr-FR', {
 });
 const when = (iso: string | null) => (iso ? dateTime.format(new Date(iso)) : '—');
 
+// Les 12 derniers mois écoulés (AAAA-MM-01), le plus récent d'abord : même calcul que l'API
+// (heure de Conakry = UTC), affiché avant sa réponse ; la base contrôle le mois à la préparation
+export function pastMonths(now = new Date()): string[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i - 1, 1));
+    return d.toISOString().slice(0, 10);
+  });
+}
+
 const errorMessage = (error: unknown) =>
   error instanceof ApiError ? error.message : 'Une erreur est survenue.';
 
@@ -111,9 +120,11 @@ export function ReportsPage({ role }: { role: ReportsRole }) {
         {status}
       </p>
       {error && <Alert tone="error">{error}</Alert>}
-      {list?.peutRediger && (
+      {/* Blocs du profil affichés dès l'ouverture (connu par la session), remplis à l'arrivée
+          des données : rien ne se décale (CLS) */}
+      {(role === 'prefectoral' || role === 'regional') && (
         <PrepareForm
-          months={list.moisPossibles}
+          months={list?.moisPossibles ?? pastMonths()}
           role={role}
           onPrepared={(id) => {
             setSelected(id);
@@ -121,23 +132,23 @@ export function ReportsPage({ role }: { role: ReportsRole }) {
           }}
         />
       )}
-      {list && (role === 'prefectoral' || role === 'regional') && (
+      {(role === 'prefectoral' || role === 'regional') && (
         <ReportTable
           title="Mes rapports"
-          rows={list.miens}
+          rows={list?.miens ?? []}
           withZone={false}
-          empty="Aucun rapport rédigé pour l’instant."
+          empty={list ? 'Aucun rapport rédigé pour l’instant.' : 'Chargement…'}
           onOpen={setSelected}
         />
       )}
-      {list && (role === 'regional' || role === 'dg') && (
+      {(role === 'regional' || role === 'dg') && (
         <ReportTable
           title={
             role === 'regional' ? 'Rapports reçus des préfectures' : 'Rapports reçus des régions'
           }
-          rows={list.recus}
+          rows={list?.recus ?? []}
           withZone
-          empty="Aucun rapport reçu pour l’instant."
+          empty={list ? 'Aucun rapport reçu pour l’instant.' : 'Chargement…'}
           onOpen={setSelected}
         />
       )}
@@ -708,19 +719,16 @@ function ExportHistory({ rows }: { rows: ExportEntry[] | null }) {
         Chaque export garde les chiffres du moment où il a été fait : le fichier téléchargé de
         nouveau est identique.
       </p>
-      {rows === null ? (
-        <p aria-busy="true">Chargement…</p>
-      ) : (
-        <DataTable
-          caption="Historique des exports"
-          captionHidden
-          columns={EXPORT_COLUMNS}
-          rows={rows}
-          rowKey={(e) => e.id}
-          paginate={{ key: 'historique-exports', noun: ['export', 'exports'] }}
-          empty="Aucun export pour l’instant."
-        />
-      )}
+      {/* Même tableau pendant le chargement : sa hauteur ne change presque pas (CLS) */}
+      <DataTable
+        caption="Historique des exports"
+        captionHidden
+        columns={EXPORT_COLUMNS}
+        rows={rows ?? []}
+        rowKey={(e) => e.id}
+        paginate={{ key: 'historique-exports', noun: ['export', 'exports'] }}
+        empty={rows ? 'Aucun export pour l’instant.' : 'Chargement…'}
+      />
     </section>
   );
 }

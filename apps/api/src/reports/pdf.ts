@@ -116,7 +116,7 @@ export function renderPdf(report: ReportDocument): Promise<Buffer> {
       continue;
     }
     const header = section.kind === 'figures' ? ['Indicateur', 'Valeur'] : section.columns;
-    const rows = section.kind === 'figures' ? section.rows : section.rows;
+    const rows: Cell[][] = section.rows;
     if (rows.length === 0) {
       doc.fillColor(MUTED).text(section.kind === 'table' ? section.empty : '', {
         structParent: root,
