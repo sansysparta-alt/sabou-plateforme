@@ -88,33 +88,34 @@ export function StatusRing({ noun, segments }: StatusRingProps) {
   let offset = 0;
   return (
     <div className="ui-ring">
-      <svg className="ui-ring__chart" viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="ui-ring__track" cx="50" cy="50" r={RADIUS} />
-        {drawn.map((s) => {
-          const length = (s.value / total) * CIRCUMFERENCE;
-          // Un seul segment : anneau plein, sans écart
-          const visible = drawn.length > 1 ? Math.max(length - GAP, 0.5) : length;
-          const circle = (
-            <circle
-              key={s.label}
-              className={`ui-ring__segment ui-ring--${s.tone}`}
-              cx="50"
-              cy="50"
-              r={RADIUS}
-              strokeDasharray={`${visible} ${CIRCUMFERENCE - visible}`}
-              strokeDashoffset={-offset}
-            />
-          );
-          offset += length;
-          return circle;
-        })}
-        <text className="ui-ring__total" x="50" y="50">
-          {numberFormat.format(total)}
-        </text>
-        <text className="ui-ring__noun" x="50" y="64">
-          {noun}
-        </text>
-      </svg>
+      <div className="ui-ring__figure">
+        <svg className="ui-ring__chart" viewBox="0 0 100 100" aria-hidden="true">
+          <circle className="ui-ring__track" cx="50" cy="50" r={RADIUS} />
+          {drawn.map((s) => {
+            const length = (s.value / total) * CIRCUMFERENCE;
+            // Un seul segment : anneau plein, sans écart
+            const visible = drawn.length > 1 ? Math.max(length - GAP, 0.5) : length;
+            const circle = (
+              <circle
+                key={s.label}
+                className={`ui-ring__segment ui-ring--${s.tone}`}
+                cx="50"
+                cy="50"
+                r={RADIUS}
+                strokeDasharray={`${visible} ${CIRCUMFERENCE - visible}`}
+                strokeDashoffset={-offset}
+              />
+            );
+            offset += length;
+            return circle;
+          })}
+        </svg>
+        {/* Total au centre en HTML (contraste mesurable, lu par les lecteurs d'écran) */}
+        <p className="ui-ring__center">
+          <span className="ui-ring__total">{numberFormat.format(total)}</span>
+          <span className="ui-ring__noun">{noun}</span>
+        </p>
+      </div>
       <ul className="ui-ring__legend">
         {segments.map((s) => (
           <li key={s.label}>
