@@ -1,9 +1,8 @@
 // Registre des rubriques de l'application mobile (US-018).
 // Ajouter une rubrique = ajouter une entrée ici, avec les profils qui la voient. La barre
 // de navigation du bas paraît d'elle-même dès qu'un profil a deux rubriques.
-// Rubriques prévues au backlog :
-// - agent préfectoral : numérisation d'une recette et dossier sur le terrain (US-082, S8),
-//   agenda des visites et compte rendu signé (US-083, S8).
+// Agent préfectoral : numérisation d'une recette et dossier sur le terrain (US-082) ; agenda
+// des visites et compte rendu signé à venir (US-083).
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/practitioner_pages.dart';
+import 'field/field_api.dart';
+import 'field/field_pages.dart';
 import 'shell/rubric.dart';
 import 'studio/studio_api.dart';
 import 'studio/studio_pages.dart';
@@ -25,6 +26,8 @@ List<Rubric> appRubrics({
   Future<Uint8List> Function(Uint8List) prepare = preparePhotoInBackground,
   VoiceTools? voiceTools,
   StudioStore? studioStore,
+  FieldApi? fieldApi,
+  FieldStudioFactory? fieldStudio,
 }) => [
   Rubric(
     id: 'dossier',
@@ -53,4 +56,32 @@ List<Rubric> appRubrics({
       store: studioStore,
     ),
   ),
+  // US-082 : agent préfectoral, numérisation au nom du praticien et dossier terrain
+  if (fieldApi != null && fieldStudio != null) ...[
+    Rubric(
+      id: 'numeriser',
+      label: 'Numériser',
+      icon: Icons.record_voice_over_outlined,
+      selectedIcon: Icons.record_voice_over,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldPractitionersPage(
+        api: fieldApi,
+        studioFor: fieldStudio,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
+    Rubric(
+      id: 'dossiers-terrain',
+      label: 'Dossiers',
+      icon: Icons.folder_shared_outlined,
+      selectedIcon: Icons.folder_shared,
+      profiles: const {SabouProfile.fieldAgent},
+      builder: (context, rubric) => FieldDossiersPage(
+        api: fieldApi,
+        picker: picker,
+        prepare: prepare,
+        onSignedOut: rubric.onSignedOut,
+      ),
+    ),
+  ],
 ];

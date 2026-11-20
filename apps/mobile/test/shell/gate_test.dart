@@ -91,6 +91,47 @@ void main() {
       expect(find.text('Contenu Agenda'), findsOneWidget);
       expect(find.text('Contenu Mon dossier'), findsNothing);
     });
+
+    // US-082 : connexion de l'agent dans le domaine interne, avec son second facteur
+    testWidgets(
+      'agent préfectoral : connexion par son propre bouton, ses rubriques',
+      (tester) async {
+        launcher.next = Tokens(
+          accessToken: fakeAccess('acces-agent', [
+            'administrateur',
+            'admin_prefectoral',
+          ]),
+          refreshToken: 'rafraichissement-agent',
+          expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+        );
+        await pumpGate(tester);
+        final button = find.byKey(const Key('connexion-agent'));
+        await tester.scrollUntilVisible(
+          button,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(launcher.lastRealm, SignInRealm.fieldAgent);
+        expect(store.values['sabou.session.domaine'], 'fieldAgent');
+        expect(find.text('Contenu Agenda'), findsOneWidget);
+        expect(find.text('Contenu Mon dossier'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'page de connexion accessible avec la connexion agent (WCAG 2.2 AA)',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        await pumpGate(tester);
+        await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+        handle.dispose();
+      },
+    );
   });
 
   group('US-069 : mot de passe oublié dans l’application', () {

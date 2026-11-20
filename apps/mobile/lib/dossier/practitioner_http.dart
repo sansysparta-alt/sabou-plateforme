@@ -12,9 +12,14 @@ class PractitionerHttp {
     required this.baseUrl,
     required this.session,
     http.Client? client,
+    this.prefix = 'api/praticien',
   }) : _client = client ?? http.Client();
 
   final Uri baseUrl;
+
+  /// Début du chemin : `api/praticien` pour le praticien ; pour l'agent préfectoral (US-082),
+  /// `api/terrain/praticiens/PR-…` (Studio du praticien visé) ou `api/dossiers-terrain`.
+  final String prefix;
   final PractitionerSession session;
   final http.Client _client;
 
@@ -29,7 +34,10 @@ class PractitionerHttp {
   }) async {
     Future<http.Response> attempt({required bool force}) async {
       final request =
-          http.Request(method, baseUrl.resolve('/api/praticien/$path'))
+          http.Request(
+              method,
+              baseUrl.resolve(path.isEmpty ? '/$prefix' : '/$prefix/$path'),
+            )
             ..headers['authorization'] =
                 'Bearer ${await session.accessToken(force: force)}'
             ..headers['accept'] = 'application/json';

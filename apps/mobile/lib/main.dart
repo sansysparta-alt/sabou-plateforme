@@ -12,6 +12,8 @@ import 'dossier/config.dart';
 import 'dossier/dossier_api.dart';
 import 'dossier/photo.dart';
 import 'dossier/session.dart';
+import 'field/field_api.dart';
+import 'field/field_pages.dart';
 import 'shell/gate.dart';
 import 'signup/signup_api.dart';
 import 'studio/studio_api.dart';
@@ -29,11 +31,14 @@ Future<void> main() async {
   // US-080 : copie chiffrée du Studio pour l'usage hors réseau
   final studioStore = await deviceStudioStore();
   final dossierCopy = await deviceDossierCopy();
+  // US-082 : données chiffrées de l'agent préfectoral
+  final fieldFiles = await deviceFieldFiles();
   runApp(
     SabouApp(
       voiceTools: voiceTools,
       studioStore: studioStore,
       dossierCopy: dossierCopy,
+      fieldFiles: fieldFiles,
     ),
   );
 }
@@ -44,11 +49,13 @@ class SabouApp extends StatefulWidget {
     this.voiceTools,
     this.studioStore,
     this.dossierCopy,
+    this.fieldFiles,
   });
 
   final VoiceTools? voiceTools;
   final StudioStore? studioStore;
   final SealedFiles? dossierCopy;
+  final SealedFiles? fieldFiles;
 
   @override
   State<SabouApp> createState() => _SabouAppState();
@@ -73,7 +80,28 @@ class _SabouAppState extends State<SabouApp> {
     picker: DevicePhotoPicker(),
     voiceTools: widget.voiceTools,
     studioStore: widget.studioStore,
+    fieldApi: widget.fieldFiles == null
+        ? null
+        : FieldApi(
+            baseUrl: Uri.parse(practitionerApiUrl),
+            session: session,
+            store: FieldStore(widget.fieldFiles!),
+          ),
+    fieldStudio: _fieldStudio,
   );
+
+  // US-082 : Studio du praticien choisi par l'agent, avec sa copie et son coffre à part
+  Future<FieldStudioTools> _fieldStudio(String code) async {
+    final api = StudioApi.forPractitioner(
+      baseUrl: Uri.parse(practitionerApiUrl),
+      session: session,
+      practitionerCode: code,
+    );
+    final base = widget.voiceTools;
+    if (base == null) return FieldStudioTools(api: api);
+    final own = await deviceFieldStudio(code, base);
+    return FieldStudioTools(api: api, store: own.store, voiceTools: own.tools);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -338,6 +338,8 @@ describe('Garde-fous du schéma', () => {
       'signalement_decider',
       'signalement_deposer',
       'signalements_effacer_contacts',
+      // US-082 : praticien du Studio (le sien, ou celui que numérise l'agent), pour les lectures
+      'studio_praticien_id',
       // US-060 : le praticien n'écrit ses traitements que par le Studio (05 §2.50)
       // US-063 : contre-indications du brouillon, par le Studio
       'traitement_contre_indications_poser',

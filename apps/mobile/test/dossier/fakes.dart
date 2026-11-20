@@ -39,11 +39,16 @@ class FakeLauncher implements LoginLauncher {
   );
   int calls = 0;
   String? lastLoginHint;
+  SignInRealm? lastRealm;
 
   @override
-  Future<Tokens?> login({String? loginHint}) async {
+  Future<Tokens?> login({
+    String? loginHint,
+    SignInRealm realm = SignInRealm.practitioner,
+  }) async {
     calls++;
     lastLoginHint = loginHint;
+    lastRealm = realm;
     return next;
   }
 }

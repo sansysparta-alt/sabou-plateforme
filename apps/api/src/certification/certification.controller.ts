@@ -12,6 +12,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Query,
@@ -35,6 +36,12 @@ import {
 } from '@sabou/types';
 import { parse, requireAppOrigin } from '../accounts/accounts.controller';
 import { readCookie, SESSION_COOKIE } from '../auth/auth.controller';
+import {
+  BEARER,
+  FIELD_AGENT_TOKEN_VERIFIER,
+  InvalidMobileTokenError,
+  type MobileTokenVerifier,
+} from '../auth/mobile-token';
 import { SESSION_STORE, type SessionData, type SessionStore } from '../auth/session.store';
 import { ENV, type Env } from '../config/env';
 import { ZoneContextError } from '../database/zone';
@@ -51,19 +58,34 @@ type SessionRequest = Request & { session?: SessionData };
 
 // Rôle composite de Keycloak porté par les 4 profils d'administration (§2.20)
 const ADMINISTRATOR_ROLE = 'administrateur';
+// Seul profil d'administration admis dans l'application mobile (CdC §8)
+const FIELD_AGENT_ROLE = 'admin_prefectoral';
 
 // Réservé aux administrateurs connectés avec leur second facteur (R-ACC-03). La zone n'est
-// pas contrôlée ici : la base l'applique (US-011). Une décision ne peut venir que de
-// l'application de gestion (en-tête Origin).
+// pas contrôlée ici : la base l'applique (US-011). Deux chemins :
+// - application de gestion : cookie de session, et décision venue de son origine (Origin) ;
+// - application mobile de l'agent préfectoral (US-082) : jeton « Bearer » du client
+//   « sabou-terrain » du domaine d'administration, avec second facteur (« otp » dans « amr »)
+//   et rôle préfectoral. Un en-tête présent mais refusé donne 401, sans retomber sur le
+//   cookie ; pas de contrôle d'origine pour un jeton, que le navigateur n'envoie jamais
+//   d'office (§2.29).
 @Injectable()
 export class AdministratorGuard implements CanActivate {
   constructor(
     @Inject(ENV) private readonly env: Env,
     @Inject(SESSION_STORE) private readonly sessions: SessionStore,
+    @Optional()
+    @Inject(FIELD_AGENT_TOKEN_VERIFIER)
+    private readonly fieldTokens?: MobileTokenVerifier,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<SessionRequest>();
+    const authorization = req.headers.authorization;
+    if (authorization !== undefined) {
+      req.session = await this.fieldAgent(authorization);
+      return true;
+    }
     requireAppOrigin(req, this.env);
     const id = readCookie(req, SESSION_COOKIE);
     const session = id ? await this.sessions.touch(id) : null;
@@ -73,6 +95,36 @@ export class AdministratorGuard implements CanActivate {
     }
     req.session = session;
     return true;
+  }
+
+  private async fieldAgent(authorization: string): Promise<SessionData> {
+    const token = BEARER.exec(authorization)?.[1];
+    if (!token || !this.fieldTokens) throw new UnauthorizedException();
+    let identity;
+    try {
+      identity = await this.fieldTokens.verify(token);
+    } catch (error) {
+      if (error instanceof InvalidMobileTokenError) throw new UnauthorizedException();
+      throw error;
+    }
+    if (
+      !identity.amr.includes('otp') ||
+      !identity.roles.includes(ADMINISTRATOR_ROLE) ||
+      !identity.roles.includes(FIELD_AGENT_ROLE)
+    ) {
+      throw new ForbiddenException();
+    }
+    // Même forme que la session de la gestion : le compte est relu en base à chaque requête
+    // (un compte suspendu est refusé aussitôt, US-013) et la zone est appliquée par la base
+    return {
+      sub: identity.sub,
+      username: '',
+      name: '',
+      roles: identity.roles,
+      secondFactor: true,
+      refreshToken: '',
+      createdAt: Date.now(),
+    };
   }
 }
 

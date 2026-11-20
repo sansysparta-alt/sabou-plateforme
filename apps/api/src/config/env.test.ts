@@ -46,6 +46,7 @@ describe('loadEnv', () => {
       SITE_CLIENT_ID: 'sabou-site',
       MOBILE_CLIENT_ID: 'sabou-mobile',
       API_AUDIENCE: 'sabou-api',
+      FIELD_CLIENT_ID: 'sabou-terrain',
       PUBLIC_AUDIT_CLIENT_ID: 'sabou-audit',
       INSCRIPTION_CLIENT_ID: 'sabou-inscription',
       TRUST_PROXY: 'loopback, linklocal, uniquelocal',
